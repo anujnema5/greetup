@@ -7,37 +7,60 @@ let redis: Redis | null = null;
 let pubClient: Redis | null = null;
 let subClient: Redis | null = null;
 
-/**
- * Connect Redis client
- */
 export const connectClient = (client: Redis, name: string) => {
     return new Promise((resolve, reject) => {
         client.on('connect', () => {
             logger.info(`[Redis] ✅ Connected (${name})`);
             resolve(true);
-        })
+        });
 
         client.on('error', (err) => {
+            if (name === 'sub-redis-client' && 
+                err.message?.includes('subscriber mode')) {
+                logger.debug(`[Redis] ℹ️ ${name} in subscriber mode (expected)`);
+                return;
+            }
+            
             logger.error(`[Redis] ❌ ${name} error:`, err);
-            reject(false);
-        })
-    })
-}
+            if (!client.status || client.status === 'connecting') {
+                reject(err);
+            }
+        });
 
-/**
- * Setup Redis clients
- */
+        client.on('ready', () => {
+            logger.debug(`[Redis] ${name} ready`);
+        });
+    });
+};
+
 export const setupRedis = async (url: string = REDIS_URL) => {
     try {
-        redis = new Redis(url);
-        pubClient = new Redis(url);
-        subClient = pubClient.duplicate();
+        // General client for normal operations
+        redis = new Redis(url, {
+            maxRetriesPerRequest: 3,
+            enableReadyCheck: true,
+            lazyConnect: false,
+        });
+
+        // Pub client for publishing messages
+        pubClient = new Redis(url, {
+            maxRetriesPerRequest: 3,
+            enableReadyCheck: true,
+            lazyConnect: false,
+        });
+
+        // Sub client - will be put into subscriber mode by Socket.IO adapter
+        subClient = new Redis(url, {
+            maxRetriesPerRequest: 3,
+            enableReadyCheck: true,
+            lazyConnect: false,
+        });
 
         await Promise.all([
             connectClient(redis, 'general-client'),
             connectClient(pubClient, 'pub-redis-client'),
             connectClient(subClient, 'sub-redis-client'),
-        ])
+        ]);
 
         logger.info("[Redis] 🚀 All clients connected");
     } catch (err) {
@@ -46,9 +69,6 @@ export const setupRedis = async (url: string = REDIS_URL) => {
     }
 };
 
-/**
- * Get general Redis instance
- */
 export const getRedis = (): Redis => {
     if (!redis) {
         throw new AppError("Redis not connected, call setupRedis first", 503, "CONFLICT");
@@ -56,17 +76,33 @@ export const getRedis = (): Redis => {
     return redis;
 };
 
-/**
- * Get pub/sub clients (for adapters like Socket.IO)
- */
 export const getPubSubClients = (): { pub: Redis; sub: Redis } => {
-    logger.info("[Redis] getPubSubClients called");
+    logger.debug("[Redis] getPubSubClients called");
 
     if (!pubClient || !subClient) {
-        console.error("[Redis] ❌ Pub/Sub clients not initialized. Did you forget to call setupRedis?");
+        logger.error("[Redis] ❌ Pub/Sub clients not initialized");
         throw new AppError("Pub/Sub clients not initialized, call setupRedis first", 503, "CONFLICT");
     }
 
-    logger.info("[Redis] ✅ Returning initialized Pub/Sub clients");
+    logger.debug("[Redis] ✅ Returning initialized Pub/Sub clients");
     return { pub: pubClient, sub: subClient };
+};
+
+export const disconnectRedis = async () => {
+    const clients = [
+        { client: redis, name: 'general-client' },
+        { client: pubClient, name: 'pub-client' },
+        { client: subClient, name: 'sub-client' },
+    ];
+
+    for (const { client, name } of clients) {
+        if (client) {
+            try {
+                await client.quit();
+                logger.info(`[Redis] 👋 Disconnected ${name}`);
+            } catch (err) {
+                logger.error(`[Redis] Error disconnecting ${name}:`, err);
+            }
+        }
+    }
 };
