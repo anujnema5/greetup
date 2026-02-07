@@ -11,21 +11,25 @@ export const interests = t.pgTable("interests", {
     category: t.text("category").notNull(),
     isActive: isActiveEnum("is_active").default("yes"),
     createdAt: t.timestamp("created_at").defaultNow().notNull()
-})
+});
 
 export const profileInterests = t.pgTable("profile_interests", {
     id: t.uuid("id").defaultRandom().primaryKey(),
-    interestId: t.uuid("interest_id").references(() => interests.id).notNull(),
-    profileId: t.uuid("profile_id").references(() => userProfiles.id).notNull(),
+    interestId: t.uuid("interest_id").references(() => interests.id, { onDelete: 'cascade' }).notNull(),
+    profileId: t.uuid("profile_id").references(() => userProfiles.id, { onDelete: 'cascade' }).notNull(),
     createdAt: t.timestamp("created_at").defaultNow().notNull(),
 }, (table) => [
     t.unique().on(table.interestId, table.profileId),
     t.index("profile_interests_profile_id_idx").on(table.profileId),
     t.index("profile_interests_interest_id_idx").on(table.interestId),
-])
+]);
 
 export const interestsRelations = relations(interests, ({ many }) => ({
-    profileInterests: many(profileInterests),
+    profiles: many(profileInterests),
+}));
+
+export const userProfilesRelations = relations(userProfiles, ({ many }) => ({
+    interests: many(profileInterests),
 }));
 
 export const profileInterestsRelations = relations(profileInterests, ({ one }) => ({
@@ -37,8 +41,4 @@ export const profileInterestsRelations = relations(profileInterests, ({ one }) =
         fields: [profileInterests.profileId],
         references: [userProfiles.id],
     }),
-}));
-
-export const userProfilesRelations = relations(userProfiles, ({ many }) => ({
-    profileInterests: many(profileInterests),
 }));
