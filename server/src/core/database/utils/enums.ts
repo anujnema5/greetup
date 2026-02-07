@@ -1,0 +1,1 @@
+export const yesNo = ["yes", "no"] as const;

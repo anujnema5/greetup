@@ -1,0 +1,37 @@
+{
+  "name": "server",
+  "type": "module",
+  "scripts": {
+    "dev": "docker compose -f ../docker-compose.dev.yml up -d postgres redis && tsx watch src/index.ts",
+    "debug": "tsx watch --inspect --env-file=.env src/index.ts",
+    "docker:dev": "docker compose up -d && tsx watch src/index.ts",
+    "db:generate": "drizzle-kit generate",
+    "db:migrate": "drizzle-kit migrate",
+    "db:studio": "drizzle-kit studio",
+    "db:seed": "tsx src/core/database/seed/index.ts",
+    "build": "tsc",
+    "start": "tsx src/index.ts",
+    "docker:up": "docker compose up -d"
+  },
+  "dependencies": {
+    "@hono/node-server": "^1.19.6",
+    "@socket.io/redis-adapter": "^8.3.0",
+    "better-auth": "^1.4.3",
+    "dotenv": "^17.2.3",
+    "drizzle-orm": "^0.45.1",
+    "drizzle-seed": "^0.3.1",
+    "hono": "^4.10.7",
+    "ioredis": "^5.8.2",
+    "pg": "^8.16.3",
+    "resend": "^6.5.2",
+    "socket.io": "^4.8.1",
+    "winston": "^3.18.3"
+  },
+  "devDependencies": {
+    "@types/node": "^24.10.1",
+    "@types/pg": "^8.15.6",
+    "drizzle-kit": "^0.31.8",
+    "tsx": "^4.20.6",
+    "typescript": "^5.9.3"
+  }
+}

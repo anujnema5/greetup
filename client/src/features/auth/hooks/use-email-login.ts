@@ -1,0 +1,62 @@
+import { useState, useCallback } from "react";
+import { useForm } from "react-hook-form";
+import { z } from "zod";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { EmailLoginInput, emailLoginSchema } from "../schemas/auth.schemas";
+import { authClient } from "@/lib/auth-client";
+import { toast } from "sonner";
+import { getAuthErrorMessage } from "../utils/auth-error";
+import { CURRENT_HOST } from "@/shared/constants";
+import { useRouter } from "next/navigation";
+
+export function useEmailLogin() {
+    const [isLoading, setIsLoading] = useState(false);
+    const router = useRouter();
+
+    const emailForm = useForm<EmailLoginInput>({
+        resolver: zodResolver(emailLoginSchema),
+        defaultValues: {
+            email: "",
+            password: "",
+        },
+    });
+
+    const handleEmailSubmit = useCallback(
+        async (values: EmailLoginInput) => {
+            setIsLoading(true);
+            try {
+                const res = await authClient.signIn.email({
+                    email: values.email,
+                    password: values.password,
+                    rememberMe: true,
+                    callbackURL: CURRENT_HOST,
+                })
+
+                if (res.error?.code === 'EMAIL_NOT_VERIFIED') {
+                    router.push(`/verify-email?email=${encodeURIComponent(values.email)}&from=login`);
+                    return;
+                }
+
+                if (res.error) {
+                    toast.error(getAuthErrorMessage(res.error));
+                    return;
+                }
+
+                if (res.data) {
+                    router.push('/profile-setup');
+                }
+            } catch {
+                return { success: false };
+            } finally {
+                setIsLoading(false);
+            }
+        },
+        []
+    );
+
+    return {
+        emailForm,
+        handleEmailSubmit,
+        isLoading,
+    };
+}
