@@ -121,7 +121,7 @@ export const usersRelations = relations(users, ({ one }) => ({
   }),
 }));
 
-// User Profile relations
+// User Profile relations (extended with goals, interests, etc. in schema/relations.ts)
 export const userProfilesRelations = relations(userProfiles, ({ one, many }) => ({
   user: one(users, {
     fields: [userProfiles.userId],

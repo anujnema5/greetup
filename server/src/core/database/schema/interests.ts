@@ -29,7 +29,7 @@ export const interestsRelations = relations(interests, ({ many }) => ({
     profiles: many(profileInterests),
 }));
 
-export const userProfilesRelations = relations(userProfiles, ({ many }) => ({
+export const userProfilesInterestsRelations = relations(userProfiles, ({ many }) => ({
     interests: many(profileInterests),
 }));
 
