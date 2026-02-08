@@ -8,6 +8,7 @@ export const isActiveEnum = t.pgEnum("is_active", yesNo);
 export const goals = t.pgTable("goals", {
     id: t.uuid("id").defaultRandom().primaryKey(),
     name: t.text("name").notNull().unique(),
+    displayName: t.varchar("display_name", { length: 100 }).notNull(),
     description: t.text("description"),
     isActive: isActiveEnum("is_active").default("yes"),
     createdAt: t.timestamp("created_at").defaultNow().notNull()

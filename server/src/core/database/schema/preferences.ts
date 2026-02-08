@@ -14,6 +14,7 @@ export const distancePreferenceEnum = t.pgEnum("distance_preference",
 export const connectionTypes = t.pgTable("connection_types", {
     id: t.uuid("id").defaultRandom().primaryKey(),
     name: t.text("name").notNull().unique(),
+    displayName: t.varchar("display_name", { length: 100 }).notNull(),
     description: t.text("description"),
     isActive: t.text("is_active").default("yes"),
     createdAt: t.timestamp("created_at").defaultNow().notNull()
