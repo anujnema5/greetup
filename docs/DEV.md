@@ -41,7 +41,7 @@ npm install
 npm run dev
 ```
 
-- App: `http://localhost:5173`
+- App: `http://localhost:3000`
 
 ---
 

@@ -1,5 +1,16 @@
 import { z } from "zod";
 
+const STEP_PAGE_SIZE_DEFAULT = 6;
+const STEP_PAGE_SIZE_MAX = 10;
+
+/** Query params for GET /setup-steps (step pagination) */
+export const fetchProfileStepsQuerySchema = z.object({
+  page: z.coerce.number().int().min(1).default(1),
+  limit: z.coerce.number().int().min(1).max(STEP_PAGE_SIZE_MAX).default(STEP_PAGE_SIZE_DEFAULT),
+});
+
+export type FetchProfileStepsQuery = z.infer<typeof fetchProfileStepsQuerySchema>;
+
 /* STEP 1 – Basic Identity */
 export const step1Schema = z.object({
   displayName: z.string().min(2).max(30),
