@@ -5,14 +5,14 @@
  * Related to: User (not Profile)
  */
 
-import { pgTable, text, timestamp, index, uuid } from "drizzle-orm/pg-core";
+import { pgTable, text, timestamp, index } from "drizzle-orm/pg-core";
 import { users } from "./users";
 
-// User sessions for authentication
+// User sessions for authentication (id is string from Better Auth)
 export const session = pgTable(
   "session",
   {
-    id: uuid("id").defaultRandom().primaryKey(),
+    id: text("id").primaryKey(),
     userId: text("user_id")
       .notNull()
       .references(() => users.id, { onDelete: "cascade" }),
@@ -29,11 +29,11 @@ export const session = pgTable(
   (table) => [index("session_userId_idx").on(table.userId)]
 );
 
-// OAuth and credential accounts
+// OAuth and credential accounts (id is string from Better Auth)
 export const account = pgTable(
   "account",
   {
-    id: uuid("id").defaultRandom().primaryKey(),
+    id: text("id").primaryKey(),
     userId: text("user_id")
       .notNull()
       .references(() => users.id, { onDelete: "cascade" }),
@@ -55,11 +55,11 @@ export const account = pgTable(
   (table) => [index("account_userId_idx").on(table.userId)]
 );
 
-// Email and phone verification codes
+// Email and phone verification codes (id is string from Better Auth)
 export const verification = pgTable(
   "verification",
   {
-    id: uuid("id").defaultRandom().primaryKey(),
+    id: text("id").primaryKey(),
     identifier: text("identifier").notNull(),
     value: text("value").notNull(),
     expiresAt: timestamp("expires_at").notNull(),

@@ -1,5 +1,16 @@
 import { z } from "zod";
 
+const STEP_PAGE_SIZE_DEFAULT = 6;
+const STEP_PAGE_SIZE_MAX = 10;
+
+/** Query params for GET /setup-steps (step pagination) */
+export const fetchProfileStepsQuerySchema = z.object({
+  page: z.coerce.number().int().min(1).default(1),
+  limit: z.coerce.number().int().min(1).max(STEP_PAGE_SIZE_MAX).default(STEP_PAGE_SIZE_DEFAULT),
+});
+
+export type FetchProfileStepsQuery = z.infer<typeof fetchProfileStepsQuerySchema>;
+
 /* STEP 1 – Basic Identity */
 export const step1Schema = z.object({
   displayName: z.string().min(2).max(30),
@@ -48,3 +59,81 @@ export const step4Schema = z.object({
 export const step5Schema = z.object({
   bio: z.string().max(150).optional(),
 });
+
+/** Request body schemas for POST /profile-setup (per-step save) - aligned with profile-steps.service */
+
+/* Step 1 – Basic Identity */
+export const saveStep1Schema = z.object({
+  displayName: z.string().min(2).max(100),
+  age: z.number().int().min(18).max(99),
+  gender: z.enum(["male", "female", "other"]),
+  country: z.object({
+    code: z.string().min(1),
+    name: z.string().min(1),
+  }),
+});
+
+/* Step 2 – Goals */
+export const saveStep2Schema = z.object({
+  goals: z.array(z.object({ id: z.string().uuid() })).min(1).max(10),
+});
+
+/* Step 3 – Interests */
+export const saveStep3Schema = z.object({
+  interests: z.array(z.object({ id: z.string().uuid() })).min(1).max(10),
+});
+
+/* Step 4 – Profession */
+export const saveStep4Schema = z.object({
+  profession: z
+    .object({
+      id: z.string().uuid(),
+      name: z.string().optional(),
+      category: z.string().optional(),
+    })
+    .nullable(),
+});
+
+/* Step 5 – Preferences */
+export const saveStep5Schema = z.object({
+  preferredGender: z.enum(["any", "male", "female", "others", "same"]).optional(),
+  distancePreference: z
+    .enum(["nearby", "same city", "same country", "random", "global"])
+    .optional(),
+  ageRange: z
+    .object({
+      min: z.number().int().min(18).max(99),
+      max: z.number().int().min(18).max(99),
+    })
+    .optional(),
+  connectionTypes: z
+    .array(z.object({ id: z.string().uuid() }))
+    .optional(),
+});
+
+/* Step 6 – Bio & Photos */
+export const saveStep6Schema = z.object({
+  bio: z.string().max(500).optional(),
+  photos: z
+    .array(
+      z.object({
+        id: z.string().uuid().optional(),
+        url: z.string().url(),
+        order: z.number().int().min(0).optional(),
+      })
+    )
+    .max(6)
+    .optional(),
+});
+
+const saveStepDataSchema = z.discriminatedUnion("step", [
+  z.object({ step: z.literal(1), data: saveStep1Schema }),
+  z.object({ step: z.literal(2), data: saveStep2Schema }),
+  z.object({ step: z.literal(3), data: saveStep3Schema }),
+  z.object({ step: z.literal(4), data: saveStep4Schema }),
+  z.object({ step: z.literal(5), data: saveStep5Schema }),
+  z.object({ step: z.literal(6), data: saveStep6Schema }),
+]);
+
+export const saveProfileSetupBodySchema = saveStepDataSchema;
+export type SaveProfileSetupBody = z.infer<typeof saveProfileSetupBodySchema>;

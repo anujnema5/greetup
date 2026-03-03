@@ -2,7 +2,7 @@ import { createAuthClient } from "better-auth/react"
 import { phoneNumberClient } from "better-auth/client/plugins"
 
 export const authClient = createAuthClient({
-    baseURL: "http://localhost:8080",
+    baseURL: "http://localhost:5050",
     fetchOptions: {
         credentials: "include"
     },

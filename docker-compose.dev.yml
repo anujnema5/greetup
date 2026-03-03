@@ -2,7 +2,7 @@ version: "3.9"
 
 services:
   postgres:
-    image: postgres:16
+    image: postgis/postgis:16-3.4 
     container_name: circlo_postgres
     restart: unless-stopped
     environment:
@@ -48,7 +48,7 @@ services:
       dockerfile: Dockerfile.dev
     container_name: circlo_client
     ports:
-      - "5173:5173"
+      - "3000:3000"
     volumes:
       - ./client:/app
       - /app/node_modules

@@ -14,7 +14,7 @@ const createApp = async () => {
     // Middlewares
     app.use(
         cors({
-            origin: ['http://localhost:3000', 'http://localhost:8080'],
+            origin: ['http://localhost:3000', 'http://localhost:5050'],
             allowHeaders: ['Content-Type', 'Authorization'],
             allowMethods: ['POST', 'GET', 'OPTIONS'],
             exposeHeaders: ['Content-Length'],

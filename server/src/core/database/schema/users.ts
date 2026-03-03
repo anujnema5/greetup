@@ -19,6 +19,7 @@ import {
   pgEnum,
   uuid
 } from "drizzle-orm/pg-core";
+import { relations } from "drizzle-orm";
 
 export const userBannedEnum = pgEnum('user_banned', [
   'yes',
@@ -27,7 +28,7 @@ export const userBannedEnum = pgEnum('user_banned', [
 ]);
 
 export const users = pgTable("users", {
-  id: uuid("id").defaultRandom().primaryKey(),
+  id: text("id").primaryKey(),
   name: text("name").notNull(),
   email: text("email").notNull().unique(),
   emailVerified: boolean("email_verified").default(false).notNull(),
@@ -63,6 +64,7 @@ export const userProfiles = pgTable("user_profiles", {
 
   profileCompletion: integer("profile_completion").default(0),
   trustScore: integer("trust_score").default(0),
+  isOnboarded: boolean("is_onboarded").default(false).notNull(),
 
   isPremium: boolean("is_premium").default(false),
   premiumExpiresAt: timestamp("premium_expires_at"),
@@ -76,7 +78,7 @@ export const userProfiles = pgTable("user_profiles", {
 
 export const userLocations = pgTable("user_locations", {
   id: uuid("id").defaultRandom().primaryKey(),
-  profileId: text("profile_id")
+  profileId: uuid("profile_id")
     .notNull()
     .unique()
     .references(() => userProfiles.id, { onDelete: "cascade" }),
@@ -103,7 +105,7 @@ export const userLocations = pgTable("user_locations", {
 
 export const userPhotos = pgTable("user_photos", {
   id: uuid("id").defaultRandom().primaryKey(),
-  profileId: text("profile_id")
+  profileId: uuid("profile_id")
     .notNull()
     .references(() => userProfiles.id, { onDelete: "cascade" }),
   photoUrl: text("photo_url").notNull(),
@@ -111,3 +113,40 @@ export const userPhotos = pgTable("user_photos", {
   isVerified: boolean("is_verified").default(false),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
+
+// User relations
+export const usersRelations = relations(users, ({ one }) => ({
+  profile: one(userProfiles, {
+    fields: [users.id],
+    references: [userProfiles.userId],
+  }),
+}));
+
+// User Profile relations (extended with goals, interests, etc. in schema/relations.ts)
+export const userProfilesRelations = relations(userProfiles, ({ one, many }) => ({
+  user: one(users, {
+    fields: [userProfiles.userId],
+    references: [users.id],
+  }),
+  location: one(userLocations, {
+    fields: [userProfiles.id],
+    references: [userLocations.profileId],
+  }),
+  photos: many(userPhotos),
+}));
+
+// User Location relations
+export const userLocationsRelations = relations(userLocations, ({ one }) => ({
+  profile: one(userProfiles, {
+    fields: [userLocations.profileId],
+    references: [userProfiles.id],
+  }),
+}));
+
+// User Photos relations
+export const userPhotosRelations = relations(userPhotos, ({ one }) => ({
+  profile: one(userProfiles, {
+    fields: [userPhotos.profileId],
+    references: [userProfiles.id],
+  }),
+}));

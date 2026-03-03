@@ -18,6 +18,7 @@ const auth = betterAuth({
     },
   }),
 
+
   plugins: [
     openAPI(),
 
@@ -32,6 +33,9 @@ const auth = betterAuth({
       },
     }),
   ],
+
+  // Let Better Auth generate user/session/account IDs (required when users.id has no DB default)
+  // advanced.database.generateId defaults to true; only set to false if your DB has DEFAULT on id columns
 
   signUpOnVerification: {
     getTempEmail: (phoneNumber: string) => {
@@ -94,7 +98,7 @@ const auth = betterAuth({
     },
   },
 
-  trustedOrigins: ["http://localhost:8080", "http://localhost:3000"],
+  trustedOrigins: ["http://localhost:5050", "http://localhost:3000"],
 
   emailVerification: {
     autoSignInAfterVerification: true,

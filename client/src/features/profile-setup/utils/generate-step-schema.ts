@@ -20,7 +20,8 @@ export const generateStepSchema = (fields: any[]) => {
                 if (field.required) {
                     fieldSchema = fieldSchema.min(1, `${field.label} is required`);
                 } else {
-                    fieldSchema = fieldSchema.optional();
+                    // Allow empty string, null, undefined for optional fields
+                    fieldSchema = fieldSchema.optional().nullable();
                 }
                 break;
             }
@@ -162,13 +163,30 @@ export const getStepDefaultValues = (fields: any[]): Record<string, any> => {
                 break;
 
             case 'select':
-            case 'radio':
-                defaults[field.key] = field.value || '';
+            case 'radio': {
+                const raw = field.value;
+                // When options are objects (e.g. profession), backend sends { id, name, category };
+                // Select expects string (option id) to match SelectItem value
+                const normalized =
+                    raw &&
+                    typeof raw === 'object' &&
+                    !Array.isArray(raw) &&
+                    'id' in raw
+                        ? String((raw as { id: string }).id)
+                        : raw || '';
+                defaults[field.key] = normalized;
                 break;
+            }
 
-            case 'multi-select':
-                defaults[field.key] = field.value || [];
+            case 'multi-select': {
+                const raw = field.value || [];
+                // Normalize: server may send [{ id, name }]; form expects string[] (ids)
+                const normalized = Array.isArray(raw) && raw.length > 0 && typeof raw[0] === 'object' && raw[0] !== null && 'id' in raw[0]
+                    ? raw.map((o: { id?: string }) => o?.id).filter(Boolean)
+                    : raw;
+                defaults[field.key] = normalized;
                 break;
+            }
 
             case 'toggle':
                 defaults[field.key] = field.value !== undefined ? field.value : false;
