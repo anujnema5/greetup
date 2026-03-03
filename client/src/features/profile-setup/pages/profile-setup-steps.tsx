@@ -1,5 +1,6 @@
 'use client'
 import { useFormContext } from 'react-hook-form'
+import { useRouter } from 'next/navigation'
 
 import {
   Form,
@@ -36,7 +37,8 @@ import {
 import { Badge } from '@/components/ui/badge'
 import { useProfileSetup } from '../provider'
 import { firstLetterCapital } from '@/shared/utils/general'
-import { CheckCircle2, Circle, Sparkles } from 'lucide-react'
+import { CheckCircle2, Circle, LogOut, Sparkles } from 'lucide-react'
+import { signOut } from '@/lib/auth-client'
 import { CountryDropdown, type Country } from '@/components/ui/country-dropdown'
 import { generateKey } from '../utils'
 
@@ -62,6 +64,7 @@ const Logo = ({ className }: { className?: string }) => {
 }
 
 const ProfileSetupStep = () => {
+  const router = useRouter()
   const {
     currentStepData,
     onContinue,
@@ -71,9 +74,15 @@ const ProfileSetupStep = () => {
     currentStep,
     totalSteps,
     isLoading,
+    isSaving,
   } = useProfileSetup()
 
   const form = useFormContext()
+
+  const handleLogout = async () => {
+    await signOut()
+    router.push('/login')
+  }
 
   if (isLoading || !currentStepData) {
     return (
@@ -536,16 +545,17 @@ const ProfileSetupStep = () => {
               <Button
                 variant="ghost"
                 onClick={onBack}
-                disabled={isFirstStep}
+                disabled={isFirstStep || isSaving}
                 className="text-muted-foreground min-w-0"
               >
                 Back
               </Button>
               <Button
                 onClick={onContinue}
+                disabled={isSaving}
                 className="min-w-[120px] sm:min-w-[140px]"
               >
-                {isLastStep ? 'Complete' : 'Next'}
+                {isSaving ? 'Saving...' : isLastStep ? 'Complete' : 'Next'}
               </Button>
             </div>
           </div>
@@ -570,9 +580,20 @@ const ProfileSetupStep = () => {
         </div>
 
         {/* Footer */}
-        <p className="text-center text-xs text-muted-foreground mt-4 pb-2">
-          All your information is secure and private
-        </p>
+        <div className="flex flex-col items-center gap-3 mt-4 pb-2">
+          <p className="text-center text-xs text-muted-foreground">
+            All your information is secure and private
+          </p>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={handleLogout}
+            className="text-muted-foreground hover:text-foreground text-xs"
+          >
+            <LogOut className="mr-1.5 h-3.5 w-3.5" />
+            Log out
+          </Button>
+        </div>
       </div>
     </div>
   )

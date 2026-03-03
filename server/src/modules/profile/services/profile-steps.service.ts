@@ -15,6 +15,8 @@ export interface FetchProfileStepsParams {
   userId: string;
   page?: number;
   limit?: number;
+  /** When true, always recalculate from profile data instead of using stored profileCompletion (fixes 0 being treated as valid) */
+  forceRecalculate?: boolean;
 }
 
 export interface FetchProfileStepsResult {
@@ -273,15 +275,14 @@ function buildSteps(profile: ProfileForSteps | undefined, options: StepOptions):
 }
 
 /**
- * Calculate profile completion from required fields in steps (0–100).
+ * Calculate profile completion from all fields in all steps (0–100).
+ * Counts every question, not just required ones.
  */
 function calculateCompletion(steps: FormStep[]): number {
   let total = 0;
   let filled = 0;
   for (const step of steps) {
-    if (step.optional) continue;
     for (const field of step.fields) {
-      if (!field.required) continue;
       total++;
       const v = field.value;
       if (
@@ -304,7 +305,7 @@ function calculateCompletion(steps: FormStep[]): number {
 export async function fetchProfileStepsService(
   params: FetchProfileStepsParams
 ): Promise<FetchProfileStepsResult> {
-  const { userId, page = 1, limit = STEP_PAGE_SIZE_DEFAULT } = params;
+  const { userId, page = 1, limit = STEP_PAGE_SIZE_DEFAULT, forceRecalculate } = params;
 
   const safePage = Math.max(1, Math.floor(page));
   const safeLimit = Math.min(
@@ -323,8 +324,12 @@ export async function fetchProfileStepsService(
   const start = (safePage - 1) * safeLimit;
   const steps = allSteps.slice(start, start + safeLimit);
 
+  // When forceRecalculate or profileCompletion is null/undefined, use calculated value.
+  // Important: profileCompletion can be 0 from DB default - 0 ?? calculated returns 0, so we must force recalc on save.
   const profileCompletion =
-    profile?.profileCompletion ?? calculateCompletion(allSteps);
+    forceRecalculate || profile?.profileCompletion == null
+      ? calculateCompletion(allSteps)
+      : profile.profileCompletion;
   const isProfileComplete = profileCompletion >= PROFILE_COMPLETE_THRESHOLD;
 
   return {

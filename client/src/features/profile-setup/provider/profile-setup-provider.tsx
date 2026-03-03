@@ -7,13 +7,18 @@ import {
   useCallback,
   useMemo,
 } from 'react'
+import { useRouter } from 'next/navigation'
 import type { ProfileSetupProvider as TProfileSetupProvider } from '../types'
-import { useGetProfileSetupStepsQuery } from '../components/profile-setup-api'
+import {
+  useGetProfileSetupStepsQuery,
+  useSaveProfileSetupMutation,
+} from '../components/profile-setup-api'
 import { useForm, FormProvider } from 'react-hook-form'
 import {
   generateStepSchema,
   getStepDefaultValues,
 } from '../utils/generate-step-schema'
+import { transformStepToApiPayload } from '../utils/transform-step-to-api'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 
@@ -27,11 +32,13 @@ export const ProfileSetupProvider: React.FC<ProfileSetupProviderProps> = ({
   children,
 }) => {
   const { data, isLoading } = useGetProfileSetupStepsQuery()
+  const [saveProfileSetup, { isPending: isSaving }] = useSaveProfileSetupMutation()
 
   const [currentStep, setCurrentStep] = useState(1)
   const [steps, setSteps] = useState<any[]>([])
   const [allFormData, setAllFormData] = useState<Record<string, any>>({})
   const [isInitialized, setIsInitialized] = useState(false)
+  const router = useRouter();
 
   // Get current step data
   const currentStepData = useMemo(
@@ -94,36 +101,34 @@ export const ProfileSetupProvider: React.FC<ProfileSetupProviderProps> = ({
       return
     }
 
-    // Get current form values
+    // Get current form values and merge with all form data
     const currentValues = methods.getValues()
-
-    // Update all form data
     const updatedData = { ...allFormData, ...currentValues }
     setAllFormData(updatedData)
 
-    // If last step, submit the form
-    if (currentStep === steps.length) {
-      try {
-        const response = await fetch('/api/profile/setup', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(updatedData),
-        })
+    try {
+      const payload = transformStepToApiPayload(currentStep, updatedData)
+      const result = await saveProfileSetup(payload).unwrap()
 
-        if (response.ok) {
-          console.log('Profile setup complete!', updatedData)
-          // Handle success (redirect, etc.)
-        } else {
-          console.error('Failed to submit profile')
-        }
-      } catch (error) {
-        console.error('Error submitting profile:', error)
+      if (currentStep === steps.length) {
+        // Last step completed – go to dashboard
+        const destination = '/'
+        router.push(destination)
+      } else {
+        setCurrentStep((prev) => prev + 1)
       }
-    } else {
-      // Move to next step
-      setCurrentStep((prev) => prev + 1)
+    } catch (error) {
+      console.error('Failed to save profile step:', error)
+      // RTK Query throws on error; you can show toast/alert here
     }
-  }, [currentStepData, currentStep, steps.length, allFormData, methods])
+  }, [
+    currentStepData,
+    currentStep,
+    steps.length,
+    allFormData,
+    methods,
+    saveProfileSetup,
+  ])
 
   const onBack = useCallback(() => {
     if (currentStep > 1) {
@@ -147,6 +152,7 @@ export const ProfileSetupProvider: React.FC<ProfileSetupProviderProps> = ({
         isLastStep: currentStep === steps.length,
         isFirstStep: currentStep === 1,
         isLoading: isLoading || !isInitialized,
+        isSaving,
         allFormData,
       }}
     >

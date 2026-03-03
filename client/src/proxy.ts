@@ -11,14 +11,16 @@ const PUBLIC_ROUTES = [
 ];
 
 const PROTECTED_ROUTES = [
-  // "/dashboard",
+  "/",
   "/profile",
   "/settings",
   "/profile-setup",
 ];
 
+/** Routes that require onboarding to be complete */
+const ONBOARDING_REQUIRED_ROUTES = ["/", "/profile", "/settings"];
+
 const COMMON_ROUTES = [
-  "/",
   "/about",
   "/contact",
   "/pricing",
@@ -33,6 +35,7 @@ const COMMON_ROUTES = [
 // ==================== CACHE CONFIGURATION ====================
 interface CacheEntry {
   isLoggedIn: boolean;
+  isOnboarded?: boolean;
   timestamp: number;
   inProgress?: Promise<boolean>;
 }
@@ -69,16 +72,36 @@ export async function proxy(req: NextRequest) {
 
   // Redirect logged-in users away from public routes
   if (isLoggedIn && PUBLIC_ROUTES.includes(pathname)) {
-    return NextResponse.redirect(new URL("/profile-setup", req.url));
+    const isOnboarded = await checkOnboardingWithCache(req, pathname);
+    const redirectUrl = isOnboarded ? "/" : "/profile-setup";
+    return NextResponse.redirect(new URL(redirectUrl, req.url));
   }
 
   // Redirect non-logged-in users away from protected routes
   if (!isLoggedIn && isProtectedRoute(pathname)) {
     const loginUrl = new URL("/login", req.url);
-    if (pathname !== "/") {
-      loginUrl.searchParams.set("redirect", pathname);
-    }
+    loginUrl.searchParams.set("redirect", pathname);
     return NextResponse.redirect(loginUrl);
+  }
+
+  // Redirect onboarded users away from profile-setup (they're done)
+  if (isLoggedIn && pathname === "/profile-setup") {
+    const isOnboarded = await checkOnboardingWithCache(req, pathname);
+    if (isOnboarded) {
+      return NextResponse.redirect(new URL("/", req.url));
+    }
+  }
+
+  // Redirect logged-in but not-onboarded users away from onboarding-required routes
+  if (
+    isLoggedIn &&
+    isOnboardingRequiredRoute(pathname) &&
+    pathname !== "/profile-setup"
+  ) {
+    const isOnboarded = await checkOnboardingWithCache(req, pathname);
+    if (!isOnboarded) {
+      return NextResponse.redirect(new URL("/profile-setup", req.url));
+    }
   }
 
   const response = NextResponse.next();
@@ -101,7 +124,15 @@ function shouldSkipProxy(pathname: string): boolean {
 }
 
 function isProtectedRoute(pathname: string): boolean {
-  return PROTECTED_ROUTES.some((route) => pathname.startsWith(route));
+  return PROTECTED_ROUTES.some((route) =>
+    route === "/" ? pathname === "/" : pathname.startsWith(route)
+  );
+}
+
+function isOnboardingRequiredRoute(pathname: string): boolean {
+  return ONBOARDING_REQUIRED_ROUTES.some((route) =>
+    route === "/" ? pathname === "/" : pathname.startsWith(route)
+  );
 }
 
 function isCommonRoute(pathname: string): boolean {
@@ -303,6 +334,55 @@ async function performAuthCheck(
     }
 
     throw error;
+  }
+}
+
+// ==================== ONBOARDING CHECK ====================
+
+async function checkOnboardingWithCache(
+  req: NextRequest,
+  pathname?: string
+): Promise<boolean> {
+  const sessionToken = req.cookies.get("better-auth.session_token")?.value;
+  if (!sessionToken) return false;
+
+  const cached = sessionCache.get(sessionToken);
+  const now = Date.now();
+  // Skip cache when navigating to dashboard with cached false – user may have just completed onboarding
+  const skipCacheForFreshCheck =
+    pathname === "/" && cached?.isOnboarded === false;
+  if (
+    !skipCacheForFreshCheck &&
+    cached?.isOnboarded !== undefined &&
+    now - cached.timestamp < CACHE_TTL
+  ) {
+    return cached.isOnboarded;
+  }
+
+  const apiBaseUrl = API_BASE_URL;
+  if (!apiBaseUrl) return false;
+
+  try {
+    const res = await fetch(`${apiBaseUrl}/profile/onboarding-status`, {
+      method: "GET",
+      headers: {
+        cookie: req.headers.get("cookie") ?? "",
+        "Content-Type": "application/json",
+      },
+      credentials: "include",
+    });
+
+    if (!res.ok) return false;
+    const data = await res.json();
+    const isOnboarded = !!data?.data?.isOnboarded;
+
+    const entry = cached ?? { isLoggedIn: true, timestamp: now };
+    entry.isOnboarded = isOnboarded;
+    entry.timestamp = now;
+    sessionCache.set(sessionToken, entry);
+    return isOnboarded;
+  } catch {
+    return false;
   }
 }
 
