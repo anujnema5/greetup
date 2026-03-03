@@ -111,8 +111,8 @@ export const ProfileSetupProvider: React.FC<ProfileSetupProviderProps> = ({
       const result = await saveProfileSetup(payload).unwrap()
 
       if (currentStep === steps.length) {
-        // Last step completed – go to dashboard if onboarded, else language selection
-        const destination = result?.data?.isOnboarded ? '/' : '/select-language'
+        // Last step completed – go to dashboard
+        const destination = '/'
         router.push(destination)
       } else {
         setCurrentStep((prev) => prev + 1)

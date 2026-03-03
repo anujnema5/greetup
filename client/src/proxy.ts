@@ -15,11 +15,10 @@ const PROTECTED_ROUTES = [
   "/profile",
   "/settings",
   "/profile-setup",
-  "/select-language",
 ];
 
 /** Routes that require onboarding to be complete */
-const ONBOARDING_REQUIRED_ROUTES = ["/", "/profile", "/settings", "/select-language"];
+const ONBOARDING_REQUIRED_ROUTES = ["/", "/profile", "/settings"];
 
 const COMMON_ROUTES = [
   "/about",
@@ -349,11 +348,9 @@ async function checkOnboardingWithCache(
 
   const cached = sessionCache.get(sessionToken);
   const now = Date.now();
-  // Skip cache when navigating to select-language/dashboard with cached false – user may have just completed onboarding
+  // Skip cache when navigating to dashboard with cached false – user may have just completed onboarding
   const skipCacheForFreshCheck =
-    pathname &&
-    ["/select-language", "/"].includes(pathname) &&
-    cached?.isOnboarded === false;
+    pathname === "/" && cached?.isOnboarded === false;
   if (
     !skipCacheForFreshCheck &&
     cached?.isOnboarded !== undefined &&
