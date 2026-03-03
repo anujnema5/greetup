@@ -166,9 +166,15 @@ export const getStepDefaultValues = (fields: any[]): Record<string, any> => {
                 defaults[field.key] = field.value || '';
                 break;
 
-            case 'multi-select':
-                defaults[field.key] = field.value || [];
+            case 'multi-select': {
+                const raw = field.value || [];
+                // Normalize: server may send [{ id, name }]; form expects string[] (ids)
+                const normalized = Array.isArray(raw) && raw.length > 0 && typeof raw[0] === 'object' && raw[0] !== null && 'id' in raw[0]
+                    ? raw.map((o: { id?: string }) => o?.id).filter(Boolean)
+                    : raw;
+                defaults[field.key] = normalized;
                 break;
+            }
 
             case 'toggle':
                 defaults[field.key] = field.value !== undefined ? field.value : false;

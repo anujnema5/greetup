@@ -1,39 +1,68 @@
 import "dotenv/config";
 import { db } from "@/core/database";
-import { goals } from "@/core/database/schema/goals";
-import { interests } from "@/core/database/schema/interests";
-import { professions } from "@/core/database/schema/professions";
-import { moods, lookingForOptions } from "@/core/database/schema/current-status";
-import { connectionTypes } from "@/core/database/schema/preferences";
+import {
+  goals,
+  profileGoals,
+  interests,
+  profileInterests,
+  professions,
+  profileProfessions,
+  moods,
+  lookingForOptions,
+  currentStatusMoods,
+  currentStatusLookingFor,
+  connectionTypes,
+  profileConnectionTypes,
+} from "@/core/database/schema";
 
 async function seed() {
   console.log("🌱 Seeding database...");
 
-  // Goals
-  await db.insert(goals).values([
-    { name: "make_friends", displayName: "Make friends", description: "Find and connect with new people", isActive: "yes" },
-    { name: "networking", displayName: "Networking", description: "Expand professional network", isActive: "yes" },
-    { name: "dating", displayName: "Dating", description: "Find romantic connections", isActive: "yes" },
-    { name: "practice_language", displayName: "Practice a language", description: "Improve language skills through conversation", isActive: "yes" },
-    { name: "share_ideas", displayName: "Share ideas", description: "Discuss and exchange ideas", isActive: "yes" },
-    { name: "casual_chat", displayName: "Casual chat", description: "Light conversation and company", isActive: "yes" },
-  ]).onConflictDoNothing({ target: goals.name });
+  // ─── 1. Clear dependent (junction) tables first (foreign keys reference lookup tables) ───
+  console.log("Clearing dependent tables...");
+  await db.delete(profileGoals);
+  await db.delete(profileInterests);
+  await db.delete(profileProfessions);
+  await db.delete(currentStatusMoods);
+  await db.delete(currentStatusLookingFor);
+  await db.delete(profileConnectionTypes);
 
-  // Interests (with categories)
+  // ─── 2. Clear lookup tables ───
+  console.log("Clearing lookup tables...");
+  await db.delete(goals);
+  await db.delete(interests);
+  await db.delete(professions);
+  await db.delete(moods);
+  await db.delete(lookingForOptions);
+  await db.delete(connectionTypes);
+
+  // ─── 3. Fresh insert lookup data ───
+
+  // Goals (emoji served from backend; no static images on frontend)
+  await db.insert(goals).values([
+    { name: "make_friends", displayName: "Make friends", description: "Find and connect with new people", emoji: "🤝", isActive: "yes" },
+    { name: "networking", displayName: "Networking", description: "Expand professional network", emoji: "📊", isActive: "yes" },
+    { name: "dating", displayName: "Dating", description: "Find romantic connections", emoji: "❤️", isActive: "yes" },
+    { name: "practice_language", displayName: "Practice a language", description: "Improve language skills through conversation", emoji: "🗣️", isActive: "yes" },
+    { name: "share_ideas", displayName: "Share ideas", description: "Discuss and exchange ideas", emoji: "💡", isActive: "yes" },
+    { name: "casual_chat", displayName: "Casual chat", description: "Light conversation and company", emoji: "💬", isActive: "yes" },
+  ]);
+
+  // Interests (with categories; emoji from backend for profile-setup cards)
   await db.insert(interests).values([
-    { name: "music", displayName: "Music", category: "arts", isActive: "yes" },
-    { name: "travel", displayName: "Travel", category: "lifestyle", isActive: "yes" },
-    { name: "gaming", displayName: "Gaming", category: "entertainment", isActive: "yes" },
-    { name: "reading", displayName: "Reading", category: "arts", isActive: "yes" },
-    { name: "fitness", displayName: "Fitness", category: "lifestyle", isActive: "yes" },
-    { name: "cooking", displayName: "Cooking", category: "lifestyle", isActive: "yes" },
-    { name: "photography", displayName: "Photography", category: "arts", isActive: "yes" },
-    { name: "technology", displayName: "Technology", category: "career", isActive: "yes" },
-    { name: "movies", displayName: "Movies", category: "entertainment", isActive: "yes" },
-    { name: "sports", displayName: "Sports", category: "lifestyle", isActive: "yes" },
-    { name: "art", displayName: "Art", category: "arts", isActive: "yes" },
-    { name: "startups", displayName: "Startups", category: "career", isActive: "yes" },
-  ]).onConflictDoNothing();
+    { name: "music", displayName: "Music", category: "arts", emoji: "🎵", isActive: "yes" },
+    { name: "travel", displayName: "Travel", category: "lifestyle", emoji: "✈️", isActive: "yes" },
+    { name: "gaming", displayName: "Gaming", category: "entertainment", emoji: "🎮", isActive: "yes" },
+    { name: "reading", displayName: "Reading", category: "arts", emoji: "📖", isActive: "yes" },
+    { name: "fitness", displayName: "Fitness", category: "lifestyle", emoji: "💪", isActive: "yes" },
+    { name: "cooking", displayName: "Cooking", category: "lifestyle", emoji: "🍳", isActive: "yes" },
+    { name: "photography", displayName: "Photography", category: "arts", emoji: "📷", isActive: "yes" },
+    { name: "technology", displayName: "Technology", category: "career", emoji: "💻", isActive: "yes" },
+    { name: "movies", displayName: "Movies", category: "entertainment", emoji: "🎬", isActive: "yes" },
+    { name: "sports", displayName: "Sports", category: "lifestyle", emoji: "⚽", isActive: "yes" },
+    { name: "art", displayName: "Art", category: "arts", emoji: "🎨", isActive: "yes" },
+    { name: "startups", displayName: "Startups", category: "career", emoji: "🚀", isActive: "yes" },
+  ]);
 
   // Professions (with categories and displayName)
   await db.insert(professions).values([
@@ -49,7 +78,7 @@ async function seed() {
     { name: "consultant", displayName: "Consultant", category: "business", isActive: "yes" },
     { name: "artist", displayName: "Artist", category: "creative", isActive: "yes" },
     { name: "researcher", displayName: "Researcher", category: "academia", isActive: "yes" },
-  ]).onConflictDoNothing();
+  ]);
 
   // Moods
   await db.insert(moods).values([
@@ -63,7 +92,7 @@ async function seed() {
     { name: "open", displayName: "Open", description: "Open to anything" },
     { name: "tired", displayName: "Tired", description: "Low energy, winding down" },
     { name: "inspired", displayName: "Inspired", description: "Feeling inspired" },
-  ]).onConflictDoNothing({ target: moods.name });
+  ]);
 
   // Looking for options (what user is looking for in a session)
   await db.insert(lookingForOptions).values([
@@ -77,15 +106,15 @@ async function seed() {
     { name: "support", displayName: "Support", description: "Emotional support" },
     { name: "debate", displayName: "Debate", description: "Friendly debate or discussion" },
     { name: "networking", displayName: "Networking", description: "Professional networking" },
-  ]).onConflictDoNothing({ target: lookingForOptions.name });
+  ]);
 
-  // Connection types (preference lookup)
+  // Connection types (preference lookup; emoji from backend for profile-setup cards)
   await db.insert(connectionTypes).values([
-    { name: "voice", displayName: "Voice call", description: "Prefer voice conversation", isActive: "yes" },
-    { name: "video", displayName: "Video call", description: "Prefer video conversation", isActive: "yes" },
-    { name: "text", displayName: "Text chat", description: "Prefer text-based chat", isActive: "yes" },
-    { name: "any", displayName: "Any", description: "Flexible with connection type", isActive: "yes" },
-  ]).onConflictDoNothing({ target: connectionTypes.name });
+    { name: "voice", displayName: "Voice call", description: "Prefer voice conversation", emoji: "🎙️", isActive: "yes" },
+    { name: "video", displayName: "Video call", description: "Prefer video conversation", emoji: "📹", isActive: "yes" },
+    { name: "text", displayName: "Text chat", description: "Prefer text-based chat", emoji: "💬", isActive: "yes" },
+    { name: "any", displayName: "Any", description: "Flexible with connection type", emoji: "✨", isActive: "yes" },
+  ]);
 
   console.log("✅ Seed completed: goals, interests, professions, moods, lookingForOptions, connectionTypes");
 }

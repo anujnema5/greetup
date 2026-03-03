@@ -1,12 +1,5 @@
 'use client'
 import { useFormContext } from 'react-hook-form'
-import Image from 'next/image'
-import CC from '../../../../public/assets/casualchat.png'
-import dating from '../../../../public/assets/dating.png'
-import friends from '../../../../public/assets/friends.png'
-import idea from '../../../../public/assets/idea.png'
-import networking from '../../../../public/assets/networking.png'
-import practiceLang from '../../../../public/assets/pl.png'
 
 import {
   Form,
@@ -46,14 +39,9 @@ import { firstLetterCapital } from '@/shared/utils/general'
 import { CheckCircle2, Circle, Sparkles } from 'lucide-react'
 import { CountryDropdown, type Country } from '@/components/ui/country-dropdown'
 import { generateKey } from '../utils'
-const OPTION_IMAGES = [
-  CC, // Casual chat
-  dating, // Dating
-  friends, // Make friends
-  networking, // Networking
-  practiceLang, // Practice a language
-  idea, // Share ideas
-]
+
+/** Fallback emoji when backend doesn't send one (e.g. legacy data). */
+const DEFAULT_OPTION_EMOJI = '✨'
 
 const Logo = ({ className }: { className?: string }) => {
   return (
@@ -278,7 +266,11 @@ const ProfileSetupStep = () => {
 
                   {/* CARD GRID */}
                   <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
-                    {field.options?.map((option: any, index: number) => {
+                    {(field.options ?? []).length === 0 ? (
+                      <p className="col-span-full text-sm text-muted-foreground py-4 text-center">
+                        No options available right now. Please refresh the page or try again later.
+                      </p>
+                    ) : (field.options ?? []).map((option: any, index: number) => {
                       const value = getOptionValue(option)
                       const label = getOptionLabel(option)
                       const checked = isChecked(option)
@@ -306,17 +298,9 @@ const ProfileSetupStep = () => {
                             className="hidden"
                           />
 
-                          {/* Emoji / Icon */}
-                          {/* {option.emoji && (
-                            <div className="text-3xl">{option.emoji}</div>
-                          )} */}
-                          <div className="h-12 w-12 flex items-center justify-center">
-                            <Image
-                              src={OPTION_IMAGES[index] ?? CC}
-                              alt={label}
-                              className="object-contain"
-                              priority
-                            />
+                          {/* Emoji from backend (no static images) */}
+                          <div className="flex h-12 w-12 items-center justify-center text-3xl" aria-hidden>
+                            {option.emoji ?? DEFAULT_OPTION_EMOJI}
                           </div>
 
                           {/* Title */}
@@ -500,94 +484,93 @@ const ProfileSetupStep = () => {
     return 'col-span-full md:col-span-1'
   }
 
+  const progressPercent = totalSteps ? Math.round((currentStep / totalSteps) * 100) : 0
+
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background px-4">
-      <div className="w-full max-w-xl space-y-4">
-        {/* Logo */}
-        <div className="flex justify-center mt-4">
-          <Logo />
-        </div>
+    <div className="min-h-screen flex items-center justify-center bg-muted/30 px-4 py-6 sm:py-8">
+      <div className="w-full max-w-2xl">
+        {/* Card container */}
+        <div className="rounded-2xl border border-border bg-card shadow-sm overflow-hidden">
+          {/* Progress bar - top of card */}
+          <div className="h-1 w-full bg-muted">
+            <div
+              className="h-full bg-primary transition-all duration-300 ease-out"
+              style={{ width: `${progressPercent}%` }}
+            />
+          </div>
 
-        {/* Heading */}
-        <div className="text-center">
-          <h1 className="text-3xl sm:text-5xl font-bold text-foreground uppercase">
-            {currentStepData.title}
-          </h1>
-          {currentStepData.description && (
-            <p className="text-muted-foreground text-sm">
-              {currentStepData.description}
+          <div className="p-6 sm:p-8 lg:p-10 space-y-6 sm:space-y-8">
+            {/* Logo */}
+            <div className="flex justify-center">
+              <Logo className="scale-90 sm:scale-100" />
+            </div>
+
+            {/* Step label */}
+            <p className="text-center text-xs font-medium text-muted-foreground uppercase tracking-wider">
+              Step {currentStep} of {totalSteps}
             </p>
-          )}
+
+            {/* Heading */}
+            <div className="text-center space-y-2">
+              <h1 className="text-2xl sm:text-3xl font-semibold text-foreground tracking-tight">
+                {currentStepData.title}
+              </h1>
+              {currentStepData.description && (
+                <p className="text-muted-foreground text-sm max-w-md mx-auto">
+                  {currentStepData.description}
+                </p>
+              )}
+            </div>
+
+            {/* Form */}
+            <Form {...form}>
+              <div className="space-y-5 sm:space-y-6">
+                {currentStepData.fields.map((field: any) => (
+                  <div key={field.key}>{renderField(field)}</div>
+                ))}
+              </div>
+            </Form>
+
+            {/* Actions */}
+            <div className="flex items-center justify-between gap-3 pt-2">
+              <Button
+                variant="ghost"
+                onClick={onBack}
+                disabled={isFirstStep}
+                className="text-muted-foreground min-w-0"
+              >
+                Back
+              </Button>
+              <Button
+                onClick={onContinue}
+                className="min-w-[120px] sm:min-w-[140px]"
+              >
+                {isLastStep ? 'Complete' : 'Next'}
+              </Button>
+            </div>
+          </div>
         </div>
 
-        {/* Form */}
-        <Form {...form}>
-          <div className="space-y-4">
-            {currentStepData.fields.map((field: any) => (
-              <div key={field.key}>{renderField(field)}</div>
-            ))}
-          </div>
-        </Form>
-
-        {/* Actions */}
-        <div className="flex items-center justify-between">
-          <Button
-            variant="ghost"
-            onClick={onBack}
-            disabled={isFirstStep}
-            className="text-muted-foreground"
-          >
-            Back
-          </Button>
-
-          <Button onClick={onContinue} className="px-4 text-xs">
-            {isLastStep ? 'Complete' : 'Next'}
-          </Button>
-        </div>
-
-        {/* Progress Dots (ElevenLabs style) */}
-
-        <div className="flex flex-col items-center gap-2">
-          {/* Optional percentage text */}
-          <span
-            className="
-    text-black
-    bg-primary
-    text-center
-    text-xs
-    font-semibold
-    px-10 
-    flex
-    rounded-full
-    items-center
-    justify-center
-    shadow
-    "
-          >
-            {Math.round((currentStep / totalSteps) * 100)}%
-          </span>
-
-          <div className="flex gap-1.5">
-            {Array.from({ length: totalSteps }).map((_, index) => {
-              const step = index + 1
-              return (
-                <span
-                  key={step}
-                  className={`h-0.5 w-3 rounded-t-full transition-all ${
-                    step === currentStep
-                      ? 'bg-foreground scale-125'
-                      : step < currentStep
-                        ? 'bg-foreground/60'
-                        : 'bg-muted'
-                  }`}
-                />
-              )
-            })}
-          </div>
+        {/* Progress dots */}
+        <div className="flex justify-center gap-1.5 mt-4">
+          {Array.from({ length: totalSteps }).map((_, index) => {
+            const step = index + 1
+            return (
+              <span
+                key={step}
+                className={cn(
+                  'h-1 w-6 sm:w-8 rounded-full transition-all',
+                  step === currentStep && 'bg-primary scale-110',
+                  step < currentStep && 'bg-primary/70',
+                  step > currentStep && 'bg-muted',
+                )}
+              />
+            )
+          })}
         </div>
 
         {/* Footer */}
-        <p className="text-center text-xs text-muted-foreground pb-4">
+        <p className="text-center text-xs text-muted-foreground mt-4 pb-2">
           All your information is secure and private
         </p>
       </div>
