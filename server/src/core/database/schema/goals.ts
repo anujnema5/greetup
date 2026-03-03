@@ -10,6 +10,7 @@ export const goals = t.pgTable("goals", {
     name: t.text("name").notNull().unique(),
     displayName: t.varchar("display_name", { length: 100 }).notNull(),
     description: t.text("description"),
+    emoji: t.varchar("emoji", { length: 20 }),
     isActive: isActiveEnum("is_active").default("yes"),
     createdAt: t.timestamp("created_at").defaultNow().notNull()
 });

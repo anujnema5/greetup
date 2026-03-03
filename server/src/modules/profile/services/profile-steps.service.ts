@@ -45,6 +45,7 @@ function buildSteps(profile: ProfileForSteps | undefined, options: StepOptions):
     id: g.id,
     name: g.displayName,
     description: g.description ?? undefined,
+    emoji: g.emoji ?? undefined,
   }));
   const goalsValue =
     profile?.goals?.map((pg) => ({
@@ -57,6 +58,7 @@ function buildSteps(profile: ProfileForSteps | undefined, options: StepOptions):
     id: i.id,
     name: i.displayName,
     category: i.category,
+    emoji: i.emoji ?? undefined,
   }));
   const interestsValue =
     profile?.interests?.map((pi) => ({
@@ -75,10 +77,10 @@ function buildSteps(profile: ProfileForSteps | undefined, options: StepOptions):
     profile?.profession ?? // legacy text on userProfiles
     (profile?.professions?.[0]
       ? {
-          id: profile.professions[0].profession.id,
-          name: profile.professions[0].profession.displayName,
-          category: profile.professions[0].profession.category,
-        }
+        id: profile.professions[0].profession.id,
+        name: profile.professions[0].profession.displayName,
+        category: profile.professions[0].profession.category,
+      }
       : null);
 
   const pref = profile?.preferences;
@@ -237,7 +239,7 @@ function buildSteps(profile: ProfileForSteps | undefined, options: StepOptions):
           placeholder: "Select connection types",
           type: "multi-select",
           required: false,
-          options: options.connectionTypes.map((c) => ({ id: c.id, name: c.displayName })),
+          options: options.connectionTypes.map((c) => ({ id: c.id, name: c.displayName, emoji: c.emoji ?? undefined })),
           value: connectionTypesValue,
         },
       ],

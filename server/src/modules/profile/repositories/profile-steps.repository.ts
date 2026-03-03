@@ -125,12 +125,12 @@ export const profileStepsRepository = {
       await Promise.all([
         db.query.goals.findMany({
           where: eq(goals.isActive, "yes"),
-          columns: { id: true, name: true, displayName: true, description: true },
+          columns: { id: true, name: true, displayName: true, description: true, emoji: true },
           orderBy: (g, { asc }) => [asc(g.displayName)],
         }),
         db.query.interests.findMany({
           where: eq(interests.isActive, "yes"),
-          columns: { id: true, name: true, displayName: true, category: true },
+          columns: { id: true, name: true, displayName: true, category: true, emoji: true },
           orderBy: (i, { asc }) => [asc(i.category), asc(i.displayName)],
         }),
         db.query.professions.findMany({
@@ -148,7 +148,7 @@ export const profileStepsRepository = {
         }),
         db.query.connectionTypes.findMany({
           where: eq(connectionTypes.isActive, "yes"),
-          columns: { id: true, name: true, displayName: true, description: true },
+          columns: { id: true, name: true, displayName: true, description: true, emoji: true },
           orderBy: (c, { asc }) => [asc(c.displayName)],
         }),
       ]);

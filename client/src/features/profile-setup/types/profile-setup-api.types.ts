@@ -49,12 +49,13 @@ export interface NumberField extends ProfileSetupFieldBase {
   max?: number
 }
 
-// Create a shared option for best prectice and include it in SelectField
+// Create a shared option for best practice; emoji comes from backend for card display
 export interface SelectOption {
   id: string
   name: string
   description?: string
   category?: string
+  emoji?: string
 }
 
 export interface SelectField extends ProfileSetupFieldBase {
