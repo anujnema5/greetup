@@ -14,7 +14,7 @@ export default function SocialLoginButtons({
   const handleGoogleAuth = () => {
     authClient.signIn.social({
       provider: 'google',
-      callbackURL: CURRENT_HOST
+      callbackURL: typeof window !== 'undefined' ? window.location.origin : CURRENT_HOST,
     })
   };
 

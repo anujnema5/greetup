@@ -106,3 +106,20 @@ export interface ProfileSetupData {
 }
 
 export type ProfileSetupApiResponse = ApiResponse<ProfileSetupData>
+
+/** Save profile setup response (per-step) */
+export interface SaveProfileSetupResponse {
+  profileCompletion: number
+  isProfileComplete: boolean
+}
+
+export type SaveProfileSetupApiResponse = ApiResponse<SaveProfileSetupResponse>
+
+/** Payload for POST /profile-setup - discriminated by step */
+export type SaveProfileSetupPayload =
+  | { step: 1; data: { displayName: string; age: number; gender: string; country: { code: string; name: string } } }
+  | { step: 2; data: { goals: Array<{ id: string }> } }
+  | { step: 3; data: { interests: Array<{ id: string }> } }
+  | { step: 4; data: { profession: { id: string; name?: string; category?: string } | null } }
+  | { step: 5; data: { preferredGender?: string; distancePreference?: string; ageRange?: { min: number; max: number }; connectionTypes?: Array<{ id: string }> } }
+  | { step: 6; data: { bio?: string; photos?: Array<{ url: string; order?: number }> } }

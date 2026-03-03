@@ -64,6 +64,7 @@ export const userProfiles = pgTable("user_profiles", {
 
   profileCompletion: integer("profile_completion").default(0),
   trustScore: integer("trust_score").default(0),
+  isOnboarded: boolean("is_onboarded").default(false).notNull(),
 
   isPremium: boolean("is_premium").default(false),
   premiumExpiresAt: timestamp("premium_expires_at"),

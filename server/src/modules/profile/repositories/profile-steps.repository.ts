@@ -31,6 +31,7 @@ export const profileStepsRepository = {
         educationLevel: true,
         personalityTags: true,
         profileCompletion: true,
+        isOnboarded: true,
       },
       with: {
         user: {
@@ -176,6 +177,7 @@ export interface ProfileForSteps {
   educationLevel: string | null;
   personalityTags: string | null;
   profileCompletion: number | null;
+  isOnboarded?: boolean | null;
   user?: {
     id: string;
     displayName: string | null;
