@@ -2,9 +2,7 @@ export const REDIS_KEYS = {
     PROFILE_STEPS: "profile:steps:",
     USER_SESSION: "session:user:",
     PROFILE_DATA: "profile:data:",
-    MATCHING_QUEUE: "matching:queue:",
-    PROFILE_OPTIONS: "profile:options"
-    // Add more as needed
+    PROFILE_OPTIONS: "profile:options",
 } as const;
 
 // Cache TTL values (in seconds)

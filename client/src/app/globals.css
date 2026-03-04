@@ -117,9 +117,9 @@
   --muted: oklch(25% 0.01 110);
   --muted-foreground: oklch(75% 0.02 110);
 
-  /* accent - YE CHANGE KAREIN */
+  /* accent - light yellow/gold bg, needs dark text for contrast */
   --accent: oklch(88% 0.11 105);
-  --accent-foreground: oklch(96% 0.015 110);  /* Dark se light banaya */
+  --accent-foreground: oklch(22% 0.03 110);
 
   /* destructive */
   --destructive: oklch(55% 0.22 25);

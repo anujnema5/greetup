@@ -2,7 +2,7 @@
   "name": "server",
   "type": "module",
   "scripts": {
-    "dev": "docker compose -f ../docker-compose.dev.yml up -d postgres redis && tsx watch src/index.ts",
+    "dev": "docker compose -f ../docker-compose.dev.yml up -d && tsx watch src/index.ts",
     "debug": "tsx watch --inspect --env-file=.env src/index.ts",
     "docker:dev": "docker compose up -d && tsx watch src/index.ts",
     "db:generate": "drizzle-kit generate",

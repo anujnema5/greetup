@@ -3,7 +3,6 @@ import { WEB_CLIENT_HOST } from "@/shared/constants";
 import { auth } from "../auth/auth";
 import { createAdapter } from "@socket.io/redis-adapter";
 import { getPubSubClients } from "../redis";
-import eventEmitter from "@/core/events";
 import logger from "@/core/logging";
 
 declare module "socket.io" {
@@ -27,32 +26,19 @@ const initSocket = () => {
     });
 
     io.on('connection', (socket) => {
-        const cookies = socket.handshake.headers;
-        logger.info(`Cookies received: ${cookies}`);
         logger.info(`New client connected: ${socket.id}`);
 
-        const userId = socket.handshake.query.userId;
-        if (!userId) {
+        // Use authenticated userId from middleware (session) - never from query.
+        // Query can send "undefined" when client auth isn't loaded yet.
+        const userId = socket.userId;
+        if (!userId || typeof userId !== 'string' || userId.trim() === '') {
+            logger.warn(`[Socket] Connection rejected: no valid userId for socket ${socket.id}`);
             socket.disconnect();
             return;
         }
-        if (userId && typeof userId === 'string') {
-            eventEmitter.emit('user:connected', {
-                socketId: socket.id,
-                timestamp: new Date(),
-                userId
-            })
-        }
 
-        socket.on("disconnect", () => {
-            logger.warn(`Client disconnected`, socket.user);
-            if (socket?.user) {
-                eventEmitter.emit('user:disconnected', {
-                    socketId: socket?.id,
-                    timestamp: new Date(),
-                    userId: socket?.user?.id
-                })
-            }
+        socket.on('disconnect', () => {
+            logger.info(`Client disconnected: ${socket.id}`);
         });
     })
 
@@ -103,8 +89,13 @@ const getSocket = () => {
         logger.error("[Socket Service] Socket.io not initialized! Call initSocket first.");
         throw new Error("Socket.io not initialized! Call initSocket first.");
     }
-    logger.info("[Socket Service] Socket.io instance retrieved successfully.");
     return io;
+};
+
+/** Emit to all sockets for a user (all tabs/devices). Uses room user:{userId}. */
+const emitToUser = (userId: string, event: string, data?: unknown) => {
+    if (!io) return;
+    io.to(`user:${userId}`).emit(event, data);
 };
 
 const setupSocketAdapter = () => {
@@ -120,5 +111,5 @@ const setupSocketAdapter = () => {
 export {
     initSocket,
     getSocket,
-    setupSocketAdapter
+    setupSocketAdapter,
 }

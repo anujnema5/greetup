@@ -6,6 +6,7 @@ import {
   useState,
   useCallback,
   useMemo,
+  useRef,
 } from 'react'
 import { useRouter } from 'next/navigation'
 import type { ProfileSetupProvider as TProfileSetupProvider } from '../types'
@@ -21,6 +22,34 @@ import {
 import { transformStepToApiPayload } from '../utils/transform-step-to-api'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
+
+const PROFILE_SETUP_STEP_KEY = 'profile-setup-current-step'
+const PROFILE_SETUP_DATA_KEY = 'profile-setup-form-data'
+
+function getStoredStep(): number | null {
+  if (typeof window === 'undefined') return null
+  const raw = localStorage.getItem(PROFILE_SETUP_STEP_KEY)
+  if (!raw) return null
+  const n = parseInt(raw, 10)
+  return Number.isNaN(n) ? null : n
+}
+
+function getStoredFormData(): Record<string, any> | null {
+  if (typeof window === 'undefined') return null
+  const raw = localStorage.getItem(PROFILE_SETUP_DATA_KEY)
+  if (!raw) return null
+  try {
+    return JSON.parse(raw) as Record<string, any>
+  } catch {
+    return null
+  }
+}
+
+export function clearProfileSetupProgress(): void {
+  if (typeof window === 'undefined') return
+  localStorage.removeItem(PROFILE_SETUP_STEP_KEY)
+  localStorage.removeItem(PROFILE_SETUP_DATA_KEY)
+}
 
 export interface ProfileSetupProviderProps {
   children: React.ReactNode
@@ -38,7 +67,8 @@ export const ProfileSetupProvider: React.FC<ProfileSetupProviderProps> = ({
   const [steps, setSteps] = useState<any[]>([])
   const [allFormData, setAllFormData] = useState<Record<string, any>>({})
   const [isInitialized, setIsInitialized] = useState(false)
-  const router = useRouter();
+  const router = useRouter()
+  const persistRef = useRef<() => void>(() => {})
 
   // Get current step data
   const currentStepData = useMemo(
@@ -59,20 +89,35 @@ export const ProfileSetupProvider: React.FC<ProfileSetupProviderProps> = ({
     defaultValues: allFormData,
   })
 
-  // Initialize steps and form data once
+  // Initialize steps and form data once; restore from localStorage if available
   useEffect(() => {
     if (data?.data?.steps && !isInitialized) {
       const fetchedSteps = data.data.steps
       setSteps(fetchedSteps)
 
-      // Build initial form data with proper defaults
+      // Build initial form data from API defaults
       const initialData: Record<string, any> = {}
       fetchedSteps.forEach((step: any) => {
         const stepDefaults = getStepDefaultValues(step.fields)
         Object.assign(initialData, stepDefaults)
       })
 
-      setAllFormData(initialData)
+      // Restore saved progress if valid
+      const storedStep = getStoredStep()
+      const storedData = getStoredFormData()
+      const totalSteps = fetchedSteps.length
+      const validStep =
+        storedStep != null &&
+        Number.isInteger(storedStep) &&
+        storedStep >= 1 &&
+        storedStep <= totalSteps
+
+      if (validStep && storedData && typeof storedData === 'object') {
+        setCurrentStep(storedStep)
+        setAllFormData({ ...initialData, ...storedData })
+      } else {
+        setAllFormData(initialData)
+      }
       setIsInitialized(true)
     }
   }, [data, isInitialized])
@@ -89,6 +134,36 @@ export const ProfileSetupProvider: React.FC<ProfileSetupProviderProps> = ({
       methods.reset(currentValues)
     }
   }, [currentStepData, currentStep, isInitialized])
+
+  // Persist current step and form data to localStorage
+  const persistProgress = useCallback(() => {
+    if (!isInitialized || steps.length === 0) return
+    const formData = { ...allFormData, ...methods.getValues() }
+    try {
+      localStorage.setItem(PROFILE_SETUP_STEP_KEY, String(currentStep))
+      localStorage.setItem(PROFILE_SETUP_DATA_KEY, JSON.stringify(formData))
+    } catch {
+      // Ignore quota / parse errors
+    }
+  }, [currentStep, allFormData, isInitialized, steps.length, methods])
+
+  // Persist on step/form data change
+  useEffect(() => {
+    persistProgress()
+  }, [currentStep, allFormData, persistProgress])
+
+  // Persist on beforeunload (user leaves without clicking Next)
+  useEffect(() => {
+    persistRef.current = persistProgress
+  }, [persistProgress])
+
+  useEffect(() => {
+    const onBeforeUnload = () => {
+      persistRef.current()
+    }
+    window.addEventListener('beforeunload', onBeforeUnload)
+    return () => window.removeEventListener('beforeunload', onBeforeUnload)
+  }, [])
 
   const onContinue = useCallback(async () => {
     if (!currentStepData) return
@@ -111,7 +186,8 @@ export const ProfileSetupProvider: React.FC<ProfileSetupProviderProps> = ({
       const result = await saveProfileSetup(payload).unwrap()
 
       if (currentStep === steps.length) {
-        // Last step completed – go to dashboard
+        // Last step completed – clear stored progress and go to dashboard
+        clearProfileSetupProgress()
         const destination = '/'
         router.push(destination)
       } else {
