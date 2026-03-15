@@ -1,5 +1,4 @@
-import dotenv from 'dotenv';
-dotenv.config();
+import "@/shared/config/load-env";
 
 export const WEB_CLIENT_HOST = process.env.WEB_CLIENT_HOST;
 export const REDIS_URL = process.env.REDIS_URL!;

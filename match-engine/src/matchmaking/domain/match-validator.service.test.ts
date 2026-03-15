@@ -1,0 +1,121 @@
+import { describe, expect, it } from "bun:test";
+import { MatchValidatorService } from "./match-validator.service";
+import type { SnapshotUserProfile } from "@/contracts/matchmaking.contracts";
+
+const validator = new MatchValidatorService();
+
+const profile = (overrides?: Partial<SnapshotUserProfile>): SnapshotUserProfile => ({
+  userId: "u1",
+  matchIds: [],
+  version: 1,
+  updatedAt: Date.now(),
+  filters: {
+    preferredGender: "any",
+    minAge: 18,
+    maxAge: 99,
+    distancePreference: "random",
+    connectionTypeIds: [],
+  },
+  attributes: {
+    age: 25,
+    gender: "female",
+    countryCode: "IN",
+    region: "MH",
+    city: "Pune",
+    connectionTypeIds: ["friendship"],
+  },
+  ...overrides,
+});
+
+describe("MatchValidatorService", () => {
+  it("accepts when filters are compatible", () => {
+    const requester = profile({
+      userId: "requester",
+      filters: {
+        preferredGender: "female",
+        minAge: 20,
+        maxAge: 30,
+        distancePreference: "same_city",
+        city: "Pune",
+        connectionTypeIds: ["friendship"],
+      },
+    });
+    const candidate = profile({ userId: "candidate" });
+
+    const accepted = validator.accepts(requester.filters, candidate.attributes);
+
+    expect(accepted).toBe(true);
+  });
+
+  it("rejects when gender does not match", () => {
+    const accepted = validator.accepts(
+      { preferredGender: "male" },
+      { gender: "female", age: 24 },
+    );
+
+    expect(accepted).toBe(false);
+  });
+
+  it("rejects when age is outside range", () => {
+    const accepted = validator.accepts(
+      { minAge: 25, maxAge: 35 },
+      { age: 21, gender: "male" },
+    );
+
+    expect(accepted).toBe(false);
+  });
+
+  it("rejects when same_country is required and country differs", () => {
+    const accepted = validator.accepts(
+      { distancePreference: "same_country", countryCode: "IN" },
+      { countryCode: "US", age: 22 },
+    );
+
+    expect(accepted).toBe(false);
+  });
+
+  it("requires overlapping connection type ids", () => {
+    const accepted = validator.accepts(
+      { connectionTypeIds: ["dating"] },
+      { connectionTypeIds: ["friendship", "networking"] },
+    );
+
+    expect(accepted).toBe(false);
+  });
+
+  it("checks bidirectional compatibility", () => {
+    const a = profile({
+      userId: "a",
+      filters: {
+        preferredGender: "female",
+        minAge: 20,
+        maxAge: 28,
+        distancePreference: "same_country",
+        countryCode: "IN",
+      },
+      attributes: {
+        age: 24,
+        gender: "male",
+        countryCode: "IN",
+      },
+    });
+    const b = profile({
+      userId: "b",
+      filters: {
+        preferredGender: "male",
+        minAge: 22,
+        maxAge: 30,
+        distancePreference: "same_country",
+        countryCode: "IN",
+      },
+      attributes: {
+        age: 26,
+        gender: "female",
+        countryCode: "IN",
+      },
+    });
+
+    const result = validator.isBidirectionallyCompatible(a, b);
+    expect(result).toBe(true);
+  });
+});

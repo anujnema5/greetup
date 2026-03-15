@@ -1,0 +1,25 @@
+{
+  "name": "matching-service",
+  "module": "src/app.ts",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "dev": "bun --watch src/app.ts",
+    "start": "bun run src/app.ts",
+    "typecheck": "bunx tsc --noEmit",
+    "test": "bun test",
+    "stress": "bun run scripts/stress-match.ts"
+  },
+  "devDependencies": {
+    "@types/bun": "latest"
+  },
+  "peerDependencies": {
+    "typescript": "^5"
+  },
+  "dependencies": {
+    "dotenv": "^17.2.3",
+    "ioredis": "^5.10.0",
+    "pino": "^10.1.0",
+    "pino-pretty": "^13.1.2"
+  }
+}

@@ -25,8 +25,9 @@
     "ioredis": "^5.8.2",
     "pg": "^8.16.3",
     "resend": "^6.5.2",
-    "socket.io": "^4.8.1",
-    "winston": "^3.18.3"
+    "pino": "^10.1.0",
+    "pino-pretty": "^13.1.2",
+    "socket.io": "^4.8.1"
   },
   "devDependencies": {
     "@types/node": "^24.10.1",

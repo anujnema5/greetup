@@ -1,4 +1,4 @@
-import "dotenv/config";
+import "@/shared/config/load-env";
 import { db } from "@/core/database";
 import {
   goals,
