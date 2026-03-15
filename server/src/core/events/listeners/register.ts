@@ -1,3 +1,9 @@
+import { UserEventListeners } from "@/modules/user/events";
+
+let isRegistered = false;
+
 export const registerEventListeners = () => {
-    // Event listeners registered here
+    if (isRegistered) return;
+    new UserEventListeners();
+    isRegistered = true;
 }

@@ -24,6 +24,7 @@ services:
       - redis_data:/data
 
   server:
+    profiles: ["app"]
     build:
       context: ./server
       dockerfile: Dockerfile.dev
@@ -43,6 +44,7 @@ services:
       - redis
 
   client:
+    profiles: ["app"]
     build:
       context: ./client
       dockerfile: Dockerfile.dev
