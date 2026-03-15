@@ -52,7 +52,7 @@ export const setupRedis = async (url: string = REDIS_URL) => {
         // Sub client - will be put into subscriber mode by Socket.IO adapter
         subClient = new Redis(url, {
             maxRetriesPerRequest: 3,
-            enableReadyCheck: true,
+            enableReadyCheck: false,
             lazyConnect: false,
         });
 

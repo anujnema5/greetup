@@ -4,6 +4,10 @@ export const USER_PRESENCE_KEYS = {
     USER_LAST_SEEN: "user:last_seen:",
 } as const;
 
+export const USER_CACHE_KEYS = {
+    PROFILE_SNAPSHOT: "user:profile:snapshot:",
+} as const;
+
 // MATCHING ENGINE KEYS
 export const MATCH_KEYS = {
   USER: "match:user:",
