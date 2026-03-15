@@ -3,14 +3,16 @@ import { EventPayloads } from "@/core/events/types/events.types";
 import Redis from "ioredis";
 import { getRedis } from "@/core/redis";
 import logger from "@/core/logging";
-import { USER_PRESENCE_KEYS } from "@/core/redis/keys";
+import { CACHE_TTL, USER_CACHE_KEYS, USER_PRESENCE_KEYS } from "@/core/redis/keys";
+import { db } from "@/core/database";
 
 export class UserEventListeners {
     private jobName = "UserEventListeners"
     private redis: Redis;
 
-    // 3 MINUTES TTL — IF SERVER CRASHES AND DISCONNECT EVENT NEVER FIRES, REDIS WILL AUTO-CLEAN STALE PRESENCE DATA
-    private static readonly PRESENCE_TTL_SECONDS = 60 * 3;
+    // 1 MINUTES TTL — IF SERVER CRASHES AND DISCONNECT EVENT NEVER FIRES, REDIS WILL AUTO-CLEAN STALE PRESENCE DATA
+    private static readonly PRESENCE_TTL_SECONDS = 60 * 1;
+    private static readonly PROFILE_CACHE_TTL_SECONDS = CACHE_TTL.MEDIUM;
 
     // LUA SCRIPT THAT RUNS ATOMICALLY IN REDIS — CHECKS IF THE STORED SOCKET ID MATCHES THE DISCONNECTING SOCKET
     // BEFORE DELETING. PREVENTS A RACE CONDITION WHERE A NEW CONNECTION FROM THE SAME IP GETS WRONGLY EVICTED
@@ -67,7 +69,7 @@ export class UserEventListeners {
         // ATOMIC TRANSACTION — ALL 5 COMMANDS EXECUTE TOGETHER OR NOT AT ALL.
         // HDEL:   CLEAN UP LEGACY GARBAGE FIELDS THAT MAY HAVE BEEN STORED FROM OLDER VERSIONS
         // HSET:   REGISTER THIS IP → SOCKET MAPPING (OVERWRITES IF SAME IP RECONNECTS — HANDLES PAGE REFRESH)
-        // EXPIRE: RESET THE 3 MINUTES TTL ON EVERY NEW CONNECTION
+        // EXPIRE: RESET THE 1 MINUTES TTL ON EVERY NEW CONNECTION
         // SADD:   MARK THIS USER AS ONLINE IN THE GLOBAL ONLINE USERS SET
         // SET:    RECORD THE EXACT TIMESTAMP OF THIS CONNECTION AS LAST SEEN
         await this.redis
@@ -79,11 +81,127 @@ export class UserEventListeners {
             .set(`${USER_PRESENCE_KEYS.USER_LAST_SEEN}${userId}`, String(lastSeenTimestamp))
             .exec();
 
+        await this.ensureUserProfileSnapshotCache(userId);
+
         logger.info(`[${this.jobName}] Marked user ${userId} online with socket ${socketId} for ip ${ipField}`);
     }
 
+    // LOADS USER PROFILE/PREFERENCES/INTERESTS SNAPSHOT INTO REDIS ONLY IF MISSING.
+    // NX PREVENTS OVERWRITING IF ANOTHER CONCURRENT CONNECTION FILLS THE CACHE FIRST.
+    private async ensureUserProfileSnapshotCache(userId: string): Promise<void> {
+        const cacheKey = `${USER_CACHE_KEYS.PROFILE_SNAPSHOT}${userId}`;
+        const exists = await this.redis.exists(cacheKey);
+
+        if (exists) {
+            return;
+        }
+
+        const profileSnapshot = await db.query.userProfiles.findFirst({
+            where: (profile, { eq }) => eq(profile.userId, userId),
+            with: {
+                user: {
+                    columns: {
+                        id: true,
+                        displayName: true,
+                        name: true,
+                    },
+                },
+                location: {
+                    columns: {
+                        country: true,
+                        countryCode: true,
+                        city: true,
+                        region: true,
+                    },
+                },
+                goals: {
+                    with: {
+                        goal: {
+                            columns: {
+                                id: true,
+                                name: true,
+                                displayName: true,
+                            },
+                        },
+                    },
+                },
+                interests: {
+                    with: {
+                        interest: {
+                            columns: {
+                                id: true,
+                                name: true,
+                                displayName: true,
+                                category: true,
+                            },
+                        },
+                    },
+                },
+                professions: {
+                    with: {
+                        profession: {
+                            columns: {
+                                id: true,
+                                name: true,
+                                displayName: true,
+                                category: true,
+                            },
+                        },
+                    },
+                },
+                preferences: {
+                    columns: {
+                        preferredGender: true,
+                        distancePreference: true,
+                        minAge: true,
+                        maxAge: true,
+                    },
+                    with: {
+                        connectionTypes: {
+                            with: {
+                                connectionType: {
+                                    columns: {
+                                        id: true,
+                                        name: true,
+                                        displayName: true,
+                                    },
+                                },
+                            },
+                        },
+                    },
+                },
+                behavior: {
+                    columns: {
+                        reportCount: true,
+                        trustScore: true,
+                        successfulConnections: true,
+                        averageSessionDuration: true,
+                    },
+                },
+            },
+        });
+
+        if (!profileSnapshot) {
+            logger.warn(`[${this.jobName}] Profile snapshot not found for user ${userId}; cache not created`);
+            return;
+        }
+
+        const cacheValue = JSON.stringify(profileSnapshot);
+        const result = await this.redis.set(
+            cacheKey,
+            cacheValue,
+            "EX",
+            UserEventListeners.PROFILE_CACHE_TTL_SECONDS,
+            "NX",
+        );
+
+        if (result === "OK") {
+            logger.info(`[${this.jobName}] Cached profile snapshot for user ${userId}`);
+        }
+    }
+
     // FIRED ON EVERY PING/PONG CYCLE (EVERY 20 SECONDS).
-    // RESETS THE TTL BACK TO 3 MINUTES SO THE PRESENCE KEY NEVER EXPIRES
+    // RESETS THE TTL BACK TO 1 MINUTES SO THE PRESENCE KEY NEVER EXPIRES
     // WHILE THE USER IS ACTIVELY CONNECTED ON THE PAGE.
     private async userHeartbeat(payload: EventPayloads['user:heartbeat']) {
         const { userId } = payload;
