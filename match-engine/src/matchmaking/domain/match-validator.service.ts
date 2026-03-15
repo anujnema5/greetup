@@ -36,14 +36,6 @@ export class MatchValidatorService {
     requesterFilters: Record<string, unknown>,
     candidateAttributes: Record<string, unknown>,
   ): boolean {
-    const preferredGender = toString(requesterFilters.preferredGender);
-    const candidateGender = toString(candidateAttributes.gender);
-    if (preferredGender && normalize(preferredGender) !== "any") {
-      if (!candidateGender || normalize(preferredGender) !== normalize(candidateGender)) {
-        return false;
-      }
-    }
-
     const minAge = toNumber(requesterFilters.minAge);
     const maxAge = toNumber(requesterFilters.maxAge);
     const candidateAge = toNumber(candidateAttributes.age);

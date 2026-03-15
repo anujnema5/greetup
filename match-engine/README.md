@@ -20,8 +20,12 @@ bun run dev
 - `GET /health`
 - `POST /match/find`
   - body: `{ "userId": "u1", "requestId": "attempt-123" }`
-  - returns:
-    - `{ status: "matched", roomId, peerUserId }`
+  - starts async matching and returns immediately:
+    - `{ status: "searching", retryAfterMs }`
+    - (if same request is already completed, may return final status)
+- `GET /match/result/:requestId`
+  - returns current status:
+    - `{ status: "matched", roomId, peerUserId, matchScore }`
     - `{ status: "searching", retryAfterMs }`
     - `{ status: "no_match", reason }`
 
@@ -69,6 +73,7 @@ matching-service/
       application/
         match-orchestrator.service.ts
       domain/
+        match-score.service.ts
         match-validator.service.ts
         matching.types.ts
       infrastructure/

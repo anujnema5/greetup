@@ -11,6 +11,7 @@ type AttemptRecord = {
   status: AttemptStatus;
   roomId: string | null;
   peerUserId: string | null;
+  matchScore: number | null;
   reason: string | null;
   createdAt: number;
   updatedAt: number;
@@ -20,6 +21,7 @@ const parseAttemptRecord = (payload: Record<string, string>, fallbackAttemptId: 
   const now = Date.now();
   const createdAt = Number(payload.createdAt ?? now);
   const updatedAt = Number(payload.updatedAt ?? now);
+  const matchScoreRaw = payload.matchScore ? Number(payload.matchScore) : null;
   const status = payload.status as AttemptStatus;
 
   return {
@@ -28,6 +30,7 @@ const parseAttemptRecord = (payload: Record<string, string>, fallbackAttemptId: 
     status: status === "matched" || status === "no_match" ? status : "searching",
     roomId: payload.roomId ?? null,
     peerUserId: payload.peerUserId ?? null,
+    matchScore: matchScoreRaw !== null && Number.isFinite(matchScoreRaw) ? matchScoreRaw : null,
     reason: payload.reason ?? null,
     createdAt: Number.isFinite(createdAt) ? createdAt : now,
     updatedAt: Number.isFinite(updatedAt) ? updatedAt : now,
@@ -65,7 +68,13 @@ export class MatchAttemptRepository {
     await redis.set(redisKeys.userLastAttempt(userId), attemptId, "EX", MATCH_CONFIG.attemptTtlSeconds);
   }
 
-  async markMatched(attemptId: string, userId: string, peerUserId: string, roomId: string): Promise<void> {
+  async markMatched(
+    attemptId: string,
+    userId: string,
+    peerUserId: string,
+    roomId: string,
+    matchScore: number,
+  ): Promise<void> {
     const redis = getRedis();
     const key = redisKeys.attempt(attemptId);
     await redis.hset(
@@ -78,6 +87,8 @@ export class MatchAttemptRepository {
       "matched",
       "peerUserId",
       peerUserId,
+      "matchScore",
+      String(matchScore),
       "roomId",
       roomId,
       "updatedAt",
@@ -113,6 +124,7 @@ export class MatchAttemptRepository {
         status: "matched",
         roomId: record.roomId,
         peerUserId: record.peerUserId,
+        matchScore: record.matchScore ?? 0,
       };
     }
 

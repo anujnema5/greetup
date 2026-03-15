@@ -44,7 +44,26 @@ export const handleFindMatch = async (request: Request): Promise<Response> => {
   }
 
   try {
-    const result = await orchestrator.findMatch(body);
+    const result = await orchestrator.startFindMatch(body);
+    return Response.json({ ok: true, data: result }, { status: 200 });
+  } catch (error) {
+    return Response.json(
+      { ok: false, error: "internal_error", detail: String(error) },
+      { status: 500 },
+    );
+  }
+};
+
+export const handleGetMatchResult = async (requestId: string): Promise<Response> => {
+  if (requestId.trim().length === 0) {
+    return Response.json(
+      { ok: false, error: "invalid_request_id", hint: "expected /match/result/:requestId" },
+      { status: 400 },
+    );
+  }
+
+  try {
+    const result = await orchestrator.getMatchResult(requestId);
     return Response.json({ ok: true, data: result }, { status: 200 });
   } catch (error) {
     return Response.json(

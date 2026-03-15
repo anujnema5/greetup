@@ -15,3 +15,18 @@ export const MATCH_CONFIG = {
   candidateBatchSize: 25,
   attemptTtlSeconds: 120,
 } as const;
+
+export const MATCH_SCORE_CONFIG = {
+  // Higher weights represent stronger matching intent.
+  weights: {
+    interests: 25,
+    goals: 20,
+    connectionTypes: 15,
+    professions: 10,
+    agePreference: 10,
+    distancePreference: 10,
+    preferredGender: 5,
+    trustScore: 5,
+  },
+  minScoreToMatch: 35,
+} as const;

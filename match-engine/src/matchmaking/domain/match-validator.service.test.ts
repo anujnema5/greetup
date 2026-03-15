@@ -47,13 +47,13 @@ describe("MatchValidatorService", () => {
     expect(accepted).toBe(true);
   });
 
-  it("rejects when gender does not match", () => {
+  it("does not reject when gender does not match (soft preference)", () => {
     const accepted = validator.accepts(
       { preferredGender: "male" },
       { gender: "female", age: 24 },
     );
 
-    expect(accepted).toBe(false);
+    expect(accepted).toBe(true);
   });
 
   it("rejects when age is outside range", () => {
