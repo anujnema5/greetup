@@ -4,7 +4,7 @@ export type FindMatchRequest = {
 };
 
 export type FindMatchResult =
-  | { status: "matched"; roomId: string; peerUserId: string }
+  | { status: "matched"; roomId: string; peerUserId: string; matchScore: number }
   | { status: "searching"; retryAfterMs: number }
   | { status: "no_match"; reason: string };
 

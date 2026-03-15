@@ -4,8 +4,10 @@ import { logger } from "@/core/logger";
 import { getRedis } from "@/redis/client";
 import { redisKeys } from "@/redis/keys";
 import { MatchValidatorService } from "@/matchmaking/domain/match-validator.service";
+import { MatchScoreService } from "@/matchmaking/domain/match-score.service";
 import { MatchLockService } from "@/matchmaking/infrastructure/services/match-lock.service";
 import { MatchPoolService } from "@/matchmaking/infrastructure/services/match-pool.service";
+import { MatchJobQueueService } from "@/matchmaking/infrastructure/services/match-job-queue.service";
 import { SnapshotRepository } from "@/matchmaking/infrastructure/repositories/snapshot.repository";
 import { MatchAttemptRepository } from "@/matchmaking/infrastructure/repositories/match-attempt.repository";
 import { RoomOrchestrationService } from "@/matchmaking/infrastructure/services/room-orchestration.service";
@@ -25,6 +27,8 @@ export class MatchOrchestratorService {
   constructor(
     private readonly pool = new MatchPoolService(),
     private readonly validator = new MatchValidatorService(),
+    private readonly scorer = new MatchScoreService(),
+    private readonly jobs = new MatchJobQueueService(),
     private readonly lock = new MatchLockService(),
     private readonly snapshots = new SnapshotRepository(),
     private readonly attempts = new MatchAttemptRepository(),
@@ -32,6 +36,10 @@ export class MatchOrchestratorService {
   ) {}
 
   async findMatch(request: FindMatchRequest): Promise<FindMatchResult> {
+    return this.startFindMatch(request);
+  }
+
+  async startFindMatch(request: FindMatchRequest): Promise<FindMatchResult> {
     const existingAttempt = await this.attempts.getAttempt(request.requestId);
     if (existingAttempt) {
       return this.attempts.toResult(existingAttempt);
@@ -51,9 +59,46 @@ export class MatchOrchestratorService {
 
     await this.attempts.setSearching(request.requestId, request.userId);
     await this.pool.enqueue(request.userId);
+    await this.jobs.enqueue(request);
+
+    return {
+      status: "searching",
+      retryAfterMs: 1_000,
+    };
+  }
+
+  async getMatchResult(requestId: string): Promise<FindMatchResult> {
+    const existingAttempt = await this.attempts.getAttempt(requestId);
+    if (!existingAttempt) {
+      return { status: "no_match", reason: "attempt_not_found" };
+    }
+    return this.attempts.toResult(existingAttempt);
+  }
+
+  async processMatchRequest(request: FindMatchRequest): Promise<FindMatchResult> {
+    const existingAttempt = await this.attempts.getAttempt(request.requestId);
+    if (!existingAttempt || existingAttempt.status !== "searching") {
+      return existingAttempt ? this.attempts.toResult(existingAttempt) : { status: "no_match", reason: "attempt_not_found" };
+    }
+
+    const requesterSnapshot = await this.snapshots.getByUserId(request.userId);
+    if (!requesterSnapshot) {
+      await this.attempts.markNoMatch(request.requestId, request.userId, "snapshot_not_found");
+      await this.pool.remove(request.userId);
+      return { status: "no_match", reason: "snapshot_not_found" };
+    }
+
+    const state = await getRedis().get(redisKeys.userState(request.userId));
+    if (state === "in_room") {
+      await this.attempts.markNoMatch(request.requestId, request.userId, "user_unavailable");
+      await this.pool.remove(request.userId);
+      return { status: "no_match", reason: "user_unavailable" };
+    }
 
     for (let retryIndex = 0; retryIndex <= MATCH_CONFIG.maxRetries; retryIndex += 1) {
       const candidates = await this.pool.getCandidates(request.userId);
+      const scoredCandidates: Array<{ userId: string; matchScore: number; poolScore: number }> = [];
+
       for (const candidate of candidates) {
         const candidateSnapshot = await this.snapshots.getByUserId(candidate.userId);
         if (!candidateSnapshot) {
@@ -71,6 +116,25 @@ export class MatchOrchestratorService {
         if (!isCompatible) {
           continue;
         }
+
+        const matchScore = this.scorer.calculateBidirectionalScore(requesterSnapshot, candidateSnapshot);
+        if (!this.scorer.isScoreEligible(matchScore)) {
+          continue;
+        }
+
+        scoredCandidates.push({
+          userId: candidate.userId,
+          matchScore,
+          poolScore: candidate.score,
+        });
+      }
+
+      scoredCandidates.sort((a, b) => {
+        if (a.matchScore !== b.matchScore) return b.matchScore - a.matchScore;
+        return b.poolScore - a.poolScore;
+      });
+
+      for (const candidate of scoredCandidates) {
 
         const locked = await this.lock.tryLockPair(
           request.userId,
@@ -95,11 +159,13 @@ export class MatchOrchestratorService {
             request.userId,
             candidate.userId,
             roomResult.roomId,
+            candidate.matchScore,
           );
           return {
             status: "matched",
             roomId: roomResult.roomId,
             peerUserId: candidate.userId,
+            matchScore: candidate.matchScore,
           };
         }
 

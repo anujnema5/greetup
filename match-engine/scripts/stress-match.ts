@@ -2,7 +2,7 @@ import { connectRedis, disconnectRedis, getRedis } from "../src/redis/client";
 import { redisKeys } from "../src/redis/keys";
 
 type MatchResponse =
-  | { ok: true; data: { status: "matched"; roomId: string; peerUserId: string } }
+  | { ok: true; data: { status: "matched"; roomId: string; peerUserId: string; matchScore: number } }
   | { ok: true; data: { status: "searching"; retryAfterMs: number } }
   | { ok: true; data: { status: "no_match"; reason: string } }
   | { ok: false; error: string };
@@ -37,11 +37,15 @@ type RoundSummary = {
   responseSearching: number;
   failed: number;
   roomCollisions: number;
+  topFailureReason: string | null;
+  avgMatchScore: number | null;
+  minMatchScore: number | null;
+  maxMatchScore: number | null;
   usersMovedToInRoomThisRound: number;
   system: SystemMetrics;
 };
 
-const baseUrl = process.env.STRESS_BASE_URL ?? "http://127.0.0.1:8000";
+const baseUrl = process.env.STRESS_BASE_URL ?? "http://localhost:8000";
 const userCount = Number(process.env.STRESS_USERS ?? "30");
 const rounds = Number(process.env.STRESS_ROUNDS ?? "3");
 const groupSize = Number(process.env.STRESS_GROUP_SIZE ?? "3");
@@ -49,6 +53,7 @@ const newUsersMinPerRound = Number(process.env.STRESS_NEW_USERS_MIN ?? "2");
 const newUsersMaxPerRound = Number(process.env.STRESS_NEW_USERS_MAX ?? "6");
 
 const now = () => Date.now();
+const sleep = async (ms: number): Promise<void> => new Promise((resolve) => setTimeout(resolve, ms));
 
 const makeUsers = (count: number): string[] => {
   return Array.from({ length: count }, (_, index) => `stress-user-${index + 1}`);
@@ -69,7 +74,7 @@ const snapshotFor = (userId: string, index: number): Record<string, unknown> => 
     version: 1,
     updatedAt: now(),
     age: 20 + (index % 10),
-    gender: index % 2 === 0 ? "male" : "female",
+    gender: Math.random() < 0.5 ? "male" : "female",
     location: {
       countryCode: "IN",
       region: "MH",
@@ -138,6 +143,46 @@ const generateNewUsers = (startIndex: number, count: number): string[] => {
   return Array.from({ length: count }, (_, index) => `stress-user-${startIndex + index + 1}`);
 };
 
+const waitForFinalResult = async (
+  requestId: string,
+  initialRetryAfterMs: number,
+): Promise<MatchResponse> => {
+  const deadline = Date.now() + 35_000;
+  let waitMs = Math.max(200, initialRetryAfterMs);
+
+  while (Date.now() < deadline) {
+    await sleep(waitMs);
+
+    try {
+      const response = await fetch(`${baseUrl}/match/result/${encodeURIComponent(requestId)}`);
+      const text = await response.text();
+      if (!text.trim()) {
+        waitMs = Math.min(waitMs + 300, 2_000);
+        continue;
+      }
+
+      const payload = JSON.parse(text) as MatchResponse;
+      if (!payload.ok) {
+        return payload;
+      }
+
+      if (payload.data.status === "searching") {
+        waitMs = Math.min(payload.data.retryAfterMs, 2_000);
+        continue;
+      }
+
+      return payload;
+    } catch {
+      waitMs = Math.min(waitMs + 300, 2_000);
+    }
+  }
+
+  return {
+    ok: false,
+    error: "result_poll_timeout",
+  };
+};
+
 const runFindMatch = async (userId: string, requestId: string): Promise<MatchResponse> => {
   try {
     const response = await fetch(`${baseUrl}/match/find`, {
@@ -146,8 +191,26 @@ const runFindMatch = async (userId: string, requestId: string): Promise<MatchRes
       body: JSON.stringify({ userId, requestId }),
     });
 
-    const data = (await response.json()) as MatchResponse;
-    return data;
+    const text = await response.text();
+    if (!text.trim()) {
+      return {
+        ok: false,
+        error: `empty_response_http_${response.status}`,
+      };
+    }
+
+    try {
+      const data = JSON.parse(text) as MatchResponse;
+      if (!data.ok || data.data.status !== "searching") {
+        return data;
+      }
+      return waitForFinalResult(requestId, data.data.retryAfterMs);
+    } catch {
+      return {
+        ok: false,
+        error: `invalid_json_http_${response.status}`,
+      };
+    }
   } catch (error) {
     return {
       ok: false,
@@ -249,17 +312,22 @@ const runRound = async (round: number, userIds: string[]) => {
   let matchedThisRound = 0;
   let responseSearching = 0;
   let failed = 0;
+  const matchedScores: number[] = [];
+  const failureReasons = new Map<string, number>();
   const roomByUser = new Map<string, string>();
   const roomCollisions: string[] = [];
 
   for (const response of responses) {
     if (!response.ok) {
       failed += 1;
+      const current = failureReasons.get(response.error) ?? 0;
+      failureReasons.set(response.error, current + 1);
       continue;
     }
 
     if (response.data.status === "matched") {
       matchedThisRound += 1;
+      matchedScores.push(response.data.matchScore);
       const existing = roomByUser.get(response.data.peerUserId);
       if (existing && existing !== response.data.roomId) {
         roomCollisions.push(response.data.peerUserId);
@@ -295,6 +363,16 @@ const runRound = async (round: number, userIds: string[]) => {
   }
 
   const system = await collectSystemMetrics(userIds);
+  const topFailureReason =
+    failureReasons.size > 0
+      ? [...failureReasons.entries()].sort((a, b) => b[1] - a[1])[0]?.[0] ?? null
+      : null;
+  const avgMatchScore =
+    matchedScores.length > 0
+      ? Math.round(matchedScores.reduce((sum, score) => sum + score, 0) / matchedScores.length)
+      : null;
+  const minMatchScore = matchedScores.length > 0 ? Math.min(...matchedScores) : null;
+  const maxMatchScore = matchedScores.length > 0 ? Math.max(...matchedScores) : null;
 
   return {
     round,
@@ -310,9 +388,31 @@ const runRound = async (round: number, userIds: string[]) => {
     responseSearching,
     failed,
     roomCollisions: roomCollisions.length,
+    topFailureReason,
+    avgMatchScore,
+    minMatchScore,
+    maxMatchScore,
     usersMovedToInRoomThisRound,
     system,
   };
+};
+
+const assertServiceReachable = async (): Promise<void> => {
+  const healthUrl = `${baseUrl}/health`;
+  let response: Response;
+  try {
+    response = await fetch(healthUrl);
+  } catch (error) {
+    throw new Error(
+      `Matching service unreachable at ${healthUrl}. Start it first with 'bun run dev'. Cause: ${String(error)}`,
+    );
+  }
+
+  if (!response.ok) {
+    throw new Error(
+      `Matching service health check failed at ${healthUrl} with HTTP ${response.status}.`,
+    );
+  }
 };
 
 const main = async (): Promise<void> => {
@@ -324,6 +424,7 @@ const main = async (): Promise<void> => {
   );
 
   await connectRedis();
+  await assertServiceReachable();
   await cleanupKeys(users);
   await seedSnapshots(users);
 
@@ -348,7 +449,7 @@ const main = async (): Promise<void> => {
     }
     const neverMatchedUsers = users.length - everMatchedUsers.size;
     console.log(
-      `[round ${summary.round}] users_in_system=${summary.totalUsersInSystem} eligible_at_start=${summary.eligibleUsersAtStart} requests_sent=${summary.requestsSent} skipped_in_room=${summary.skippedInRoomAtStart} skipped_locked=${summary.skippedLockedAtStart} skipped_other=${summary.skippedUnavailableAtStart} matched_this_round=${summary.matchedThisRound} no_match_eligible_end=${summary.unmatchedEligibleEndOfRound} response_searching=${summary.responseSearching} failed=${summary.failed} collisions=${summary.roomCollisions} moved_to_in_room=${summary.usersMovedToInRoomThisRound} ever_matched_users=${everMatchedUsers.size} never_matched_users=${neverMatchedUsers} elapsedMs=${summary.elapsedMs} in_room_now=${summary.system.usersInRoom} rooms_approx_now=${summary.system.roomsApprox} free_now=${summary.system.usersFree} searching_now=${summary.system.usersSearching} locked_now=${summary.system.usersLocked} available_now=${summary.system.availableToMatch} pool_now=${summary.system.poolSize} pair_locks_now=${summary.system.pairLocks} attempts_now=${summary.system.attemptKeys}`,
+      `[round ${summary.round}] users_in_system=${summary.totalUsersInSystem} eligible_at_start=${summary.eligibleUsersAtStart} requests_sent=${summary.requestsSent} skipped_in_room=${summary.skippedInRoomAtStart} skipped_locked=${summary.skippedLockedAtStart} skipped_other=${summary.skippedUnavailableAtStart} matched_this_round=${summary.matchedThisRound} match_score_avg=${summary.avgMatchScore ?? "na"} match_score_min=${summary.minMatchScore ?? "na"} match_score_max=${summary.maxMatchScore ?? "na"} no_match_eligible_end=${summary.unmatchedEligibleEndOfRound} response_searching=${summary.responseSearching} failed=${summary.failed} top_failure=${summary.topFailureReason ?? "none"} collisions=${summary.roomCollisions} moved_to_in_room=${summary.usersMovedToInRoomThisRound} ever_matched_users=${everMatchedUsers.size} never_matched_users=${neverMatchedUsers} elapsedMs=${summary.elapsedMs} in_room_now=${summary.system.usersInRoom} rooms_approx_now=${summary.system.roomsApprox} free_now=${summary.system.usersFree} searching_now=${summary.system.usersSearching} locked_now=${summary.system.usersLocked} available_now=${summary.system.availableToMatch} pool_now=${summary.system.poolSize} pair_locks_now=${summary.system.pairLocks} attempts_now=${summary.system.attemptKeys}`,
     );
   }
 
@@ -367,6 +468,22 @@ const main = async (): Promise<void> => {
       acc.roomCollisions += item.roomCollisions;
       acc.usersMovedToInRoomThisRound += item.usersMovedToInRoomThisRound;
       acc.elapsedMs += item.elapsedMs;
+      if (item.avgMatchScore !== null && item.matchedThisRound > 0) {
+        acc.weightedScoreSum += item.avgMatchScore * item.matchedThisRound;
+        acc.totalMatchedWithScore += item.matchedThisRound;
+      }
+      if (item.minMatchScore !== null) {
+        acc.minMatchScoreOverall =
+          acc.minMatchScoreOverall === null
+            ? item.minMatchScore
+            : Math.min(acc.minMatchScoreOverall, item.minMatchScore);
+      }
+      if (item.maxMatchScore !== null) {
+        acc.maxMatchScoreOverall =
+          acc.maxMatchScoreOverall === null
+            ? item.maxMatchScore
+            : Math.max(acc.maxMatchScoreOverall, item.maxMatchScore);
+      }
       return acc;
     },
     {
@@ -383,10 +500,22 @@ const main = async (): Promise<void> => {
       roomCollisions: 0,
       usersMovedToInRoomThisRound: 0,
       elapsedMs: 0,
+      weightedScoreSum: 0,
+      totalMatchedWithScore: 0,
+      minMatchScoreOverall: null as number | null,
+      maxMatchScoreOverall: null as number | null,
     },
   );
 
-  console.log("Aggregate:", aggregate);
+  const aggregateWithScore = {
+    ...aggregate,
+    avgMatchScoreOverall:
+      aggregate.totalMatchedWithScore > 0
+        ? Math.round(aggregate.weightedScoreSum / aggregate.totalMatchedWithScore)
+        : null,
+  };
+
+  console.log("Aggregate:", aggregateWithScore);
   console.log("LifetimeMatchStats:", {
     usersInSystemNow: users.length,
     everMatchedUsers: everMatchedUsers.size,

@@ -7,6 +7,7 @@ export const redisKeys = {
     const [low, high] = [userA, userB].sort();
     return `mm:pair:lock:${low}:${high}`;
   },
+  matchJobQueue: () => "mm:jobs:find",
   attempt: (attemptId: string) => `mm:attempt:${attemptId}`,
   userLastAttempt: (userId: string) => `mm:user:last-attempt:${userId}`,
 };

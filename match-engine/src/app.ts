@@ -1,11 +1,15 @@
 import { APP_CONFIG } from "@/config/constants";
 import { healthResponse } from "@/http/health.route";
-import { handleFindMatch } from "@/http/matchmaking.route";
+import { handleFindMatch, handleGetMatchResult } from "@/http/matchmaking.route";
 import { logger } from "@/core/logger";
 import { connectRedis, disconnectRedis } from "@/redis/client";
+import { MatchWorkerService } from "@/matchmaking/application/match-worker.service";
+
+const worker = new MatchWorkerService();
 
 const setupShutdownHooks = (): void => {
   const shutdown = async () => {
+    worker.stop();
     await disconnectRedis();
     process.exit(0);
   };
@@ -16,6 +20,7 @@ const setupShutdownHooks = (): void => {
 
 const bootstrap = async (): Promise<void> => {
   await connectRedis();
+  worker.start();
   setupShutdownHooks();
 
   logger.info(`Starting matching-service on http://${APP_CONFIG.host}:${APP_CONFIG.port}`);
@@ -32,6 +37,11 @@ const bootstrap = async (): Promise<void> => {
 
       if (request.method === "POST" && url.pathname === "/match/find") {
         return handleFindMatch(request);
+      }
+
+      if (request.method === "GET" && url.pathname.startsWith("/match/result/")) {
+        const requestId = decodeURIComponent(url.pathname.replace("/match/result/", ""));
+        return handleGetMatchResult(requestId);
       }
 
       return new Response("Matching Service", { status: 200 });
