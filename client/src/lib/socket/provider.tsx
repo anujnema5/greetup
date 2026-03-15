@@ -45,7 +45,7 @@ export const SocketProvider = ({ children }: { children: React.ReactNode }) => {
                 status: 'connected',
                 pending: false
             });
-        })
+        });
 
         socket.on('disconnect', () => {
             setConnectionState({ connected: false, status: 'disconnected', pending: false });
@@ -60,8 +60,8 @@ export const SocketProvider = ({ children }: { children: React.ReactNode }) => {
             socket.off('connect');
             socket.off('disconnect');
             socket.off('connect_error');
-        }
-    }, [socket])
+        };
+    }, [socket]);
 
     const disconnectSocket = () => {
         try {

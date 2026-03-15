@@ -35,10 +35,11 @@ import {
   CardTitle,
 } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { useProfileSetup } from '../provider'
+import { useProfileSetup, clearProfileSetupProgress } from '../provider'
 import { firstLetterCapital } from '@/shared/utils/general'
-import { CheckCircle2, Circle, LogOut, Sparkles } from 'lucide-react'
+import { LogOut, Sparkles } from 'lucide-react'
 import { signOut } from '@/lib/auth-client'
+import { ThemeToggle } from '@/components/theme-toggle'
 import { CountryDropdown, type Country } from '@/components/ui/country-dropdown'
 import { generateKey } from '../utils'
 
@@ -80,13 +81,17 @@ const ProfileSetupStep = () => {
   const form = useFormContext()
 
   const handleLogout = async () => {
+    clearProfileSetupProgress()
     await signOut()
     router.push('/login')
   }
 
   if (isLoading || !currentStepData) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-gradient-to-b from-background to-muted/20">
+      <div className="relative flex min-h-screen items-center justify-center bg-gradient-to-b from-background to-muted/20">
+        <div className="absolute right-4 top-4 sm:right-6 sm:top-6 z-10">
+          <ThemeToggle />
+        </div>
         <div className="flex flex-col items-center gap-4">
           <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent"></div>
           <div className="text-muted-foreground">Loading...</div>
@@ -312,8 +317,15 @@ const ProfileSetupStep = () => {
                             {option.emoji ?? DEFAULT_OPTION_EMOJI}
                           </div>
 
-                          {/* Title */}
-                          <span className="text-sm font-medium">{label}</span>
+                          {/* Title - dark text when selected for contrast on light accent bg (light/dark mode) */}
+                          <span
+                            className={cn(
+                              'text-sm font-medium',
+                              checked && '!text-[#1a1a1a]',
+                            )}
+                          >
+                            {label}
+                          </span>
 
                           {/* Selected indicator */}
                           {checked && (
@@ -496,7 +508,11 @@ const ProfileSetupStep = () => {
   const progressPercent = totalSteps ? Math.round((currentStep / totalSteps) * 100) : 0
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-muted/30 px-4 py-6 sm:py-8">
+    <div className="min-h-screen relative flex items-center justify-center bg-muted/30 px-4 py-6 sm:py-8">
+      {/* Theme toggle - top right */}
+      <div className="absolute right-4 top-4 sm:right-6 sm:top-6 z-10">
+        <ThemeToggle />
+      </div>
       <div className="w-full max-w-2xl">
         {/* Card container */}
         <div className="rounded-2xl border border-border bg-card shadow-sm overflow-hidden">

@@ -1,1 +1,5 @@
-export * from './profile-setup-provider'
+export {
+  ProfileSetupProvider,
+  useProfileSetup,
+  clearProfileSetupProgress,
+} from './profile-setup-provider'

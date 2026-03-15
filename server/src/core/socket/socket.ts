@@ -3,18 +3,21 @@ import { WEB_CLIENT_HOST } from "@/shared/constants";
 import { auth } from "../auth/auth";
 import { createAdapter } from "@socket.io/redis-adapter";
 import { getPubSubClients } from "../redis";
-import eventEmitter from "@/core/events";
 import logger from "@/core/logging";
+import eventEmitter from "@/core/events";
+import { resolveClientIp } from "./utils";
 
 declare module "socket.io" {
     interface Socket {
         userId?: string;
         user?: any;
         sessionId?: string;
+        ip?: string;
     }
 }
 
 let io: Server | null = null;
+
 const initSocket = () => {
     io = new Server({
         cors: {
@@ -22,39 +25,52 @@ const initSocket = () => {
             methods: ['GET', 'POST'],
             credentials: true
         },
-        pingTimeout: 60000,    
-        pingInterval: 25000,   
+        pingTimeout: 25000,
+        pingInterval: 20000,
     });
 
     io.on('connection', (socket) => {
-        const cookies = socket.handshake.headers;
-        logger.info(`Cookies received: ${cookies}`);
         logger.info(`New client connected: ${socket.id}`);
 
-        const userId = socket.handshake.query.userId;
-        if (!userId) {
+        const userId = socket.userId;
+        const ip = socket.ip ?? "unknown_ip";
+
+        if (!userId || typeof userId !== 'string' || userId.trim() === '') {
+            logger.warn(`[Socket] Connection rejected: no valid userId for socket ${socket.id}`);
             socket.disconnect();
             return;
         }
-        if (userId && typeof userId === 'string') {
-            eventEmitter.emit('user:connected', {
-                socketId: socket.id,
-                timestamp: new Date(),
-                userId
-            })
-        }
 
-        socket.on("disconnect", () => {
-            logger.warn(`Client disconnected`, socket.user);
-            if (socket?.user) {
-                eventEmitter.emit('user:disconnected', {
-                    socketId: socket?.id,
-                    timestamp: new Date(),
-                    userId: socket?.user?.id
-                })
-            }
+        socket.join(`user:${userId}`);
+
+        eventEmitter.emit("user:connected", {
+            userId,
+            socketId: socket.id,
+            ip,
+            timestamp: new Date(),
+            userAgent: socket.handshake.headers["user-agent"],
         });
-    })
+
+        // FIRES ON EVERY PING/PONG CYCLE (EVERY 20 SECONDS BASED ON pingInterval).
+        // EMITS A HEARTBEAT EVENT SO UserEventListeners CAN REFRESH THE REDIS TTL
+        // AND PREVENT ACTIVE USERS FROM BEING MARKED STALE AFTER 3 MINUTES.
+        socket.conn.on("heartbeat", () => {
+            eventEmitter.emit("user:heartbeat", {
+                userId,
+                socketId: socket.id,
+            });
+        });
+
+        socket.on('disconnect', (reason) => {
+            logger.info(`Client disconnected: ${socket.id}. Reason: ${reason}`);
+            eventEmitter.emit("user:disconnected", {
+                userId,
+                socketId: socket.id,
+                ip,
+                timestamp: new Date(),
+            });
+        });
+    });
 
     io.use(async (socket, next) => {
         try {
@@ -77,11 +93,13 @@ const initSocket = () => {
                 logger.warn(`Session exists but no user found for socket ${socket.id}`);
                 return next(new Error("Invalid session - no user"));
             }
+
             socket.userId = session.user.id;
             socket.user = session.user;
             socket.sessionId = session.session.id;
+            socket.ip = resolveClientIp(socket);
 
-            logger.info(`Authenticated user ${session.user.id} (session: ${session.session.id}) connected with socket ${socket.id}`);
+            logger.info(`Authenticated user ${session.user.id} (session: ${session.session.id}) connected with socket ${socket.id} from ip ${socket.ip}`);
             next();
 
         } catch (error: any) {
@@ -103,8 +121,13 @@ const getSocket = () => {
         logger.error("[Socket Service] Socket.io not initialized! Call initSocket first.");
         throw new Error("Socket.io not initialized! Call initSocket first.");
     }
-    logger.info("[Socket Service] Socket.io instance retrieved successfully.");
     return io;
+};
+
+/** EMIT TO ALL SOCKETS FOR A USER (ALL TABS/DEVICES). USES ROOM user:{userId}. */
+const emitToUser = (userId: string, event: string, data?: unknown) => {
+    if (!io) return;
+    io.to(`user:${userId}`).emit(event, data);
 };
 
 const setupSocketAdapter = () => {
@@ -120,5 +143,5 @@ const setupSocketAdapter = () => {
 export {
     initSocket,
     getSocket,
-    setupSocketAdapter
+    setupSocketAdapter,
 }
