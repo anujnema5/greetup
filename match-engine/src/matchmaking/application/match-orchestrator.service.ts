@@ -1,4 +1,4 @@
-import type { FindMatchRequest, FindMatchResult } from "@/contracts/matchmaking.contracts";
+import type { FindMatchRequest, FindMatchResult, SnapshotUserProfile } from "@/contracts/matchmaking.contracts";
 import { MATCH_CONFIG } from "@/config/constants";
 import { logger } from "@/core/logger";
 import { getRedis } from "@/redis/client";
@@ -11,6 +11,7 @@ import { MatchJobQueueService } from "@/matchmaking/infrastructure/services/matc
 import { SnapshotRepository } from "@/matchmaking/infrastructure/repositories/snapshot.repository";
 import { MatchAttemptRepository } from "@/matchmaking/infrastructure/repositories/match-attempt.repository";
 import { RoomOrchestrationService } from "@/matchmaking/infrastructure/services/room-orchestration.service";
+import { MatchWebhookService } from "@/matchmaking/infrastructure/services/match-webhook.service";
 
 const sleep = async (ms: number): Promise<void> =>
   new Promise((resolve) => setTimeout(resolve, ms));
@@ -33,7 +34,8 @@ export class MatchOrchestratorService {
     private readonly snapshots = new SnapshotRepository(),
     private readonly attempts = new MatchAttemptRepository(),
     private readonly rooms = new RoomOrchestrationService(),
-  ) {}
+    private readonly webhook = new MatchWebhookService(),
+  ) { }
 
   async findMatch(request: FindMatchRequest): Promise<FindMatchResult> {
     return this.startFindMatch(request);
@@ -95,6 +97,10 @@ export class MatchOrchestratorService {
       return { status: "no_match", reason: "user_unavailable" };
     }
 
+    // Track whether any eligible (above-threshold) candidate was found across all retries.
+    // If none are ever found, we fall back to the best compatible candidate regardless of score.
+    let foundEligibleCandidate = false;
+
     for (let retryIndex = 0; retryIndex <= MATCH_CONFIG.maxRetries; retryIndex += 1) {
       const candidates = await this.pool.getCandidates(request.userId);
       const scoredCandidates: Array<{ userId: string; matchScore: number; poolScore: number }> = [];
@@ -122,6 +128,7 @@ export class MatchOrchestratorService {
           continue;
         }
 
+        foundEligibleCandidate = true;
         scoredCandidates.push({
           userId: candidate.userId,
           matchScore,
@@ -161,6 +168,14 @@ export class MatchOrchestratorService {
             roomResult.roomId,
             candidate.matchScore,
           );
+          void this.webhook.notifyMatchCompleted({
+            attemptId: request.requestId,
+            userA: request.userId,
+            userB: candidate.userId,
+            roomId: roomResult.roomId,
+            matchScore: candidate.matchScore,
+            isFallbackMatch: false,
+          });
           return {
             status: "matched",
             roomId: roomResult.roomId,
@@ -179,17 +194,111 @@ export class MatchOrchestratorService {
       }
 
       if (retryIndex < MATCH_CONFIG.maxRetries) {
-        const backoffBase =
-          MATCH_CONFIG.retryBackoffMs[retryIndex] ??
+        const backoffBase = MATCH_CONFIG.retryBackoffMs[retryIndex] ??
           MATCH_CONFIG.retryBackoffMs[MATCH_CONFIG.retryBackoffMs.length - 1] ??
           500;
         await sleep(backoffBase + randomJitter());
       }
     }
 
+    // Fallback: no above-threshold candidate was found across all retries.
+    // Try to match with the best compatible candidate regardless of score —
+    // a low-quality match is better than no match at all.
+    if (!foundEligibleCandidate) {
+      const fallbackResult = await this.tryFallbackMatch(request, requesterSnapshot);
+      if (fallbackResult) return fallbackResult;
+    }
+
     await this.attempts.markNoMatch(request.requestId, request.userId, "no_compatible_candidate");
     await this.pool.remove(request.userId);
     return { status: "no_match", reason: "no_compatible_candidate" };
+  }
+
+  private async tryFallbackMatch(
+    request: FindMatchRequest,
+    requesterSnapshot: SnapshotUserProfile,
+  ): Promise<FindMatchResult | null> {
+    const candidates = await this.pool.getCandidates(request.userId);
+    const scoredCandidates: Array<{ userId: string; matchScore: number; poolScore: number }> = [];
+
+    for (const candidate of candidates) {
+      const candidateSnapshot = await this.snapshots.getByUserId(candidate.userId);
+      if (!candidateSnapshot) continue;
+
+      if (!hasSharedMatchId(requesterSnapshot.matchIds, candidateSnapshot.matchIds)) continue;
+
+      const isCompatible = this.validator.isBidirectionallyCompatible(
+        requesterSnapshot,
+        candidateSnapshot,
+      );
+      if (!isCompatible) continue;
+
+      // No score threshold — accept any compatible candidate.
+      const matchScore = this.scorer.calculateBidirectionalScore(requesterSnapshot, candidateSnapshot);
+      scoredCandidates.push({ userId: candidate.userId, matchScore, poolScore: candidate.score });
+    }
+
+    scoredCandidates.sort((a, b) => {
+      if (a.matchScore !== b.matchScore) return b.matchScore - a.matchScore;
+      return b.poolScore - a.poolScore;
+    });
+
+    for (const candidate of scoredCandidates) {
+      const locked = await this.lock.tryLockPair(
+        request.userId,
+        candidate.userId,
+        request.requestId,
+      );
+      if (!locked) continue;
+
+      const roomResult = await this.rooms.createRoom({
+        attemptId: request.requestId,
+        requesterId: request.userId,
+        peerUserId: candidate.userId,
+        timeoutMs: MATCH_CONFIG.roomCreateTimeoutMs,
+      });
+
+      if (roomResult.ok) {
+        await this.markPairInRoom(request.userId, candidate.userId);
+        await this.attempts.markMatched(
+          request.requestId,
+          request.userId,
+          candidate.userId,
+          roomResult.roomId,
+          candidate.matchScore,
+        );
+        void this.webhook.notifyMatchCompleted({
+          attemptId: request.requestId,
+          userA: request.userId,
+          userB: candidate.userId,
+          roomId: roomResult.roomId,
+          matchScore: candidate.matchScore,
+          isFallbackMatch: true,
+        });
+        logger.info("Fallback match made below score threshold", {
+          attemptId: request.requestId,
+          requesterId: request.userId,
+          candidateId: candidate.userId,
+          matchScore: candidate.matchScore,
+        });
+        return {
+          status: "matched",
+          roomId: roomResult.roomId,
+          peerUserId: candidate.userId,
+          matchScore: candidate.matchScore,
+        };
+      }
+
+      await this.lock.releasePair(request.userId, candidate.userId);
+      logger.warn("Room creation failed in fallback; released pair", {
+        attemptId: request.requestId,
+        requesterId: request.userId,
+        candidateId: candidate.userId,
+        reason: roomResult.reason,
+      });
+    }
+
+    return null;
   }
 
   private async markPairInRoom(userA: string, userB: string): Promise<void> {

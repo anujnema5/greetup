@@ -1,6 +1,6 @@
 import { APP_CONFIG } from "@/config/constants";
-import { healthResponse } from "@/http/health.route";
-import { handleFindMatch, handleGetMatchResult } from "@/http/matchmaking.route";
+import { healthResponse } from "@/controllers/health.controller";
+import { handleFindMatch, handleGetMatchResult } from "@/controllers/matchmaking.controller";
 import { logger } from "@/core/logger";
 import { connectRedis, disconnectRedis } from "@/redis/client";
 import { MatchWorkerService } from "@/matchmaking/application/match-worker.service";
