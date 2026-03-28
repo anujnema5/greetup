@@ -9,7 +9,7 @@ This service is responsible for:
 - Returning match state (`searching`, `matched`, `no_match`)
 - Producing a deterministic `matchScore` for each successful match
 
-It is intentionally focused on matchmaking only. Video room setup should be orchestrated by backend/media services.
+It is intentionally focused on matchmaking only. Video room setup should be orchestrated by backend/rtc-service.
 
 ## Core behavior
 
@@ -105,7 +105,7 @@ Room creation is currently supported in two modes:
 - `MATCHING_ROOM_MODE=mock` (default): deterministic mock room id
 - `MATCHING_ROOM_MODE=http` with `ROOM_SERVICE_URL`: calls `POST {ROOM_SERVICE_URL}/rooms/match`
 
-For production architecture, prefer backend/media orchestration ownership for room lifecycle.
+For production architecture, prefer backend/rtc-service orchestration ownership for room lifecycle.
 
 ## Local setup
 
@@ -169,7 +169,7 @@ The stress runner now:
 - Frontend -> Backend: start matching
 - Backend -> Matching service: `POST /match/find`
 - Backend -> Matching service: poll `GET /match/result/:requestId`
-- On `matched`, backend orchestrates media room creation
+- On `matched`, backend orchestrates rtc-service room creation
 - Backend notifies frontend via websocket/SSE
 
 ## Project structure
