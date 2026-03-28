@@ -1,3 +1,4 @@
+import type { Context } from "hono";
 import { APP_CONFIG } from "@/config/constants";
 import { env } from "@/config/env";
 import { pingRedis } from "@/redis/client";
@@ -17,14 +18,13 @@ const withTimeout = async <T>(promise: Promise<T>, timeoutMs: number): Promise<T
   });
 };
 
-export const healthResponse = async (): Promise<Response> => {
+export const healthResponse = async (c: Context): Promise<Response> => {
   const redisOk = await withTimeout(pingRedis(), env.redisPingTimeoutMs).catch(() => false);
-  const statusCode = redisOk ? 200 : 503;
 
-  return Response.json({
+  return c.json({
     ok: redisOk,
     service: APP_CONFIG.serviceName,
     redis: redisOk ? "up" : "down",
     ts: Date.now(),
-  }, { status: statusCode });
+  }, redisOk ? 200 : 503);
 };
