@@ -1,3 +1,4 @@
+import { Hono } from "hono";
 import { APP_CONFIG } from "@/config/constants";
 import { healthResponse } from "@/controllers/health.controller";
 import { handleFindMatch, handleGetMatchResult } from "@/controllers/matchmaking.controller";
@@ -6,6 +7,12 @@ import { connectRedis, disconnectRedis } from "@/redis/client";
 import { MatchWorkerService } from "@/matchmaking/application/match-worker.service";
 
 const worker = new MatchWorkerService();
+
+const app = new Hono();
+
+app.get("/health", healthResponse);
+app.post("/match/find", handleFindMatch);
+app.get("/match/result/:requestId", handleGetMatchResult);
 
 const setupShutdownHooks = (): void => {
   const shutdown = async () => {
@@ -23,35 +30,16 @@ const bootstrap = async (): Promise<void> => {
   worker.start();
   setupShutdownHooks();
 
-  logger.info(`Starting matching-service on http://${APP_CONFIG.host}:${APP_CONFIG.port}`);
-  
-  const server = Bun.serve({
-    port: APP_CONFIG.port,
-    hostname: APP_CONFIG.host,
-    async fetch(request: Request): Promise<Response> {
-      const url = new URL(request.url);
-
-      if (url.pathname === "/health") {
-        return healthResponse();
-      }
-
-      if (request.method === "POST" && url.pathname === "/match/find") {
-        return handleFindMatch(request);
-      }
-
-      if (request.method === "GET" && url.pathname.startsWith("/match/result/")) {
-        const requestId = decodeURIComponent(url.pathname.replace("/match/result/", ""));
-        return handleGetMatchResult(requestId);
-      }
-
-      return new Response("Matching Service", { status: 200 });
-    },
-  });
-
-  logger.info(`matching-service listening on http://${server.hostname}:${server.port}`);
+  logger.info(`matching-service listening on http://${APP_CONFIG.host}:${APP_CONFIG.port}`);
 };
 
 bootstrap().catch((error) => {
   logger.error("Failed to start matching-service", { error: String(error) });
   process.exit(1);
 });
+
+export default {
+  port: APP_CONFIG.port,
+  hostname: APP_CONFIG.host,
+  fetch: app.fetch,
+};

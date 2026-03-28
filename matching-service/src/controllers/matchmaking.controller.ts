@@ -1,3 +1,4 @@
+import type { Context } from "hono";
 import type { FindMatchRequest } from "@/contracts/matchmaking.contracts";
 import { MatchOrchestratorService } from "@/matchmaking/application/match-orchestrator.service";
 
@@ -34,41 +35,37 @@ const parseBody = async (request: Request): Promise<FindMatchRequest | null> => 
   };
 };
 
-export const handleFindMatch = async (request: Request): Promise<Response> => {
-  const body = await parseBody(request);
+export const handleFindMatch = async (c: Context): Promise<Response> => {
+  const body = await parseBody(c.req.raw);
   if (!body) {
-    return Response.json(
+    return c.json(
       { ok: false, error: "invalid_body", hint: "expected { userId, requestId }" },
-      { status: 400 },
+      400,
     );
   }
 
   try {
     const result = await orchestrator.startFindMatch(body);
-    return Response.json({ ok: true, data: result }, { status: 200 });
+    return c.json({ ok: true, data: result }, 200);
   } catch (error) {
-    return Response.json(
-      { ok: false, error: "internal_error", detail: String(error) },
-      { status: 500 },
-    );
+    return c.json({ ok: false, error: "internal_error", detail: String(error) }, 500);
   }
 };
 
-export const handleGetMatchResult = async (requestId: string): Promise<Response> => {
+export const handleGetMatchResult = async (c: Context): Promise<Response> => {
+  const requestId = decodeURIComponent(c.req.param("requestId") ?? "");
+
   if (requestId.trim().length === 0) {
-    return Response.json(
+    return c.json(
       { ok: false, error: "invalid_request_id", hint: "expected /match/result/:requestId" },
-      { status: 400 },
+      400,
     );
   }
 
   try {
     const result = await orchestrator.getMatchResult(requestId);
-    return Response.json({ ok: true, data: result }, { status: 200 });
+    return c.json({ ok: true, data: result }, 200);
   } catch (error) {
-    return Response.json(
-      { ok: false, error: "internal_error", detail: String(error) },
-      { status: 500 },
-    );
+    return c.json({ ok: false, error: "internal_error", detail: String(error) }, 500);
   }
 };
