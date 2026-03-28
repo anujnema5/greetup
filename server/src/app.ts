@@ -2,9 +2,10 @@ import { REDIS_URL } from "@/shared/constants"
 import { Hono } from "hono"
 import { cors } from "hono/cors"
 import router from "./modules/router"
+import { internalRoomsRoute } from "./modules/rooms/router"
 import { auth } from "@/core/auth/auth"
 import { setupRedis } from "@/core/redis"
-import { errorHandler } from "@/middleware"
+import { errorHandler, internalMiddleware } from "@/middleware"
 
 const createApp = async () => {
     await setupRedis(REDIS_URL);
@@ -28,6 +29,10 @@ const createApp = async () => {
 
     // Routes
     app.route('/api', router)
+
+    // Internal routes (match engine → backend, protected by API key)
+    app.use('/internal/*', internalMiddleware)
+    app.route('/internal', internalRoomsRoute)
 
     // Health check
     app.get('/', (c) => c.json({ message: 'Circlo Hono!' }))

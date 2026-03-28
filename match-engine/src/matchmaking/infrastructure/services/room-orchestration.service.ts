@@ -49,7 +49,10 @@ export class RoomOrchestrationService {
       const response = await withTimeout(
         fetch(`${env.roomServiceUrl}/rooms/match`, {
           method: "POST",
-          headers: { "content-type": "application/json" },
+          headers: {
+            "content-type": "application/json",
+            "x-internal-api-key": env.internalApiKey,
+          },
           body: JSON.stringify(requestBody),
         }),
         input.timeoutMs,

@@ -144,4 +144,5 @@ export {
     initSocket,
     getSocket,
     setupSocketAdapter,
+    emitToUser,
 }

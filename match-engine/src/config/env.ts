@@ -29,4 +29,8 @@ export const env = {
   redisPingTimeoutMs: getNumberEnv(process.env.REDIS_PING_TIMEOUT_MS, 800),
   roomServiceUrl: process.env.ROOM_SERVICE_URL,
   roomServiceMode: process.env.MATCHING_ROOM_MODE ?? "mock",
+  matchWebhookUrl: process.env.MATCH_WEBHOOK_URL,
+  internalApiKey: process.env.INTERNAL_API_KEY ?? "",
+  stressBaseUrl: process.env.STRESS_BASE_URL ?? "http://localhost:8000",
+  stressTestDurationSeconds: getNumberEnv(process.env.STRESS_TEST_DURATION_SECONDS, 60),
 };

@@ -14,6 +14,8 @@ node_modules/
 # env
 .env
 .env.production
+env/.env.development
+env/.env.production
 
 bruno/
 migration/
