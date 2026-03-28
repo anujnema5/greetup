@@ -9,7 +9,7 @@ Monorepo for Circlo application services.
 | `client` | Next.js | Frontend app |
 | `server` | Hono / Node.js | Main API, auth, realtime orchestration |
 | `match-engine` | Bun | Async matchmaking microservice |
-| `media-server` | Node.js + mediasoup | WebRTC SFU for peer video/audio |
+| `rtc-service` | Node.js + mediasoup | WebRTC SFU for peer video/audio |
 | `docs` | — | Architecture and developer notes |
 
 ---
@@ -24,7 +24,7 @@ Monorepo for Circlo application services.
              │  REST / WebSocket                  │  WebRTC (SFU)
              ▼                                    ▼
 ┌────────────────────────┐           ┌────────────────────────────┐
-│   SERVER (Hono/Node)   │           │  MEDIA-SERVER (mediasoup)  │
+│   SERVER (Hono/Node)   │           │  RTC-SERVICE (mediasoup)   │
 │   http://localhost:5050│           │  http://localhost:3001      │
 │                        │           │                            │
 │  - Auth (JWT/sessions) │           │  - SFU via mediasoup       │
@@ -76,8 +76,8 @@ Monorepo for Circlo application services.
 3.  match-engine scores candidates, writes result to Redis
 4.  match-engine     → webhook (matched event)   → server
 5.  server creates a media room, notifies both clients via WebSocket
-6.  Both clients     → negotiate WebRTC transports with media-server (SFU)
-7.  media-server relays audio/video between peers (no peer-to-peer)
+6.  Both clients     → negotiate WebRTC transports with rtc-service (SFU)
+7.  rtc-service relays audio/video between peers (no peer-to-peer)
 ```
 
 ### Why SFU (mediasoup)?
@@ -93,7 +93,7 @@ circlo/
   client/               # Next.js app
   server/               # Hono/Node backend
   match-engine/         # Bun matchmaking microservice
-  media-server/         # mediasoup SFU (planned)
+  rtc-service/          # mediasoup SFU
   docs/                 # Design + dev docs
   docker-compose.dev.yml
 ```
@@ -102,7 +102,7 @@ circlo/
 
 ## Prerequisites
 
-- Node.js + npm (for `client`, `server`, `media-server`)
+- Node.js + npm (for `client`, `server`, `rtc-service`)
 - Bun (for `match-engine`)
 - Docker Desktop (recommended for Postgres and Redis locally)
 
@@ -152,10 +152,10 @@ bun run dev
 
 Config comes from `match-engine/env/.env.*`.
 
-### 5) Start media-server (once implemented)
+### 5) Start rtc-service
 
 ```bash
-cd media-server
+cd rtc-service
 npm install
 npm run dev
 # → http://localhost:3001
@@ -184,9 +184,9 @@ Final states: `matched` (includes `peerUserId`, `matchScore`) or `no_match`.
 
 ---
 
-## Media-server (mediasoup SFU)
+## RTC-service (mediasoup SFU)
 
-Planned endpoints (server-to-media-server, internal):
+Planned endpoints (server-to-rtc-service, internal):
 
 | Endpoint | Description |
 |---|---|
@@ -196,7 +196,7 @@ Planned endpoints (server-to-media-server, internal):
 | `POST /rooms/:roomId/consumers` | Subscribe to a peer's track |
 | `DELETE /rooms/:roomId` | Tear down a room |
 
-Clients connect directly to `media-server` for WebRTC signalling after `server` provisions the room.
+Clients connect directly to `rtc-service` for WebRTC signalling after `server` provisions the room.
 
 ---
 
@@ -240,5 +240,5 @@ Create local `.env` files before starting services and fill required secrets.
 ## Notes
 
 - Keep `requestId` unique per matchmaking attempt for idempotency.
-- `server` is the single orchestrator — it owns the lifecycle of rooms and notifies clients. Neither `match-engine` nor `media-server` talk to the client directly.
-- `media-server` will require native build tooling (Python, C++ build tools) for mediasoup worker binaries.
+- `server` is the single orchestrator — it owns the lifecycle of rooms and notifies clients. Neither `match-engine` nor `rtc-service` talk to the client directly.
+- `rtc-service` will require native build tooling (Python, C++ build tools) for mediasoup worker binaries.
