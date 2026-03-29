@@ -1,0 +1,67 @@
+/** Cross-tab / opener–popup sync so the call UI can survive refreshes on other routes. */
+
+export const CALL_SESSION_KEY = "circlo-call-active";
+export const CALL_CHANNEL_NAME = "circlo-call";
+
+export type CallChannelMessage =
+  | { type: "END_CALL" }
+  | { type: "SKIP_CALL" }
+  /** Main app navigated into full /room (not ?pip=1); dismiss doc PiP if needed. */
+  | { type: "FULL_ROOM_FOREGROUND" }
+  /** Document PiP (no window.opener): ask the main tab to open full /room and close the PiP surface. */
+  | { type: "REQUEST_FULL_ROOM" };
+
+export function markCallSessionActive(): void {
+  try {
+    sessionStorage.setItem(CALL_SESSION_KEY, "1");
+  } catch {
+    /* ignore */
+  }
+}
+
+export function clearCallSession(): void {
+  try {
+    sessionStorage.removeItem(CALL_SESSION_KEY);
+  } catch {
+    /* ignore */
+  }
+}
+
+export function isCallSessionMarkedActive(): boolean {
+  try {
+    return sessionStorage.getItem(CALL_SESSION_KEY) === "1";
+  } catch {
+    return false;
+  }
+}
+
+export function broadcastCallMessage(msg: CallChannelMessage): void {
+  try {
+    const ch = new BroadcastChannel(CALL_CHANNEL_NAME);
+    ch.postMessage(msg);
+    ch.close();
+  } catch {
+    /* ignore */
+  }
+}
+
+export function subscribeCallChannel(
+  handler: (msg: CallChannelMessage) => void
+): () => void {
+  let ch: BroadcastChannel | null = null;
+  try {
+    ch = new BroadcastChannel(CALL_CHANNEL_NAME);
+    ch.onmessage = (ev: MessageEvent<CallChannelMessage>) => {
+      if (ev?.data?.type) handler(ev.data);
+    };
+  } catch {
+    /* ignore */
+  }
+  return () => {
+    try {
+      ch?.close();
+    } catch {
+      /* ignore */
+    }
+  };
+}

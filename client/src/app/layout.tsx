@@ -5,7 +5,7 @@ import { SocketProvider } from "@/lib/socket";
 import { ReduxProvider } from "@/lib/redux/provider";
 import { ThemeProvider } from "@/components/theme-provider";
 import { Toaster } from "sonner";
-
+import { CallDocPipBridge } from "@/components/call-doc-pip-bridge";
 const plusJakartaSans = Plus_Jakarta_Sans({
   variable: "--font-plus-jakarta",
   subsets: ["latin"],
@@ -28,7 +28,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           disableTransitionOnChange
         >
           <ReduxProvider>
-            <SocketProvider>{children}</SocketProvider>
+            <SocketProvider>
+              <CallDocPipBridge />
+              {children}
+            </SocketProvider>
           </ReduxProvider>
         </ThemeProvider>
         <Toaster />

@@ -1,17 +1,20 @@
 'use client'
 
 import { useState, useEffect, useCallback } from "react";
+import { useRouter } from "next/navigation";
 import { useSocket } from "@/lib/socket";
+import { markCallSessionActive } from "@/lib/call/call-sync";
 import {
-  Home, Search, Users, Clock, User, Settings,
   Video, Zap, Bell, Plus, Sparkles, ChevronRight,
-  Mic, MicOff, VideoOff, PhoneOff, MessageCircle, Signal,
+  Users,
 } from "lucide-react";
+import { NavSidebar, BottomNav } from "@/components/app-nav";
 import { cn } from "@/lib/utils";
+import { MOCK_MATCH } from "@/components/connected-view";
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
 
-type AppState = "idle" | "searching" | "matched" | "connected";
+type AppState = "idle" | "searching" | "matched";
 
 // ─── Data ──────────────────────────────────────────────────────────────────────
 
@@ -28,85 +31,6 @@ const CONNECTIONS = [
   { id: 2, name: "Priya K.",  sub: "Design & Travel", mutual: 6, online: false, initials: "PK", grad: "from-pink-400 to-rose-600"     },
   { id: 3, name: "Jordan L.", sub: "Fitness & Tech",  mutual: 3, online: true,  initials: "JL", grad: "from-sky-400 to-blue-600"      },
 ];
-
-const NAV_ITEMS = [
-  { icon: Home,   label: "Home",        active: true },
-  { icon: Search, label: "Explore"                   },
-  { icon: Users,  label: "Connections"               },
-  { icon: Clock,  label: "History"                   },
-  { icon: User,   label: "Profile"                   },
-];
-
-const MOCK_MATCH = {
-  name: "Zara K.",
-  initials: "ZK",
-  gradFrom: "#7c3aed",
-  gradTo: "#4f46e5",
-  tagline: "Product designer · Startup founder",
-  vibes: ["design", "startups", "indie music"],
-  mutual: 3,
-  vibeScore: 94,
-};
-
-// ─── Left Nav ─────────────────────────────────────────────────────────────────
-
-function NavSidebar() {
-  return (
-    <aside className="hidden md:flex flex-col items-center gap-1 w-16 min-h-screen border-r border-border bg-card py-5 px-2">
-      <div className="mb-6 h-10 w-10 rounded-xl bg-primary flex items-center justify-center shadow-lg shadow-primary/25">
-        <span className="text-sm font-black text-primary-foreground">C</span>
-      </div>
-
-      <nav className="flex flex-col items-center gap-1 flex-1">
-        {NAV_ITEMS.map(({ icon: Icon, label, active }) => (
-          <button
-            key={label}
-            title={label}
-            className={cn(
-              "relative flex h-10 w-10 items-center justify-center rounded-xl transition-all duration-200 cursor-pointer",
-              active
-                ? "bg-primary/15 text-primary"
-                : "text-muted-foreground hover:bg-muted hover:text-foreground"
-            )}
-          >
-            <Icon size={18} strokeWidth={active ? 2.2 : 1.8} />
-            {active && (
-              <span className="absolute left-0 inset-y-2.5 w-0.5 rounded-r-full bg-primary" />
-            )}
-          </button>
-        ))}
-      </nav>
-
-      <button
-        title="Settings"
-        className="flex h-10 w-10 items-center justify-center rounded-xl text-muted-foreground hover:bg-muted hover:text-foreground transition-all duration-200 cursor-pointer"
-      >
-        <Settings size={18} strokeWidth={1.8} />
-      </button>
-    </aside>
-  );
-}
-
-// ─── Bottom Nav (mobile only) ─────────────────────────────────────────────────
-
-function BottomNav() {
-  return (
-    <nav className="md:hidden fixed bottom-0 inset-x-0 z-20 flex items-center justify-around border-t border-border bg-card/95 backdrop-blur-sm py-2 safe-area-inset-bottom">
-      {NAV_ITEMS.map(({ icon: Icon, label, active }) => (
-        <button
-          key={label}
-          className={cn(
-            "flex flex-col items-center gap-1 px-3 py-1 rounded-xl transition-all duration-200 cursor-pointer",
-            active ? "text-primary" : "text-muted-foreground"
-          )}
-        >
-          <Icon size={20} strokeWidth={active ? 2.2 : 1.8} />
-          <span className="text-[10px] font-medium">{label}</span>
-        </button>
-      ))}
-    </nav>
-  );
-}
 
 // ─── Hero ─────────────────────────────────────────────────────────────────────
 
@@ -163,7 +87,6 @@ function HeroSection({ appState, onToggle, onCancel }: {
     idle:      "your vibe finds\nyour tribe.",
     searching: "finding your people rn…",
     matched:   "your vibe finds\nyour tribe.",
-    connected: "your vibe finds\nyour tribe.",
   }[appState];
 
   return (
@@ -196,7 +119,7 @@ function HeroSection({ appState, onToggle, onCancel }: {
 
       <div className="relative z-10 text-center">
         <h2
-          className="text-[1.8rem] md:text-[2.4rem] font-bold tracking-tight leading-[1.1]"
+          className="text-[1.8rem] md:text-[2.4rem] font-bold tracking-tight leading-[1.5]"
           style={{
             background: "linear-gradient(160deg, oklch(96% 0.01 110) 0%, oklch(88% 0.11 105) 55%, oklch(78% 0.08 110) 100%)",
             WebkitBackgroundClip: "text",
@@ -243,376 +166,6 @@ function HeroSection({ appState, onToggle, onCancel }: {
 
 // ─── Match Found Overlay ───────────────────────────────────────────────────────
 
-function MatchFoundOverlay({ onConnect, onSkip }: { onConnect: () => void; onSkip: () => void }) {
-  return (
-    <div
-      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4"
-      style={{ background: "rgba(0,0,0,0.65)", backdropFilter: "blur(12px)" }}
-    >
-      <div
-        className="relative w-full max-w-sm rounded-3xl overflow-hidden"
-        style={{
-          background: "oklch(16% 0.015 110)",
-          border: "1px solid oklch(30% 0.015 110)",
-          boxShadow: "0 32px 80px rgba(0,0,0,0.6), 0 0 0 1px oklch(88% 0.11 105 / 0.08)",
-          animation: "slideUp 0.4s cubic-bezier(0.34,1.56,0.64,1) both",
-        }}
-      >
-        {/* Top glow */}
-        <div
-          className="pointer-events-none absolute inset-x-0 top-0 h-32 opacity-30"
-          style={{ background: "radial-gradient(ellipse 80% 100% at 50% 0%, oklch(88% 0.11 105 / 0.35), transparent)" }}
-        />
-
-        <div className="relative px-6 pt-7 pb-6 flex flex-col items-center gap-5">
-
-          {/* Badge */}
-          <div
-            className="flex items-center gap-2 rounded-full px-3.5 py-1.5 text-xs font-semibold"
-            style={{
-              background: "oklch(88% 0.11 105 / 0.12)",
-              border: "1px solid oklch(88% 0.11 105 / 0.25)",
-              color: "oklch(88% 0.11 105)",
-            }}
-          >
-            <Sparkles size={11} />
-            Match Found
-          </div>
-
-          {/* Avatar */}
-          <div className="relative">
-            <div
-              className="absolute -inset-2 rounded-full opacity-40 blur-md"
-              style={{ background: `linear-gradient(135deg, ${MOCK_MATCH.gradFrom}, ${MOCK_MATCH.gradTo})` }}
-            />
-            <div
-              className="relative h-24 w-24 rounded-full flex items-center justify-center text-2xl font-bold text-white"
-              style={{
-                background: `linear-gradient(135deg, ${MOCK_MATCH.gradFrom}, ${MOCK_MATCH.gradTo})`,
-                boxShadow: "0 0 0 3px oklch(16% 0.015 110), 0 0 0 4px oklch(30% 0.015 110)",
-              }}
-            >
-              {MOCK_MATCH.initials}
-            </div>
-            <span
-              className="absolute bottom-1 right-1 h-4 w-4 rounded-full bg-emerald-400 border-2"
-              style={{ borderColor: "oklch(16% 0.015 110)" }}
-            />
-          </div>
-
-          {/* Name & tagline */}
-          <div className="text-center">
-            <h3 className="text-lg font-bold text-white">{MOCK_MATCH.name}</h3>
-            <p className="text-xs text-muted-foreground mt-0.5">{MOCK_MATCH.tagline}</p>
-          </div>
-
-          {/* Vibe score bar */}
-          <div
-            className="w-full rounded-2xl px-4 py-3 flex items-center gap-3"
-            style={{ background: "oklch(22% 0.015 110)", border: "1px solid oklch(28% 0.015 110)" }}
-          >
-            <Zap size={13} style={{ color: "oklch(88% 0.11 105)" }} />
-            <div className="flex-1">
-              <div className="flex items-center justify-between mb-1.5">
-                <span className="text-[11px] text-muted-foreground">Vibe alignment</span>
-                <span className="text-[11px] font-bold" style={{ color: "oklch(88% 0.11 105)" }}>{MOCK_MATCH.vibeScore}%</span>
-              </div>
-              <div className="h-1 rounded-full bg-white/10 overflow-hidden">
-                <div
-                  className="h-full rounded-full"
-                  style={{
-                    width: `${MOCK_MATCH.vibeScore}%`,
-                    background: "linear-gradient(90deg, oklch(80% 0.10 105), oklch(88% 0.13 105))",
-                    animation: "growBar 0.8s 0.3s cubic-bezier(0.34,1.1,0.64,1) both",
-                  }}
-                />
-              </div>
-            </div>
-          </div>
-
-          {/* Shared vibes */}
-          <div className="flex flex-wrap gap-2 justify-center">
-            {MOCK_MATCH.vibes.map((v) => (
-              <span
-                key={v}
-                className="rounded-full px-3 py-1 text-[11px] font-medium"
-                style={{
-                  background: "oklch(22% 0.015 110)",
-                  border: "1px solid oklch(30% 0.015 110)",
-                  color: "oklch(75% 0.015 110)",
-                }}
-              >
-                {v}
-              </span>
-            ))}
-            <span
-              className="rounded-full px-3 py-1 text-[11px] font-medium"
-              style={{
-                background: "oklch(22% 0.015 110)",
-                border: "1px solid oklch(30% 0.015 110)",
-                color: "oklch(75% 0.015 110)",
-              }}
-            >
-              +{MOCK_MATCH.mutual} mutual
-            </span>
-          </div>
-
-          {/* CTAs */}
-          <div className="flex w-full gap-3 pt-1">
-            <button
-              onClick={onSkip}
-              className="flex-1 rounded-xl py-3 text-sm font-semibold transition-all duration-200 cursor-pointer hover:brightness-110"
-              style={{
-                background: "oklch(22% 0.015 110)",
-                border: "1px solid oklch(30% 0.015 110)",
-                color: "oklch(70% 0.015 110)",
-              }}
-            >
-              Skip
-            </button>
-            <button
-              onClick={onConnect}
-              className="flex-[2] rounded-xl py-3 text-sm font-bold transition-all duration-200 cursor-pointer hover:brightness-110 flex items-center justify-center gap-2"
-              style={{
-                background: "radial-gradient(circle at 40% 35%, oklch(92% 0.13 105), oklch(80% 0.12 105))",
-                color: "oklch(20% 0.03 110)",
-                boxShadow: "0 0 20px oklch(88% 0.11 105 / 0.25), 0 4px 12px oklch(88% 0.11 105 / 0.15)",
-              }}
-            >
-              <Video size={15} strokeWidth={2.2} />
-              Connect
-            </button>
-          </div>
-        </div>
-      </div>
-
-      <style>{`
-        @keyframes slideUp {
-          from { opacity: 0; transform: translateY(40px) scale(0.96); }
-          to   { opacity: 1; transform: translateY(0)    scale(1);    }
-        }
-        @keyframes growBar {
-          from { width: 0%; }
-        }
-      `}</style>
-    </div>
-  );
-}
-
-// ─── Connected View ────────────────────────────────────────────────────────────
-
-function ConnectedView({ onEnd }: { onEnd: () => void }) {
-  const [muted,   setMuted]   = useState(false);
-  const [camOff,  setCamOff]  = useState(false);
-  const [elapsed, setElapsed] = useState(0);
-
-  useEffect(() => {
-    const t = setInterval(() => setElapsed((s) => s + 1), 1000);
-    return () => clearInterval(t);
-  }, []);
-
-  const fmt = (s: number) =>
-    `${String(Math.floor(s / 60)).padStart(2, "0")}:${String(s % 60).padStart(2, "0")}`;
-
-  return (
-    <div className="fixed inset-0 z-50 flex flex-col" style={{ background: "oklch(8% 0.01 110)" }}>
-
-      {/* ── Remote video ─────────────────────────────────────────────────────── */}
-      <div className="relative flex-1 overflow-hidden">
-
-        {/* Mock video background */}
-        <div
-          className="absolute inset-0"
-          style={{
-            background: `linear-gradient(135deg, ${MOCK_MATCH.gradFrom}33, oklch(8% 0.01 110) 60%, ${MOCK_MATCH.gradTo}22)`,
-          }}
-        />
-
-        {/* Remote avatar centered */}
-        <div className="absolute inset-0 flex items-center justify-center">
-          <div className="relative">
-            <div
-              className="h-28 w-28 rounded-full flex items-center justify-center text-3xl font-bold text-white"
-              style={{
-                background: `linear-gradient(135deg, ${MOCK_MATCH.gradFrom}, ${MOCK_MATCH.gradTo})`,
-                boxShadow: `0 0 60px ${MOCK_MATCH.gradFrom}55, 0 0 120px ${MOCK_MATCH.gradFrom}22`,
-              }}
-            >
-              {MOCK_MATCH.initials}
-            </div>
-            <div
-              className="absolute -inset-3 rounded-full animate-pulse"
-              style={{
-                background: `radial-gradient(circle, ${MOCK_MATCH.gradFrom}30, transparent 70%)`,
-                animationDuration: "2.5s",
-              }}
-            />
-          </div>
-        </div>
-
-        {/* Top bar */}
-        <div
-          className="absolute top-0 inset-x-0 flex items-center justify-between px-5 pt-5 pb-10"
-          style={{ background: "linear-gradient(to bottom, rgba(0,0,0,0.6), transparent)" }}
-        >
-          <div className="flex items-center gap-3">
-            <div
-              className="flex items-center gap-2 rounded-full px-3 py-1.5"
-              style={{ background: "rgba(0,0,0,0.4)", border: "1px solid rgba(255,255,255,0.1)", backdropFilter: "blur(8px)" }}
-            >
-              <span className="h-1.5 w-1.5 rounded-full bg-red-400 animate-pulse" />
-              <span className="text-[11px] font-bold text-white tracking-widest">LIVE</span>
-            </div>
-            <div>
-              <p className="text-sm font-semibold text-white leading-none">{MOCK_MATCH.name}</p>
-              <p className="text-[11px] text-white/50 mt-0.5">{MOCK_MATCH.tagline}</p>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-3">
-            {/* Timer */}
-            <div
-              className="rounded-full px-3 py-1.5 text-[12px] font-mono font-semibold text-white/70"
-              style={{ background: "rgba(0,0,0,0.4)", border: "1px solid rgba(255,255,255,0.1)", backdropFilter: "blur(8px)" }}
-            >
-              {fmt(elapsed)}
-            </div>
-            {/* Signal bars */}
-            <div className="flex items-end gap-0.5">
-              {[1, 2, 3, 4].map((i) => (
-                <div
-                  key={i}
-                  className="w-1 rounded-sm"
-                  style={{ height: 4 + i * 3, background: i <= 3 ? "oklch(88% 0.11 105)" : "rgba(255,255,255,0.2)" }}
-                />
-              ))}
-            </div>
-          </div>
-        </div>
-
-        {/* Vibe score badge */}
-        <div
-          className="absolute top-5 left-1/2 -translate-x-1/2 flex items-center gap-1.5 rounded-full px-3 py-1.5"
-          style={{
-            background: "rgba(0,0,0,0.4)",
-            border: "1px solid oklch(88% 0.11 105 / 0.2)",
-            backdropFilter: "blur(8px)",
-          }}
-        >
-          <Sparkles size={11} style={{ color: "oklch(88% 0.11 105)" }} />
-          <span className="text-[11px] font-semibold" style={{ color: "oklch(88% 0.11 105)" }}>
-            {MOCK_MATCH.vibeScore}% match
-          </span>
-        </div>
-
-        {/* Local PiP */}
-        <div
-          className="absolute bottom-6 right-5 rounded-2xl overflow-hidden"
-          style={{
-            width: 100, height: 136,
-            border: "2px solid rgba(255,255,255,0.15)",
-            boxShadow: "0 8px 24px rgba(0,0,0,0.5)",
-          }}
-        >
-          {camOff ? (
-            <div
-              className="w-full h-full flex flex-col items-center justify-center gap-1.5"
-              style={{ background: "oklch(18% 0.015 110)" }}
-            >
-              <VideoOff size={18} className="text-muted-foreground" />
-              <span className="text-[10px] text-muted-foreground">Cam off</span>
-            </div>
-          ) : (
-            <div
-              className="w-full h-full flex items-center justify-center"
-              style={{ background: "linear-gradient(135deg, oklch(30% 0.04 105), oklch(20% 0.02 110))" }}
-            >
-              <div
-                className="h-12 w-12 rounded-full flex items-center justify-center text-sm font-bold"
-                style={{
-                  background: "radial-gradient(circle at 40% 35%, oklch(90% 0.11 105), oklch(78% 0.10 105))",
-                  color: "oklch(20% 0.03 110)",
-                }}
-              >
-                A
-              </div>
-            </div>
-          )}
-          <div className="absolute bottom-1.5 left-0 right-0 text-center">
-            <span className="text-[9px] text-white/60 font-medium">You</span>
-          </div>
-        </div>
-      </div>
-
-      {/* ── Controls bar ─────────────────────────────────────────────────────── */}
-      <div
-        className="flex items-center justify-center gap-4 px-6 py-5"
-        style={{ background: "oklch(11% 0.012 110)", borderTop: "1px solid oklch(20% 0.012 110)" }}
-      >
-        {/* Mic */}
-        <button onClick={() => setMuted((v) => !v)} className="flex flex-col items-center gap-1.5 cursor-pointer group">
-          <div
-            className={cn(
-              "rounded-2xl flex items-center justify-center transition-all duration-200 group-hover:brightness-110",
-              muted ? "bg-red-500/20 border border-red-500/40" : "border border-white/10 hover:bg-white/10"
-            )}
-            style={{ width: 52, height: 52 }}
-          >
-            {muted ? <MicOff size={20} className="text-red-400" /> : <Mic size={20} className="text-white/70" />}
-          </div>
-          <span className="text-[10px] text-white/40">{muted ? "Unmute" : "Mute"}</span>
-        </button>
-
-        {/* Camera */}
-        <button onClick={() => setCamOff((v) => !v)} className="flex flex-col items-center gap-1.5 cursor-pointer group">
-          <div
-            className={cn(
-              "rounded-2xl flex items-center justify-center transition-all duration-200 group-hover:brightness-110",
-              camOff ? "bg-red-500/20 border border-red-500/40" : "border border-white/10 hover:bg-white/10"
-            )}
-            style={{ width: 52, height: 52 }}
-          >
-            {camOff ? <VideoOff size={20} className="text-red-400" /> : <Video size={20} className="text-white/70" />}
-          </div>
-          <span className="text-[10px] text-white/40">{camOff ? "Start cam" : "Stop cam"}</span>
-        </button>
-
-        {/* End call */}
-        <button onClick={onEnd} className="flex flex-col items-center gap-1.5 cursor-pointer group">
-          <div
-            className="rounded-2xl flex items-center justify-center bg-red-500 hover:bg-red-400 transition-all duration-200"
-            style={{ width: 62, height: 62 }}
-          >
-            <PhoneOff size={22} className="text-white" />
-          </div>
-          <span className="text-[10px] text-white/40">End</span>
-        </button>
-
-        {/* Chat */}
-        <button className="flex flex-col items-center gap-1.5 cursor-pointer group">
-          <div
-            className="rounded-2xl flex items-center justify-center border border-white/10 hover:bg-white/10 transition-all duration-200"
-            style={{ width: 52, height: 52 }}
-          >
-            <MessageCircle size={20} className="text-white/70" />
-          </div>
-          <span className="text-[10px] text-white/40">Chat</span>
-        </button>
-
-        {/* Report */}
-        <button className="flex flex-col items-center gap-1.5 cursor-pointer group">
-          <div
-            className="rounded-2xl flex items-center justify-center border border-white/10 hover:bg-white/10 transition-all duration-200"
-            style={{ width: 52, height: 52 }}
-          >
-            <Signal size={20} className="text-white/70" />
-          </div>
-          <span className="text-[10px] text-white/40">Report</span>
-        </button>
-      </div>
-    </div>
-  );
-}
 
 // ─── Circles Grid ──────────────────────────────────────────────────────────────
 
@@ -761,28 +314,41 @@ function RightPanel() {
 // ─── Page ──────────────────────────────────────────────────────────────────────
 
 export default function DashboardPage() {
-  useSocket();
+  const { socket } = useSocket();
+  const router = useRouter();
   const [appState, setAppState] = useState<AppState>("idle");
 
-  // Mock: auto-fire match after 3s of searching
+  const goToCallRoom = useCallback(() => {
+    markCallSessionActive();
+    setAppState("idle");
+    router.push("/room");
+  }, [router]);
+
+  // Dedicated /room route + optional pip window — survives refresh on dashboard
+  useEffect(() => {
+    const onMatchFound = () => goToCallRoom();
+    socket.on("match:found", onMatchFound);
+    return () => {
+      socket.off("match:found", onMatchFound);
+    };
+  }, [socket, goToCallRoom]);
+
+  // Mock: enter room after 3s (remove once real matching is live)
   useEffect(() => {
     if (appState !== "searching") return;
-    const t = setTimeout(() => setAppState("matched"), 3000);
+    const t = setTimeout(goToCallRoom, 3000);
     return () => clearTimeout(t);
-  }, [appState]);
+  }, [appState, goToCallRoom]);
 
   const handleFindMatch = useCallback(() => {
     if (appState === "idle") setAppState("searching");
   }, [appState]);
 
-  const handleCancel  = useCallback(() => setAppState("idle"),      []);
-  const handleConnect = useCallback(() => setAppState("connected"), []);
-  const handleSkip    = useCallback(() => setAppState("idle"),      []);
-  const handleEnd     = useCallback(() => setAppState("idle"),      []);
+  const handleCancel = useCallback(() => setAppState("idle"), []);
 
   return (
     <div className="flex h-screen overflow-hidden bg-background">
-      <NavSidebar />
+      <NavSidebar activePath="/" />
 
       <main className="flex flex-1 flex-col overflow-y-auto pb-16 md:pb-0">
         {/* Header */}
@@ -819,15 +385,7 @@ export default function DashboardPage() {
       </main>
 
       <RightPanel />
-      <BottomNav />
-
-      {/* ── Overlays ─────────────────────────────────────────────────────────── */}
-      {appState === "matched" && (
-        <MatchFoundOverlay onConnect={handleConnect} onSkip={handleSkip} />
-      )}
-      {appState === "connected" && (
-        <ConnectedView onEnd={handleEnd} />
-      )}
+      <BottomNav activePath="/" />
     </div>
   );
 }
