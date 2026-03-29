@@ -3,19 +3,18 @@
 import { useEffect, useRef, Suspense, useMemo, useCallback } from "react";
 import { useSearchParams, useRouter, usePathname } from "next/navigation";
 import { useAppDispatch } from "@/lib/redux/hooks";
-import { startCall, endCall } from "@/lib/redux/slices/callSlice";
+import { startCall, endCall, minimizeCall, expandCall } from "@/lib/redux/slices/callSlice";
+import { getCallReturnPath } from "@/lib/call/call-return-path";
 import { ConnectedView } from "@/components/connected-view";
 import {
   clearCallSession,
+  clearCallMinimized,
   isCallSessionMarkedActive,
+  markCallMinimized,
   subscribeCallChannel,
   broadcastCallMessage,
 } from "@/lib/call/call-sync";
-import {
-  openDocumentPictureInPictureCall,
-  dismissDocumentPip,
-} from "@/lib/call/document-pip";
-import { toast } from "sonner";
+import { dismissDocumentPip } from "@/lib/call/document-pip";
 
 /** Authoritative pip flag — `useSearchParams()` can lag one frame and close the real PiP/popup. */
 function readPipFromLocation(): boolean {
@@ -30,7 +29,6 @@ function RoomContent() {
   const dispatch = useAppDispatch();
   const hydrated = useRef(false);
   const prevPathnameRef = useRef<string | null>(null);
-  const pipOpenInFlightRef = useRef(false);
   const sp = searchParams.toString();
 
   const isPip = useMemo(() => {
@@ -47,6 +45,12 @@ function RoomContent() {
       dispatch(startCall());
     }
   }, [dispatch]);
+
+  useEffect(() => {
+    if (isPip) return;
+    clearCallMinimized();
+    dispatch(expandCall());
+  }, [isPip, dispatch]);
 
   const applySkip = useCallback(() => {
     clearCallSession();
@@ -105,35 +109,13 @@ function RoomContent() {
     applySkip();
   }, [applySkip]);
 
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    if (isPip) return;
-
-    const onVisibility = () => {
-      if (document.visibilityState === "visible") {
-        dismissDocumentPip();
-        return;
-      }
-      if (document.visibilityState !== "hidden") return;
-      if (pipOpenInFlightRef.current) return;
-      if (readPipFromLocation()) return;
-
-      pipOpenInFlightRef.current = true;
-      void (async () => {
-        try {
-          const ok = await openDocumentPictureInPictureCall();
-          if (!ok) {
-            console.error("Couldn’t open the floating call window (try Chrome or Edge).");
-          }
-        } finally {
-          pipOpenInFlightRef.current = false;
-        }
-      })();
-    };
-
-    document.addEventListener("visibilitychange", onVisibility);
-    return () => document.removeEventListener("visibilitychange", onVisibility);
-  }, [isPip]);
+  const handleMinimize = useCallback(() => {
+    dismissDocumentPip();
+    markCallMinimized();
+    dispatch(minimizeCall());
+    const dest = getCallReturnPath() ?? "/";
+    router.replace(dest);
+  }, [dispatch, router]);
 
   return (
     <div
@@ -147,6 +129,7 @@ function RoomContent() {
         variant={isPip ? "pip" : "room"}
         onEnd={handleEnd}
         onSkip={handleSkip}
+        onMinimize={isPip ? undefined : handleMinimize}
       />
     </div>
   );

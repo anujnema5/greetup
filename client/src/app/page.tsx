@@ -1,7 +1,8 @@
 'use client'
 
 import { useState, useEffect, useCallback } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
+import { setCallReturnPath } from "@/lib/call/call-return-path";
 import { useSocket } from "@/lib/socket";
 import { markCallSessionActive } from "@/lib/call/call-sync";
 import {
@@ -316,13 +317,15 @@ function RightPanel() {
 export default function DashboardPage() {
   const { socket } = useSocket();
   const router = useRouter();
+  const pathname = usePathname();
   const [appState, setAppState] = useState<AppState>("idle");
 
   const goToCallRoom = useCallback(() => {
+    setCallReturnPath(pathname);
     markCallSessionActive();
     setAppState("idle");
     router.push("/room");
-  }, [router]);
+  }, [router, pathname]);
 
   // Dedicated /room route + optional pip window — survives refresh on dashboard
   useEffect(() => {

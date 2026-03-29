@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { Suspense } from "react";
 import { Plus_Jakarta_Sans } from "next/font/google";
 import "./globals.css";
 import { SocketProvider } from "@/lib/socket";
@@ -6,6 +7,8 @@ import { ReduxProvider } from "@/lib/redux/provider";
 import { ThemeProvider } from "@/components/theme-provider";
 import { Toaster } from "sonner";
 import { CallDocPipBridge } from "@/components/call-doc-pip-bridge";
+import { CallMinimizedHydration } from "@/components/call-minimized-hydration";
+import { MinimizedCallDock } from "@/components/minimized-call-dock";
 const plusJakartaSans = Plus_Jakarta_Sans({
   variable: "--font-plus-jakarta",
   subsets: ["latin"],
@@ -28,8 +31,12 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           disableTransitionOnChange
         >
           <ReduxProvider>
+            <CallMinimizedHydration />
             <SocketProvider>
               <CallDocPipBridge />
+              <Suspense fallback={null}>
+                <MinimizedCallDock />
+              </Suspense>
               {children}
             </SocketProvider>
           </ReduxProvider>

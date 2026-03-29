@@ -1,6 +1,9 @@
 /** Cross-tab / opener–popup sync so the call UI can survive refreshes on other routes. */
 
+import { clearCallReturnPath } from "./call-return-path";
+
 export const CALL_SESSION_KEY = "circlo-call-active";
+export const CALL_MINIMIZED_KEY = "circlo-call-minimized";
 export const CALL_CHANNEL_NAME = "circlo-call";
 
 export type CallChannelMessage =
@@ -19,12 +22,38 @@ export function markCallSessionActive(): void {
   }
 }
 
-export function clearCallSession(): void {
+export function markCallMinimized(): void {
   try {
-    sessionStorage.removeItem(CALL_SESSION_KEY);
+    sessionStorage.setItem(CALL_MINIMIZED_KEY, "1");
   } catch {
     /* ignore */
   }
+}
+
+export function clearCallMinimized(): void {
+  try {
+    sessionStorage.removeItem(CALL_MINIMIZED_KEY);
+  } catch {
+    /* ignore */
+  }
+}
+
+export function isCallMinimizedMarked(): boolean {
+  try {
+    return sessionStorage.getItem(CALL_MINIMIZED_KEY) === "1";
+  } catch {
+    return false;
+  }
+}
+
+export function clearCallSession(): void {
+  try {
+    sessionStorage.removeItem(CALL_SESSION_KEY);
+    sessionStorage.removeItem(CALL_MINIMIZED_KEY);
+  } catch {
+    /* ignore */
+  }
+  clearCallReturnPath();
 }
 
 export function isCallSessionMarkedActive(): boolean {

@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, type ReactNode } from "react";
-import { PhoneOff, SkipForward, Sparkles } from "lucide-react";
+import { Minimize2, PhoneOff, SkipForward, Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export const MOCK_MATCH = {
@@ -20,10 +20,13 @@ export type ConnectedViewVariant = "room" | "pip";
 export function ConnectedView({
   onEnd,
   onSkip,
+  onMinimize,
   variant,
 }: {
   onEnd: () => void;
   onSkip: () => void;
+  /** Full room only: collapse to floating dock and return to the previous route. */
+  onMinimize?: () => void;
   variant: ConnectedViewVariant;
 }) {
   const [elapsed, setElapsed] = useState(0);
@@ -73,13 +76,13 @@ export function ConnectedView({
         </div>
 
         <div
-          className="absolute inset-x-0 top-0 flex items-center justify-between px-3 pb-6 pt-3 md:px-4 md:pt-4"
+          className="absolute inset-x-0 top-0 flex flex-wrap items-start justify-between gap-x-2 gap-y-2 px-3 pb-6 pt-3 sm:items-center sm:gap-x-3 md:px-4 md:pt-4"
           style={{
             background: "linear-gradient(to bottom, rgba(0,0,0,0.75), transparent)",
             userSelect: "none",
           }}
         >
-          <div className="flex min-w-0 items-center gap-2">
+          <div className="flex min-w-0 flex-1 items-center gap-2 sm:flex-initial">
             <div
               className="flex shrink-0 items-center gap-1.5 rounded-full px-2 py-1 md:px-2.5"
               style={{
@@ -103,7 +106,22 @@ export function ConnectedView({
             </div>
           </div>
 
-          <div className="flex shrink-0 items-center gap-1 md:gap-1.5">
+          <div className="ml-auto flex shrink-0 items-center gap-1.5 sm:gap-2">
+            {onMinimize && !isPip && (
+              <button
+                type="button"
+                onClick={onMinimize}
+                aria-label="Minimize call"
+                className="flex h-11 w-11 cursor-pointer items-center justify-center rounded-full text-white/90 transition-colors hover:bg-white/10 sm:h-10 sm:w-10"
+                style={{
+                  background: "rgba(0,0,0,0.45)",
+                  border: "1px solid rgba(255,255,255,0.1)",
+                  backdropFilter: "blur(8px)",
+                }}
+              >
+                <Minimize2 size={isPip ? 16 : 18} strokeWidth={2} />
+              </button>
+            )}
             <div
               className="rounded-full px-2 py-0.5 font-mono text-[10px] font-semibold text-white/70 md:px-2.5 md:text-[11px]"
               style={{
@@ -136,10 +154,10 @@ export function ConnectedView({
 
         <div
           className={cn(
-            "absolute overflow-hidden rounded-2xl transition-all duration-300",
+            "absolute overflow-hidden rounded-xl transition-all duration-300 sm:rounded-2xl",
             isPip
               ? "bottom-2 right-2 h-[100px] w-[72px]"
-              : "bottom-3 right-3 h-[120px] w-[90px] md:bottom-6 md:right-6 md:h-[150px] md:w-[110px]"
+              : "bottom-3 right-3 h-[104px] w-[80px] sm:bottom-4 sm:right-4 sm:h-[120px] sm:w-[90px] md:bottom-6 md:right-6 md:h-[150px] md:w-[110px]"
           )}
           style={{
             border: "2px solid rgba(255,255,255,0.15)",
@@ -174,8 +192,8 @@ export function ConnectedView({
 
       <div
         className={cn(
-          "flex shrink-0 items-center justify-center gap-4 border-t border-[oklch(20%_0.012_110)] px-3 py-2.5 md:gap-8 md:px-6 md:py-4",
-          "bg-[oklch(11%_0.012_110)]"
+          "flex shrink-0 items-center justify-center gap-6 border-t border-[oklch(20%_0.012_110)] px-4 py-3 sm:gap-8 sm:px-6 sm:py-4",
+          "bg-[oklch(11%_0.012_110)] pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:pb-4"
         )}
         style={{ userSelect: "none" }}
       >
@@ -214,7 +232,11 @@ function ToolbarAction({
   size: number;
 }) {
   return (
-    <button type="button" onClick={onClick} className="group flex cursor-pointer flex-col items-center gap-1.5 md:gap-2">
+    <button
+      type="button"
+      onClick={onClick}
+      className="group flex min-h-[44px] min-w-[44px] cursor-pointer flex-col items-center justify-center gap-1.5 active:opacity-90 md:min-h-0 md:min-w-0 md:gap-2"
+    >
       <div
         className={cn(
           "flex items-center justify-center rounded-xl transition-all duration-200",
