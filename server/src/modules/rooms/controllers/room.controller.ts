@@ -24,9 +24,7 @@ export const handleCreateRoom = async (c: Context) => {
 
     const { attemptId, pairId, users } = parsed.data;
 
-    // Generate roomId — media server provisioning can be added here later.
     const roomId = randomUUID();
-
     logger.info("Room created", { roomId, attemptId, pairId, users });
 
     return c.json(ApiResponse.success({ roomId }, "Room created", 201), 201);
