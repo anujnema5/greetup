@@ -1,5 +1,13 @@
 "use client";
-import React, { useCallback, useState, forwardRef, useEffect } from "react";
+import React, {
+  useCallback,
+  useState,
+  forwardRef,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+} from "react";
+import { useCommandState } from "cmdk";
 
 // shadcn
 import {
@@ -49,6 +57,27 @@ interface CountryDropdownProps {
   slim?: boolean;
 }
 
+/**
+ * cmdk moves highlight and calls scrollIntoView when the filter changes, which drags the list
+ * scroll down. After it runs, snap the list back to the top so matches stay under the search box.
+ */
+function ResetListScrollAfterFilter({
+  listRef,
+}: {
+  listRef: React.RefObject<HTMLElement | null>;
+}) {
+  const search = useCommandState((s) => s.search);
+  useLayoutEffect(() => {
+    const el = listRef.current;
+    if (!el) return;
+    const t = window.setTimeout(() => {
+      el.scrollTop = 0;
+    }, 0);
+    return () => window.clearTimeout(t);
+  }, [search, listRef]);
+  return null;
+}
+
 const CountryDropdownComponent = (
   {
     options = countries.all.filter(
@@ -77,11 +106,9 @@ const CountryDropdownComponent = (
       if (initialCountry) {
         setSelectedCountry(initialCountry);
       } else {
-        // Reset selected country if defaultValue is not found
         setSelectedCountry(undefined);
       }
     } else {
-      // Reset selected country if defaultValue is undefined or null
       setSelectedCountry(undefined);
     }
   }, [defaultValue, options]);
@@ -94,6 +121,8 @@ const CountryDropdownComponent = (
     },
     [onChange]
   );
+
+  const listRef = useRef<HTMLDivElement>(null);
 
   const triggerClasses = cn(
     "flex h-9 w-full items-center justify-between whitespace-nowrap rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring disabled:cursor-not-allowed disabled:opacity-50 [&>span]:line-clamp-1",
@@ -125,7 +154,7 @@ const CountryDropdownComponent = (
         ) : (
           <span>
             {slim === false ? (
-              placeholder || setSelectedCountry.name
+              placeholder
             ) : (
               <Globe size={20} />
             )}
@@ -136,25 +165,30 @@ const CountryDropdownComponent = (
       <PopoverContent
         collisionPadding={10}
         side="bottom"
+        align="start"
         className="min-w-[--radix-popper-anchor-width] p-0"
       >
-        <Command className="w-full max-h-[200px] sm:max-h-[270px]">
-          <CommandList>
-            <div className="sticky top-0 z-10 bg-popover">
-              <CommandInput placeholder="Search country..." />
-            </div>
+        <Command className="h-auto w-full max-w-full flex-col overflow-hidden">
+          <ResetListScrollAfterFilter listRef={listRef} />
+          <CommandInput placeholder="Search country..." />
+          <CommandList
+            ref={listRef}
+            onWheel={(e) => e.stopPropagation()}
+            className="max-h-[calc(200px-2.25rem)] min-h-0 overflow-x-hidden overflow-y-auto overscroll-y-contain scroll-py-1 sm:max-h-[calc(270px-2.25rem)]"
+          >
             <CommandEmpty>No country found.</CommandEmpty>
             <CommandGroup>
               {options
                 .filter((x) => x.name)
                 .map((option, key: number) => (
                   <CommandItem
-                    className="flex items-center w-full gap-2"
+                    className="flex w-full items-center gap-2"
                     key={key}
+                    value={`${option.alpha3}-${option.name}`}
                     onSelect={() => handleSelect(option)}
                   >
-                    <div className="flex grow w-0 space-x-2 overflow-hidden">
-                      <div className="inline-flex items-center justify-center w-5 h-5 shrink-0 overflow-hidden rounded-full">
+                    <div className="flex w-0 grow space-x-2 overflow-hidden">
+                      <div className="inline-flex h-5 w-5 shrink-0 items-center justify-center overflow-hidden rounded-full">
                         <CircleFlag
                           countryCode={option.alpha2.toLowerCase()}
                           height={20}
