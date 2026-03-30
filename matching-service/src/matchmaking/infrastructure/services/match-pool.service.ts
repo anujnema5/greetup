@@ -1,9 +1,9 @@
+import { MATCH_CONFIG } from "@/config/constants";
 import type { MatchCandidate } from "@/matchmaking/domain/matching.types";
 import { getRedis } from "@/redis/client";
 import { redisKeys } from "@/redis/keys";
 
 const CANDIDATE_SCAN_LIMIT = 100;
-const MAX_CANDIDATES = 25;
 
 export class MatchPoolService {
   async enqueue(userId: string): Promise<void> {
@@ -49,7 +49,7 @@ export class MatchPoolService {
         score: Number(scoreRaw),
       });
 
-      if (candidates.length >= MAX_CANDIDATES) {
+      if (candidates.length >= MATCH_CONFIG.candidateBatchSize) {
         break;
       }
     }

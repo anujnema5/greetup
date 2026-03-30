@@ -1,10 +1,11 @@
 import type { FindMatchRequest, FindMatchResult, SnapshotUserProfile } from "@/contracts/matchmaking.contracts";
 import { MATCH_CONFIG } from "@/config/constants";
+import { randomJitter, sleep } from "@/core/async-utils";
 import { logger } from "@/core/logger";
-import { getRedis } from "@/redis/client";
-import { redisKeys } from "@/redis/keys";
+import { sortScoredCandidatesDescending } from "@/matchmaking/application/candidate-ranking";
 import { MatchValidatorService } from "@/matchmaking/domain/match-validator.service";
 import { MatchScoreService } from "@/matchmaking/domain/match-score.service";
+import type { MatchCandidate, ScoredMatchCandidate } from "@/matchmaking/domain/matching.types";
 import { MatchLockService } from "@/matchmaking/infrastructure/services/match-lock.service";
 import { MatchPoolService } from "@/matchmaking/infrastructure/services/match-pool.service";
 import { MatchJobQueueService } from "@/matchmaking/infrastructure/services/match-job-queue.service";
@@ -12,11 +13,10 @@ import { SnapshotRepository } from "@/matchmaking/infrastructure/repositories/sn
 import { MatchAttemptRepository } from "@/matchmaking/infrastructure/repositories/match-attempt.repository";
 import { RoomOrchestrationService } from "@/matchmaking/infrastructure/services/room-orchestration.service";
 import { MatchWebhookService } from "@/matchmaking/infrastructure/services/match-webhook.service";
+import { getRedis } from "@/redis/client";
+import { redisKeys } from "@/redis/keys";
 
-const sleep = async (ms: number): Promise<void> =>
-  new Promise((resolve) => setTimeout(resolve, ms));
-
-const randomJitter = (): number => Math.floor(Math.random() * 250);
+type ScorePoolMode = "eligible_only" | "all_compatible";
 
 export class MatchOrchestratorService {
   constructor(
@@ -29,7 +29,7 @@ export class MatchOrchestratorService {
     private readonly attempts = new MatchAttemptRepository(),
     private readonly rooms = new RoomOrchestrationService(),
     private readonly webhook = new MatchWebhookService(),
-  ) { }
+  ) {}
 
   async findMatch(request: FindMatchRequest): Promise<FindMatchResult> {
     return this.startFindMatch(request);
@@ -40,7 +40,10 @@ export class MatchOrchestratorService {
 
     const existingAttempt = await this.attempts.getAttempt(request.requestId);
     if (existingAttempt) {
-      logger.info("[startFindMatch] duplicate requestId — returning existing attempt", { requestId: request.requestId, status: existingAttempt.status });
+      logger.info("[startFindMatch] duplicate requestId — returning existing attempt", {
+        requestId: request.requestId,
+        status: existingAttempt.status,
+      });
       return this.attempts.toResult(existingAttempt);
     }
 
@@ -83,7 +86,10 @@ export class MatchOrchestratorService {
 
     const existingAttempt = await this.attempts.getAttempt(request.requestId);
     if (!existingAttempt || existingAttempt.status !== "searching") {
-      logger.warn("[processMatchRequest] attempt not in searching state — skipping", { requestId: request.requestId, status: existingAttempt?.status ?? "not_found" });
+      logger.warn("[processMatchRequest] attempt not in searching state — skipping", {
+        requestId: request.requestId,
+        status: existingAttempt?.status ?? "not_found",
+      });
       return existingAttempt ? this.attempts.toResult(existingAttempt) : { status: "no_match", reason: "attempt_not_found" };
     }
 
@@ -103,8 +109,6 @@ export class MatchOrchestratorService {
       return { status: "no_match", reason: "user_unavailable" };
     }
 
-    // Track whether any eligible (above-threshold) candidate was found across all retries.
-    // If none are ever found, we fall back to the best compatible candidate regardless of score.
     let foundEligibleCandidate = false;
     let poolHadOtherSearchers = false;
 
@@ -113,108 +117,30 @@ export class MatchOrchestratorService {
       if (candidates.length > 0) poolHadOtherSearchers = true;
       logger.debug("[processMatchRequest] retry scan", { userId: request.userId, retryIndex, candidateCount: candidates.length });
 
-      const scoredCandidates: Array<{ userId: string; matchScore: number; poolScore: number }> = [];
+      const scoredCandidates = await this.scoreCandidatesFromPool(requesterSnapshot, candidates, "eligible_only");
 
-      for (const candidate of candidates) {
-        const candidateSnapshot = await this.getSnapshotWithHydration(candidate.userId);
-        if (!candidateSnapshot) {
-          logger.debug("[processMatchRequest] skipping candidate — no snapshot", { candidateId: candidate.userId });
-          continue;
-        }
+      if (scoredCandidates.length > 0) foundEligibleCandidate = true;
 
-        const isCompatible = this.validator.isBidirectionallyCompatible(
-          requesterSnapshot,
-          candidateSnapshot,
-        );
-        if (!isCompatible) {
-          logger.debug("[processMatchRequest] skipping candidate — not compatible", { candidateId: candidate.userId });
-          continue;
-        }
-
-        const matchScore = this.scorer.calculateBidirectionalScore(requesterSnapshot, candidateSnapshot);
-        if (!this.scorer.isScoreEligible(matchScore)) {
-          logger.debug("[processMatchRequest] skipping candidate — score below threshold", { candidateId: candidate.userId, matchScore });
-          continue;
-        }
-
-        foundEligibleCandidate = true;
-        scoredCandidates.push({
-          userId: candidate.userId,
-          matchScore,
-          poolScore: candidate.score,
-        });
-      }
-
-      logger.debug("[processMatchRequest] scored candidates", { userId: request.userId, retryIndex, scoredCount: scoredCandidates.length });
-
-      scoredCandidates.sort((a, b) => {
-        if (a.matchScore !== b.matchScore) return b.matchScore - a.matchScore;
-        return b.poolScore - a.poolScore;
+      logger.debug("[processMatchRequest] scored candidates", {
+        userId: request.userId,
+        retryIndex,
+        scoredCount: scoredCandidates.length,
       });
 
-      for (const candidate of scoredCandidates) {
+      sortScoredCandidatesDescending(scoredCandidates);
 
-        const locked = await this.lock.tryLockPair(
-          request.userId,
-          candidate.userId,
-          request.requestId,
-        );
-        if (!locked) {
-          continue;
-        }
-
-        const roomResult = await this.rooms.createRoom({
-          attemptId: request.requestId,
-          requesterId: request.userId,
-          peerUserId: candidate.userId,
-          timeoutMs: MATCH_CONFIG.roomCreateTimeoutMs,
-        });
-
-        if (roomResult.ok) {
-          await this.markPairInRoom(request.userId, candidate.userId);
-          await this.attempts.markMatched(
-            request.requestId,
-            request.userId,
-            candidate.userId,
-            roomResult.roomId,
-            candidate.matchScore,
-          );
-          void this.webhook.notifyMatchCompleted({
-            attemptId: request.requestId,
-            userA: request.userId,
-            userB: candidate.userId,
-            roomId: roomResult.roomId,
-            matchScore: candidate.matchScore,
-            isFallbackMatch: false,
-          });
-          return {
-            status: "matched",
-            roomId: roomResult.roomId,
-            peerUserId: candidate.userId,
-            matchScore: candidate.matchScore,
-          };
-        }
-
-        await this.lock.releasePair(request.userId, candidate.userId);
-        logger.warn("Room creation failed after lock; released pair", {
-          attemptId: request.requestId,
-          requesterId: request.userId,
-          candidateId: candidate.userId,
-          reason: roomResult.reason,
-        });
-      }
+      const matched = await this.tryPairWithSortedCandidates(request, scoredCandidates, false);
+      if (matched) return matched;
 
       if (retryIndex < MATCH_CONFIG.maxRetries) {
-        const backoffBase = MATCH_CONFIG.retryBackoffMs[retryIndex] ??
+        const backoffBase =
+          MATCH_CONFIG.retryBackoffMs[retryIndex] ??
           MATCH_CONFIG.retryBackoffMs[MATCH_CONFIG.retryBackoffMs.length - 1] ??
           500;
         await sleep(backoffBase + randomJitter());
       }
     }
 
-    // Fallback: no above-threshold candidate was found across all retries.
-    // Try to match with the best compatible candidate regardless of score —
-    // a low-quality match is better than no match at all.
     if (!foundEligibleCandidate) {
       const fallbackResult = await this.tryFallbackMatch(request, requesterSnapshot);
       if (fallbackResult) return fallbackResult;
@@ -248,40 +174,64 @@ export class MatchOrchestratorService {
     return this.snapshots.getByUserId(userId);
   }
 
-  private async tryFallbackMatch(
-    request: FindMatchRequest,
+  private async scoreCandidatesFromPool(
     requesterSnapshot: SnapshotUserProfile,
-  ): Promise<FindMatchResult | null> {
-    const candidates = await this.pool.getCandidates(request.userId);
-    const scoredCandidates: Array<{ userId: string; matchScore: number; poolScore: number }> = [];
+    poolCandidates: MatchCandidate[],
+    mode: ScorePoolMode,
+  ): Promise<ScoredMatchCandidate[]> {
+    const out: ScoredMatchCandidate[] = [];
+    const logSkips = mode === "eligible_only";
 
-    for (const candidate of candidates) {
+    for (const candidate of poolCandidates) {
       const candidateSnapshot = await this.getSnapshotWithHydration(candidate.userId);
-      if (!candidateSnapshot) continue;
+      if (!candidateSnapshot) {
+        if (logSkips) {
+          logger.debug("[processMatchRequest] skipping candidate — no snapshot", { candidateId: candidate.userId });
+        }
+        continue;
+      }
 
-      const isCompatible = this.validator.isBidirectionallyCompatible(
-        requesterSnapshot,
-        candidateSnapshot,
-      );
-      if (!isCompatible) continue;
+      if (!this.validator.isBidirectionallyCompatible(requesterSnapshot, candidateSnapshot)) {
+        if (logSkips) {
+          logger.debug("[processMatchRequest] skipping candidate — not compatible", { candidateId: candidate.userId });
+        }
+        continue;
+      }
 
-      // No score threshold — accept any compatible candidate (overlap still boosts score upstream).
       const matchScore = this.scorer.calculateBidirectionalScore(requesterSnapshot, candidateSnapshot);
-      scoredCandidates.push({ userId: candidate.userId, matchScore, poolScore: candidate.score });
+
+      if (mode === "eligible_only" && !this.scorer.isScoreEligible(matchScore)) {
+        logger.debug("[processMatchRequest] skipping candidate — score below threshold", {
+          candidateId: candidate.userId,
+          matchScore,
+        });
+        continue;
+      }
+
+      out.push({
+        userId: candidate.userId,
+        matchScore,
+        poolScore: candidate.score,
+      });
     }
 
-    scoredCandidates.sort((a, b) => {
-      if (a.matchScore !== b.matchScore) return b.matchScore - a.matchScore;
-      return b.poolScore - a.poolScore;
-    });
+    return out;
+  }
 
-    for (const candidate of scoredCandidates) {
-      const locked = await this.lock.tryLockPair(
-        request.userId,
-        candidate.userId,
-        request.requestId,
-      );
-      if (!locked) continue;
+  /**
+   * Tries to lock and create a room for candidates in rank order.
+   * Returns the first successful match, or null if every attempt failed.
+   */
+  private async tryPairWithSortedCandidates(
+    request: FindMatchRequest,
+    sorted: ScoredMatchCandidate[],
+    isFallbackMatch: boolean,
+  ): Promise<FindMatchResult | null> {
+    for (const candidate of sorted) {
+      const locked = await this.lock.tryLockPair(request.userId, candidate.userId, request.requestId);
+      if (!locked) {
+        continue;
+      }
 
       const roomResult = await this.rooms.createRoom({
         attemptId: request.requestId,
@@ -305,14 +255,18 @@ export class MatchOrchestratorService {
           userB: candidate.userId,
           roomId: roomResult.roomId,
           matchScore: candidate.matchScore,
-          isFallbackMatch: true,
+          isFallbackMatch,
         });
-        logger.info("Fallback match made below score threshold", {
-          attemptId: request.requestId,
-          requesterId: request.userId,
-          candidateId: candidate.userId,
-          matchScore: candidate.matchScore,
-        });
+
+        if (isFallbackMatch) {
+          logger.info("Fallback match made below score threshold", {
+            attemptId: request.requestId,
+            requesterId: request.userId,
+            candidateId: candidate.userId,
+            matchScore: candidate.matchScore,
+          });
+        }
+
         return {
           status: "matched",
           roomId: roomResult.roomId,
@@ -322,7 +276,10 @@ export class MatchOrchestratorService {
       }
 
       await this.lock.releasePair(request.userId, candidate.userId);
-      logger.warn("Room creation failed in fallback; released pair", {
+      const warnMessage = isFallbackMatch
+        ? "Room creation failed in fallback; released pair"
+        : "Room creation failed after lock; released pair";
+      logger.warn(warnMessage, {
         attemptId: request.requestId,
         requesterId: request.userId,
         candidateId: candidate.userId,
@@ -333,6 +290,16 @@ export class MatchOrchestratorService {
     return null;
   }
 
+  private async tryFallbackMatch(
+    request: FindMatchRequest,
+    requesterSnapshot: SnapshotUserProfile,
+  ): Promise<FindMatchResult | null> {
+    const candidates = await this.pool.getCandidates(request.userId);
+    const scoredCandidates = await this.scoreCandidatesFromPool(requesterSnapshot, candidates, "all_compatible");
+    sortScoredCandidatesDescending(scoredCandidates);
+    return this.tryPairWithSortedCandidates(request, scoredCandidates, true);
+  }
+
   private async markPairInRoom(userA: string, userB: string): Promise<void> {
     const redis = getRedis();
     const pipeline = redis.pipeline();
@@ -341,9 +308,8 @@ export class MatchOrchestratorService {
     pipeline.del(redisKeys.userLock(userA));
     pipeline.del(redisKeys.userLock(userB));
     pipeline.del(redisKeys.pairLock(userA, userB));
-    // TTL of 7200s (2h) as a failsafe so users don't get stuck if leaveRoom is never called
-    pipeline.set(redisKeys.userState(userA), "in_room", "EX", 7200);
-    pipeline.set(redisKeys.userState(userB), "in_room", "EX", 7200);
+    pipeline.set(redisKeys.userState(userA), "in_room", "EX", MATCH_CONFIG.userInRoomStateTtlSeconds);
+    pipeline.set(redisKeys.userState(userB), "in_room", "EX", MATCH_CONFIG.userInRoomStateTtlSeconds);
     await pipeline.exec();
   }
 
@@ -383,7 +349,12 @@ export class MatchOrchestratorService {
       return { status: "idle" };
     }
 
-    logger.debug("[getUserMatchState] found attempt", { userId, requestId, status: attempt.status, roomId: attempt.roomId });
+    logger.debug("[getUserMatchState] found attempt", {
+      userId,
+      requestId,
+      status: attempt.status,
+      roomId: attempt.roomId,
+    });
 
     if (attempt.status === "searching") return { status: "searching", requestId };
     if (attempt.status === "matched" && attempt.roomId) return { status: "matched", requestId, roomId: attempt.roomId };

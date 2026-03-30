@@ -12,6 +12,7 @@ import {
   matchFailedBodySchema,
 } from "../schemas/room.schema";
 import { ensureProfileSnapshotCached } from "@/modules/user/services/profile-snapshot-cache.service";
+import { internalError, invalidRequestBody } from "../lib/http-responses";
 
 /**
  * POST /internal/rooms/match
@@ -24,10 +25,7 @@ export const handleCreateRoom = async (c: Context) => {
     const parsed = createRoomBodySchema.safeParse(body);
 
     if (!parsed.success) {
-      return c.json(
-        ApiResponse.error({ message: "Invalid request body", statusCode: 400, code: "VALIDATION_ERROR" }),
-        400
-      );
+      return invalidRequestBody(c);
     }
 
     const { attemptId, pairId, users } = parsed.data;
@@ -88,10 +86,7 @@ export const handleGetRoom = async (c: Context) => {
     );
   } catch (error) {
     logger.error("Failed to get room", { error });
-    return c.json(
-      ApiResponse.error({ message: "Internal error", statusCode: 500, code: "INTERNAL_ERROR" }),
-      500
-    );
+    return internalError(c);
   }
 };
 
@@ -106,10 +101,7 @@ export const handleEnsureProfileSnapshot = async (c: Context) => {
     const parsed = ensureProfileSnapshotBodySchema.safeParse(body);
 
     if (!parsed.success) {
-      return c.json(
-        ApiResponse.error({ message: "Invalid request body", statusCode: 400, code: "VALIDATION_ERROR" }),
-        400
-      );
+      return invalidRequestBody(c);
     }
 
     const cached = await ensureProfileSnapshotCached(parsed.data.userId);
@@ -123,10 +115,7 @@ export const handleEnsureProfileSnapshot = async (c: Context) => {
     return c.json(ApiResponse.success({ cached: true }, "Profile snapshot cached"), 200);
   } catch (error) {
     logger.error("Failed to ensure profile snapshot", { error });
-    return c.json(
-      ApiResponse.error({ message: "Internal error", statusCode: 500, code: "INTERNAL_ERROR" }),
-      500
-    );
+    return internalError(c);
   }
 };
 
@@ -141,10 +130,7 @@ export const handleMatchFailed = async (c: Context) => {
     const parsed = matchFailedBodySchema.safeParse(body);
 
     if (!parsed.success) {
-      return c.json(
-        ApiResponse.error({ message: "Invalid request body", statusCode: 400, code: "VALIDATION_ERROR" }),
-        400
-      );
+      return invalidRequestBody(c);
     }
 
     const { attemptId, userId, reason } = parsed.data;
@@ -156,10 +142,7 @@ export const handleMatchFailed = async (c: Context) => {
     return c.json(ApiResponse.success(null, "Notified"), 200);
   } catch (error) {
     logger.error("Failed to handle match failed webhook", { error });
-    return c.json(
-      ApiResponse.error({ message: "Internal error", statusCode: 500, code: "INTERNAL_ERROR" }),
-      500
-    );
+    return internalError(c);
   }
 };
 
@@ -174,10 +157,7 @@ export const handleMatchCompleted = async (c: Context) => {
     const parsed = matchCompletedBodySchema.safeParse(body);
 
     if (!parsed.success) {
-      return c.json(
-        ApiResponse.error({ message: "Invalid request body", statusCode: 400, code: "VALIDATION_ERROR" }),
-        400
-      );
+      return invalidRequestBody(c);
     }
 
     const { attemptId, userA, userB, roomId, matchScore, isFallbackMatch } = parsed.data;
@@ -195,9 +175,6 @@ export const handleMatchCompleted = async (c: Context) => {
     return c.json(ApiResponse.success(null, "Notified"), 200);
   } catch (error) {
     logger.error("Failed to handle match completed webhook", { error });
-    return c.json(
-      ApiResponse.error({ message: "Internal error", statusCode: 500, code: "INTERNAL_ERROR" }),
-      500
-    );
+    return internalError(c);
   }
 };
