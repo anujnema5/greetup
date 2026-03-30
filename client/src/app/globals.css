@@ -37,6 +37,10 @@
   --color-popover: var(--popover);
   --color-card-foreground: var(--card-foreground);
   --color-card: var(--card);
+  --color-success: var(--success);
+  --color-success-muted: var(--success-muted);
+  --color-success-foreground: var(--success-foreground);
+  --color-success-border: var(--success-border);
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
@@ -46,53 +50,67 @@
 :root {
   --radius: 0.625rem;
 
-  /* BASE */
-  --background: oklch(98% 0.01 110);
-  --foreground: oklch(20% 0.03 110);
+  /*
+   * Light theme — bright neutral-warm (less yellow): higher L, lower chroma, hue ~100.
+   */
+  --background: oklch(95.5% 0.012 100);
+  --foreground: oklch(26% 0.022 100);
 
-  --card: oklch(97% 0.01 110);
-  --card-foreground: oklch(20% 0.03 110);
+  --card: oklch(98% 0.01 100);
+  --card-foreground: oklch(26% 0.022 100);
 
-  --popover: oklch(98% 0.01 110);
-  --popover-foreground: oklch(20% 0.03 110);
+  --popover: oklch(98.5% 0.009 100);
+  --popover-foreground: oklch(26% 0.022 100);
 
-  /* PRIMARY — extracted from your UI */
-  --primary: oklch(86% 0.10 105);     /* warm UI yellow */
-  --primary-foreground: oklch(22% 0.03 105);
+  /* PRIMARY — softer gold, less saturated */
+  --primary: oklch(52% 0.085 102);
+  --primary-foreground: oklch(99% 0.008 100);
 
   /* SECONDARY */
-  --secondary: oklch(90% 0.04 110);
-  --secondary-foreground: oklch(30% 0.03 110);
+  --secondary: oklch(93% 0.016 100);
+  --secondary-foreground: oklch(30% 0.025 100);
 
   /* ACCENT */
-  --accent: oklch(88% 0.07 105);
-  --accent-foreground: oklch(22% 0.03 110);
+  --accent: oklch(94% 0.018 100);
+  --accent-foreground: oklch(26% 0.022 100);
 
   /* MUTED */
-  --muted: oklch(92% 0.015 110);
-  --muted-foreground: oklch(50% 0.02 110);
+  --muted: oklch(91% 0.014 100);
+  --muted-foreground: oklch(45% 0.028 100);
 
   /* DESTRUCTIVE */
-  --destructive: oklch(55% 0.22 25);
-  --destructive-foreground: oklch(98% 0.02 110);
+  --destructive: oklch(50% 0.19 25);
+  --destructive-foreground: oklch(98% 0.01 25);
 
   /* INPUTS */
-  --border: oklch(89% 0.015 110);
-  --input: oklch(91% 0.015 110);
-  --ring: oklch(86% 0.10 105);
+  --border: oklch(81% 0.018 100);
+  --input: oklch(93% 0.012 100);
+  --ring: oklch(54% 0.08 102);
 
   /* SIDEBAR */
-  --sidebar: oklch(97% 0.01 110);
-  --sidebar-foreground: oklch(22% 0.03 110);
+  --sidebar: oklch(96% 0.011 100);
+  --sidebar-foreground: oklch(26% 0.022 100);
 
-  --sidebar-primary: oklch(86% 0.10 105);
-  --sidebar-primary-foreground: oklch(22% 0.03 105);
+  --sidebar-primary: oklch(52% 0.085 102);
+  --sidebar-primary-foreground: oklch(99% 0.008 100);
 
-  --sidebar-accent: oklch(88% 0.07 105);
-  --sidebar-accent-foreground: oklch(22% 0.03 110);
+  --sidebar-accent: oklch(93% 0.015 100);
+  --sidebar-accent-foreground: oklch(26% 0.022 100);
 
-  --sidebar-border: oklch(89% 0.015 110);
-  --sidebar-ring: oklch(86% 0.10 105);
+  --sidebar-border: oklch(82% 0.016 100);
+  --sidebar-ring: oklch(54% 0.08 102);
+
+  /* Success — slightly brighter wash, a touch less green chroma */
+  --success: oklch(44% 0.072 155);
+  --success-muted: oklch(93.5% 0.022 155);
+  --success-foreground: oklch(36% 0.065 155);
+  --success-border: oklch(80% 0.038 155);
+
+  /* Pooled surfaces (hero / profile cards) */
+  --surface-hero-base: var(--card);
+  --surface-hero-glow: oklch(78% 0.038 102 / 0.22);
+  --surface-hero-glow-2: oklch(62% 0.05 285 / 0.08);
+  --surface-dot-grid: oklch(28% 0.015 100 / 0.055);
 }
 
 .dark {
@@ -133,13 +151,27 @@
   /* sidebar */
   --sidebar: oklch(17% 0.015 110);
   --sidebar-foreground: oklch(96% 0.015 110);
+
+  --success: oklch(72% 0.14 155);
+  --success-muted: oklch(22% 0.04 155);
+  --success-foreground: oklch(82% 0.12 155);
+  --success-border: oklch(42% 0.08 155);
+
+  --surface-hero-base: oklch(17% 0.015 110);
+  --surface-hero-glow: oklch(88% 0.11 105 / 0.14);
+  --surface-hero-glow-2: oklch(60% 0.2 280 / 0.1);
+  --surface-dot-grid: oklch(100% 0 0 / 0.04);
 }
 
 
 /* ─── Scrollbar ──────────────────────────────────────────────────────────────── */
 
-* {
+html {
   scrollbar-width: thin;
+  scrollbar-color: oklch(72% 0.018 100) transparent;
+}
+
+.dark {
   scrollbar-color: #2a2a2a transparent;
 }
 
@@ -153,12 +185,20 @@
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #2e2e2e;
+  background: oklch(72% 0.018 100);
   border-radius: 9999px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #444;
+  background: oklch(66% 0.022 100);
+}
+
+.dark ::-webkit-scrollbar-thumb {
+  background: #2e2e2e;
+}
+
+.dark ::-webkit-scrollbar-thumb:hover {
+  background: #555;
 }
 
 .scrollbar-none {

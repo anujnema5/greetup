@@ -199,7 +199,7 @@ export function MinimizedCallDock() {
     <div
       ref={cardRef}
       className={cn(
-        "fixed z-200 flex max-h-[min(92dvh,calc(100vh-1rem))] flex-col overflow-hidden rounded-2xl border border-white/10 bg-[oklch(8%_0.01_110)] shadow-2xl max-md:rounded-xl",
+        "fixed z-200 flex max-h-[min(92dvh,calc(100vh-1rem))] flex-col overflow-hidden rounded-2xl border border-border bg-card shadow-2xl max-md:rounded-xl",
         "w-[min(25rem,calc(100vw-1.25rem))]",
         "max-md:bottom-[5.25rem] max-md:right-3",
         "md:bottom-4 md:right-4"
@@ -225,7 +225,7 @@ export function MinimizedCallDock() {
         <div
           className="absolute inset-0"
           style={{
-            background: `linear-gradient(145deg, ${MOCK_MATCH.gradFrom}40, oklch(12% 0.02 110) 45%, ${MOCK_MATCH.gradTo}35)`,
+            background: `linear-gradient(145deg, ${MOCK_MATCH.gradFrom}40, var(--card) 45%, ${MOCK_MATCH.gradTo}35)`,
           }}
         />
         <div

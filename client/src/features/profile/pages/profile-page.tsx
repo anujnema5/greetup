@@ -241,23 +241,18 @@ export function ProfilePage() {
           />
 
           <div
-            className="relative overflow-hidden rounded-3xl border border-border"
+            className="relative overflow-hidden rounded-3xl border border-border bg-card"
             style={{
               background: `
-                radial-gradient(ellipse 70% 50% at 50% 0%, oklch(88% 0.11 105 / 0.10) 0%, transparent 70%),
-                oklch(17% 0.015 110)
+                radial-gradient(ellipse 70% 50% at 50% 0%, var(--surface-hero-glow) 0%, transparent 72%),
+                var(--surface-hero-base)
               `,
             }}
           >
             <div className="flex items-start gap-4 p-5">
               <div className="relative shrink-0">
                 <div
-                  className="h-16 w-16 rounded-2xl flex items-center justify-center text-lg font-bold text-white overflow-hidden"
-                  style={{
-                    background:
-                      "radial-gradient(circle at 40% 35%, oklch(90% 0.11 105), oklch(78% 0.10 105))",
-                    boxShadow: "0 0 24px oklch(88% 0.11 105 / 0.28)",
-                  }}
+                  className="h-16 w-16 rounded-2xl flex items-center justify-center text-lg font-bold text-primary-foreground overflow-hidden bg-gradient-to-br from-primary to-primary/85 shadow-md shadow-primary/25 dark:shadow-primary/30"
                 >
                   {profile.photos[0]?.url ? (
                     /* eslint-disable-next-line @next/next/no-img-element */
@@ -270,7 +265,7 @@ export function ProfilePage() {
                     initials(profile.displayName)
                   )}
                 </div>
-                <span className="absolute -bottom-0.5 -right-0.5 h-3.5 w-3.5 rounded-full bg-emerald-400 border-2 border-[oklch(17%_0.015_110)]" />
+                <span className="absolute -bottom-0.5 -right-0.5 h-3.5 w-3.5 rounded-full border-2 border-card bg-emerald-500 dark:bg-emerald-400" />
               </div>
 
               <div className="flex-1 min-w-0">
@@ -286,15 +281,9 @@ export function ProfilePage() {
                 </div>
               </div>
 
-              <div
-                className="shrink-0 flex flex-col items-center gap-0.5 rounded-2xl px-3 py-2 border"
-                style={{
-                  background: "oklch(88% 0.11 105 / 0.08)",
-                  borderColor: "oklch(88% 0.11 105 / 0.2)",
-                }}
-              >
-                <Sparkles size={14} style={{ color: "oklch(88% 0.11 105)" }} />
-                <span className="text-lg font-black" style={{ color: "oklch(88% 0.11 105)" }}>
+              <div className="shrink-0 flex flex-col items-center gap-0.5 rounded-2xl border border-primary/25 bg-primary/10 px-3 py-2 dark:border-primary/30 dark:bg-primary/15">
+                <Sparkles size={14} className="text-primary" />
+                <span className="text-lg font-black tabular-nums text-primary">
                   {completionRounded != null ? completionRounded : "—"}
                 </span>
                 <span className="text-[9px] text-muted-foreground font-medium text-center leading-tight">
@@ -313,12 +302,7 @@ export function ProfilePage() {
                 return (
                   <span
                     key={id}
-                    className="rounded-full border px-3 py-1 text-[11px] font-medium"
-                    style={{
-                      borderColor: "oklch(88% 0.11 105 / 0.25)",
-                      color: "oklch(88% 0.11 105)",
-                      background: "oklch(88% 0.11 105 / 0.08)",
-                    }}
+                    className="rounded-full border border-primary/20 bg-primary/5 px-3 py-1 text-[11px] font-medium text-foreground/90 dark:border-primary/25 dark:bg-primary/10 dark:text-primary"
                   >
                     {label}
                   </span>

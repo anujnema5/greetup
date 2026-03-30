@@ -102,9 +102,7 @@ export function ProfileEditModals({
         disabled={isSaving}
         className={cn(
           "flex-1 rounded-xl border border-border px-4 py-2.5 text-sm font-medium transition-colors",
-          "bg-card text-foreground",
-          "hover:bg-muted hover:text-foreground",
-          "dark:bg-card dark:text-foreground dark:hover:bg-muted/70 dark:hover:text-foreground",
+          "bg-card text-foreground hover:bg-muted hover:text-foreground",
           "disabled:pointer-events-none disabled:opacity-50"
         )}
         onClick={onClose}

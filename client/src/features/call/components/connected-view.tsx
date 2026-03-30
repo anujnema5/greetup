@@ -26,12 +26,12 @@ export function ConnectedView({
     `${String(Math.floor(s / 60)).padStart(2, "0")}:${String(s % 60).padStart(2, "0")}`;
 
   const shell = (className: string) => (
-    <div className={cn("flex flex-col overflow-hidden bg-[oklch(8%_0.01_110)]", className)}>
+    <div className={cn("flex flex-col overflow-hidden bg-background", className)}>
       <div className="relative flex min-h-0 flex-1 flex-col overflow-hidden">
         <div
           className="absolute inset-0"
           style={{
-            background: `linear-gradient(135deg, ${MOCK_MATCH.gradFrom}33, oklch(8% 0.01 110) 60%, ${MOCK_MATCH.gradTo}22)`,
+            background: `linear-gradient(135deg, ${MOCK_MATCH.gradFrom}33, var(--card) 60%, ${MOCK_MATCH.gradTo}22)`,
           }}
         />
 
@@ -165,15 +165,15 @@ export function ConnectedView({
 
       <div
         className={cn(
-          "flex shrink-0 items-center justify-center gap-6 border-t border-[oklch(20%_0.012_110)] px-4 py-3 sm:gap-8 sm:px-6 sm:py-4",
-          "bg-[oklch(11%_0.012_110)] pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:pb-4"
+          "flex shrink-0 items-center justify-center gap-6 border-t border-border px-4 py-3 sm:gap-8 sm:px-6 sm:py-4",
+          "bg-muted/50 pb-[max(0.75rem,env(safe-area-inset-bottom))] dark:bg-[oklch(11%_0.012_110)] sm:pb-4"
         )}
         style={{ userSelect: "none" }}
       >
         <ToolbarAction
           label="Skip"
           onClick={onSkip}
-          icon={<SkipForward size={20} className="text-white/80" />}
+          icon={<SkipForward size={20} className="text-foreground/75 dark:text-white/80" />}
           variant="secondary"
           size={56}
         />
@@ -215,13 +215,13 @@ function ToolbarAction({
           "flex items-center justify-center rounded-xl transition-all duration-200",
           variant === "danger"
             ? "bg-red-500 hover:bg-red-400"
-            : "border border-white/15 bg-white/5 hover:bg-white/10"
+            : "border border-border bg-muted/60 hover:bg-muted dark:border-white/15 dark:bg-white/5 dark:hover:bg-white/10"
         )}
         style={{ width: size, height: size - 4 }}
       >
         {icon}
       </div>
-      <span className="text-[9px] text-white/45 md:text-[10px]">{label}</span>
+      <span className="text-[9px] text-muted-foreground md:text-[10px] dark:text-white/45">{label}</span>
     </button>
   );
 }

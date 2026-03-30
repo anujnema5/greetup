@@ -81,7 +81,7 @@ export function ProfileCompletionCard({
       className={cn(
         "rounded-2xl border p-4 md:p-5",
         isDone
-          ? "border-emerald-500/25 bg-emerald-500/5"
+          ? "border border-success-border bg-success-muted dark:border-emerald-500/25 dark:bg-emerald-500/5"
           : "border-border bg-card",
         className
       )}
@@ -91,8 +91,8 @@ export function ProfileCompletionCard({
           className={cn(
             "flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border",
             isDone
-              ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
-              : "border-primary/20 bg-primary/8 text-primary"
+              ? "border border-success-border bg-background/55 text-success-foreground dark:border-emerald-500/30 dark:bg-emerald-500/10 dark:text-emerald-400"
+              : "border-primary/25 bg-primary/10 text-primary"
           )}
         >
           {isDone ? <CheckCircle2 className="h-5 w-5" aria-hidden /> : <Sparkles className="h-5 w-5" aria-hidden />}
@@ -103,7 +103,7 @@ export function ProfileCompletionCard({
             <span
               className={cn(
                 "text-[13px] font-bold tabular-nums",
-                isDone ? "text-emerald-600 dark:text-emerald-400" : "text-foreground"
+                isDone ? "text-success-foreground dark:text-emerald-400" : "text-foreground"
               )}
               aria-label={`Profile ${rounded} percent complete`}
             >
@@ -116,7 +116,7 @@ export function ProfileCompletionCard({
             <div
               className={cn(
                 "h-full rounded-full transition-[width] duration-500 ease-out",
-                isDone ? "bg-emerald-500" : "bg-primary"
+                isDone ? "bg-success" : "bg-primary"
               )}
               style={{ width: `${rounded}%` }}
             />

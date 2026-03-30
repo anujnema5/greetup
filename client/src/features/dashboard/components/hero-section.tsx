@@ -20,19 +20,19 @@ function HeroSectionInner({
 
   return (
     <div
-      className="relative overflow-hidden rounded-3xl border border-border flex flex-col items-center justify-center gap-4 py-6 px-4 md:gap-5 md:py-8 md:px-8"
+      className="relative overflow-hidden rounded-3xl border border-border flex flex-col items-center justify-center gap-4 py-6 px-4 md:gap-5 md:py-8 md:px-8 bg-card"
       style={{
         background: `
-          radial-gradient(ellipse 70% 50% at 50% 0%, oklch(88% 0.11 105 / 0.12) 0%, transparent 70%),
-          radial-gradient(ellipse 50% 40% at 85% 85%, oklch(60% 0.2 280 / 0.07) 0%, transparent 60%),
-          oklch(17% 0.015 110)
+          radial-gradient(ellipse 70% 50% at 50% 0%, var(--surface-hero-glow) 0%, transparent 72%),
+          radial-gradient(ellipse 50% 40% at 85% 85%, var(--surface-hero-glow-2) 0%, transparent 60%),
+          var(--surface-hero-base)
         `,
       }}
     >
       <div
         className="pointer-events-none absolute inset-0 opacity-100"
         style={{
-          backgroundImage: "radial-gradient(circle at 1px 1px, oklch(100% 0 0 / 0.03) 1px, transparent 0)",
+          backgroundImage: "radial-gradient(circle at 1px 1px, var(--surface-dot-grid) 1px, transparent 0)",
           backgroundSize: "28px 28px",
         }}
       />
@@ -46,7 +46,7 @@ function HeroSectionInner({
       />
 
       <div className="relative z-10 flex items-center gap-2 rounded-full border border-border bg-muted/40 px-4 py-2 backdrop-blur-sm">
-        <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
+        <span className="h-1.5 w-1.5 rounded-full bg-emerald-600 animate-pulse dark:bg-emerald-400" />
         <span className="text-xs text-muted-foreground">
           <span className="text-foreground font-semibold">1,240</span> people online
         </span>
@@ -54,13 +54,7 @@ function HeroSectionInner({
 
       <div className="relative z-10 text-center">
         <h2
-          className="text-[1.8rem] md:text-[2.4rem] font-bold tracking-tight leading-[1.5]"
-          style={{
-            background: "linear-gradient(160deg, oklch(96% 0.01 110) 0%, oklch(88% 0.11 105) 55%, oklch(78% 0.08 110) 100%)",
-            WebkitBackgroundClip: "text",
-            WebkitTextFillColor: "transparent",
-            backgroundClip: "text",
-          }}
+          className="text-[1.8rem] md:text-[2.4rem] font-bold tracking-tight leading-[1.5] text-transparent bg-clip-text bg-gradient-to-br from-foreground via-primary to-primary/80 dark:from-white dark:via-primary dark:to-primary/90"
         >
           {headingText}
         </h2>
@@ -84,7 +78,7 @@ function HeroSectionInner({
       )}
 
       {appState === "error" && error && (
-        <p className="relative z-10 -mt-2 text-xs text-red-400 text-center max-w-xs">{error}</p>
+        <p className="relative z-10 -mt-2 text-xs text-destructive text-center max-w-xs">{error}</p>
       )}
 
       <div className="relative z-10 flex flex-wrap items-center justify-center gap-3 md:gap-5 text-xs text-muted-foreground">
