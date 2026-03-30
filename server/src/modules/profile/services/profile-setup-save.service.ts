@@ -12,6 +12,8 @@ import {
   fetchProfileStepsService,
   PROFILE_COMPLETE_THRESHOLD,
 } from "./profile-steps.service";
+import { refreshProfileSnapshotFromDatabase } from "@/modules/user/services/profile-snapshot-cache.service";
+import logger from "@/core/logging";
 
 export interface SaveProfileSetupParams {
   userId: string;
@@ -142,6 +144,15 @@ export async function saveProfileSetupStepService(
       updatedAt: new Date(),
     })
     .where(eq(userProfiles.id, profileId));
+
+  try {
+    await refreshProfileSnapshotFromDatabase(userId);
+  } catch (err) {
+    logger.warn("[saveProfileSetupStepService] Failed to refresh profile snapshot", {
+      userId,
+      err,
+    });
+  }
 
   return { profileCompletion, isProfileComplete };
 }

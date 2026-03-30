@@ -126,3 +126,32 @@ export async function ensureProfileSnapshotCached(userId: string): Promise<boole
 
   return (await redis.exists(cacheKey)) === 1;
 }
+
+/**
+ * Rebuilds `user:profile:snapshot:{userId}` from Postgres and overwrites Redis.
+ * Call after any profile mutation so matching reads fresh data (NX-only cache would stay stale).
+ */
+export async function refreshProfileSnapshotFromDatabase(
+  userId: string
+): Promise<boolean> {
+  const redis = getRedis();
+  const cacheKey = `${USER_CACHE_KEYS.PROFILE_SNAPSHOT}${userId}`;
+  const profileSnapshot = await fetchUserProfileSnapshotRow(userId);
+
+  if (!profileSnapshot) {
+    await redis.del(cacheKey);
+    logger.warn("[refreshProfileSnapshotFromDatabase] No profile row — removed snapshot key", {
+      userId,
+    });
+    return false;
+  }
+
+  await redis.set(
+    cacheKey,
+    JSON.stringify(profileSnapshot),
+    "EX",
+    PROFILE_CACHE_TTL_SECONDS
+  );
+  logger.info("[refreshProfileSnapshotFromDatabase] Refreshed profile snapshot", { userId });
+  return true;
+}

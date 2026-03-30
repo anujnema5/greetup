@@ -9,6 +9,35 @@ import {
   fetchProfileStepsQuerySchema,
   saveProfileSetupBodySchema,
 } from "../schemas/profile-setup.schema";
+import { getMyProfileService } from "../services/get-my-profile.service";
+
+export const handleGetMyProfile = async (c: Context) => {
+  try {
+    const userId = c.get("userId") as string;
+    const profile = await getMyProfileService(userId);
+    if (!profile) {
+      return c.json(
+        ApiResponse.error({
+          message: "Profile not found",
+          statusCode: 404,
+          code: "PROFILE_NOT_FOUND",
+        }),
+        404
+      );
+    }
+    return c.json(ApiResponse.success(profile, "Profile retrieved", 200), 200);
+  } catch (error: unknown) {
+    logger.error("Get my profile error", { error });
+    return c.json(
+      ApiResponse.error({
+        message: error instanceof Error ? error.message : "Failed to get profile",
+        statusCode: 500,
+        code: "GET_PROFILE_FAILED",
+      }),
+      500
+    );
+  }
+};
 
 export const handleGetOnboardingStatus = async (c: Context) => {
   try {
