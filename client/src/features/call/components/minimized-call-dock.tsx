@@ -3,13 +3,14 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { useAppDispatch, useAppSelector } from "@/lib/redux/hooks";
+import { selectIsCallActive, selectIsCallMinimized } from "@/lib/redux/selectors/call-selectors";
 import { endCall, expandCall } from "@/lib/redux/slices/callSlice";
 import {
   clearCallSession,
   broadcastCallMessage,
   clearCallMinimized,
-} from "@/lib/call/call-sync";
-import { MOCK_MATCH } from "@/components/connected-view";
+} from "@/features/call/lib/call-sync";
+import { MOCK_MATCH } from "@/features/call/constants/mock-match";
 import { cn } from "@/lib/utils";
 import { Maximize2, PhoneOff, SkipForward, Video } from "lucide-react";
 
@@ -34,8 +35,8 @@ export function MinimizedCallDock() {
   const router = useRouter();
   const pathname = usePathname();
   const dispatch = useAppDispatch();
-  const isActive = useAppSelector((s) => s.call.isActive);
-  const isMinimized = useAppSelector((s) => s.call.isMinimized);
+  const isActive = useAppSelector(selectIsCallActive);
+  const isMinimized = useAppSelector(selectIsCallMinimized);
 
   const isFullRoom = pathname.startsWith("/room");
 

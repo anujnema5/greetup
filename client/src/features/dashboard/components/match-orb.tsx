@@ -1,0 +1,62 @@
+import { memo } from "react";
+import { Video, Zap } from "lucide-react";
+import { cn } from "@/lib/utils";
+
+function MatchOrbInner({
+  isSearching,
+  onToggle,
+}: {
+  isSearching: boolean;
+  onToggle: () => void;
+}) {
+  return (
+    <div className="relative flex items-center justify-center" style={{ width: 180, height: 180 }}>
+      <div className="absolute rounded-full border border-primary/5" style={{ inset: 0 }} />
+      <div className="absolute rounded-full border border-primary/8" style={{ inset: 22 }} />
+      <div className="absolute rounded-full border border-primary/12" style={{ inset: 42 }} />
+
+      <div
+        className={cn("absolute rounded-full blur-xl transition-opacity duration-500", isSearching ? "opacity-35" : "opacity-20")}
+        style={{ inset: 42, background: "var(--color-primary)" }}
+      />
+
+      <button
+        type="button"
+        onClick={onToggle}
+        className={cn(
+          "relative z-10 flex flex-col items-center justify-center gap-2 rounded-full text-primary-foreground font-semibold transition-all duration-500 cursor-pointer hover:scale-100",
+          !isSearching && "hover:brightness-105"
+        )}
+        style={{
+          width: 96,
+          height: 96,
+          willChange: "transform",
+          transform: isSearching ? "scale(1.1) translateZ(0)" : "translateZ(0)",
+          background: isSearching
+            ? "radial-gradient(circle at 40% 35%, oklch(92% 0.13 105), oklch(80% 0.12 105))"
+            : "radial-gradient(circle at 40% 35%, oklch(90% 0.11 105), oklch(78% 0.10 105))",
+          boxShadow: isSearching
+            ? "0 0 28px oklch(88% 0.11 105 / 0.35), 0 0 55px oklch(88% 0.11 105 / 0.12), inset 0 1px 0 oklch(96% 0.08 105 / 0.3)"
+            : "0 0 18px oklch(88% 0.11 105 / 0.2), 0 8px 20px oklch(88% 0.11 105 / 0.15), inset 0 1px 0 oklch(96% 0.08 105 / 0.3)",
+        }}
+      >
+        <div className="absolute inset-0 rounded-full bg-gradient-to-b from-white/15 to-transparent" />
+        <div className="relative flex flex-col items-center gap-1.5">
+          {isSearching ? (
+            <>
+              <Zap size={18} fill="currentColor" className="animate-pulse" />
+              <span className="text-[10px] font-bold tracking-wide">searching…</span>
+            </>
+          ) : (
+            <>
+              <Video size={18} strokeWidth={2} />
+              <span className="text-[10px] font-bold tracking-wide">Find Match</span>
+            </>
+          )}
+        </div>
+      </button>
+    </div>
+  );
+}
+
+export const MatchOrb = memo(MatchOrbInner);

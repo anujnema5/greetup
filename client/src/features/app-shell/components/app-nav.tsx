@@ -1,16 +1,9 @@
-'use client'
+"use client";
 
 import Link from "next/link";
 import { Home, Search, Users, Clock, User, Settings } from "lucide-react";
 import { cn } from "@/lib/utils";
-
-const NAV_ITEMS = [
-  { icon: Home,   label: "Home",        href: "/"        },
-  { icon: Search, label: "Explore",     href: "/explore" },
-  { icon: Users,  label: "Connections", href: "#"        },
-  { icon: Clock,  label: "History",     href: "#"        },
-  { icon: User,   label: "Profile",     href: "/profile" },
-];
+import { NAV_ITEMS } from "../constants/nav-config";
 
 export function NavSidebar({ activePath = "/" }: { activePath?: string }) {
   return (

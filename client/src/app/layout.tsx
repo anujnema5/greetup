@@ -6,8 +6,7 @@ import { SocketProvider } from "@/lib/socket";
 import { ReduxProvider } from "@/lib/redux/provider";
 import { ThemeProvider } from "@/components/theme-provider";
 import { Toaster } from "sonner";
-import { CallMinimizedHydration } from "@/components/call-minimized-hydration";
-import { MinimizedCallDock } from "@/components/minimized-call-dock";
+import { CallMinimizedHydration, MinimizedCallDock } from "@/features/call";
 const plusJakartaSans = Plus_Jakarta_Sans({
   variable: "--font-plus-jakarta",
   subsets: ["latin"],

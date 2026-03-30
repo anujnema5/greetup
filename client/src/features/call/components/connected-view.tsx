@@ -1,19 +1,9 @@
-'use client'
+"use client";
 
 import { useState, useEffect, type ReactNode } from "react";
 import { Minimize2, PhoneOff, SkipForward, Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
-
-export const MOCK_MATCH = {
-  name: "Zara K.",
-  initials: "ZK",
-  gradFrom: "#7c3aed",
-  gradTo: "#4f46e5",
-  tagline: "Product designer · Startup founder",
-  vibes: ["design", "startups", "indie music"],
-  mutual: 3,
-  vibeScore: 94,
-};
+import { MOCK_MATCH } from "../constants/mock-match";
 
 export function ConnectedView({
   onEnd,
