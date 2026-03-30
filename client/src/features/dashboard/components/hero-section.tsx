@@ -1,5 +1,5 @@
 import { memo } from "react";
-import { Video, Zap, Sparkles } from "lucide-react";
+import { Video, Zap, Sparkles, X } from "lucide-react";
 import { MatchOrb } from "./match-orb";
 
 function HeroSectionInner({
@@ -71,8 +71,9 @@ function HeroSectionInner({
         <button
           type="button"
           onClick={onCancel}
-          className="relative z-10 -mt-4 text-xs text-muted-foreground hover:text-foreground transition-colors underline underline-offset-2 cursor-pointer"
+          className="relative z-10 -mt-3 inline-flex items-center justify-center gap-1.5 rounded-full border border-border bg-muted/55 px-4 py-2 text-xs font-medium text-foreground shadow-sm backdrop-blur-sm transition-colors hover:bg-muted hover:border-border/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-card cursor-pointer"
         >
+          <X className="size-3.5 shrink-0 opacity-70" strokeWidth={2.5} aria-hidden />
           Cancel
         </button>
       )}

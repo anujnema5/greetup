@@ -1,5 +1,5 @@
 import type { FindMatchRequest } from "@/contracts/matchmaking.contracts";
-import { getRedis } from "@/redis/client";
+import { getRedis, getRedisBlocking } from "@/redis/client";
 import { redisKeys } from "@/redis/keys";
 
 const toQueuePayload = (request: FindMatchRequest): string => JSON.stringify(request);
@@ -30,7 +30,7 @@ export class MatchJobQueueService {
   }
 
   async dequeue(blockSeconds = 2): Promise<FindMatchRequest | null> {
-    const result = await getRedis().brpop(redisKeys.matchJobQueue(), blockSeconds);
+    const result = await getRedisBlocking().brpop(redisKeys.matchJobQueue(), blockSeconds);
     if (!result || result.length < 2) {
       return null;
     }

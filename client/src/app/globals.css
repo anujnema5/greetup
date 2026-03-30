@@ -219,3 +219,46 @@ html {
     @apply bg-background text-foreground;
   }
 }
+
+/* Match orb — breathing circle */
+@keyframes match-orb-breathe {
+  0%,
+  100% {
+    transform: scale(0.94);
+  }
+  50% {
+    transform: scale(1.06);
+  }
+}
+
+@keyframes match-orb-ring-breathe {
+  0%,
+  100% {
+    transform: scale(0.96);
+    opacity: 0.35;
+  }
+  50% {
+    transform: scale(1.04);
+    opacity: 0.65;
+  }
+}
+
+.animate-match-orb-breathe {
+  animation: match-orb-breathe 2.2s ease-in-out infinite;
+}
+
+.match-orb-ring-pulse {
+  transform-origin: center;
+  animation: match-orb-ring-breathe 2.6s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-match-orb-breathe,
+  .match-orb-ring-pulse {
+    animation: none !important;
+  }
+
+  .animate-match-orb-breathe {
+    transform: scale(1);
+  }
+}
