@@ -1,21 +1,15 @@
 'use client'
 
-import { useState, useEffect, useCallback } from "react";
+import { useEffect, useCallback } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { setCallReturnPath } from "@/lib/call/call-return-path";
-import { useSocket } from "@/lib/socket";
-import { markCallSessionActive } from "@/lib/call/call-sync";
 import {
   Video, Zap, Bell, Plus, Sparkles, ChevronRight,
   Users,
 } from "lucide-react";
 import { NavSidebar, BottomNav } from "@/components/app-nav";
 import { cn } from "@/lib/utils";
-import { MOCK_MATCH } from "@/components/connected-view";
-
-// ─── Types ─────────────────────────────────────────────────────────────────────
-
-type AppState = "idle" | "searching" | "matched";
+import { useFindMatch } from "@/features/matching/hooks/useFindMatch";
 
 // ─── Data ──────────────────────────────────────────────────────────────────────
 
@@ -77,18 +71,16 @@ function MatchOrb({ isSearching, onToggle }: { isSearching: boolean; onToggle: (
   );
 }
 
-function HeroSection({ appState, onToggle, onCancel }: {
-  appState: AppState;
+function HeroSection({ appState, onToggle, onCancel, error }: {
+  appState: "idle" | "searching" | "matched" | "error";
   onToggle: () => void;
   onCancel: () => void;
+  error?: string | null;
 }) {
   const isSearching = appState === "searching";
 
-  const headingText = {
-    idle:      "your vibe finds\nyour tribe.",
-    searching: "finding your people rn…",
-    matched:   "your vibe finds\nyour tribe.",
-  }[appState];
+  const headingText =
+    appState === "searching" ? "finding your people rn…" : "your vibe finds\nyour tribe.";
 
   return (
     <div
@@ -143,6 +135,12 @@ function HeroSection({ appState, onToggle, onCancel }: {
         <button onClick={onCancel} className="relative z-10 -mt-4 text-xs text-muted-foreground hover:text-foreground transition-colors underline underline-offset-2 cursor-pointer">
           Cancel
         </button>
+      )}
+
+      {appState === "error" && error && (
+        <p className="relative z-10 -mt-2 text-xs text-red-400 text-center max-w-xs">
+          {error}
+        </p>
       )}
 
       <div className="relative z-10 flex flex-wrap items-center justify-center gap-3 md:gap-5 text-xs text-muted-foreground">
@@ -315,39 +313,26 @@ function RightPanel() {
 // ─── Page ──────────────────────────────────────────────────────────────────────
 
 export default function DashboardPage() {
-  const { socket } = useSocket();
   const router = useRouter();
   const pathname = usePathname();
-  const [appState, setAppState] = useState<AppState>("idle");
 
-  const goToCallRoom = useCallback(() => {
+  const { findAMatch, cancelSearch, status, result, error } = useFindMatch();
+
+  // Navigate to room once a match is found
+  useEffect(() => {
+    if (status !== "matched" || !result?.roomId) return;
     setCallReturnPath(pathname);
-    markCallSessionActive();
-    setAppState("idle");
-    router.push("/room");
-  }, [router, pathname]);
-
-  // Dedicated /room route + optional pip window — survives refresh on dashboard
-  useEffect(() => {
-    const onMatchFound = () => goToCallRoom();
-    socket.on("match:found", onMatchFound);
-    return () => {
-      socket.off("match:found", onMatchFound);
-    };
-  }, [socket, goToCallRoom]);
-
-  // Mock: enter room after 3s (remove once real matching is live)
-  useEffect(() => {
-    if (appState !== "searching") return;
-    const t = setTimeout(goToCallRoom, 3000);
-    return () => clearTimeout(t);
-  }, [appState, goToCallRoom]);
+    const params = new URLSearchParams();
+    if (result.peerId) params.set("peer", result.peerId);
+    if (result.matchScore != null) params.set("score", String(Math.round(result.matchScore)));
+    router.push(`/room/${result.roomId}?${params.toString()}`);
+  }, [status, result, router, pathname]);
 
   const handleFindMatch = useCallback(() => {
-    if (appState === "idle") setAppState("searching");
-  }, [appState]);
+    if (status === "idle" || status === "error") findAMatch();
+  }, [status, findAMatch]);
 
-  const handleCancel = useCallback(() => setAppState("idle"), []);
+  const handleCancel = useCallback(() => cancelSearch(), [cancelSearch]);
 
   return (
     <div className="flex h-screen overflow-hidden bg-background">
@@ -372,7 +357,7 @@ export default function DashboardPage() {
         </header>
 
         <div className="flex flex-col gap-4 px-4 md:px-8 py-5">
-          <HeroSection appState={appState} onToggle={handleFindMatch} onCancel={handleCancel} />
+          <HeroSection appState={status} onToggle={handleFindMatch} onCancel={handleCancel} error={error} />
           <CirclesGrid />
 
           <div className="flex items-start gap-3 rounded-2xl border border-primary/20 bg-primary/5 px-5 py-4">

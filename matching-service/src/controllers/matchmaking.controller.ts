@@ -69,3 +69,60 @@ export const handleGetMatchResult = async (c: Context): Promise<Response> => {
     return c.json({ ok: false, error: "internal_error", detail: String(error) }, 500);
   }
 };
+
+export const handleGetUserMatchState = async (c: Context): Promise<Response> => {
+  const userId = decodeURIComponent(c.req.param("userId") ?? "").trim();
+
+  if (!userId) {
+    return c.json({ ok: false, error: "invalid_user_id" }, 400);
+  }
+
+  try {
+    const state = await orchestrator.getUserMatchState(userId);
+    return c.json({ ok: true, data: state }, 200);
+  } catch (error) {
+    return c.json({ ok: false, error: "internal_error", detail: String(error) }, 500);
+  }
+};
+
+export const handleCancelMatch = async (c: Context): Promise<Response> => {
+  let userId: string;
+  try {
+    const body = await c.req.json();
+    userId = typeof body?.userId === "string" ? body.userId.trim() : "";
+  } catch {
+    return c.json({ ok: false, error: "invalid_body" }, 400);
+  }
+
+  if (!userId) {
+    return c.json({ ok: false, error: "userId is required" }, 400);
+  }
+
+  try {
+    await orchestrator.cancelMatch(userId);
+    return c.json({ ok: true }, 200);
+  } catch (error) {
+    return c.json({ ok: false, error: "internal_error", detail: String(error) }, 500);
+  }
+};
+
+export const handleLeaveRoom = async (c: Context): Promise<Response> => {
+  let userId: string;
+  try {
+    const body = await c.req.json();
+    userId = typeof body?.userId === "string" ? body.userId.trim() : "";
+  } catch {
+    return c.json({ ok: false, error: "invalid_body" }, 400);
+  }
+
+  if (!userId) {
+    return c.json({ ok: false, error: "userId is required" }, 400);
+  }
+
+  try {
+    await orchestrator.leaveRoom(userId);
+    return c.json({ ok: true }, 200);
+  } catch (error) {
+    return c.json({ ok: false, error: "internal_error", detail: String(error) }, 500);
+  }
+};

@@ -8,11 +8,7 @@ export const CALL_CHANNEL_NAME = "circlo-call";
 
 export type CallChannelMessage =
   | { type: "END_CALL" }
-  | { type: "SKIP_CALL" }
-  /** Main app navigated into full /room (not ?pip=1); dismiss doc PiP if needed. */
-  | { type: "FULL_ROOM_FOREGROUND" }
-  /** Document PiP (no window.opener): ask the main tab to open full /room and close the PiP surface. */
-  | { type: "REQUEST_FULL_ROOM" };
+  | { type: "SKIP_CALL" };
 
 export function markCallSessionActive(): void {
   try {

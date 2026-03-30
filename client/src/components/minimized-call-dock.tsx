@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
-import { useRouter, usePathname, useSearchParams } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 import { useAppDispatch, useAppSelector } from "@/lib/redux/hooks";
 import { endCall, expandCall } from "@/lib/redux/slices/callSlice";
 import {
@@ -9,17 +9,11 @@ import {
   broadcastCallMessage,
   clearCallMinimized,
 } from "@/lib/call/call-sync";
-import { dismissDocumentPip } from "@/lib/call/document-pip";
 import { MOCK_MATCH } from "@/components/connected-view";
 import { cn } from "@/lib/utils";
 import { Maximize2, PhoneOff, SkipForward, Video } from "lucide-react";
 
 const DOCK_OFFSET_STORAGE = "circlo-minimized-dock-drag";
-
-function readPipFromLocation(): boolean {
-  if (typeof window === "undefined") return false;
-  return new URLSearchParams(window.location.search).get("pip") === "1";
-}
 
 function clampDragToViewport(
   el: HTMLElement,
@@ -39,13 +33,11 @@ function clampDragToViewport(
 export function MinimizedCallDock() {
   const router = useRouter();
   const pathname = usePathname();
-  const searchParams = useSearchParams();
   const dispatch = useAppDispatch();
   const isActive = useAppSelector((s) => s.call.isActive);
   const isMinimized = useAppSelector((s) => s.call.isMinimized);
 
-  const pip = searchParams.get("pip") === "1";
-  const isFullRoom = pathname.startsWith("/room") && !pip;
+  const isFullRoom = pathname.startsWith("/room");
 
   const visible = isActive && isMinimized && !isFullRoom;
 
@@ -125,7 +117,6 @@ export function MinimizedCallDock() {
   }, [visible, clampAndApply]);
 
   const handleExpand = useCallback(() => {
-    dismissDocumentPip();
     dispatch(expandCall());
     clearCallMinimized();
     router.push("/room");
@@ -140,7 +131,6 @@ export function MinimizedCallDock() {
     clearCallSession();
     dispatch(endCall());
     broadcastCallMessage({ type: "END_CALL" });
-    if (readPipFromLocation()) window.close();
   }, [dispatch]);
 
   const handleSkip = useCallback(() => {
@@ -151,10 +141,8 @@ export function MinimizedCallDock() {
     }
     clearCallSession();
     dispatch(endCall());
-    dismissDocumentPip();
     broadcastCallMessage({ type: "SKIP_CALL" });
-    if (readPipFromLocation()) window.close();
-    else router.replace("/explore");
+    router.replace("/explore");
   }, [dispatch, router]);
 
   const fmt = (s: number) =>

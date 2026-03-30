@@ -5,6 +5,20 @@ import { io } from "socket.io-client";
 import { SOCKET_SERVER_URL } from "@/shared/constants/environments";
 import { authClient, useSession } from "@/lib/auth-client";
 
+// One deviceId per browser tab, persists across page refreshes within the same tab.
+// sessionStorage is scoped per-tab so two tabs always get different IDs.
+// Guard against SSR — Next.js renders 'use client' components on the server too.
+function getOrCreateDeviceId(): string {
+    if (typeof window === 'undefined') return '';
+    const key = 'socket:deviceId';
+    let id = sessionStorage.getItem(key);
+    if (!id) {
+        id = crypto.randomUUID();
+        sessionStorage.setItem(key, id);
+    }
+    return id;
+}
+
 const SocketContext = createContext<TSocketContext | null>(null);
 
 export const SocketProvider = ({ children }: { children: React.ReactNode }) => {
@@ -30,7 +44,8 @@ export const SocketProvider = ({ children }: { children: React.ReactNode }) => {
         transports: ["websocket", "polling"],
         query: {
             timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
-            userId: data?.user.id
+            userId: data?.user.id,
+            deviceId: getOrCreateDeviceId(),
         },
         withCredentials: true,
         forceNew: false,

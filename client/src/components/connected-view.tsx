@@ -15,23 +15,17 @@ export const MOCK_MATCH = {
   vibeScore: 94,
 };
 
-export type ConnectedViewVariant = "room" | "pip";
-
 export function ConnectedView({
   onEnd,
   onSkip,
   onMinimize,
-  variant,
 }: {
   onEnd: () => void;
   onSkip: () => void;
-  /** Full room only: collapse to floating dock and return to the previous route. */
+  /** Collapse to floating dock and return to the previous route. */
   onMinimize?: () => void;
-  variant: ConnectedViewVariant;
 }) {
   const [elapsed, setElapsed] = useState(0);
-
-  const isPip = variant === "pip";
 
   useEffect(() => {
     const t = setInterval(() => setElapsed((s) => s + 1), 1000);
@@ -54,10 +48,7 @@ export function ConnectedView({
         <div className="absolute inset-0 flex items-center justify-center">
           <div className="relative">
             <div
-              className={cn(
-                "flex items-center justify-center rounded-full font-bold text-white transition-all duration-300",
-                isPip ? "h-24 w-24 text-2xl" : "h-32 w-32 text-3xl md:h-36 md:w-36 md:text-4xl"
-              )}
+              className="flex h-32 w-32 items-center justify-center rounded-full text-3xl font-bold text-white transition-all duration-300 md:h-36 md:w-36 md:text-4xl"
               style={{
                 background: `linear-gradient(135deg, ${MOCK_MATCH.gradFrom}, ${MOCK_MATCH.gradTo})`,
                 boxShadow: `0 0 60px ${MOCK_MATCH.gradFrom}55, 0 0 120px ${MOCK_MATCH.gradFrom}22`,
@@ -107,7 +98,7 @@ export function ConnectedView({
           </div>
 
           <div className="ml-auto flex shrink-0 items-center gap-1.5 sm:gap-2">
-            {onMinimize && !isPip && (
+            {onMinimize && (
               <button
                 type="button"
                 onClick={onMinimize}
@@ -119,7 +110,7 @@ export function ConnectedView({
                   backdropFilter: "blur(8px)",
                 }}
               >
-                <Minimize2 size={isPip ? 16 : 18} strokeWidth={2} />
+                <Minimize2 size={18} strokeWidth={2} />
               </button>
             )}
             <div
@@ -143,9 +134,9 @@ export function ConnectedView({
             backdropFilter: "blur(8px)",
           }}
         >
-          <Sparkles size={isPip ? 10 : 11} style={{ color: "oklch(88% 0.11 105)" }} />
+          <Sparkles size={11} style={{ color: "oklch(88% 0.11 105)" }} />
           <span
-            className={cn("font-semibold", isPip ? "text-[10px]" : "text-[11px]")}
+            className="text-[11px] font-semibold"
             style={{ color: "oklch(88% 0.11 105)" }}
           >
             {MOCK_MATCH.vibeScore}% match
@@ -153,12 +144,7 @@ export function ConnectedView({
         </div>
 
         <div
-          className={cn(
-            "absolute overflow-hidden rounded-xl transition-all duration-300 sm:rounded-2xl",
-            isPip
-              ? "bottom-2 right-2 h-[100px] w-[72px]"
-              : "bottom-3 right-3 h-[104px] w-[80px] sm:bottom-4 sm:right-4 sm:h-[120px] sm:w-[90px] md:bottom-6 md:right-6 md:h-[150px] md:w-[110px]"
-          )}
+          className="absolute bottom-3 right-3 h-[104px] w-[80px] overflow-hidden rounded-xl transition-all duration-300 sm:bottom-4 sm:right-4 sm:h-[120px] sm:w-[90px] sm:rounded-2xl md:bottom-6 md:right-6 md:h-[150px] md:w-[110px]"
           style={{
             border: "2px solid rgba(255,255,255,0.15)",
             boxShadow: "0 8px 24px rgba(0,0,0,0.5)",
@@ -171,10 +157,7 @@ export function ConnectedView({
             }}
           >
             <div
-              className={cn(
-                "flex items-center justify-center rounded-full font-bold",
-                isPip ? "h-8 w-8 text-xs" : "h-10 w-10 text-sm"
-              )}
+              className="flex h-10 w-10 items-center justify-center rounded-full text-sm font-bold md:h-10 md:w-10"
               style={{
                 background:
                   "radial-gradient(circle at 40% 35%, oklch(90% 0.11 105), oklch(78% 0.10 105))",
@@ -200,16 +183,16 @@ export function ConnectedView({
         <ToolbarAction
           label="Skip"
           onClick={onSkip}
-          icon={<SkipForward size={isPip ? 18 : 20} className="text-white/80" />}
+          icon={<SkipForward size={20} className="text-white/80" />}
           variant="secondary"
-          size={isPip ? 48 : 56}
+          size={56}
         />
         <ToolbarAction
           label="End call"
           onClick={onEnd}
-          icon={<PhoneOff size={isPip ? 18 : 20} className="text-white" />}
+          icon={<PhoneOff size={20} className="text-white" />}
           variant="danger"
-          size={isPip ? 52 : 60}
+          size={60}
         />
       </div>
     </div>

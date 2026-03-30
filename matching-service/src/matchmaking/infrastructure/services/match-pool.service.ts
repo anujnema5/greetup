@@ -16,12 +16,13 @@ export class MatchPoolService {
     await pipeline.exec();
   }
 
+  /** Drops the user from the pool and removes `mm:state` (no `free` sentinel — absent key means idle). */
   async remove(userId: string): Promise<void> {
     const redis = getRedis();
 
     const pipeline = redis.pipeline();
     pipeline.zrem(redisKeys.poolGlobal(), userId);
-    pipeline.set(redisKeys.userState(userId), "free");
+    pipeline.del(redisKeys.userState(userId));
     await pipeline.exec();
   }
 

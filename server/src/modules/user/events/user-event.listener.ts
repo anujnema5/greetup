@@ -3,8 +3,10 @@ import { EventPayloads } from "@/core/events/types/events.types";
 import Redis from "ioredis";
 import { getRedis } from "@/core/redis";
 import logger from "@/core/logging";
-import { CACHE_TTL, USER_CACHE_KEYS, USER_PRESENCE_KEYS } from "@/core/redis/keys";
-import { db } from "@/core/database";
+import { USER_PRESENCE_KEYS } from "@/core/redis/keys";
+import { ensureProfileSnapshotCached } from "@/modules/user/services/profile-snapshot-cache.service";
+import { getUserMatchStateService, cancelMatchService } from "@/modules/matching/services/matchmaking.service";
+import { emitToUser, getSocket } from "@/core/socket/socket";
 
 export class UserEventListeners {
     private jobName = "UserEventListeners"
@@ -12,7 +14,13 @@ export class UserEventListeners {
 
     // 1 MINUTES TTL — IF SERVER CRASHES AND DISCONNECT EVENT NEVER FIRES, REDIS WILL AUTO-CLEAN STALE PRESENCE DATA
     private static readonly PRESENCE_TTL_SECONDS = 60 * 1;
-    private static readonly PROFILE_CACHE_TTL_SECONDS = CACHE_TTL.MEDIUM;
+    // Grace period before removing a disconnected user from the matching pool
+    private static readonly MATCH_GRACE_MS = 12_000;
+
+    // In-memory map of grace period timers: userId → timer handle
+    // Acceptable because the grace window is only 12s — a server restart within that window
+    // is an acceptable edge case (user stays in pool slightly longer, matching engine handles it).
+    private gracePeriodTimers: Map<string, ReturnType<typeof setTimeout>> = new Map();
 
     // LUA SCRIPT THAT RUNS ATOMICALLY IN REDIS — CHECKS IF THE STORED SOCKET ID MATCHES THE DISCONNECTING SOCKET
     // BEFORE DELETING. PREVENTS A RACE CONDITION WHERE A NEW CONNECTION FROM THE SAME IP GETS WRONGLY EVICTED
@@ -81,122 +89,35 @@ export class UserEventListeners {
             .set(`${USER_PRESENCE_KEYS.USER_LAST_SEEN}${userId}`, String(lastSeenTimestamp))
             .exec();
 
-        await this.ensureUserProfileSnapshotCache(userId);
+        await ensureProfileSnapshotCached(userId);
+
+        // Cancel any pending grace-period removal — user reconnected in time
+        this.cancelGracePeriod(userId);
+
+        // Push current match state back to this socket so the client can restore UI
+        // without any extra API call (handles page refresh + device switch)
+        await this.emitMatchStateOnConnect(userId);
 
         logger.info(`[${this.jobName}] Marked user ${userId} online with socket ${socketId} for ip ${ipField}`);
     }
 
-    // LOADS USER PROFILE/PREFERENCES/INTERESTS SNAPSHOT INTO REDIS ONLY IF MISSING.
-    // NX PREVENTS OVERWRITING IF ANOTHER CONCURRENT CONNECTION FILLS THE CACHE FIRST.
-    private async ensureUserProfileSnapshotCache(userId: string): Promise<void> {
-        const cacheKey = `${USER_CACHE_KEYS.PROFILE_SNAPSHOT}${userId}`;
-        const exists = await this.redis.exists(cacheKey);
+    private async emitMatchStateOnConnect(userId: string): Promise<void> {
+        try {
+            logger.info(`[${this.jobName}] checking match state on connect`, { userId });
+            const state = await getUserMatchStateService(userId);
+            logger.info(`[${this.jobName}] match state fetched`, { userId, status: state.status, requestId: state.requestId, roomId: state.roomId });
 
-        if (exists) {
-            return;
-        }
-
-        const profileSnapshot = await db.query.userProfiles.findFirst({
-            where: (profile, { eq }) => eq(profile.userId, userId),
-            with: {
-                user: {
-                    columns: {
-                        id: true,
-                        displayName: true,
-                        name: true,
-                    },
-                },
-                location: {
-                    columns: {
-                        country: true,
-                        countryCode: true,
-                        city: true,
-                        region: true,
-                    },
-                },
-                goals: {
-                    with: {
-                        goal: {
-                            columns: {
-                                id: true,
-                                name: true,
-                                displayName: true,
-                            },
-                        },
-                    },
-                },
-                interests: {
-                    with: {
-                        interest: {
-                            columns: {
-                                id: true,
-                                name: true,
-                                displayName: true,
-                                category: true,
-                            },
-                        },
-                    },
-                },
-                professions: {
-                    with: {
-                        profession: {
-                            columns: {
-                                id: true,
-                                name: true,
-                                displayName: true,
-                                category: true,
-                            },
-                        },
-                    },
-                },
-                preferences: {
-                    columns: {
-                        preferredGender: true,
-                        distancePreference: true,
-                        minAge: true,
-                        maxAge: true,
-                    },
-                    with: {
-                        connectionTypes: {
-                            with: {
-                                connectionType: {
-                                    columns: {
-                                        id: true,
-                                        name: true,
-                                        displayName: true,
-                                    },
-                                },
-                            },
-                        },
-                    },
-                },
-                behavior: {
-                    columns: {
-                        reportCount: true,
-                        trustScore: true,
-                        successfulConnections: true,
-                        averageSessionDuration: true,
-                    },
-                },
-            },
-        });
-
-        if (!profileSnapshot) {
-            logger.warn(`[${this.jobName}] Profile snapshot not found for user ${userId}; cache not created`);
-            return;
-        }
-
-        const cacheValue = JSON.stringify(profileSnapshot);
-        const result = await this.redis.set(
-            cacheKey,
-            cacheValue,
-            "EX",
-            UserEventListeners.PROFILE_CACHE_TTL_SECONDS,
-            "NX",
-        );
-
-        if (result === "OK") {
-            logger.info(`[${this.jobName}] Cached profile snapshot for user ${userId}`);
+            if (state.status === "searching" && state.requestId) {
+                emitToUser(userId, "match:state", { status: "searching", requestId: state.requestId });
+                logger.info(`[${this.jobName}] emitted match:state searching`, { userId, requestId: state.requestId });
+            } else if (state.status === "matched" && state.roomId) {
+                emitToUser(userId, "match:state", { status: "matched", roomId: state.roomId, requestId: state.requestId });
+                logger.info(`[${this.jobName}] emitted match:state matched`, { userId, roomId: state.roomId });
+            } else {
+                logger.info(`[${this.jobName}] no active match state to restore`, { userId, status: state.status });
+            }
+        } catch (err) {
+            logger.warn(`[${this.jobName}] Failed to emit match state on connect for user ${userId}`, { err });
         }
     }
 
@@ -239,7 +160,7 @@ export class UserEventListeners {
         const ipsLeft = await this.redis.hlen(userPresenceKey);
 
         // USER IS STILL ONLINE VIA ANOTHER IP/DEVICE — JUST REFRESH THE TTL AND EXIT EARLY.
-        // DO NOT REMOVE FROM THE ONLINE SET.
+        // DO NOT REMOVE FROM THE ONLINE SET OR START GRACE PERIOD.
         if (ipsLeft > 0) {
             await this.redis.expire(userPresenceKey, UserEventListeners.PRESENCE_TTL_SECONDS);
             logger.info(`[${this.jobName}] User ${userId} still online via ${ipsLeft} ip(s). Removed current ip mapping: ${removed === 1}`);
@@ -259,5 +180,48 @@ export class UserEventListeners {
             .exec();
 
         logger.info(`[${this.jobName}] User ${userId} is now offline (ip: ${ipField}, socket: ${socketId})`);
+
+        // Start grace period — if user was searching, give them 12s to reconnect before
+        // removing them from the matching pool. Handles page refresh + brief network drops.
+        await this.startGracePeriodIfSearching(userId);
+    }
+
+    private async startGracePeriodIfSearching(userId: string): Promise<void> {
+        try {
+            const state = await getUserMatchStateService(userId);
+            if (state.status !== "searching") return;
+
+            logger.info(`[${this.jobName}] Starting ${UserEventListeners.MATCH_GRACE_MS}ms grace period for searching user ${userId}`);
+
+            const timer = setTimeout(async () => {
+                this.gracePeriodTimers.delete(userId);
+                try {
+                    // Check again — user might have reconnected and been re-added to pool
+                    const io = getSocket();
+                    const room = io.sockets.adapter.rooms.get(`user:${userId}`);
+                    if (room && room.size > 0) {
+                        logger.info(`[${this.jobName}] Grace period expired but user ${userId} reconnected — skipping pool removal`);
+                        return;
+                    }
+                    await cancelMatchService(userId);
+                    logger.info(`[${this.jobName}] Grace period expired — removed user ${userId} from matching pool`);
+                } catch (err) {
+                    logger.warn(`[${this.jobName}] Failed to cancel match after grace period for user ${userId}`, { err });
+                }
+            }, UserEventListeners.MATCH_GRACE_MS);
+
+            this.gracePeriodTimers.set(userId, timer);
+        } catch (err) {
+            logger.warn(`[${this.jobName}] startGracePeriodIfSearching failed for user ${userId}`, { err });
+        }
+    }
+
+    private cancelGracePeriod(userId: string): void {
+        const timer = this.gracePeriodTimers.get(userId);
+        if (timer) {
+            clearTimeout(timer);
+            this.gracePeriodTimers.delete(userId);
+            logger.info(`[${this.jobName}] Cancelled grace period for user ${userId} — reconnected in time`);
+        }
     }
 }

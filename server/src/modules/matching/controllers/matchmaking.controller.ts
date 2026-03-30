@@ -1,21 +1,51 @@
 import type { Context } from "hono";
 import { randomUUID } from "crypto";
 import { ApiResponse } from "@/shared/responses";
-import { findMatchService, getMatchResultService } from "../services/matchmaking.service";
+import {
+  findMatchService,
+  getUserMatchStateService,
+  cancelMatchService,
+  leaveRoomService,
+} from "../services/matchmaking.service";
 import logger from "@/core/logging";
 
-/**
- * POST /api/matchmaking/find
- * Initiates matchmaking for the authenticated user.
- * Generates a requestId, enqueues the user in the match engine, and returns immediately.
- * The client should poll GET /api/matchmaking/result/:requestId until a final status is reached.
- */
 export const handleFindMatch = async (c: Context) => {
   try {
     const userId = c.get("userId") as string;
+    logger.info("[handleFindMatch] request received", { userId });
+
+    const currentState = await getUserMatchStateService(userId);
+    logger.info("[handleFindMatch] current engine state", { userId, state: currentState.status, requestId: currentState.requestId });
+
+    if (currentState.status === "searching" && currentState.requestId) {
+      logger.info("[handleFindMatch] idempotent — already searching", { userId, requestId: currentState.requestId });
+      return c.json(
+        ApiResponse.success(
+          { requestId: currentState.requestId, status: "searching" },
+          "Already searching",
+          200
+        ),
+        200
+      );
+    }
+
+    if (currentState.status === "matched" && currentState.roomId) {
+      logger.warn("[handleFindMatch] user already in active session", { userId, roomId: currentState.roomId });
+      return c.json(
+        ApiResponse.error({
+          message: "Already in an active session",
+          statusCode: 409,
+          code: "ALREADY_IN_SESSION",
+        }),
+        409
+      );
+    }
+
     const requestId = randomUUID();
+    logger.info("[handleFindMatch] calling match engine", { userId, requestId });
 
     const engineResponse = await findMatchService(userId, requestId);
+    logger.info("[handleFindMatch] engine response", { userId, requestId, engineData: engineResponse.data });
 
     return c.json(
       ApiResponse.success(
@@ -26,7 +56,7 @@ export const handleFindMatch = async (c: Context) => {
       200
     );
   } catch (error) {
-    logger.error("Failed to start matchmaking", { error });
+    logger.error("[handleFindMatch] failed", { error });
     return c.json(
       ApiResponse.error({
         message: "Failed to start matchmaking",
@@ -38,35 +68,40 @@ export const handleFindMatch = async (c: Context) => {
   }
 };
 
-/**
- * GET /api/matchmaking/result/:requestId
- * Polls the match engine for the result of an ongoing match attempt.
- * Possible statuses: "searching" | "matched" | "no_match"
- */
-export const handleGetMatchResult = async (c: Context) => {
+export const handleCancelMatch = async (c: Context) => {
   try {
-    const requestId = c.req.param("requestId");
-
-    if (!requestId?.trim()) {
-      return c.json(
-        ApiResponse.error({ message: "requestId is required", statusCode: 400, code: "VALIDATION_ERROR" }),
-        400
-      );
-    }
-
-    const engineResponse = await getMatchResultService(requestId);
-
-    return c.json(
-      ApiResponse.success(engineResponse.data, "Match result retrieved", 200),
-      200
-    );
+    const userId = c.get("userId") as string;
+    logger.info("[handleCancelMatch] request received", { userId });
+    await cancelMatchService(userId);
+    logger.info("[handleCancelMatch] cancelled successfully", { userId });
+    return c.json(ApiResponse.success(null, "Match search cancelled", 200), 200);
   } catch (error) {
-    logger.error("Failed to get match result", { error });
+    logger.error("[handleCancelMatch] failed", { error });
     return c.json(
       ApiResponse.error({
-        message: "Failed to get match result",
+        message: "Failed to cancel match",
         statusCode: 500,
-        code: "MATCH_RESULT_FAILED",
+        code: "CANCEL_FAILED",
+      }),
+      500
+    );
+  }
+};
+
+/** Clears match-engine Redis state (`in_room`) so the user can search again. */
+export const handleLeaveRoom = async (c: Context) => {
+  try {
+    const userId = c.get("userId") as string;
+    logger.info("[handleLeaveRoom] request received", { userId });
+    await leaveRoomService(userId);
+    return c.json(ApiResponse.success(null, "Left room", 200), 200);
+  } catch (error) {
+    logger.error("[handleLeaveRoom] failed", { error });
+    return c.json(
+      ApiResponse.error({
+        message: "Failed to leave room",
+        statusCode: 500,
+        code: "LEAVE_ROOM_FAILED",
       }),
       500
     );
