@@ -1,9 +1,9 @@
+import { MATCH_CONFIG } from "@/config/constants";
 import type { MatchCandidate } from "@/matchmaking/domain/matching.types";
 import { getRedis } from "@/redis/client";
 import { redisKeys } from "@/redis/keys";
 
 const CANDIDATE_SCAN_LIMIT = 100;
-const MAX_CANDIDATES = 25;
 
 export class MatchPoolService {
   async enqueue(userId: string): Promise<void> {
@@ -16,12 +16,13 @@ export class MatchPoolService {
     await pipeline.exec();
   }
 
+  /** Drops the user from the pool and removes `mm:state` (no `free` sentinel — absent key means idle). */
   async remove(userId: string): Promise<void> {
     const redis = getRedis();
 
     const pipeline = redis.pipeline();
     pipeline.zrem(redisKeys.poolGlobal(), userId);
-    pipeline.set(redisKeys.userState(userId), "free");
+    pipeline.del(redisKeys.userState(userId));
     await pipeline.exec();
   }
 
@@ -48,7 +49,7 @@ export class MatchPoolService {
         score: Number(scoreRaw),
       });
 
-      if (candidates.length >= MAX_CANDIDATES) {
+      if (candidates.length >= MATCH_CONFIG.candidateBatchSize) {
         break;
       }
     }

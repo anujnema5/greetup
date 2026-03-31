@@ -1,4 +1,6 @@
 import type { Context } from "hono";
+
+import logger from "@/core/logging";
 import { ApiResponse } from "@/shared/responses";
 import { fetchProfileStepsService } from "../services/profile-steps.service";
 import { saveProfileSetupStepService } from "../services/profile-setup-save.service";
@@ -7,6 +9,35 @@ import {
   fetchProfileStepsQuerySchema,
   saveProfileSetupBodySchema,
 } from "../schemas/profile-setup.schema";
+import { getMyProfileService } from "../services/get-my-profile.service";
+
+export const handleGetMyProfile = async (c: Context) => {
+  try {
+    const userId = c.get("userId") as string;
+    const profile = await getMyProfileService(userId);
+    if (!profile) {
+      return c.json(
+        ApiResponse.error({
+          message: "Profile not found",
+          statusCode: 404,
+          code: "PROFILE_NOT_FOUND",
+        }),
+        404
+      );
+    }
+    return c.json(ApiResponse.success(profile, "Profile retrieved", 200), 200);
+  } catch (error: unknown) {
+    logger.error("Get my profile error", { error });
+    return c.json(
+      ApiResponse.error({
+        message: error instanceof Error ? error.message : "Failed to get profile",
+        statusCode: 500,
+        code: "GET_PROFILE_FAILED",
+      }),
+      500
+    );
+  }
+};
 
 export const handleGetOnboardingStatus = async (c: Context) => {
   try {
@@ -17,7 +48,7 @@ export const handleGetOnboardingStatus = async (c: Context) => {
       200
     );
   } catch (error: unknown) {
-    console.error("Get onboarding status error:", error);
+    logger.error("Get onboarding status error", { error });
     return c.json(
       ApiResponse.error({
         message:
@@ -112,7 +143,7 @@ export const handleFetchProfileSteps = async (c: Context) => {
       200
     );
   } catch (error: unknown) {
-    console.error("Fetch steps error:", error);
+    logger.error("Fetch profile steps error", { error });
     return c.json(
       ApiResponse.error({
         message: error instanceof Error ? error.message : "Failed to fetch steps",

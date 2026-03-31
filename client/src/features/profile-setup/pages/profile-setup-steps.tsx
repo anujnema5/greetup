@@ -41,6 +41,7 @@ import { LogOut, Sparkles } from 'lucide-react'
 import { signOut } from '@/lib/auth-client'
 import { ThemeToggle } from '@/components/theme-toggle'
 import { CountryDropdown, type Country } from '@/components/ui/country-dropdown'
+import { AgeDigitsInput } from '@/features/profile/components/age-digits-input'
 import { generateKey } from '../utils'
 
 /** Fallback emoji when backend doesn't send one (e.g. legacy data). */
@@ -131,6 +132,45 @@ const ProfileSetupStep = () => {
         )
 
       case 'number':
+        if (field.key === 'age') {
+          return (
+            <FormField
+              control={form.control}
+              name={field.key}
+              render={({ field: formField }) => {
+                const num =
+                  typeof formField.value === 'number' && !Number.isNaN(formField.value)
+                    ? formField.value
+                    : typeof formField.value === 'string' && formField.value !== ''
+                      ? Number(formField.value)
+                      : field.min ?? 18
+                const v = Number.isFinite(num) ? num : (field.min ?? 18)
+                return (
+                  <FormItem>
+                    <FormLabel className="text-sm font-semibold text-foreground">
+                      {field.label}
+                      {field.required && (
+                        <span className="text-destructive">*</span>
+                      )}
+                    </FormLabel>
+                    <FormControl>
+                      <AgeDigitsInput
+                        id={`setup-${field.key}`}
+                        min={field.min ?? 18}
+                        max={field.max ?? 99}
+                        value={v}
+                        onChange={(n) => formField.onChange(n)}
+                        onBlur={formField.onBlur}
+                        className="border-input bg-background transition-all hover:border-primary/50 focus-visible:border-primary focus-visible:ring-primary/20"
+                      />
+                    </FormControl>
+                    <FormMessage className="text-xs" />
+                  </FormItem>
+                )
+              }}
+            />
+          )
+        }
         return (
           <FormField
             control={form.control}

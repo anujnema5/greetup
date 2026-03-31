@@ -22,6 +22,12 @@ export const MATCH_KEYS = {
 
 export const MATCH_TTL = 86400; // 24 HOURS
 
+export const ROOM_KEYS = {
+  ROOM: "room:",
+} as const;
+
+export const ROOM_TTL = 7200; // 2 HOURS
+
 // CACHE TTL VALUES (IN SECONDS)
 export const CACHE_TTL = {
     SHORT: 300,        // 5 MINUTES

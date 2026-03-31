@@ -1,0 +1,27 @@
+export type ProfileGender = "male" | "female" | "other";
+
+/** Mirrors onboarding + `/profile/me` fields; used for local UI until API wiring. */
+export type EditableProfile = {
+  displayName: string;
+  age: number;
+  gender: ProfileGender;
+  country: { code: string; name: string };
+  goalIds: string[];
+  interestIds: string[];
+  professionId: string | null;
+  bio: string;
+  preferredGender: "any" | "male" | "female" | "others" | "same";
+  distancePreference: "nearby" | "same city" | "same country" | "random" | "global";
+  ageRange: { min: number; max: number };
+  connectionTypeIds: string[];
+  /** At most one profile image for avatar; API may return a single photo */
+  photos: Array<{ id: string; url: string }>;
+};
+
+export type ProfileEditSectionId =
+  | "basics"
+  | "goals"
+  | "interests"
+  | "work"
+  | "preferences"
+  | "bio";

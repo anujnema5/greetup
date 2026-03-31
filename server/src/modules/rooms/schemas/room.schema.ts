@@ -15,5 +15,17 @@ export const matchCompletedBodySchema = z.object({
   isFallbackMatch: z.boolean(),
 });
 
+export const matchFailedBodySchema = z.object({
+  attemptId: z.string().min(1),
+  userId: z.string().min(1),
+  reason: z.string().min(1),
+});
+
+export const ensureProfileSnapshotBodySchema = z.object({
+  userId: z.string().min(1),
+});
+
 export type CreateRoomBody = z.infer<typeof createRoomBodySchema>;
 export type MatchCompletedBody = z.infer<typeof matchCompletedBodySchema>;
+export type MatchFailedBody = z.infer<typeof matchFailedBodySchema>;
+export type EnsureProfileSnapshotBody = z.infer<typeof ensureProfileSnapshotBodySchema>;

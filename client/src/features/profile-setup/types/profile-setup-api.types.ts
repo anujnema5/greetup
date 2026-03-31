@@ -123,3 +123,44 @@ export type SaveProfileSetupPayload =
   | { step: 4; data: { profession: { id: string; name?: string; category?: string } | null } }
   | { step: 5; data: { preferredGender?: string; distancePreference?: string; ageRange?: { min: number; max: number }; connectionTypes?: Array<{ id: string }> } }
   | { step: 6; data: { bio?: string; photos?: Array<{ url: string; order?: number }> } }
+
+/** GET /profile/me — aligned with server `MyProfileResponse` */
+export type MyProfileData = {
+  displayName: string | null
+  bio: string | null
+  age: number | null
+  gender: string | null
+  profileCompletion: number | null
+  isOnboarded: boolean | null
+  location: {
+    country: string | null
+    countryCode: string | null
+    city: string | null
+  } | null
+  photos: Array<{
+    id: string
+    url: string
+    order: number | null
+    isVerified: boolean | null
+  }>
+  goals: Array<{ id: string; name: string; displayName: string }>
+  interests: Array<{
+    id: string
+    name: string
+    displayName: string
+    category: string
+  }>
+  profession: {
+    id: string
+    name: string
+    displayName: string
+    category: string
+  } | null
+  preferences: {
+    preferredGender: string | null
+    distancePreference: string | null
+    minAge: number | null
+    maxAge: number | null
+    connectionTypes: Array<{ id: string; name: string; displayName: string }>
+  } | null
+}

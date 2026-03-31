@@ -1,5 +1,7 @@
 import { API_ENDPOINTS, baseApi } from "@/lib/api";
 import type {
+  ApiResponse,
+  MyProfileData,
   ProfileSetupApiResponse,
   SaveProfileSetupApiResponse,
   SaveProfileSetupPayload,
@@ -22,6 +24,10 @@ export const profileSetupApi = baseApi.injectEndpoints({
       query: () => PROFILE.SETUP_STEPS,
       providesTags: [{ type: "ProfileSetupSteps", id: "LIST" }],
     }),
+    getMyProfile: build.query<ApiResponse<MyProfileData>, void>({
+      query: () => PROFILE.ME,
+      providesTags: [{ type: "ProfileMe", id: "CURRENT" }],
+    }),
     saveProfileSetup: build.mutation<
       SaveProfileSetupApiResponse,
       SaveProfileSetupPayload
@@ -34,6 +40,7 @@ export const profileSetupApi = baseApi.injectEndpoints({
       invalidatesTags: [
         { type: "ProfileSetupSteps", id: "LIST" },
         { type: "ProfileSetupSteps", id: "ONBOARDING" },
+        { type: "ProfileMe", id: "CURRENT" },
       ],
     }),
   }),
@@ -42,6 +49,7 @@ export const profileSetupApi = baseApi.injectEndpoints({
 export const {
   useGetOnboardingStatusQuery,
   useGetProfileSetupStepsQuery,
+  useGetMyProfileQuery,
   useLazyGetProfileSetupStepsQuery,
   useSaveProfileSetupMutation,
 } = profileSetupApi;

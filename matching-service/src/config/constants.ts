@@ -13,6 +13,8 @@ export const MATCH_CONFIG = {
   maxRetries: 3,
   retryBackoffMs: [500, 1_500, 3_500],
   candidateBatchSize: 25,
+  /** Failsafe TTL so users are not stuck in `in_room` if leave-room is never called. */
+  userInRoomStateTtlSeconds: 7200,
   attemptTtlSeconds: 120,
 } as const;
 

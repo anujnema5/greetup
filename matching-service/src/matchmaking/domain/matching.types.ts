@@ -5,6 +5,13 @@ export type MatchCandidate = {
   score: number;
 };
 
+/** Pool candidate after compatibility and scoring (ready to rank and pair). */
+export type ScoredMatchCandidate = {
+  userId: string;
+  matchScore: number;
+  poolScore: number;
+};
+
 export type MatchAttempt = {
   attemptId: string;
   requesterId: string;

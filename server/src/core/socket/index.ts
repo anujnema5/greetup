@@ -1,2 +1,3 @@
-export  * from './socket'
-export * from './utils';
+export * from "./socket";
+export * from "./socket-config";
+export * from "./utils";

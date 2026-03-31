@@ -62,12 +62,21 @@ export class RoomOrchestrationService {
         return { ok: false, reason: `room_service_http_${response.status}` };
       }
 
-      const payload = (await response.json()) as { roomId?: unknown };
-      if (typeof payload.roomId !== "string" || payload.roomId.length === 0) {
+      const payload = (await response.json()) as {
+        roomId?: unknown;
+        data?: { roomId?: unknown };
+      };
+      const roomIdRaw =
+        typeof payload.roomId === "string" && payload.roomId.length > 0
+          ? payload.roomId
+          : typeof payload.data?.roomId === "string" && payload.data.roomId.length > 0
+            ? payload.data.roomId
+            : undefined;
+      if (roomIdRaw === undefined) {
         return { ok: false, reason: "room_service_invalid_payload" };
       }
 
-      return { ok: true, roomId: payload.roomId };
+      return { ok: true, roomId: roomIdRaw };
     } catch {
       return { ok: false, reason: "room_create_timeout_or_network" };
     }
