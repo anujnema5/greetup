@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useCallback, useMemo } from "react";
+import { useEffect, useLayoutEffect, useCallback, useMemo } from "react";
 import { useParams, useSearchParams, useRouter } from "next/navigation";
 import { useSession } from "@/lib/auth-client";
 import { getRtkQueryErrorMessage } from "@/lib/api/rtk-query-error";
@@ -8,15 +8,14 @@ import { useAppDispatch } from "@/lib/redux/hooks";
 import { enterRoomPage, resetRoomState } from "@/lib/redux/slices/roomSlice";
 import { clearRoomStorage } from "@/features/room/lib/room-sync";
 import { useGetRoomQuery, useLeaveRoomMutation, leaveRoomKeepalive } from "../api/matching-api";
-import { deriveRoomRtcState } from "../utils/derive-room-rtc-state";
-import { useGetRtcTokenQuery } from "@/features/rtc";
+import { useRtcSocketContext } from "@/features/rtc";
 import type { RoomData } from "../types/room.types";
 
 export type { RoomData };
 
 /**
- * `/room/[roomId]`: server data via RTK Query, global room context via Redux (`enterRoomPage`),
- * RTC token via RTK Query, leave + storage cleanup.
+ * `/circle/[roomId]`: server data via RTK Query, global room context via Redux (`enterRoomPage`),
+ * RTC token + socket from `RtcSocketProvider` (layout), leave + storage cleanup.
  */
 export function useRoom() {
   const dispatch = useAppDispatch();
@@ -33,9 +32,15 @@ export function useRoom() {
   const skipRoomQuery = !roomId || sessionPending;
   const roomQuery = useGetRoomQuery(roomId, { skip: skipRoomQuery });
 
-  const skipRtcToken = !roomId || sessionPending || !session?.user?.id;
-  const rtcQuery = useGetRtcTokenQuery(roomId ?? "", { skip: skipRtcToken });
-  const rtc = deriveRoomRtcState(skipRtcToken, rtcQuery);
+  const {
+    rtcToken,
+    rtcTokenExpiresInSec,
+    rtcTokenLoading,
+    rtcTokenError,
+    rtcTokenSkipped,
+    rtcSocket,
+    rtcSocketState,
+  } = useRtcSocketContext();
 
   const fallbackRoom = useMemo((): RoomData | null => {
     if (!roomQuery.isError || !peerIdFromUrl || !session?.user?.id) return null;
@@ -58,8 +63,8 @@ export function useRoom() {
     return getRtkQueryErrorMessage(roomQuery.error);
   }, [room, roomQuery.isError, roomQuery.error]);
 
-  /** Sync global room slice: current route room id. */
-  useEffect(() => {
+  /** Sync global room slice: current route room id (layout runs before paint so RTC provider sees `activeRoomId`). */
+  useLayoutEffect(() => {
     if (!roomId) return;
     dispatch(enterRoomPage({ roomId }));
   }, [roomId, dispatch]);
@@ -111,10 +116,12 @@ export function useRoom() {
     currentUserId,
     goHome,
     leaveAndGoHome,
-    rtcToken: rtc.rtcToken,
-    rtcTokenLoading: rtc.rtcTokenLoading,
-    rtcTokenError: rtc.rtcTokenError,
-    rtcTokenSkipped: rtc.rtcTokenSkipped,
-    rtcTokenExpiresInSec: rtc.rtcTokenExpiresInSec,
+    rtcToken,
+    rtcTokenLoading,
+    rtcTokenError,
+    rtcTokenSkipped,
+    rtcTokenExpiresInSec,
+    rtcSocket,
+    rtcSocketState,
   };
 }

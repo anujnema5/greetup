@@ -1,9 +1,11 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
 import { Plus_Jakarta_Sans } from "next/font/google";
+// @ts-ignore: side-effect CSS import without module declarations
 import "./globals.css";
 import { SocketProvider } from "@/lib/socket";
 import { ReduxProvider } from "@/lib/redux/provider";
+import { RtcSocketProvider } from "@/features/rtc";
 import { ThemeProvider } from "@/components/theme-provider";
 import { Toaster } from "sonner";
 import { RoomMinimizedHydration, MinimizedRoomDock } from "@/features/room";
@@ -30,12 +32,14 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         >
           <ReduxProvider>
             <RoomMinimizedHydration />
-            <SocketProvider>
-              <Suspense fallback={null}>
-                <MinimizedRoomDock />
-              </Suspense>
-              {children}
-            </SocketProvider>
+            <RtcSocketProvider>
+              <SocketProvider>
+                <Suspense fallback={null}>
+                  <MinimizedRoomDock />
+                </Suspense>
+                {children}
+              </SocketProvider>
+            </RtcSocketProvider>
           </ReduxProvider>
         </ThemeProvider>
         <Toaster />

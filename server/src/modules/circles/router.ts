@@ -1,8 +1,13 @@
 import { Hono } from "hono";
 
-import { handleCreateCircle, handleListCircleCategories } from "./controllers/circles.controller";
+import {
+  handleCreateCircle,
+  handleListActiveCircles,
+  handleListCircleCategories,
+} from "./controllers/circles.controller";
 
 export const circlesRoute = new Hono();
 
+circlesRoute.get("/active", handleListActiveCircles);
 circlesRoute.get("/categories", handleListCircleCategories);
 circlesRoute.post("/", handleCreateCircle);

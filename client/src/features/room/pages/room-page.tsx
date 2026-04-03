@@ -46,7 +46,10 @@ export function RoomPage() {
     peerId,
     goHome,
     leaveAndGoHome,
+    rtcSocket
   } = useRoom();
+
+  console.log(rtcSocket ? `RTC Socket connected: ${rtcSocket.id}` : "RTC Socket not connected");
 
   // Auto-start video as soon as the peer is connected
   useEffect(() => {

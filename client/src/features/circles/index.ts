@@ -18,8 +18,10 @@ export {
   circlesApi,
   useCreateCircleMutation,
   useListCircleCategoriesQuery,
+  useListActiveCirclesQuery,
 } from "./api/circles-api";
 export type { StartCircleAdvancedFormState } from "./types/start-circle-ui.types";
+export type { ActiveCircleItem, FriendInvitedCircleItem } from "./types/circles-api.types";
 export {
   getDefaultStartCircleFormValues,
   startCircleFormSchema,

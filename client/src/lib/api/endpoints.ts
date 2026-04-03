@@ -18,12 +18,11 @@ export const API_ENDPOINTS = {
   CIRCLES: {
     CATEGORIES: "/circles/categories",
     CREATE: "/circles",
+    ACTIVE: "/circles/active",
   },
-  /** Authenticated room session (Redis provisioned when live). */
   ROOM: {
     start: (roomId: string) => `/room/${roomId}/start` as const,
     get: (roomId: string) => `/room/${roomId}` as const,
-    /** Direct (1:1) rooms only — short-lived JWT for rtc-service */
     rtcToken: (roomId: string) => `/room/${roomId}/rtc-token` as const,
   },
 }

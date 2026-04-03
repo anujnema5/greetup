@@ -1,4 +1,4 @@
-import { and, asc, eq } from "drizzle-orm";
+import { and, asc, eq, inArray, isNull, notExists, sql } from "drizzle-orm";
 
 import { db } from "@/core/database";
 import {
@@ -7,6 +7,7 @@ import {
   roomFriendInvites,
   roomParticipants,
   rooms,
+  users,
   type RoomAdvancedOptions,
 } from "@/core/database/schema";
 
@@ -214,5 +215,170 @@ export const roomsRepository = {
 
       return row;
     });
+  },
+
+  /** Subquery for active participant count on a room — reused across list queries. */
+  _participantCountSq() {
+    return sql<number>`(
+      SELECT CAST(COUNT(*) AS int) FROM room_participants rpc
+      WHERE rpc.room_id = ${rooms.id} AND rpc.left_at IS NULL
+    )`;
+  },
+
+  /** Shared column projection for the active-circles list. */
+  _activeCircleColumns() {
+    return {
+      id: rooms.id,
+      title: rooms.title,
+      status: rooms.status,
+      visibility: rooms.visibility,
+      maxParticipants: rooms.maxParticipants,
+      scheduledStartAt: rooms.scheduledStartAt,
+      startedAt: rooms.startedAt,
+      roomType: rooms.roomType,
+      hostUserId: rooms.hostUserId,
+      categoryId: roomCategories.id,
+      categorySlug: roomCategories.slug,
+      categoryDisplayName: roomCategories.displayName,
+      categoryEmoji: roomCategories.emoji,
+      hostName: users.name,
+      hostDisplayName: users.displayName,
+      participantCount: roomsRepository._participantCountSq(),
+    } as const;
+  },
+
+  /**
+   * Rooms where the caller has a pending/accepted friend invite (circle type, active only).
+   */
+  async listFriendInvitedCircles(userId: string) {
+    return db
+      .select({
+        ...roomsRepository._activeCircleColumns(),
+        inviteStatus: roomFriendInvites.status,
+      })
+      .from(rooms)
+      .innerJoin(roomCategories, eq(rooms.categoryId, roomCategories.id))
+      .innerJoin(users, eq(rooms.hostUserId, users.id))
+      .innerJoin(
+        roomFriendInvites,
+        and(
+          eq(roomFriendInvites.roomId, rooms.id),
+          eq(roomFriendInvites.inviteeUserId, userId),
+          inArray(roomFriendInvites.status, ["pending", "accepted"]),
+        ),
+      )
+      .where(
+        and(
+          eq(rooms.roomType, "circle"),
+          inArray(rooms.status, ["live", "scheduled"]),
+        ),
+      )
+      .orderBy(
+        sql`CASE WHEN ${rooms.status} = 'live' THEN 0 ELSE 1 END`,
+        asc(rooms.scheduledStartAt),
+      );
+  },
+
+  /**
+   * Rooms where the caller is a participant but has no friend invite (circle type, active only).
+   */
+  async listJoinedCircles(userId: string) {
+    const friendInviteExists = db
+      .select({ one: sql<number>`1` })
+      .from(roomFriendInvites)
+      .where(
+        and(
+          eq(roomFriendInvites.roomId, rooms.id),
+          eq(roomFriendInvites.inviteeUserId, userId),
+        ),
+      );
+
+    return db
+      .select(roomsRepository._activeCircleColumns())
+      .from(rooms)
+      .innerJoin(roomCategories, eq(rooms.categoryId, roomCategories.id))
+      .innerJoin(users, eq(rooms.hostUserId, users.id))
+      .innerJoin(
+        roomParticipants,
+        and(
+          eq(roomParticipants.roomId, rooms.id),
+          eq(roomParticipants.userId, userId),
+          isNull(roomParticipants.leftAt),
+        ),
+      )
+      .where(
+        and(
+          eq(rooms.roomType, "circle"),
+          inArray(rooms.status, ["live", "scheduled"]),
+          notExists(friendInviteExists),
+        ),
+      )
+      .orderBy(
+        sql`CASE WHEN ${rooms.status} = 'live' THEN 0 ELSE 1 END`,
+        asc(rooms.scheduledStartAt),
+      );
+  },
+
+  /**
+   * Public circles not already in friend-invited or joined lists, cursor-paginated.
+   * Returns `limit + 1` rows so the caller can detect `hasMore`.
+   */
+  async listPublicCircles(userId: string, limit: number, cursor?: string) {
+    const friendInviteExists = db
+      .select({ one: sql<number>`1` })
+      .from(roomFriendInvites)
+      .where(
+        and(
+          eq(roomFriendInvites.roomId, rooms.id),
+          eq(roomFriendInvites.inviteeUserId, userId),
+        ),
+      );
+
+    const participantExists = db
+      .select({ one: sql<number>`1` })
+      .from(roomParticipants)
+      .where(
+        and(
+          eq(roomParticipants.roomId, rooms.id),
+          eq(roomParticipants.userId, userId),
+        ),
+      );
+
+    const cursorClause = cursor
+      ? sql`(
+          CASE WHEN ${rooms.status} = 'live' THEN 0 ELSE 1 END,
+          COALESCE(${rooms.scheduledStartAt}, '9999-01-01'::timestamptz),
+          ${rooms.id}
+        ) > (
+          SELECT
+            CASE WHEN r2.status = 'live' THEN 0 ELSE 1 END,
+            COALESCE(r2.scheduled_start_at, '9999-01-01'::timestamptz),
+            r2.id
+          FROM rooms r2
+          WHERE r2.id = ${cursor}
+        )`
+      : undefined;
+
+    return db
+      .select(roomsRepository._activeCircleColumns())
+      .from(rooms)
+      .innerJoin(roomCategories, eq(rooms.categoryId, roomCategories.id))
+      .innerJoin(users, eq(rooms.hostUserId, users.id))
+      .where(
+        and(
+          eq(rooms.roomType, "circle"),
+          inArray(rooms.status, ["live", "scheduled"]),
+          eq(rooms.visibility, "public"),
+          notExists(friendInviteExists),
+          notExists(participantExists),
+          cursorClause,
+        ),
+      )
+      .orderBy(
+        sql`CASE WHEN ${rooms.status} = 'live' THEN 0 ELSE 1 END`,
+        asc(rooms.scheduledStartAt),
+        asc(rooms.id),
+      )
+      .limit(limit + 1);
   },
 };
