@@ -8,7 +8,7 @@ Monorepo for Circlo application services.
 |---|---|---|
 | `client` | Next.js | Frontend app |
 | `server` | Hono / Node.js | Main API, auth, realtime orchestration |
-| `match-engine` | Bun | Async matchmaking microservice |
+| `matching-service` | Bun | Async matchmaking microservice |
 | `rtc-service` | Node.js + mediasoup | WebRTC SFU for peer video/audio |
 | `docs` | — | Architecture and developer notes |
 
@@ -36,7 +36,7 @@ Monorepo for Circlo application services.
              │  HTTP
              ▼
 ┌────────────────────────┐
-│  MATCH-ENGINE (Bun)    │
+│ MATCHING-SERVICE (Bun) │
 │  async matchmaking     │
 │                        │
 │  POST /match/find      │
@@ -72,9 +72,9 @@ Monorepo for Circlo application services.
 
 ```
 1.  Client           → POST /match/find          → server
-2.  server           → POST /match/find          → match-engine
-3.  match-engine scores candidates, writes result to Redis
-4.  match-engine     → webhook (matched event)   → server
+2.  server           → POST /match/find          → matching-service
+3.  matching-service scores candidates, writes result to Redis
+4.  matching-service → webhook (matched event)   → server
 5.  server creates a media room, notifies both clients via WebSocket
 6.  Both clients     → negotiate WebRTC transports with rtc-service (SFU)
 7.  rtc-service relays audio/video between peers (no peer-to-peer)
@@ -109,7 +109,7 @@ A Selective Forwarding Unit receives each peer's media stream once and forwards 
             │  x-internal-api-key            │  x-internal-api-key
             ▼                                ▼
 ┌────────────────────────┐      ┌────────────────────────────┐
-│  MATCH-ENGINE (Bun)    │      │  RTC-SERVICE (Node.js)     │
+│ MATCHING-SERVICE (Bun) │      │  RTC-SERVICE (Node.js)     │
 │  Internal network only │      │  Internal network only     │
 │  Validates API key     │      │  Signaling auth: planned   │
 │  Webhooks back to      │      │  WebRTC transport mgmt     │
@@ -145,14 +145,14 @@ A Selective Forwarding Unit receives each peer's media stream once and forwards 
 6. Heartbeat every 20 s → Redis presence refreshed
 ```
 
-**Inter-service calls (server ↔ match-engine)**
+**Inter-service calls (server ↔ matching-service)**
 
 ```
-Server → Match-Engine:
+Server → Matching-service:
   POST /match/find          Header: x-internal-api-key: <secret>
   GET  /match/result/:id    Header: x-internal-api-key: <secret>
 
-Match-Engine → Server (webhook):
+Matching-service → Server (webhook):
   POST /internal/webhook/match-completed
                             Header: x-internal-api-key: <secret>
   Payload: { attemptId, userA, userB, roomId, matchScore, isFallbackMatch }
@@ -190,11 +190,11 @@ All request bodies are parsed with **Zod** schemas before reaching handlers. Val
 
 | Variable | Used by | Purpose |
 |---|---|---|
-| `INTERNAL_API_KEY` | server, match-engine, rtc-service | Service-to-service auth |
+| `INTERNAL_API_KEY` | server, matching-service, rtc-service | Service-to-service auth |
 | `BETTER_AUTH_SECRET` | server | Session token signing |
 | `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` | server | Google OAuth |
 | `DATABASE_URL` | server | PostgreSQL connection |
-| `REDIS_URL` | match-engine, rtc-service | Redis connection |
+| `REDIS_URL` | matching-service, rtc-service | Redis connection |
 
 ---
 
@@ -204,18 +204,24 @@ All request bodies are parsed with **Zod** schemas before reaching handlers. Val
 circlo/
   client/               # Next.js app
   server/               # Hono/Node backend
-  match-engine/         # Bun matchmaking microservice
+  matching-service/     # Bun matchmaking microservice
   rtc-service/          # mediasoup SFU
   docs/                 # Design + dev docs
   docker-compose.dev.yml
 ```
+
+### Code conventions
+
+- **Server** (`server/`): Feature modules under `src/modules/<name>/` use **controllers → services → repositories** for HTTP; **Drizzle/Postgres only in repositories**. Shared request/response types live in each module’s **`types/`** — import from there; services do not re-export types. User-visible **5xx** messages use shared copy from `src/shared/messages` (no raw database errors in JSON). See **`server/README.md`**.
+- **Client** (`client/`): Feature-first layout under `src/features/<name>/` with **`api/`** (RTK Query), **`types/`**, components, hooks. See **`client/README.md`**.
+- **Matching** (`matching-service/`): Standalone Bun service; see **`matching-service/README.md`**.
 
 ---
 
 ## Prerequisites
 
 - Node.js + npm (for `client`, `server`, `rtc-service`)
-- Bun (for `match-engine`)
+- Bun (for `matching-service`)
 - Docker Desktop (recommended for Postgres and Redis locally)
 
 ---
@@ -239,11 +245,14 @@ Default exposed ports:
 
 ```bash
 cd server
-cp .env.example .env
+cp env/.env.example env/.env.development   # set DATABASE_URL and secrets
 npm install
+npm run db:migrate      # apply Drizzle migrations (required for a fresh DB)
 npm run dev
 # → http://localhost:5050
 ```
+
+See **`server/README.md`** for layout, repositories, and shared messages.
 
 ### 3) Start client
 
@@ -254,15 +263,15 @@ npm run dev
 # → http://localhost:3000
 ```
 
-### 4) Start match-engine
+### 4) Start matching-service
 
 ```bash
-cd match-engine
+cd matching-service
 bun install
 bun run dev
 ```
 
-Config comes from `match-engine/env/.env.*`.
+Config comes from `matching-service/env/.env.*` (see `matching-service/README.md`).
 
 ### 5) Start rtc-service
 
@@ -283,9 +292,9 @@ docker compose -f docker-compose.dev.yml --profile app up --build
 
 ---
 
-## Match-engine API
+## Matching-service API
 
-`match-engine` is fully async:
+`matching-service` is fully async:
 
 | Endpoint | Description |
 |---|---|
@@ -325,7 +334,7 @@ Clients connect directly to `rtc-service` for WebRTC signalling after `server` p
 - `npm run build`
 - `npm run lint`
 
-### `match-engine`
+### `matching-service`
 - `bun run dev`
 - `bun run typecheck`
 - `bun run test`
@@ -335,8 +344,8 @@ Clients connect directly to `rtc-service` for WebRTC signalling after `server` p
 
 ## Environment files
 
-- `server/.env.example`
-- `match-engine/env/.env.example`
+- `server/env/.env.example`
+- `matching-service/env/.env.example`
 
 Create local `.env` files before starting services and fill required secrets.
 
@@ -352,5 +361,5 @@ Create local `.env` files before starting services and fill required secrets.
 ## Notes
 
 - Keep `requestId` unique per matchmaking attempt for idempotency.
-- `server` is the single orchestrator — it owns the lifecycle of rooms and notifies clients. Neither `match-engine` nor `rtc-service` talk to the client directly.
+- `server` is the single orchestrator — it owns the lifecycle of rooms and notifies clients. Neither `matching-service` nor `rtc-service` talk to the client directly.
 - `rtc-service` will require native build tooling (Python, C++ build tools) for mediasoup worker binaries.

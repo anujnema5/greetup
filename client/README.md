@@ -1,36 +1,36 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# client
 
-## Getting Started
+Next.js app (App Router), Redux Toolkit Query for API calls, Tailwind.
 
-First, run the development server:
+## Run
 
 ```bash
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+# http://localhost:3000
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Layout & conventions
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+| Area | Purpose |
+|------|---------|
+| `src/app/` | Routes, layouts, `app/api` if any route handlers |
+| `src/features/<feature>/` | Feature slices: `api/` (RTK `injectEndpoints`), `components/`, `hooks/`, `types/`, `schemas/` (Zod forms), `constants/` |
+| `src/features/<feature>/types/` | DTOs and UI types for that feature (e.g. `*-api.types.ts` aligned with server endpoints) |
+| `src/lib/` | Shared app utilities, `api/` base RTK setup |
+| `src/shared/` | Cross-cutting constants, env helpers |
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+**Naming**
 
-## Learn More
+- Components: `PascalCase` files for React components.
+- API modules: `something-api.ts` under `features/<name>/api/`.
+- Types: `PascalCase`; shared shapes with the server use the same name where possible (e.g. `MyProfileResponse` in `features/profile/types/my-profile.types.ts`).
 
-To learn more about Next.js, take a look at the following resources:
+**Data fetching**
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+- Prefer RTK Query endpoints in feature `api/` files; tag types are declared in `src/lib/api/base-api.ts`.
+- Mutations from RTK Query expose **`isLoading`** (not `isPending`) for the pending flag with current typings.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+**Imports**
 
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- Path alias: `@/` → `src/`.
