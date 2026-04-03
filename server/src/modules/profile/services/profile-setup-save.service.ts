@@ -4,23 +4,16 @@
 
 import { profileSetupRepository } from "../repositories/profile-setup.repository";
 import { profileStepsRepository } from "../repositories/profile-steps.repository";
-import type { SaveProfileSetupBody } from "../schemas/profile-setup.schema";
+import type {
+  SaveProfileSetupParams,
+  SaveProfileSetupResult,
+} from "../types/profile-setup-services.types";
 import {
   fetchProfileStepsService,
   PROFILE_COMPLETE_THRESHOLD,
 } from "./profile-steps.service";
 import { refreshProfileSnapshotFromDatabase } from "@/modules/user/services/profile-snapshot-cache.service";
 import logger from "@/core/logging";
-
-export interface SaveProfileSetupParams {
-  userId: string;
-  body: SaveProfileSetupBody;
-}
-
-export interface SaveProfileSetupResult {
-  profileCompletion: number;
-  isProfileComplete: boolean;
-}
 
 /**
  * Calculate profile completion (0–100) from current profile state.

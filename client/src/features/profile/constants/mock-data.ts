@@ -1,11 +1,14 @@
 export const VIBES = ["design", "startups", "indie music", "ai & ml", "travel", "coffee"] as const;
 
-export const STATS = [
+/** Mock dashboard stats; labels/values are strings so completion % can replace a row. */
+export type ProfileStatRow = { label: string; value: string };
+
+export const STATS: ProfileStatRow[] = [
   { label: "Matches", value: "47" },
   { label: "Connections", value: "128" },
   { label: "Circles", value: "12" },
   { label: "Vibe Score", value: "87" },
-] as const;
+];
 
 export const RECENT_MATCHES = [
   { name: "Zara K.", tagline: "Product designer · Startup founder", initials: "ZK", grad: "from-violet-400 to-indigo-600", score: 94 },

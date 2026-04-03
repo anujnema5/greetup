@@ -72,7 +72,7 @@ function rtkErrorMessage(error: unknown): string {
 export function ProfilePage() {
   const profileQuery = useGetMyProfileQuery();
   const stepsQuery = useGetProfileSetupStepsQuery();
-  const [saveProfileSetup, { isPending: isSaving }] = useSaveProfileSetupMutation();
+  const [saveProfileSetup, { isLoading: isSaving }] = useSaveProfileSetupMutation();
 
   const [activeSection, setActiveSection] = useState<ProfileEditSectionId | null>(null);
 

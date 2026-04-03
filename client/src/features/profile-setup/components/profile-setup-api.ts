@@ -1,18 +1,14 @@
 import { API_ENDPOINTS, baseApi } from "@/lib/api";
+import type { MyProfileResponse } from "@/features/profile/types/my-profile.types";
 import type {
   ApiResponse,
-  MyProfileData,
+  OnboardingStatusResponse,
   ProfileSetupApiResponse,
   SaveProfileSetupApiResponse,
   SaveProfileSetupPayload,
 } from "../types/profile-setup-api.types";
 
 const { PROFILE } = API_ENDPOINTS;
-
-export interface OnboardingStatusResponse {
-  success: boolean
-  data: { isOnboarded: boolean }
-}
 
 export const profileSetupApi = baseApi.injectEndpoints({
   endpoints: (build) => ({
@@ -24,7 +20,7 @@ export const profileSetupApi = baseApi.injectEndpoints({
       query: () => PROFILE.SETUP_STEPS,
       providesTags: [{ type: "ProfileSetupSteps", id: "LIST" }],
     }),
-    getMyProfile: build.query<ApiResponse<MyProfileData>, void>({
+    getMyProfile: build.query<ApiResponse<MyProfileResponse>, void>({
       query: () => PROFILE.ME,
       providesTags: [{ type: "ProfileMe", id: "CURRENT" }],
     }),

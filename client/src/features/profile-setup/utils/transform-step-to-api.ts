@@ -7,6 +7,9 @@ import type { SaveProfileSetupPayload } from "../types/profile-setup-api.types";
 
 type FormValues = Record<string, unknown>;
 
+type Step5PayloadData = Extract<SaveProfileSetupPayload, { step: 5 }>["data"];
+type Step6PayloadData = Extract<SaveProfileSetupPayload, { step: 6 }>["data"];
+
 function toIdArray(value: unknown): Array<{ id: string }> {
   if (!Array.isArray(value) || value.length === 0) return [];
   return value
@@ -68,7 +71,7 @@ export function transformStepToApiPayload(
     }
 
     case 5: {
-      const data: SaveProfileSetupPayload extends { step: 5; data: infer D } ? D : never = {
+      const data: Step5PayloadData = {
         preferredGender: formValues.preferredGender
           ? String(formValues.preferredGender)
           : undefined,
@@ -88,7 +91,7 @@ export function transformStepToApiPayload(
     }
 
     case 6: {
-      const data: SaveProfileSetupPayload extends { step: 6; data: infer D } ? D : never = {
+      const data: Step6PayloadData = {
         bio: formValues.bio != null && String(formValues.bio).trim()
           ? String(formValues.bio).trim()
           : undefined,

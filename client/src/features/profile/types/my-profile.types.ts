@@ -1,6 +1,6 @@
 /**
- * GET /profile/me — assembled profile payload for the authenticated user.
- * Client mirror: `client/src/features/profile/types/my-profile.types.ts`.
+ * GET /profile/me — same shape as server `MyProfileResponse`
+ * (`server/src/modules/profile/types/my-profile.types.ts`).
  */
 export type MyProfileResponse = {
   displayName: string | null;

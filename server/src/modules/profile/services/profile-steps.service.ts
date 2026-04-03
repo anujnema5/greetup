@@ -2,7 +2,12 @@
  * Profile steps service – builds onboarding steps with pre-filled values and pagination.
  */
 
-import type { FormStep, FormField } from "../types";
+import type {
+  FormStep,
+  FormField,
+  FetchProfileStepsParams,
+  FetchProfileStepsResult,
+} from "../types";
 import type { ProfileForSteps, StepOptions } from "../repositories/profile-steps.repository";
 import { profileStepsRepository } from "../repositories/profile-steps.repository";
 
@@ -10,28 +15,6 @@ import { profileStepsRepository } from "../repositories/profile-steps.repository
 export const STEP_PAGE_SIZE_DEFAULT = 6;
 export const STEP_PAGE_SIZE_MAX = 10;
 export const PROFILE_COMPLETE_THRESHOLD = 80;
-
-export interface FetchProfileStepsParams {
-  userId: string;
-  page?: number;
-  limit?: number;
-  /** When true, always recalculate from profile data instead of using stored profileCompletion (fixes 0 being treated as valid) */
-  forceRecalculate?: boolean;
-}
-
-export interface FetchProfileStepsResult {
-  steps: FormStep[];
-  profileCompletion: number;
-  isProfileComplete: boolean;
-  meta: {
-    page: number;
-    limit: number;
-    totalSteps: number;
-    totalPages: number;
-    hasNext: boolean;
-    hasPrev: boolean;
-  };
-}
 
 /**
  * Build step list with fields and pre-filled values from profile and options.
