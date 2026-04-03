@@ -3,7 +3,7 @@ import logger from "@/core/logging";
 
 import type { UserMatchState } from "../types/match.types";
 
-const MATCH_ENGINE_URL = process.env.MATCH_ENGINE_URL ?? "http://localhost:5060";
+const MATCH_ENGINE_URL = config.matchEngineUrl;
 
 const engineHeaders = () => ({
   "Content-Type": "application/json",

@@ -141,7 +141,7 @@ export function useStartCircleModalState() {
         }).unwrap();
 
         if (res.success) {
-          const invite = res.data.circle.inviteCode;
+          const invite = res.data.room.inviteCode;
           const n = res.data.friendInvitesCreated ?? 0;
           const inviteLine = invite
             ? `Invite code: ${invite} · Share it for private joins.`

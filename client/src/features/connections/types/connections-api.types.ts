@@ -23,6 +23,9 @@ export type ConnectionListItem = {
 
 export type ListConnectionsData = {
   items: ConnectionListItem[];
+  page?: number;
+  limit?: number;
+  hasMore?: boolean;
 };
 
 export type ListConnectionsApiResponse = ApiResponse<ListConnectionsData>;

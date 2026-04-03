@@ -3,7 +3,11 @@ import { logger } from "@/core/logger";
 
 export function registerSignalingHandlers(io: Server): void {
   io.on("connection", (socket: Socket) => {
-    logger.info("Client connected", { socketId: socket.id });
+    logger.info("Client connected", {
+      socketId: socket.id,
+      userId: socket.data.userId,
+      roomId: socket.data.roomId,
+    });
 
     // TODO: handle join — peer joins a room, router RTP capabilities sent back
     socket.on("join", (_payload, _ack) => {

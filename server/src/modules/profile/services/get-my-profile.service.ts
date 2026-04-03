@@ -7,6 +7,11 @@ export async function getMyProfileService(userId: string): Promise<MyProfileResp
 
   const professionRow = p.professions?.[0]?.profession;
 
+  const allowlisted =
+    Array.isArray(p.roomInviteAllowlistedUserIds) && p.roomInviteAllowlistedUserIds.length > 0
+      ? p.roomInviteAllowlistedUserIds.filter((x): x is string => typeof x === "string")
+      : [];
+
   return {
     displayName: p.user?.displayName ?? p.user?.name ?? null,
     bio: p.bio,
@@ -62,5 +67,9 @@ export async function getMyProfileService(userId: string): Promise<MyProfileResp
           })),
         }
       : null,
+    roomInvite: {
+      policy: (p.roomInvitePolicy ?? "all_connections") as "all_connections" | "selected_only",
+      allowlistedUserIds: allowlisted,
+    },
   };
 }

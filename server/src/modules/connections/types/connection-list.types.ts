@@ -15,4 +15,8 @@ export type ConnectionListItem = {
 
 export type ListMyConnectionsResult = {
   items: ConnectionListItem[];
+  /** Present when the request used `limit` (pagination). */
+  page?: number;
+  limit?: number;
+  hasMore?: boolean;
 };

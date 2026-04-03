@@ -1,11 +1,11 @@
 import { configureStore } from '@reduxjs/toolkit'
 import { baseApi } from '@/lib/api/base-api'
-import callReducer from './slices/callSlice'
+import roomReducer from './slices/roomSlice'
 
 export const store = configureStore({
     reducer: {
         [baseApi.reducerPath]: baseApi.reducer,
-        call: callReducer,
+        room: roomReducer,
     },
     middleware: (getDefaultMiddleware) =>
         getDefaultMiddleware().concat(baseApi.middleware),

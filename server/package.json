@@ -10,7 +10,7 @@
     "db:studio": "drizzle-kit studio",
     "db:drop": "drizzle-kit drop",
     "db:seed": "tsx src/core/database/seed/index.ts",
-    "db:seed:circle-categories": "tsx src/core/database/seed/seed-circle-categories.ts",
+    "db:seed:room-categories": "tsx src/core/database/seed/seed-room-categories.ts",
     "db:seed:dev-users": "tsx src/core/database/seed/seed-dev-users.ts",
     "build": "tsc",
     "start": "tsx src/index.ts",
@@ -25,10 +25,11 @@
     "drizzle-seed": "^0.3.1",
     "hono": "^4.10.7",
     "ioredis": "^5.8.2",
+    "jose": "^6.2.2",
     "pg": "^8.16.3",
-    "resend": "^6.5.2",
     "pino": "^10.1.0",
     "pino-pretty": "^13.1.2",
+    "resend": "^6.5.2",
     "socket.io": "^4.8.1"
   },
   "devDependencies": {

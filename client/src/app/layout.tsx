@@ -1,12 +1,14 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
 import { Plus_Jakarta_Sans } from "next/font/google";
+// @ts-ignore: side-effect CSS import without module declarations
 import "./globals.css";
 import { SocketProvider } from "@/lib/socket";
 import { ReduxProvider } from "@/lib/redux/provider";
+import { RtcSocketProvider } from "@/features/rtc";
 import { ThemeProvider } from "@/components/theme-provider";
 import { Toaster } from "sonner";
-import { CallMinimizedHydration, MinimizedCallDock } from "@/features/call";
+import { RoomMinimizedHydration, MinimizedRoomDock } from "@/features/room";
 const plusJakartaSans = Plus_Jakarta_Sans({
   variable: "--font-plus-jakarta",
   subsets: ["latin"],
@@ -29,13 +31,15 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           disableTransitionOnChange
         >
           <ReduxProvider>
-            <CallMinimizedHydration />
-            <SocketProvider>
-              <Suspense fallback={null}>
-                <MinimizedCallDock />
-              </Suspense>
-              {children}
-            </SocketProvider>
+            <RoomMinimizedHydration />
+            <RtcSocketProvider>
+              <SocketProvider>
+                <Suspense fallback={null}>
+                  <MinimizedRoomDock />
+                </Suspense>
+                {children}
+              </SocketProvider>
+            </RtcSocketProvider>
           </ReduxProvider>
         </ThemeProvider>
         <Toaster />

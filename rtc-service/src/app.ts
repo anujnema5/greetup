@@ -6,6 +6,7 @@ import { APP_CONFIG } from "@/config/constants";
 import { logger } from "@/core/logger";
 import { connectRedis, disconnectRedis } from "@/redis/client";
 import { initializeMediasoup } from "@/mediasoup/mediasoup.service";
+import { registerRtcSocketAuth } from "@/auth/socket-jwt.middleware";
 import { registerSignalingHandlers } from "@/signaling/signaling.handler";
 import { registerChessHandlers } from "@/games/chess/chess.handler";
 import { registerLudoHandlers } from "@/games/ludo/ludo.handler";
@@ -40,6 +41,7 @@ const bootstrap = async (): Promise<void> => {
     cors: { origin: "*" },
   });
 
+  registerRtcSocketAuth(io);
   registerSignalingHandlers(io);
   registerChessHandlers(io);
   registerLudoHandlers(io);

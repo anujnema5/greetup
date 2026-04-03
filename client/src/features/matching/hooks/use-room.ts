@@ -1,0 +1,127 @@
+"use client";
+
+import { useEffect, useLayoutEffect, useCallback, useMemo } from "react";
+import { useParams, useSearchParams, useRouter } from "next/navigation";
+import { useSession } from "@/lib/auth-client";
+import { getRtkQueryErrorMessage } from "@/lib/api/rtk-query-error";
+import { useAppDispatch } from "@/lib/redux/hooks";
+import { enterRoomPage, resetRoomState } from "@/lib/redux/slices/roomSlice";
+import { clearRoomStorage } from "@/features/room/lib/room-sync";
+import { useGetRoomQuery, useLeaveRoomMutation, leaveRoomKeepalive } from "../api/matching-api";
+import { useRtcSocketContext } from "@/features/rtc";
+import type { RoomData } from "../types/room.types";
+
+export type { RoomData };
+
+/**
+ * `/circle/[roomId]`: server data via RTK Query, global room context via Redux (`enterRoomPage`),
+ * RTC token + socket from `RtcSocketProvider` (layout), leave + storage cleanup.
+ */
+export function useRoom() {
+  const dispatch = useAppDispatch();
+  const router = useRouter();
+  const params = useParams();
+  const searchParams = useSearchParams();
+  const { data: session, isPending: sessionPending } = useSession();
+  const [leaveRoom] = useLeaveRoomMutation();
+
+  const roomId = params.roomId as string;
+  const peerIdFromUrl = searchParams.get("peer");
+  const scoreFromUrl = searchParams.get("score");
+
+  const skipRoomQuery = !roomId || sessionPending;
+  const roomQuery = useGetRoomQuery(roomId, { skip: skipRoomQuery });
+
+  const {
+    rtcToken,
+    rtcTokenExpiresInSec,
+    rtcTokenLoading,
+    rtcTokenError,
+    rtcTokenSkipped,
+    rtcSocket,
+    rtcSocketState,
+  } = useRtcSocketContext();
+
+  const fallbackRoom = useMemo((): RoomData | null => {
+    if (!roomQuery.isError || !peerIdFromUrl || !session?.user?.id) return null;
+    return {
+      roomId,
+      userA: session.user.id,
+      userB: peerIdFromUrl,
+      matchScore: scoreFromUrl,
+    };
+  }, [roomQuery.isError, peerIdFromUrl, session?.user?.id, roomId, scoreFromUrl]);
+
+  const room = roomQuery.data ?? fallbackRoom;
+
+  const loading =
+    sessionPending || (!skipRoomQuery && (roomQuery.isLoading || roomQuery.isFetching));
+
+  const error = useMemo(() => {
+    if (room) return null;
+    if (!roomQuery.isError) return null;
+    return getRtkQueryErrorMessage(roomQuery.error);
+  }, [room, roomQuery.isError, roomQuery.error]);
+
+  /** Sync global room slice: current route room id (layout runs before paint so RTC provider sees `activeRoomId`). */
+  useLayoutEffect(() => {
+    if (!roomId) return;
+    dispatch(enterRoomPage({ roomId }));
+  }, [roomId, dispatch]);
+
+  const leaveRoomAndClear = useCallback(async () => {
+    try {
+      await leaveRoom().unwrap();
+    } catch {
+      /* best-effort */
+    }
+    clearRoomStorage();
+    dispatch(resetRoomState());
+  }, [leaveRoom, dispatch]);
+
+  useEffect(() => {
+    const onBeforeUnload = () => leaveRoomKeepalive();
+    window.addEventListener("beforeunload", onBeforeUnload);
+    return () => window.removeEventListener("beforeunload", onBeforeUnload);
+  }, []);
+
+  const currentUserId = session?.user?.id;
+
+  const peerId = useMemo(() => {
+    if (!room) return peerIdFromUrl ?? null;
+    if ("sessionKind" in room && room.sessionKind === "db_room") return null;
+    return room.userA === currentUserId ? room.userB : room.userA;
+  }, [room, currentUserId, peerIdFromUrl]);
+
+  const score = useMemo(() => {
+    if (room && "sessionKind" in room && room.sessionKind === "db_room") return null;
+    return room && "matchScore" in room ? room.matchScore : scoreFromUrl;
+  }, [room, scoreFromUrl]);
+
+  const goHome = useCallback(() => {
+    router.replace("/");
+  }, [router]);
+
+  const leaveAndGoHome = useCallback(() => {
+    void leaveRoomAndClear().then(() => router.replace("/"));
+  }, [leaveRoomAndClear, router]);
+
+  return {
+    roomId,
+    room,
+    loading,
+    error,
+    peerId,
+    score,
+    currentUserId,
+    goHome,
+    leaveAndGoHome,
+    rtcToken,
+    rtcTokenLoading,
+    rtcTokenError,
+    rtcTokenSkipped,
+    rtcTokenExpiresInSec,
+    rtcSocket,
+    rtcSocketState,
+  };
+}

@@ -1,9 +1,13 @@
 import { randomBytes } from "node:crypto";
 
-import { mergeCircleAdvancedOptions } from "@/core/database/schema";
+import { mergeRoomAdvancedOptions } from "@/core/database/schema";
 import { getAcceptedPeerIdsForUser } from "@/modules/connections/services/accepted-peer-ids.service";
-
-import { circlesRepository } from "../repositories/circles.repository";
+import {
+  canHostInviteUserToRoom,
+  getRoomInvitePreferencesForUsers,
+} from "@/modules/profile/services/room-invite-preferences.service";
+import { roomsRepository } from "@/modules/rooms/repositories/rooms.repository";
+import { provisionSessionRoomRedis } from "@/modules/rooms/services/session-room-redis.service";
 import type { CreateCircleBody } from "../schemas/create-circle.schema";
 import { CreateCircleError } from "../types/create-circle.types";
 
@@ -12,7 +16,7 @@ function randomInviteCode(): string {
 }
 
 /**
- * Trim, drop host/empty, dedupe order-preserving — avoids duplicate (circle, invitee) rows
+ * Trim, drop host/empty, dedupe order-preserving — avoids duplicate (room, invitee) rows
  * when the client sends the same id twice or with accidental whitespace.
  */
 function normalizeInviteeIds(
@@ -54,18 +58,39 @@ async function resolveValidatedInviteeIds(
   return unique;
 }
 
+async function assertInviteesAllowRoomInvitesFromHost(
+  hostUserId: string,
+  inviteeIds: string[],
+): Promise<void> {
+  if (inviteeIds.length === 0) return;
+
+  const prefs = await getRoomInvitePreferencesForUsers(inviteeIds);
+  for (const inviteeId of inviteeIds) {
+    const p = prefs.get(inviteeId) ?? {
+      policy: "all_connections" as const,
+      allowlistedUserIds: [],
+    };
+    if (!canHostInviteUserToRoom(hostUserId, p)) {
+      throw new CreateCircleError(
+        "One or more people do not allow room invites from you. Change who can invite them in Profile, or remove them from the invite list.",
+        "INVITEE_RESTRICTED_ROOM_INVITES",
+      );
+    }
+  }
+}
+
 export async function createCircleService(
   hostUserId: string,
   body: CreateCircleBody,
 ) {
-  const category = await circlesRepository.findActiveCategoryById(body.categoryId);
+  const category = await roomsRepository.findActiveCategoryById(body.categoryId);
 
   if (!category) {
     throw new CreateCircleError("Category not found or inactive", "CATEGORY_NOT_FOUND");
   }
 
   const now = new Date();
-  const advancedOptions = mergeCircleAdvancedOptions(body.advancedOptions);
+  const advancedOptions = mergeRoomAdvancedOptions(body.advancedOptions);
 
   const scheduledStartAt =
     body.scheduleMode === "scheduled" && body.scheduledStartAt
@@ -88,12 +113,16 @@ export async function createCircleService(
     body.invitedUserIds,
   );
 
+  await assertInviteesAllowRoomInvitesFromHost(hostUserId, inviteeIds);
+
   const isInstant = body.scheduleMode === "instant";
   const status = isInstant ? "live" : "scheduled";
   const startedAt = isInstant ? now : null;
   const inviteCode = body.visibility === "private" ? randomInviteCode() : null;
 
-  const row = await circlesRepository.createCircleWithHostAndInvites({
+  const roomType = body.roomType ?? "circle";
+
+  const row = await roomsRepository.createRoomWithHostAndInvites({
     categoryId: body.categoryId,
     hostUserId,
     title: body.title,
@@ -107,10 +136,20 @@ export async function createCircleService(
     inviteCode,
     advancedOptions,
     inviteeUserIds: inviteeIds,
+    roomType,
   });
 
+  if (row.status === "live") {
+    await provisionSessionRoomRedis({
+      roomId: row.id,
+      hostUserId,
+      roomType,
+      title: body.title.trim(),
+    });
+  }
+
   return {
-    circle: row,
+    room: row,
     category: {
       id: category.id,
       slug: category.slug,

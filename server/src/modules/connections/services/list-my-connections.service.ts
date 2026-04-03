@@ -1,17 +1,13 @@
-import type { ConnectionsListFilter } from "../schemas/connections-list.query.schema";
+import type { ListConnectionsQuery } from "../schemas/connections-list.query.schema";
 import { userConnectionsRepository } from "../repositories/user-connections.repository";
-import type { ListMyConnectionsResult } from "../types/connection-list.types";
+import type { ConnectionListItem, ListMyConnectionsResult } from "../types/connection-list.types";
 
-export async function listMyConnectionsService(
-  userId: string,
-  filter: ConnectionsListFilter,
-): Promise<ListMyConnectionsResult> {
-  const rows = await userConnectionsRepository.findManyWithPeersForList(
-    userId,
-    filter,
-  );
+type Row = Awaited<
+  ReturnType<typeof userConnectionsRepository.findManyWithPeersForList>
+>[number];
 
-  const items = rows.map((row) => {
+function mapRowsToItems(userId: string, rows: Row[]): ConnectionListItem[] {
+  return rows.map((row) => {
     const imRequester = row.requesterId === userId;
     const peerUser = imRequester ? row.addressee : row.requester;
     const direction: "incoming" | "outgoing" | null =
@@ -31,6 +27,28 @@ export async function listMyConnectionsService(
       createdAt: row.createdAt.toISOString(),
     };
   });
+}
 
-  return { items };
+export async function listMyConnectionsService(
+  userId: string,
+  query: ListConnectionsQuery,
+): Promise<ListMyConnectionsResult> {
+  const { filter, page, limit, q } = query;
+
+  if (limit !== undefined) {
+    const { rows, hasMore } = await userConnectionsRepository.findManyWithPeersForListPaged(
+      userId,
+      filter,
+      { page, limit, q: q.trim() || undefined },
+    );
+    return {
+      items: mapRowsToItems(userId, rows as Row[]),
+      page,
+      limit,
+      hasMore,
+    };
+  }
+
+  const rows = await userConnectionsRepository.findManyWithPeersForList(userId, filter);
+  return { items: mapRowsToItems(userId, rows as Row[]) };
 }

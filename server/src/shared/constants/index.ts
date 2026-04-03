@@ -1,7 +1,7 @@
-import "@/shared/config/load-env";
+import config from "@/shared/config/config";
 
-export const WEB_CLIENT_HOST = process.env.WEB_CLIENT_HOST;
-export const REDIS_URL = process.env.REDIS_URL!;
-export const SERVER_URL = process.env.SERVER_URL!
-export const BETTER_AUTH_URL = process.env.BETTER_AUTH_URL!
-export const DEV_NOTIFICATION_EMAIL = process.env.DEV_NOTIFICATION_EMAIL!
+export const WEB_CLIENT_HOST = config.webClientHost;
+export const REDIS_URL = config.redisUrl;
+export const SERVER_URL = config.serverUrl;
+export const BETTER_AUTH_URL = config.betterAuthUrl;
+export const DEV_NOTIFICATION_EMAIL = config.devNotificationEmail;

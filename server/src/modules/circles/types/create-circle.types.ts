@@ -1,7 +1,8 @@
 export type CreateCircleErrorCode =
   | "CATEGORY_NOT_FOUND"
   | "INVALID_SCHEDULE"
-  | "INVALID_INVITEES";
+  | "INVALID_INVITEES"
+  | "INVITEE_RESTRICTED_ROOM_INVITES";
 
 export class CreateCircleError extends Error {
   constructor(

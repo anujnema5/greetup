@@ -1,22 +1,17 @@
 import type { Context } from "hono";
+import type { ZodError } from "zod";
 
-import { CLIENT_SAFE_INTERNAL_MESSAGE } from "@/shared/messages";
 import { ApiResponse } from "@/shared/responses";
+import { zodFieldErrorsItems } from "@/shared/validation";
 
-/** Shared 400 for Zod failures on inbound JSON (same shape as before). */
-export const invalidRequestBody = (c: Context) =>
-  c.json(
-    ApiResponse.error({ message: "Invalid request body", statusCode: 400, code: "VALIDATION_ERROR" }),
-    400
-  );
-
-/** Shared 500 for unexpected handler failures (rooms, internal webhooks, etc.). */
-export const internalError = (c: Context) =>
+/** 400 for Zod failures on inbound JSON (matches profile / connections handlers). */
+export const zodBodyValidationError = (c: Context, error: ZodError) =>
   c.json(
     ApiResponse.error({
-      message: CLIENT_SAFE_INTERNAL_MESSAGE,
-      statusCode: 500,
-      code: "INTERNAL_ERROR",
+      message: "Invalid request body",
+      statusCode: 400,
+      code: "VALIDATION_ERROR",
+      errors: zodFieldErrorsItems(error),
     }),
-    500
+    400,
   );

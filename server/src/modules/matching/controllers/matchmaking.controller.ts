@@ -1,7 +1,6 @@
 import type { Context } from "hono";
 import { randomUUID } from "crypto";
-import { CLIENT_SAFE_INTERNAL_MESSAGE } from "@/shared/messages";
-import { ApiResponse } from "@/shared/responses";
+import { ApiResponse, internalError } from "@/shared/responses";
 import {
   findMatchService,
   getUserMatchStateService,
@@ -58,14 +57,7 @@ export const handleFindMatch = async (c: Context) => {
     );
   } catch (error) {
     logger.error("[handleFindMatch] failed", { error });
-    return c.json(
-      ApiResponse.error({
-        message: CLIENT_SAFE_INTERNAL_MESSAGE,
-        statusCode: 500,
-        code: "MATCHMAKING_FAILED",
-      }),
-      500
-    );
+    return internalError(c, error, "MATCHMAKING_FAILED");
   }
 };
 
@@ -78,14 +70,7 @@ export const handleCancelMatch = async (c: Context) => {
     return c.json(ApiResponse.success(null, "Match search cancelled", 200), 200);
   } catch (error) {
     logger.error("[handleCancelMatch] failed", { error });
-    return c.json(
-      ApiResponse.error({
-        message: CLIENT_SAFE_INTERNAL_MESSAGE,
-        statusCode: 500,
-        code: "CANCEL_FAILED",
-      }),
-      500
-    );
+    return internalError(c, error, "CANCEL_FAILED");
   }
 };
 
@@ -98,13 +83,6 @@ export const handleLeaveRoom = async (c: Context) => {
     return c.json(ApiResponse.success(null, "Left room", 200), 200);
   } catch (error) {
     logger.error("[handleLeaveRoom] failed", { error });
-    return c.json(
-      ApiResponse.error({
-        message: CLIENT_SAFE_INTERNAL_MESSAGE,
-        statusCode: 500,
-        code: "LEAVE_ROOM_FAILED",
-      }),
-      500
-    );
+    return internalError(c, error, "LEAVE_ROOM_FAILED");
   }
 };

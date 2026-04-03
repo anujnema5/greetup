@@ -1,6 +1,6 @@
 import type { ApiResponse } from "@/features/profile-setup/types/profile-setup-api.types";
 
-export type CircleCategoryDto = {
+export type RoomCategoryDto = {
   id: string;
   slug: string;
   displayName: string;
@@ -10,7 +10,7 @@ export type CircleCategoryDto = {
 };
 
 export type ListCircleCategoriesData = {
-  categories: CircleCategoryDto[];
+  categories: RoomCategoryDto[];
 };
 
 export type ListCircleCategoriesApiResponse =
@@ -25,6 +25,8 @@ export type CreateCircleAdvancedOptions = {
 };
 
 export type CreateCircleRequest = {
+  /** Omit or `circle` for group circles; `direct` for 1:1-style rooms. */
+  roomType?: "direct" | "circle";
   categoryId: string;
   title: string;
   description?: string;
@@ -39,15 +41,56 @@ export type CreateCircleRequest = {
 };
 
 export type CreateCircleResult = {
-  circle: {
+  room: {
     id: string;
     status: string;
     inviteCode: string | null;
     scheduledStartAt: string | null;
     startedAt: string | null;
+    roomType: "direct" | "circle";
   };
-  category: Pick<CircleCategoryDto, "id" | "slug" | "displayName" | "emoji">;
+  category: Pick<RoomCategoryDto, "id" | "slug" | "displayName" | "emoji">;
   friendInvitesCreated: number;
 };
 
 export type CreateCircleApiResponse = ApiResponse<CreateCircleResult>;
+
+// ─── Active Circles ──────────────────────────────────────────────────────────
+
+export type ActiveCircleItem = {
+  id: string;
+  title: string;
+  status: "live" | "scheduled";
+  visibility: "public" | "private";
+  maxParticipants: number;
+  scheduledStartAt: string | null;
+  startedAt: string | null;
+  participantCount: number;
+  category: {
+    id: string;
+    slug: string;
+    displayName: string;
+    emoji: string | null;
+  };
+  host: {
+    userId: string;
+    name: string;
+    displayName: string | null;
+  };
+};
+
+export type FriendInvitedCircleItem = ActiveCircleItem & {
+  inviteStatus: "pending" | "accepted";
+};
+
+export type ActiveCirclesData = {
+  friendInvited: FriendInvitedCircleItem[];
+  joined: ActiveCircleItem[];
+  public: {
+    items: ActiveCircleItem[];
+    nextCursor: string | null;
+    hasMore: boolean;
+  };
+};
+
+export type ActiveCirclesApiResponse = ApiResponse<ActiveCirclesData>;

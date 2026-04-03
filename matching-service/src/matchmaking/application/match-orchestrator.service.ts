@@ -29,7 +29,7 @@ export class MatchOrchestratorService {
     private readonly attempts = new MatchAttemptRepository(),
     private readonly rooms = new RoomOrchestrationService(),
     private readonly webhook = new MatchWebhookService(),
-  ) {}
+  ) { }
 
   async findMatch(request: FindMatchRequest): Promise<FindMatchResult> {
     return this.startFindMatch(request);
@@ -76,9 +76,16 @@ export class MatchOrchestratorService {
   async getMatchResult(requestId: string): Promise<FindMatchResult> {
     const existingAttempt = await this.attempts.getAttempt(requestId);
     if (!existingAttempt) {
+      logger.debug("[getMatchResult] attempt not found", { requestId });
       return { status: "no_match", reason: "attempt_not_found" };
     }
-    return this.attempts.toResult(existingAttempt);
+    const result = this.attempts.toResult(existingAttempt);
+    logger.debug("[getMatchResult] returning cached attempt state", {
+      requestId,
+      resultStatus: result.status,
+      attemptStatus: existingAttempt.status,
+    });
+    return result;
   }
 
   async processMatchRequest(request: FindMatchRequest): Promise<FindMatchResult> {
@@ -125,6 +132,7 @@ export class MatchOrchestratorService {
         userId: request.userId,
         retryIndex,
         scoredCount: scoredCandidates.length,
+        scoredCandidates: scoredCandidates.map((c) => ({ userId: c.userId, matchScore: c.matchScore, poolScore: c.poolScore })),
       });
 
       sortScoredCandidatesDescending(scoredCandidates);
@@ -142,8 +150,20 @@ export class MatchOrchestratorService {
     }
 
     if (!foundEligibleCandidate) {
+      logger.info("[processMatchRequest] no eligible candidates in any retry — trying fallback", {
+        userId: request.userId,
+        requestId: request.requestId,
+        poolHadOtherSearchers,
+      });
       const fallbackResult = await this.tryFallbackMatch(request, requesterSnapshot);
-      if (fallbackResult) return fallbackResult;
+      if (fallbackResult) {
+        logger.info("[processMatchRequest] fallback produced a result", {
+          userId: request.userId,
+          requestId: request.requestId,
+          status: fallbackResult.status,
+        });
+        return fallbackResult;
+      }
     }
 
     const noMatchReason = !poolHadOtherSearchers ? "pool_empty" : "no_compatible_candidate";
@@ -166,12 +186,25 @@ export class MatchOrchestratorService {
 
   private async getSnapshotWithHydration(userId: string): Promise<SnapshotUserProfile | null> {
     const existing = await this.snapshots.getByUserId(userId);
-    if (existing) return existing;
+    if (existing) {
+      logger.debug("[getSnapshotWithHydration] cache hit", { userId });
+      return existing;
+    }
 
+    logger.debug("[getSnapshotWithHydration] cache miss — requesting ensure snapshot", { userId });
     const ok = await this.webhook.requestEnsureProfileSnapshot(userId);
-    if (!ok) return null;
+    if (!ok) {
+      logger.warn("[getSnapshotWithHydration] ensure snapshot webhook failed or denied", { userId });
+      return null;
+    }
 
-    return this.snapshots.getByUserId(userId);
+    const hydrated = await this.snapshots.getByUserId(userId);
+    if (!hydrated) {
+      logger.warn("[getSnapshotWithHydration] snapshot still missing after ensure", { userId });
+    } else {
+      logger.debug("[getSnapshotWithHydration] hydrated after webhook", { userId });
+    }
+    return hydrated;
   }
 
   private async scoreCandidatesFromPool(
@@ -227,11 +260,33 @@ export class MatchOrchestratorService {
     sorted: ScoredMatchCandidate[],
     isFallbackMatch: boolean,
   ): Promise<FindMatchResult | null> {
+
+    logger.debug("[tryPairWithSortedCandidates] attempting to pair with candidates", {
+      userId: request.userId,
+      candidateCount: sorted.length,
+      isFallbackMatch,
+      sortedCandidates: sorted.map((c) => ({ userId: c.userId, matchScore: c.matchScore, poolScore: c.poolScore })),
+    });
+
     for (const candidate of sorted) {
       const locked = await this.lock.tryLockPair(request.userId, candidate.userId, request.requestId);
       if (!locked) {
+        logger.debug("[tryPairWithSortedCandidates] pair lock not acquired — trying next candidate", {
+          attemptId: request.requestId,
+          requesterId: request.userId,
+          candidateId: candidate.userId,
+          isFallbackMatch,
+        });
         continue;
       }
+
+      logger.debug("[tryPairWithSortedCandidates] pair locked — creating room", {
+        attemptId: request.requestId,
+        requesterId: request.userId,
+        candidateId: candidate.userId,
+        matchScore: candidate.matchScore,
+        isFallbackMatch,
+      });
 
       const roomResult = await this.rooms.createRoom({
         attemptId: request.requestId,
@@ -259,11 +314,20 @@ export class MatchOrchestratorService {
         });
 
         if (isFallbackMatch) {
-          logger.info("Fallback match made below score threshold", {
+          logger.info("[tryPairWithSortedCandidates] fallback match — below normal threshold", {
             attemptId: request.requestId,
             requesterId: request.userId,
             candidateId: candidate.userId,
             matchScore: candidate.matchScore,
+            roomId: roomResult.roomId,
+          });
+        } else {
+          logger.info("[tryPairWithSortedCandidates] primary match succeeded", {
+            attemptId: request.requestId,
+            requesterId: request.userId,
+            candidateId: candidate.userId,
+            matchScore: candidate.matchScore,
+            roomId: roomResult.roomId,
           });
         }
 
@@ -294,9 +358,34 @@ export class MatchOrchestratorService {
     request: FindMatchRequest,
     requesterSnapshot: SnapshotUserProfile,
   ): Promise<FindMatchResult | null> {
+    logger.info("[tryFallbackMatch] starting — no eligible scores in main retries", {
+      userId: request.userId,
+      requestId: request.requestId,
+    });
+
     const candidates = await this.pool.getCandidates(request.userId);
+    logger.debug("[tryFallbackMatch] raw pool candidates", {
+      userId: request.userId,
+      poolSize: candidates.length,
+    });
+
     const scoredCandidates = await this.scoreCandidatesFromPool(requesterSnapshot, candidates, "all_compatible");
     sortScoredCandidatesDescending(scoredCandidates);
+
+    if (scoredCandidates.length === 0) {
+      logger.warn("[tryFallbackMatch] no all_compatible candidates after scoring — giving up fallback", {
+        userId: request.userId,
+        requestId: request.requestId,
+      });
+      return null;
+    }
+
+    logger.info("[tryFallbackMatch] attempting pair with relaxed score pool", {
+      userId: request.userId,
+      requestId: request.requestId,
+      candidateCount: scoredCandidates.length,
+    });
+
     return this.tryPairWithSortedCandidates(request, scoredCandidates, true);
   }
 
@@ -311,16 +400,30 @@ export class MatchOrchestratorService {
     pipeline.set(redisKeys.userState(userA), "in_room", "EX", MATCH_CONFIG.userInRoomStateTtlSeconds);
     pipeline.set(redisKeys.userState(userB), "in_room", "EX", MATCH_CONFIG.userInRoomStateTtlSeconds);
     await pipeline.exec();
+    logger.debug("[markPairInRoom] redis state updated — both users in_room, pool/locks cleared", {
+      userA,
+      userB,
+      inRoomTtlSec: MATCH_CONFIG.userInRoomStateTtlSeconds,
+    });
   }
 
   /** Clears match state when the user leaves the room (or any stale `free`/`in_room` left behind). */
   async leaveRoom(userId: string): Promise<void> {
     const redis = getRedis();
     const requestId = await redis.get(redisKeys.userLastAttempt(userId));
+    logger.debug("[leaveRoom] start", { userId, lastAttemptId: requestId ?? null });
+
     if (requestId) {
       const attempt = await this.attempts.getAttempt(requestId);
       if (attempt?.status === "matched") {
         await this.attempts.markNoMatch(requestId, userId, "left_room");
+        logger.info("[leaveRoom] matched attempt marked left_room", { userId, requestId });
+      } else {
+        logger.debug("[leaveRoom] attempt not matched — skipping markNoMatch", {
+          userId,
+          requestId,
+          status: attempt?.status ?? "none",
+        });
       }
     }
 
@@ -329,7 +432,7 @@ export class MatchOrchestratorService {
     pipeline.del(redisKeys.userLock(userId));
     pipeline.del(redisKeys.userState(userId));
     await pipeline.exec();
-    logger.info("[leaveRoom] user match state removed", { userId });
+    logger.info("[leaveRoom] user match state removed from redis", { userId });
   }
 
   async getUserMatchState(userId: string): Promise<{

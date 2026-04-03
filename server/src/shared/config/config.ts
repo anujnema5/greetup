@@ -15,6 +15,9 @@ const config = {
     serverUrl: process.env.SERVER_URL!,
     devNotificationEmail: process.env.DEV_NOTIFICATION_EMAIL!,
     internalApiKey: process.env.INTERNAL_API_KEY!,
+    rtcJwtSecret: process.env.RTC_JWT_SECRET!,
+    matchEngineUrl: process.env.MATCH_ENGINE_URL ?? "http://localhost:5060",
+    logLevel: process.env.LOG_LEVEL,
 };
 
 export default config;

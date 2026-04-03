@@ -4,6 +4,7 @@ import { openAPI, phoneNumber } from "better-auth/plugins";
 import { db } from "../database";
 import { sendEmail } from "@/services/email";
 import logger from "../logging";
+import config from "@/shared/config/config";
 import { BETTER_AUTH_URL, DEV_NOTIFICATION_EMAIL, SERVER_URL } from "@/shared/constants";
 import * as schema from "@/core/database/schema"
 
@@ -26,7 +27,7 @@ const auth = betterAuth({
       sendOTP: async ({ phoneNumber, code }) => {
         logger.info("OTP generated", {
           phoneNumber,
-          otp: process.env.NODE_ENV === "development" ? code : "hidden",
+          otp: config.env === "development" ? code : "hidden",
         });
 
         // TODO: integrate SMS provider here
@@ -71,7 +72,7 @@ const auth = betterAuth({
 
         await sendEmail({
           to:
-            process.env.NODE_ENV === "development"
+            config.env === "development"
               ? DEV_NOTIFICATION_EMAIL
               : user.email,
           subject: "Reset your password",
@@ -117,7 +118,7 @@ const auth = betterAuth({
 
         await sendEmail({
           to:
-            process.env.NODE_ENV === "development"
+            config.env === "development"
               ? DEV_NOTIFICATION_EMAIL
               : user.email,
           subject: "Verify your email address",
@@ -142,8 +143,8 @@ const auth = betterAuth({
   socialProviders: {
     google: {
       prompt: "select_account",
-      clientId: process.env.GOOGLE_CLIENT_ID!,
-      clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
+      clientId: config.googleClientId,
+      clientSecret: config.googleClientSecret,
       redirectURI: `${SERVER_URL}/api/auth/callback/google`
     },
   },
