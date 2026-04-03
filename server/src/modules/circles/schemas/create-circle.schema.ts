@@ -18,6 +18,8 @@ export const circleAdvancedOptionsBodySchema = z
 
 export const createCircleBodySchema = z
   .object({
+    /** `direct` = 1:1-style; `circle` = group circle (default). */
+    roomType: z.enum(["direct", "circle"]).optional(),
     categoryId: z.string().uuid(),
     title: z.string().min(1).max(160).trim(),
     description: z.string().max(2000).trim().optional(),

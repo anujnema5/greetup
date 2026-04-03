@@ -3,13 +3,13 @@ import { and, asc, eq } from "drizzle-orm";
 import { db } from "@/core/database";
 import {
   circleCategories,
-  circleFriendInvites,
-  circleParticipants,
-  circles,
-  type CircleAdvancedOptions,
+  roomFriendInvites,
+  roomParticipants,
+  rooms,
+  type RoomAdvancedOptions,
 } from "@/core/database/schema";
 
-export const circlesRepository = {
+export const roomsRepository = {
   async findActiveCategoryById(categoryId: string) {
     return db.query.circleCategories.findFirst({
       where: and(
@@ -35,10 +35,10 @@ export const circlesRepository = {
   },
 
   /**
-   * Creates circle, host row, and friend invites in one transaction.
-   * Invites use ON CONFLICT DO NOTHING on (circle_id, invitee_user_id) to tolerate duplicate IDs in the payload.
+   * Creates room, host row, and friend invites in one transaction.
+   * Invites use ON CONFLICT DO NOTHING on (room_id, invitee_user_id) to tolerate duplicate IDs in the payload.
    */
-  async createCircleWithHostAndInvites(params: {
+  async createRoomWithHostAndInvites(params: {
     categoryId: string;
     hostUserId: string;
     title: string;
@@ -50,12 +50,13 @@ export const circlesRepository = {
     status: "scheduled" | "live" | "ended" | "cancelled";
     startedAt: Date | null;
     inviteCode: string | null;
-    advancedOptions: CircleAdvancedOptions;
+    advancedOptions: RoomAdvancedOptions;
     inviteeUserIds: string[];
+    roomType: "direct" | "circle";
   }) {
     return db.transaction(async (tx) => {
       const [row] = await tx
-        .insert(circles)
+        .insert(rooms)
         .values({
           categoryId: params.categoryId,
           hostUserId: params.hostUserId,
@@ -71,38 +72,40 @@ export const circlesRepository = {
           rtcRoomId: null,
           inviteCode: params.inviteCode,
           advancedOptions: params.advancedOptions,
+          roomType: params.roomType,
         })
         .returning({
-          id: circles.id,
-          status: circles.status,
-          inviteCode: circles.inviteCode,
-          scheduledStartAt: circles.scheduledStartAt,
-          startedAt: circles.startedAt,
+          id: rooms.id,
+          status: rooms.status,
+          inviteCode: rooms.inviteCode,
+          scheduledStartAt: rooms.scheduledStartAt,
+          startedAt: rooms.startedAt,
+          roomType: rooms.roomType,
         });
 
       if (!row) {
-        throw new Error("Failed to create circle");
+        throw new Error("Failed to create room");
       }
 
-      await tx.insert(circleParticipants).values({
-        circleId: row.id,
+      await tx.insert(roomParticipants).values({
+        roomId: row.id,
         userId: params.hostUserId,
         role: "host",
       });
 
       if (params.inviteeUserIds.length > 0) {
         await tx
-          .insert(circleFriendInvites)
+          .insert(roomFriendInvites)
           .values(
             params.inviteeUserIds.map((inviteeUserId) => ({
-              circleId: row.id,
+              roomId: row.id,
               inviterUserId: params.hostUserId,
               inviteeUserId,
               status: "pending" as const,
             })),
           )
           .onConflictDoNothing({
-            target: [circleFriendInvites.circleId, circleFriendInvites.inviteeUserId],
+            target: [roomFriendInvites.roomId, roomFriendInvites.inviteeUserId],
           });
       }
 

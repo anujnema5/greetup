@@ -52,7 +52,7 @@ export const handleCreateCircle = async (c: Context) => {
     const result = await createCircleService(userId, parsed.data);
 
     return c.json(
-      ApiResponse.success(result, "Circle created", 201),
+      ApiResponse.success(result, "Room created", 201),
       201,
     );
   } catch (error: unknown) {

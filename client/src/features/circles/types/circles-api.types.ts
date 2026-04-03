@@ -25,6 +25,8 @@ export type CreateCircleAdvancedOptions = {
 };
 
 export type CreateCircleRequest = {
+  /** Omit or `circle` for group circles; `direct` for 1:1-style rooms. */
+  roomType?: "direct" | "circle";
   categoryId: string;
   title: string;
   description?: string;
@@ -39,12 +41,13 @@ export type CreateCircleRequest = {
 };
 
 export type CreateCircleResult = {
-  circle: {
+  room: {
     id: string;
     status: string;
     inviteCode: string | null;
     scheduledStartAt: string | null;
     startedAt: string | null;
+    roomType: "direct" | "circle";
   };
   category: Pick<CircleCategoryDto, "id" | "slug" | "displayName" | "emoji">;
   friendInvitesCreated: number;
