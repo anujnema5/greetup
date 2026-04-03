@@ -1,9 +1,7 @@
 import { countries } from "country-data-list";
 
 import type { Country } from "@/components/ui/country-dropdown";
-import type { MyProfileData } from "@/features/profile-setup/types/profile-setup-api.types";
-
-import type { EditableProfile, ProfileGender } from "../types/profile-editor.types";
+import type { EditableProfile, ProfileGender, MyProfileResponse } from "../types";
 
 const COUNTRY_OPTIONS = countries.all.filter(
   (c: Country) => c.emoji && c.status !== "deleted" && c.ioc !== "PRK"
@@ -50,7 +48,7 @@ function resolveCountry(code: string | null | undefined, name: string | null | u
   return { code: code || "IND", name: name || "" };
 }
 
-export function mapMyProfileToEditable(api: MyProfileData): EditableProfile {
+export function mapMyProfileToEditable(api: MyProfileResponse): EditableProfile {
   const loc = api.location;
   const country = resolveCountry(loc?.countryCode ?? undefined, loc?.country ?? undefined);
 

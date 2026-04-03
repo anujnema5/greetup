@@ -1,6 +1,8 @@
 import { profileStepsRepository } from "../repositories/profile-steps.repository";
 import type { MyProfileResponse } from "../types/my-profile.types";
 
+export type { MyProfileResponse } from "../types/my-profile.types";
+
 export async function getMyProfileService(userId: string): Promise<MyProfileResponse | null> {
   const p = await profileStepsRepository.getProfileForSteps(userId);
   if (!p) return null;

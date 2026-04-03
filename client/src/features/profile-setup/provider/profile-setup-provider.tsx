@@ -61,7 +61,7 @@ export const ProfileSetupProvider: React.FC<ProfileSetupProviderProps> = ({
   children,
 }) => {
   const { data, isLoading } = useGetProfileSetupStepsQuery()
-  const [saveProfileSetup, { isPending: isSaving }] = useSaveProfileSetupMutation()
+  const [saveProfileSetup, { isLoading: isSaving }] = useSaveProfileSetupMutation()
 
   const [currentStep, setCurrentStep] = useState(1)
   const [steps, setSteps] = useState<any[]>([])

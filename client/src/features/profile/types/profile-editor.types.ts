@@ -1,6 +1,6 @@
 export type ProfileGender = "male" | "female" | "other";
 
-/** Mirrors onboarding + `/profile/me` fields; used for local UI until API wiring. */
+/** Editable form shape; filled from API via `mapMyProfileToEditable` (`MyProfileResponse`). */
 export type EditableProfile = {
   displayName: string;
   age: number;

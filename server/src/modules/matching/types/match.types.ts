@@ -1,3 +1,10 @@
+/** Response shape from match-engine `GET /match/state/user/:userId` */
+export type UserMatchState = {
+  status: "searching" | "matched" | "no_match" | "idle";
+  requestId?: string;
+  roomId?: string;
+};
+
 /** Data stored in Redis for each user (for matching) */
 export interface MatchUserData {
   profileId: string;

@@ -1,6 +1,8 @@
 import config from "@/shared/config/config";
 import logger from "@/core/logging";
 
+import type { UserMatchState } from "../types/match.types";
+
 const MATCH_ENGINE_URL = process.env.MATCH_ENGINE_URL ?? "http://localhost:5060";
 
 const engineHeaders = () => ({
@@ -38,11 +40,7 @@ export const getMatchResultService = async (requestId: string) => {
   return res.json();
 };
 
-export type UserMatchState = {
-  status: "searching" | "matched" | "no_match" | "idle";
-  requestId?: string;
-  roomId?: string;
-};
+export type { UserMatchState } from "../types/match.types";
 
 export const getUserMatchStateService = async (userId: string): Promise<UserMatchState> => {
   try {
