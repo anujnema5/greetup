@@ -15,8 +15,6 @@ import {
 import { refreshProfileSnapshotFromDatabase } from "@/modules/user/services/profile-snapshot-cache.service";
 import logger from "@/core/logging";
 
-export type { SaveProfileSetupParams, SaveProfileSetupResult } from "../types/profile-setup-services.types";
-
 /**
  * Calculate profile completion (0–100) from current profile state.
  * Uses forceRecalculate so we always get the computed value, not stored 0.

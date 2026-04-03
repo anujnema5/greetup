@@ -11,8 +11,6 @@ import type {
 import type { ProfileForSteps, StepOptions } from "../repositories/profile-steps.repository";
 import { profileStepsRepository } from "../repositories/profile-steps.repository";
 
-export type { FetchProfileStepsParams, FetchProfileStepsResult } from "../types/profile-setup-services.types";
-
 /** Default and max step page size */
 export const STEP_PAGE_SIZE_DEFAULT = 6;
 export const STEP_PAGE_SIZE_MAX = 10;

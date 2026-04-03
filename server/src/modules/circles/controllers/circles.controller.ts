@@ -6,7 +6,8 @@ import { ApiResponse } from "@/shared/responses";
 import { zodFieldErrorsItems } from "@/shared/validation";
 
 import { createCircleBodySchema } from "../schemas/create-circle.schema";
-import { createCircleService, CreateCircleError } from "../services/create-circle.service";
+import { createCircleService } from "../services/create-circle.service";
+import { CreateCircleError } from "../types/create-circle.types";
 import { listCircleCategoriesService } from "../services/list-categories.service";
 
 export const handleListCircleCategories = async (c: Context) => {

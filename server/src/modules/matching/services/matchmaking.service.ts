@@ -40,8 +40,6 @@ export const getMatchResultService = async (requestId: string) => {
   return res.json();
 };
 
-export type { UserMatchState } from "../types/match.types";
-
 export const getUserMatchStateService = async (userId: string): Promise<UserMatchState> => {
   try {
     const res = await fetch(`${MATCH_ENGINE_URL}/match/state/user/${encodeURIComponent(userId)}`, {

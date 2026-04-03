@@ -7,9 +7,6 @@ import { circlesRepository } from "../repositories/circles.repository";
 import type { CreateCircleBody } from "../schemas/create-circle.schema";
 import { CreateCircleError } from "../types/create-circle.types";
 
-export { CreateCircleError } from "../types/create-circle.types";
-export type { CreateCircleErrorCode } from "../types/create-circle.types";
-
 function randomInviteCode(): string {
   return randomBytes(9).toString("base64url").replace(/[^a-zA-Z0-9]/g, "").slice(0, 12);
 }

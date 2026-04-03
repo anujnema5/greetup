@@ -17,8 +17,6 @@ export function leaveRoomKeepalive(): void {
   });
 }
 
-export type { FindMatchResponse };
-
 export const matchingApi = baseApi.injectEndpoints({
   endpoints: (build) => ({
     findMatch: build.mutation<FindMatchResponse, void>({
