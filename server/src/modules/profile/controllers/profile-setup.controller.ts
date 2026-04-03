@@ -1,7 +1,9 @@
 import type { Context } from "hono";
 
 import logger from "@/core/logging";
+import { CLIENT_SAFE_INTERNAL_MESSAGE } from "@/shared/messages";
 import { ApiResponse } from "@/shared/responses";
+import { zodFieldErrorsItems } from "@/shared/validation";
 import { fetchProfileStepsService } from "../services/profile-steps.service";
 import { saveProfileSetupStepService } from "../services/profile-setup-save.service";
 import { getOnboardingStatusService } from "../services/onboarding-status.service";
@@ -30,7 +32,7 @@ export const handleGetMyProfile = async (c: Context) => {
     logger.error("Get my profile error", { error });
     return c.json(
       ApiResponse.error({
-        message: error instanceof Error ? error.message : "Failed to get profile",
+        message: CLIENT_SAFE_INTERNAL_MESSAGE,
         statusCode: 500,
         code: "GET_PROFILE_FAILED",
       }),
@@ -51,10 +53,7 @@ export const handleGetOnboardingStatus = async (c: Context) => {
     logger.error("Get onboarding status error", { error });
     return c.json(
       ApiResponse.error({
-        message:
-          error instanceof Error
-            ? error.message
-            : "Failed to get onboarding status",
+        message: CLIENT_SAFE_INTERNAL_MESSAGE,
         statusCode: 500,
         code: "ONBOARDING_STATUS_FAILED",
       }),
@@ -70,11 +69,7 @@ export const handleSaveProfileSetup = async (c: Context) => {
     const parsed = saveProfileSetupBodySchema.safeParse(body);
 
     if (!parsed.success) {
-      const fieldErrors = parsed.error.flatten().fieldErrors;
-      const errors = Object.entries(fieldErrors).map(([field, messages]) => ({
-        field,
-        messages: messages ?? [],
-      }));
+      const errors = zodFieldErrorsItems(parsed.error);
       return c.json(
         ApiResponse.error({
           message: "Invalid request body",
@@ -104,11 +99,10 @@ export const handleSaveProfileSetup = async (c: Context) => {
       200
     );
   } catch (error: unknown) {
-    console.error("Save profile setup error:", error);
+    logger.error("Save profile setup error", { error });
     return c.json(
       ApiResponse.error({
-        message:
-          error instanceof Error ? error.message : "Failed to save profile step",
+        message: CLIENT_SAFE_INTERNAL_MESSAGE,
         statusCode: 500,
         code: "SAVE_PROFILE_SETUP_FAILED",
       }),
@@ -146,7 +140,7 @@ export const handleFetchProfileSteps = async (c: Context) => {
     logger.error("Fetch profile steps error", { error });
     return c.json(
       ApiResponse.error({
-        message: error instanceof Error ? error.message : "Failed to fetch steps",
+        message: CLIENT_SAFE_INTERNAL_MESSAGE,
         statusCode: 500,
         code: "FETCH_STEPS_FAILED",
       }),

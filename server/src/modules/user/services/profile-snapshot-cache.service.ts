@@ -1,96 +1,9 @@
 import logger from "@/core/logging";
-import { db } from "@/core/database";
 import { getRedis } from "@/core/redis";
 import { CACHE_TTL, USER_CACHE_KEYS } from "@/core/redis/keys";
+import { userProfilesRepository } from "@/modules/profile/repositories/user-profiles.repository";
 
 const PROFILE_CACHE_TTL_SECONDS = CACHE_TTL.MEDIUM;
-
-async function fetchUserProfileSnapshotRow(userId: string) {
-  return db.query.userProfiles.findFirst({
-    where: (profile, { eq }) => eq(profile.userId, userId),
-    with: {
-      user: {
-        columns: {
-          id: true,
-          displayName: true,
-          name: true,
-        },
-      },
-      location: {
-        columns: {
-          country: true,
-          countryCode: true,
-          city: true,
-          region: true,
-        },
-      },
-      goals: {
-        with: {
-          goal: {
-            columns: {
-              id: true,
-              name: true,
-              displayName: true,
-            },
-          },
-        },
-      },
-      interests: {
-        with: {
-          interest: {
-            columns: {
-              id: true,
-              name: true,
-              displayName: true,
-              category: true,
-            },
-          },
-        },
-      },
-      professions: {
-        with: {
-          profession: {
-            columns: {
-              id: true,
-              name: true,
-              displayName: true,
-              category: true,
-            },
-          },
-        },
-      },
-      preferences: {
-        columns: {
-          preferredGender: true,
-          distancePreference: true,
-          minAge: true,
-          maxAge: true,
-        },
-        with: {
-          connectionTypes: {
-            with: {
-              connectionType: {
-                columns: {
-                  id: true,
-                  name: true,
-                  displayName: true,
-                },
-              },
-            },
-          },
-        },
-      },
-      behavior: {
-        columns: {
-          reportCount: true,
-          trustScore: true,
-          successfulConnections: true,
-          averageSessionDuration: true,
-        },
-      },
-    },
-  });
-}
 
 /**
  * Loads the user profile from Postgres and writes `user:profile:snapshot:{userId}` in Redis
@@ -105,7 +18,7 @@ export async function ensureProfileSnapshotCached(userId: string): Promise<boole
     return true;
   }
 
-  const profileSnapshot = await fetchUserProfileSnapshotRow(userId);
+  const profileSnapshot = await userProfilesRepository.findProfileSnapshotForCache(userId);
   if (!profileSnapshot) {
     logger.warn("[ensureProfileSnapshotCached] No profile row for user — cannot cache snapshot", { userId });
     return false;
@@ -136,7 +49,7 @@ export async function refreshProfileSnapshotFromDatabase(
 ): Promise<boolean> {
   const redis = getRedis();
   const cacheKey = `${USER_CACHE_KEYS.PROFILE_SNAPSHOT}${userId}`;
-  const profileSnapshot = await fetchUserProfileSnapshotRow(userId);
+  const profileSnapshot = await userProfilesRepository.findProfileSnapshotForCache(userId);
 
   if (!profileSnapshot) {
     await redis.del(cacheKey);

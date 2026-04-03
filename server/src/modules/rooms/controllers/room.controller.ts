@@ -1,5 +1,6 @@
 import type { Context } from "hono";
 import { randomUUID } from "crypto";
+import { CLIENT_SAFE_INTERNAL_MESSAGE } from "@/shared/messages";
 import { ApiResponse } from "@/shared/responses";
 import { emitToUser } from "@/core/socket/socket";
 import logger from "@/core/logging";
@@ -49,7 +50,11 @@ export const handleCreateRoom = async (c: Context) => {
   } catch (error) {
     logger.error("Failed to create room", { error });
     return c.json(
-      ApiResponse.error({ message: "Failed to create room", statusCode: 500, code: "INTERNAL_ERROR" }),
+      ApiResponse.error({
+        message: CLIENT_SAFE_INTERNAL_MESSAGE,
+        statusCode: 500,
+        code: "INTERNAL_ERROR",
+      }),
       500
     );
   }

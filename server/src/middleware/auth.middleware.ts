@@ -1,9 +1,6 @@
 import { auth } from "@/core/auth/auth";
-import { db } from "@/core/database";
-import { userProfiles } from "@/core/database/schema";
-import { AppError, EmailNotVerifiedError, PremiumSubscriptionExpiredError, PremiumSubscriptionRequiredError, UnauthorizedError } from "@/shared/errors";
-import { ApiResponse } from "@/shared/responses";
-import { eq } from "drizzle-orm";
+import { userProfilesRepository } from "@/modules/profile/repositories/user-profiles.repository";
+import { EmailNotVerifiedError, PremiumSubscriptionExpiredError, PremiumSubscriptionRequiredError, UnauthorizedError } from "@/shared/errors";
 import type { Context, Next } from "hono";
 
 declare module "hono" {
@@ -80,9 +77,7 @@ export const premiumMiddleware = async (c: Context, next: Next) => {
         throw new UnauthorizedError();
     }
 
-    const profile = await db.query.userProfiles.findFirst({
-        where: eq(userProfiles.userId, user.id),
-    });
+    const profile = await userProfilesRepository.findPremiumFieldsByUserId(user.id);
 
     if (!profile?.isPremium) {
         throw new PremiumSubscriptionRequiredError();

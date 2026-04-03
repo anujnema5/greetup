@@ -2,9 +2,6 @@
  * Profile setup save service – persists step data and recalculates completion.
  */
 
-import { db } from "@/core/database";
-import { userProfiles } from "@/core/database/schema";
-import { eq } from "drizzle-orm";
 import { profileSetupRepository } from "../repositories/profile-setup.repository";
 import { profileStepsRepository } from "../repositories/profile-steps.repository";
 import type { SaveProfileSetupBody } from "../schemas/profile-setup.schema";
@@ -136,14 +133,10 @@ export async function saveProfileSetupStepService(
   const profileCompletion = await recalculateCompletion(userId);
   const isProfileComplete = profileCompletion >= PROFILE_COMPLETE_THRESHOLD;
 
-  await db
-    .update(userProfiles)
-    .set({
-      profileCompletion,
-      isOnboarded: isProfileComplete,
-      updatedAt: new Date(),
-    })
-    .where(eq(userProfiles.id, profileId));
+  await profileSetupRepository.updateCompletionAndOnboarded(profileId, {
+    profileCompletion,
+    isOnboarded: isProfileComplete,
+  });
 
   try {
     await refreshProfileSnapshotFromDatabase(userId);

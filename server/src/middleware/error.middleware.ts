@@ -2,6 +2,7 @@ import { HTTPException } from "hono/http-exception";
 import { ZodError } from "zod";
 
 import logger from "@/core/logging";
+import { CLIENT_SAFE_INTERNAL_MESSAGE } from "@/shared/messages";
 import { ApiResponse } from "@/shared/responses";
 import { AppError } from "@/shared/errors";
 import type { Context } from "hono";
@@ -10,27 +11,33 @@ export const errorHandler = (err: Error, c: Context) => {
     logger.error("Error caught by global handler", err);
 
     if (err instanceof HTTPException) {
+        const status = err.status;
+        const safeMessage =
+            status >= 500 ? CLIENT_SAFE_INTERNAL_MESSAGE : err.message;
         return c.json(
             ApiResponse.error({
-                message: err.message,
-                statusCode: err.status,
+                message: safeMessage,
+                statusCode: status,
                 code: "HTTP_EXCEPTION",
                 stack: err.stack,
             }),
-            err.status
+            status
         );
     }
 
     if (err instanceof AppError) {
+        const status = err.statusCode;
+        const safeMessage =
+            status >= 500 ? CLIENT_SAFE_INTERNAL_MESSAGE : err.message;
         return c.json(
             ApiResponse.error({
-                message: err.message,
-                statusCode: err.statusCode,
+                message: safeMessage,
+                statusCode: status,
                 code: err.code,
                 errors: err.errors,
                 stack: err.stack,
             }),
-            err.statusCode as any
+            status as any
         );
     }
 
@@ -116,10 +123,7 @@ export const errorHandler = (err: Error, c: Context) => {
 
     return c.json(
         ApiResponse.error({
-            message:
-                process.env.NODE_ENV === "production"
-                    ? "Internal server error"
-                    : err.message,
+            message: CLIENT_SAFE_INTERNAL_MESSAGE,
             statusCode: 500,
             code: "INTERNAL_ERROR",
             stack: process.env.NODE_ENV === "development" ? err.stack : undefined,

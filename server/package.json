@@ -10,6 +10,8 @@
     "db:studio": "drizzle-kit studio",
     "db:drop": "drizzle-kit drop",
     "db:seed": "tsx src/core/database/seed/index.ts",
+    "db:seed:circle-categories": "tsx src/core/database/seed/seed-circle-categories.ts",
+    "db:seed:dev-users": "tsx src/core/database/seed/seed-dev-users.ts",
     "build": "tsc",
     "start": "tsx src/index.ts",
     "docker:up": "docker compose up -d"

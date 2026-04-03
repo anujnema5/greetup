@@ -10,4 +10,11 @@ export const API_ENDPOINTS = {
     CANCEL: "/matching/cancel",
     LEAVE_ROOM: "/matching/leave-room",
   },
+  CONNECTIONS: {
+    LIST: "/connections",
+  },
+  CIRCLES: {
+    CATEGORIES: "/circles/categories",
+    CREATE: "/circles",
+  },
 }
