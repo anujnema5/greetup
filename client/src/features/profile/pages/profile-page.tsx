@@ -28,6 +28,7 @@ import {
 } from "@/features/profile-setup/components/profile-setup-api";
 import { cn } from "@/lib/utils";
 
+import { ProfileConnectionsSection } from "@/features/connections";
 import { ProfileCompletionCard } from "../components/profile-completion-card";
 import { ProfileEditModals } from "../components/profile-edit-modals";
 import { ProfileSectionRow } from "../components/profile-section-row";
@@ -371,6 +372,10 @@ export function ProfilePage() {
                 </span>
               </div>
             ))}
+          </div>
+
+          <div className="rounded-2xl border border-border bg-card px-5 py-4">
+            <ProfileConnectionsSection showSeeAllLink />
           </div>
 
           <div>

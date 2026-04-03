@@ -1,13 +1,19 @@
+"use client";
+
 import { memo } from "react";
 import { Plus, Users, Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { CIRCLES, CONNECTIONS, TRENDING_TAGS } from "../constants/mock-data";
+import { useStartCircleModal } from "@/features/circles";
 
 function RightPanelInner() {
+  const { openModal } = useStartCircleModal();
+
   return (
     <aside className="hidden lg:flex flex-col gap-5 w-72 min-h-screen border-l border-border bg-card py-5 px-4">
       <button
         type="button"
+        onClick={openModal}
         className="flex items-center justify-center gap-2 w-full rounded-lg border border-dashed border-border bg-muted/40 px-4 py-2 text-sm font-medium text-muted-foreground hover:border-primary/50 hover:text-primary hover:bg-primary/5 transition-all duration-200 cursor-pointer"
       >
         <Plus size={15} />

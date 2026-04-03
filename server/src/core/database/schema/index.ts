@@ -31,3 +31,5 @@ export {
 export * from "./current-status";
 export * from "./preferences";
 export * from "./behavior";
+export * from "./connections";
+export * from "./circles";

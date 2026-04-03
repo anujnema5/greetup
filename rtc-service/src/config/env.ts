@@ -7,6 +7,8 @@ const getNum = (value: string | undefined, fallback: number): number => {
 };
 
 export const env = {
+  /** Stable per replica; client/gateway uses this to reach the node that holds the mediasoup Router. */
+  rtcInstanceId: process.env.RTC_INSTANCE_ID ?? `rtc-${process.pid}`,
   nodeEnv: process.env.NODE_ENV ?? "development",
   host: process.env.RTC_HOST ?? "0.0.0.0",
   port: getNum(process.env.RTC_PORT, 5070),

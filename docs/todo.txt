@@ -1,0 +1,13 @@
+Auth - Done
+Profile Onboarding - Done
+Matching engine - Done
+One to One call - Not Done
+Adding Friends functionality - Not Done
+Circles call - Not Done
+Showing messages for the peer match score, similar interests so they can talk.
+Games - Not Done
+Moderation engine - Not Done
+Message functionality E2E - Not Done
+Keeping room history and previous connection history - Not Done
+Circles call short snapshots - Not Done
+Scheduling circles call - Not Done

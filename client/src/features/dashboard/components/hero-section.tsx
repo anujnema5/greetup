@@ -1,6 +1,9 @@
+"use client";
+
 import { memo } from "react";
 import { Video, Zap, Sparkles, X } from "lucide-react";
 import { MatchOrb } from "./match-orb";
+import { CircleOrb, useStartCircleModal } from "@/features/circles";
 
 function HeroSectionInner({
   appState,
@@ -13,6 +16,7 @@ function HeroSectionInner({
   onCancel: () => void;
   error?: string | null;
 }) {
+  const { openModal, categoriesLoading, isOpen } = useStartCircleModal();
   const isSearching = appState === "searching";
 
   const headingText =
@@ -63,8 +67,22 @@ function HeroSectionInner({
         </p>
       </div>
 
-      <div className="relative z-10 scale-90 md:scale-100">
-        <MatchOrb isSearching={isSearching} onToggle={onToggle} />
+      <div className="relative z-10 flex flex-col sm:flex-row items-center justify-center gap-8 md:gap-14 scale-90 md:scale-100">
+        <div className="flex flex-col items-center gap-2">
+          <MatchOrb isSearching={isSearching} onToggle={onToggle} />
+          <span className="text-[10px] font-medium uppercase tracking-widest text-muted-foreground">
+            1:1 match
+          </span>
+        </div>
+        <div className="flex flex-col items-center gap-2">
+          <CircleOrb
+            isLoading={isOpen && categoriesLoading}
+            onClick={openModal}
+          />
+          <span className="text-[10px] font-medium uppercase tracking-widest text-muted-foreground">
+            Group circle
+          </span>
+        </div>
       </div>
 
       {isSearching && (

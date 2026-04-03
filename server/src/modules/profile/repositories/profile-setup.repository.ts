@@ -200,4 +200,18 @@ export const profileSetupRepository = {
       );
     }
   },
+
+  async updateCompletionAndOnboarded(
+    profileId: string,
+    data: { profileCompletion: number; isOnboarded: boolean }
+  ) {
+    return db
+      .update(userProfiles)
+      .set({
+        profileCompletion: data.profileCompletion,
+        isOnboarded: data.isOnboarded,
+        updatedAt: new Date(),
+      })
+      .where(eq(userProfiles.id, profileId));
+  },
 };
