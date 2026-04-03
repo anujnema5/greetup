@@ -2,8 +2,12 @@ import { randomBytes } from "node:crypto";
 
 import { mergeRoomAdvancedOptions } from "@/core/database/schema";
 import { getAcceptedPeerIdsForUser } from "@/modules/connections/services/accepted-peer-ids.service";
-
-import { roomsRepository } from "../repositories/rooms.repository";
+import {
+  canHostInviteUserToRoom,
+  getRoomInvitePreferencesForUsers,
+} from "@/modules/profile/services/room-invite-preferences.service";
+import { roomsRepository } from "@/modules/rooms/repositories/rooms.repository";
+import { provisionSessionRoomRedis } from "@/modules/rooms/services/session-room-redis.service";
 import type { CreateCircleBody } from "../schemas/create-circle.schema";
 import { CreateCircleError } from "../types/create-circle.types";
 
@@ -54,6 +58,27 @@ async function resolveValidatedInviteeIds(
   return unique;
 }
 
+async function assertInviteesAllowRoomInvitesFromHost(
+  hostUserId: string,
+  inviteeIds: string[],
+): Promise<void> {
+  if (inviteeIds.length === 0) return;
+
+  const prefs = await getRoomInvitePreferencesForUsers(inviteeIds);
+  for (const inviteeId of inviteeIds) {
+    const p = prefs.get(inviteeId) ?? {
+      policy: "all_connections" as const,
+      allowlistedUserIds: [],
+    };
+    if (!canHostInviteUserToRoom(hostUserId, p)) {
+      throw new CreateCircleError(
+        "One or more people do not allow room invites from you. Change who can invite them in Profile, or remove them from the invite list.",
+        "INVITEE_RESTRICTED_ROOM_INVITES",
+      );
+    }
+  }
+}
+
 export async function createCircleService(
   hostUserId: string,
   body: CreateCircleBody,
@@ -88,6 +113,8 @@ export async function createCircleService(
     body.invitedUserIds,
   );
 
+  await assertInviteesAllowRoomInvitesFromHost(hostUserId, inviteeIds);
+
   const isInstant = body.scheduleMode === "instant";
   const status = isInstant ? "live" : "scheduled";
   const startedAt = isInstant ? now : null;
@@ -111,6 +138,15 @@ export async function createCircleService(
     inviteeUserIds: inviteeIds,
     roomType,
   });
+
+  if (row.status === "live") {
+    await provisionSessionRoomRedis({
+      roomId: row.id,
+      hostUserId,
+      roomType,
+      title: body.title.trim(),
+    });
+  }
 
   return {
     room: row,

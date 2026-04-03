@@ -1,8 +1,7 @@
 import type { Context } from "hono";
 
 import logger from "@/core/logging";
-import { CLIENT_SAFE_INTERNAL_MESSAGE } from "@/shared/messages";
-import { ApiResponse } from "@/shared/responses";
+import { ApiResponse, internalError } from "@/shared/responses";
 import { zodFieldErrorsItems } from "@/shared/validation";
 
 import { listConnectionsQuerySchema } from "../schemas/connections-list.query.schema";
@@ -14,6 +13,9 @@ export const handleListMyConnections = async (c: Context) => {
     const query = c.req.query();
     const parsed = listConnectionsQuerySchema.safeParse({
       filter: query.filter,
+      page: query.page,
+      limit: query.limit,
+      q: query.q,
     });
 
     if (!parsed.success) {
@@ -29,7 +31,7 @@ export const handleListMyConnections = async (c: Context) => {
       );
     }
 
-    const result = await listMyConnectionsService(userId, parsed.data.filter);
+    const result = await listMyConnectionsService(userId, parsed.data);
 
     return c.json(
       ApiResponse.success(result, "Connections retrieved", 200),
@@ -37,13 +39,6 @@ export const handleListMyConnections = async (c: Context) => {
     );
   } catch (error: unknown) {
     logger.error("List connections error", { error });
-    return c.json(
-      ApiResponse.error({
-        message: CLIENT_SAFE_INTERNAL_MESSAGE,
-        statusCode: 500,
-        code: "LIST_CONNECTIONS_FAILED",
-      }),
-      500,
-    );
+    return internalError(c, error, "LIST_CONNECTIONS_FAILED");
   }
 };

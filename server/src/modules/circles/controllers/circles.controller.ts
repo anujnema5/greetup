@@ -1,8 +1,7 @@
 import type { Context } from "hono";
 
 import logger from "@/core/logging";
-import { CLIENT_SAFE_INTERNAL_MESSAGE } from "@/shared/messages";
-import { ApiResponse } from "@/shared/responses";
+import { ApiResponse, internalError } from "@/shared/responses";
 import { zodFieldErrorsItems } from "@/shared/validation";
 
 import { createCircleBodySchema } from "../schemas/create-circle.schema";
@@ -19,14 +18,7 @@ export const handleListCircleCategories = async (c: Context) => {
     );
   } catch (error: unknown) {
     logger.error("List circle categories error", { error });
-    return c.json(
-      ApiResponse.error({
-        message: CLIENT_SAFE_INTERNAL_MESSAGE,
-        statusCode: 500,
-        code: "LIST_CIRCLE_CATEGORIES_FAILED",
-      }),
-      500,
-    );
+    return internalError(c, error, "LIST_CIRCLE_CATEGORIES_FAILED");
   }
 };
 
@@ -68,13 +60,6 @@ export const handleCreateCircle = async (c: Context) => {
       );
     }
     logger.error("Create circle error", { error });
-    return c.json(
-      ApiResponse.error({
-        message: CLIENT_SAFE_INTERNAL_MESSAGE,
-        statusCode: 500,
-        code: "CREATE_CIRCLE_FAILED",
-      }),
-      500,
-    );
+    return internalError(c, error, "CREATE_CIRCLE_FAILED");
   }
 };

@@ -17,14 +17,21 @@ import {
   doublePrecision,
   geometry,
   pgEnum,
-  uuid
+  uuid,
+  jsonb,
 } from "drizzle-orm/pg-core";
-import { relations } from "drizzle-orm";
+import { relations, sql } from "drizzle-orm";
 
 export const userBannedEnum = pgEnum('user_banned', [
   'yes',
   'no',
   'temporarily',
+]);
+
+/** Who may invite this user when adding friends to a room (`room_friend_invites`). */
+export const roomInvitePolicyEnum = pgEnum("room_invite_policy", [
+  "all_connections",
+  "selected_only",
 ]);
 
 export const users = pgTable("users", {
@@ -68,6 +75,14 @@ export const userProfiles = pgTable("user_profiles", {
 
   isPremium: boolean("is_premium").default(false),
   premiumExpiresAt: timestamp("premium_expires_at"),
+
+  roomInvitePolicy: roomInvitePolicyEnum("room_invite_policy")
+    .default("all_connections")
+    .notNull(),
+  roomInviteAllowlistedUserIds: jsonb("room_invite_allowlisted_user_ids")
+    .$type<string[]>()
+    .notNull()
+    .default(sql`'[]'::jsonb`),
 
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at")

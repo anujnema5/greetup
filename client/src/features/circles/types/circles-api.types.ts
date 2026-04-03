@@ -1,6 +1,6 @@
 import type { ApiResponse } from "@/features/profile-setup/types/profile-setup-api.types";
 
-export type CircleCategoryDto = {
+export type RoomCategoryDto = {
   id: string;
   slug: string;
   displayName: string;
@@ -10,7 +10,7 @@ export type CircleCategoryDto = {
 };
 
 export type ListCircleCategoriesData = {
-  categories: CircleCategoryDto[];
+  categories: RoomCategoryDto[];
 };
 
 export type ListCircleCategoriesApiResponse =
@@ -49,7 +49,7 @@ export type CreateCircleResult = {
     startedAt: string | null;
     roomType: "direct" | "circle";
   };
-  category: Pick<CircleCategoryDto, "id" | "slug" | "displayName" | "emoji">;
+  category: Pick<RoomCategoryDto, "id" | "slug" | "displayName" | "emoji">;
   friendInvitesCreated: number;
 };
 

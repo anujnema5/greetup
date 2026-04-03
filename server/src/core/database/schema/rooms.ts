@@ -44,10 +44,10 @@ export function mergeRoomAdvancedOptions(
 }
 
 /**
- * Category tags for rooms / circles (e.g. startup founders, software engineers, anime).
+ * Room categories (e.g. match, startup founders, software engineers).
  */
-export const circleCategories = pgTable(
-  "circle_categories",
+export const roomCategories = pgTable(
+  "room_categories",
   {
     id: uuid("id").defaultRandom().primaryKey(),
     slug: text("slug").notNull().unique(),
@@ -62,7 +62,7 @@ export const circleCategories = pgTable(
       .$onUpdate(() => new Date())
       .notNull(),
   },
-  (table) => [index("circle_categories_active_sort_idx").on(table.isActive, table.sortOrder)],
+  (table) => [index("room_categories_active_sort_idx").on(table.isActive, table.sortOrder)],
 );
 
 /** DB enum name kept as `circle_visibility` (see migrations). */
@@ -103,7 +103,7 @@ export const rooms = pgTable(
 
     categoryId: uuid("category_id")
       .notNull()
-      .references(() => circleCategories.id, { onDelete: "restrict" }),
+      .references(() => roomCategories.id, { onDelete: "restrict" }),
 
     hostUserId: text("host_user_id")
       .notNull()
@@ -228,14 +228,14 @@ export const roomFriendInvites = pgTable(
   ],
 );
 
-export const circleCategoriesRelations = relations(circleCategories, ({ many }) => ({
+export const roomCategoriesRelations = relations(roomCategories, ({ many }) => ({
   rooms: many(rooms),
 }));
 
 export const roomsRelations = relations(rooms, ({ one, many }) => ({
-  category: one(circleCategories, {
+  category: one(roomCategories, {
     fields: [rooms.categoryId],
-    references: [circleCategories.id],
+    references: [roomCategories.id],
   }),
   host: one(users, {
     fields: [rooms.hostUserId],

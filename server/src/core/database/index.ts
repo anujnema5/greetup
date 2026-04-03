@@ -1,12 +1,11 @@
-import "@/shared/config/load-env";
-
 import { drizzle } from 'drizzle-orm/node-postgres'
 import { Pool } from 'pg'
 import * as schema from '@/core/database/schema'
 import logger from '@/core/logging'
+import config from '@/shared/config/config'
 
 export const pool = new Pool({
-  connectionString: process.env.DATABASE_URL!,
+  connectionString: config.databaseUrl,
   max: 10,
   idleTimeoutMillis: 30000,
 })

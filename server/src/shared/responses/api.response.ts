@@ -1,3 +1,20 @@
+import type { Context } from "hono";
+import { resolveInternalMessage } from "@/shared/messages";
+
+/**
+ * Single shared 500 handler. Controllers just call `internalError(c, error)` —
+ * the dev/prod message decision is made here and nowhere else.
+ */
+export const internalError = (c: Context, error?: unknown, code = "INTERNAL_ERROR") =>
+  c.json(
+    ApiResponse.error({
+      message: resolveInternalMessage(error),
+      statusCode: 500,
+      code,
+    }),
+    500
+  );
+
 export class ApiResponse {
   static success<T>(
     data?: T,

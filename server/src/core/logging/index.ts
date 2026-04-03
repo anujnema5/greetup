@@ -1,10 +1,11 @@
 import path from "node:path";
 import pino, { type Logger, type LoggerOptions } from "pino";
+import config from "@/shared/config/config";
 
 type LogMeta = unknown;
 type LogLevel = "info" | "warn" | "error" | "debug";
 
-const defaultLevel = process.env.LOG_LEVEL ?? (process.env.NODE_ENV === "production" ? "info" : "debug");
+const defaultLevel = config.logLevel ?? (config.env === "production" ? "info" : "debug");
 
 const baseOptions: LoggerOptions = {
     level: defaultLevel,
@@ -12,7 +13,7 @@ const baseOptions: LoggerOptions = {
 };
 
 const buildLogger = (): Logger => {
-    if (process.env.NODE_ENV === "production") {
+    if (config.env === "production") {
         return pino(baseOptions, pino.destination(path.resolve(process.cwd(), "../logs/combined.log")));
     }
 

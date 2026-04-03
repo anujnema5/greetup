@@ -32,6 +32,8 @@ export const profileStepsRepository = {
         personalityTags: true,
         profileCompletion: true,
         isOnboarded: true,
+        roomInvitePolicy: true,
+        roomInviteAllowlistedUserIds: true,
       },
       with: {
         user: {
@@ -178,6 +180,8 @@ export interface ProfileForSteps {
   personalityTags: string | null;
   profileCompletion: number | null;
   isOnboarded?: boolean | null;
+  roomInvitePolicy?: "all_connections" | "selected_only" | null;
+  roomInviteAllowlistedUserIds?: string[] | null;
   user?: {
     id: string;
     displayName: string | null;

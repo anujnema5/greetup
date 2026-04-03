@@ -19,7 +19,7 @@ export function ConnectionsPage() {
           </div>
         </header>
 
-        <div className="flex flex-col gap-5 px-4 md:px-8 py-5 max-w-lg mx-auto w-full">
+        <div className="flex flex-col gap-5 px-4 md:px-8 py-5 max-w-lg md:max-w-xl mx-auto w-full min-w-0">
           <ProfileConnectionsSection variant="page" />
         </div>
       </main>

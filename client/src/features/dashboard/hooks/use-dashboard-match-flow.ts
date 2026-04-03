@@ -2,8 +2,8 @@
 
 import { useEffect, useCallback, useTransition } from "react";
 import { useRouter, usePathname } from "next/navigation";
-import { setCallReturnPath } from "@/features/call";
-import { useFindMatch } from "@/features/matching/hooks/useFindMatch";
+import { setRoomReturnPath } from "@/features/room";
+import { useFindMatch } from "@/features/matching";
 
 /**
  * Wires matchmaking to navigation (save return path, go to `/room/[id]`) and exposes stable handlers for the hero UI.
@@ -18,11 +18,11 @@ export function useDashboardMatchFlow() {
 
   useEffect(() => {
     if (status !== "matched" || !result?.roomId) return;
-    setCallReturnPath(pathname);
+    setRoomReturnPath(pathname);
     const params = new URLSearchParams();
     if (result.peerId) params.set("peer", result.peerId);
     if (result.matchScore != null) params.set("score", String(Math.round(result.matchScore)));
-    const url = `/room/${result.roomId}?${params.toString()}`;
+    const url = `/circle/${result.roomId}?${params.toString()}`;
     startTransition(() => {
       router.push(url);
     });

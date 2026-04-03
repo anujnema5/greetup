@@ -14,6 +14,7 @@ import {
   Star,
   Target,
   User,
+  UserPlus,
   Users,
   Video,
 } from "lucide-react";
@@ -32,6 +33,7 @@ import { ProfileConnectionsSection } from "@/features/connections";
 import { ProfileCompletionCard } from "../components/profile-completion-card";
 import { ProfileEditModals } from "../components/profile-edit-modals";
 import { ProfileSectionRow } from "../components/profile-section-row";
+import { RoomInviteSettingsModal } from "../components/room-invite-settings-modal";
 import { RECENT_MATCHES, STATS, ACTIVITY } from "../constants/mock-data";
 import type { EditableProfile, ProfileEditSectionId } from "../types/profile-editor.types";
 import {
@@ -75,6 +77,7 @@ export function ProfilePage() {
   const [saveProfileSetup, { isLoading: isSaving }] = useSaveProfileSetupMutation();
 
   const [activeSection, setActiveSection] = useState<ProfileEditSectionId | null>(null);
+  const [roomInviteOpen, setRoomInviteOpen] = useState(false);
 
   const rawProfile = profileQuery.data?.data;
   const profile = useMemo(
@@ -129,6 +132,14 @@ export function ProfilePage() {
       ? `${professionLine} · ${profile.country.name}`
       : `${profile.country.name}`
     : "";
+
+  const roomInviteSummary = useMemo(() => {
+    const ri = rawProfile?.roomInvite;
+    if (!ri) return "Everyone you know can add you";
+    if (ri.policy === "all_connections") return "Everyone you know can add you";
+    if (ri.allowlistedUserIds.length === 0) return "Only chosen people — none picked yet";
+    return `${ri.allowlistedUserIds.length} ${ri.allowlistedUserIds.length === 1 ? "person" : "people"} allowed`;
+  }, [rawProfile?.roomInvite]);
 
   const prefsSummary = useMemo(() => {
     if (!profile) return "";
@@ -351,6 +362,12 @@ export function ProfilePage() {
               onClick={() => setActiveSection("preferences")}
             />
             <ProfileSectionRow
+              icon={<UserPlus className="h-4 w-4" />}
+              label="Who can add you to a room"
+              summary={roomInviteSummary}
+              onClick={() => setRoomInviteOpen(true)}
+            />
+            <ProfileSectionRow
               icon={<FileText className="h-4 w-4" />}
               label="Bio"
               summary={
@@ -448,6 +465,17 @@ export function ProfilePage() {
         catalog={catalog}
         onSaveSection={handleSaveSection}
         isSaving={isSaving}
+      />
+
+      <RoomInviteSettingsModal
+        open={roomInviteOpen}
+        onOpenChange={setRoomInviteOpen}
+        initial={
+          rawProfile?.roomInvite ?? {
+            policy: "all_connections" as const,
+            allowlistedUserIds: [],
+          }
+        }
       />
     </div>
   );

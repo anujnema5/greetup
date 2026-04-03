@@ -1,7 +1,8 @@
 import { Resend } from 'resend';
 import logger from '../../core/logging';
+import config from '@/shared/config/config';
 
-const resend = new Resend(process.env.RESEND_API_KEY);
+const resend = new Resend(config.resendApiKey);
 
 async function sendEmail({
     to,

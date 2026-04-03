@@ -14,7 +14,7 @@ import {
   connectionTypes,
   profileConnectionTypes,
 } from "@/core/database/schema";
-import { upsertCircleCategories } from "./upsert-circle-categories";
+import { upsertRoomCategories } from "./upsert-room-categories";
 
 async function seed() {
   console.log("🌱 Seeding database...");
@@ -117,10 +117,10 @@ async function seed() {
     { name: "any", displayName: "Any", description: "Flexible with connection type", emoji: "✨", isActive: "yes" },
   ]);
 
-  await upsertCircleCategories();
+  await upsertRoomCategories();
 
   console.log(
-    "✅ Seed completed: goals, interests, professions, moods, lookingForOptions, connectionTypes, circleCategories",
+    "✅ Seed completed: goals, interests, professions, moods, lookingForOptions, connectionTypes, roomCategories",
   );
 }
 

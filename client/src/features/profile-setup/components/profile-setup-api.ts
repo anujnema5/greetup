@@ -1,5 +1,4 @@
 import { API_ENDPOINTS, baseApi } from "@/lib/api";
-import type { MyProfileResponse } from "@/features/profile/types/my-profile.types";
 import type {
   ApiResponse,
   OnboardingStatusResponse,
@@ -7,8 +6,16 @@ import type {
   SaveProfileSetupApiResponse,
   SaveProfileSetupPayload,
 } from "../types/profile-setup-api.types";
+import type { MyProfileResponse } from "@/features/profile/types/my-profile.types";
 
 const { PROFILE } = API_ENDPOINTS;
+
+export type RoomInviteSettingsPayload = {
+  policy: "all_connections" | "selected_only";
+  allowlistedUserIds: string[];
+};
+
+export type RoomInviteSettingsData = MyProfileResponse["roomInvite"];
 
 export const profileSetupApi = baseApi.injectEndpoints({
   endpoints: (build) => ({
@@ -39,6 +46,17 @@ export const profileSetupApi = baseApi.injectEndpoints({
         { type: "ProfileMe", id: "CURRENT" },
       ],
     }),
+    updateRoomInviteSettings: build.mutation<
+      ApiResponse<RoomInviteSettingsData>,
+      RoomInviteSettingsPayload
+    >({
+      query: (body) => ({
+        url: PROFILE.ROOM_INVITE_SETTINGS,
+        method: "PUT",
+        body,
+      }),
+      invalidatesTags: [{ type: "ProfileMe", id: "CURRENT" }],
+    }),
   }),
 });
 
@@ -48,4 +66,5 @@ export const {
   useGetMyProfileQuery,
   useLazyGetProfileSetupStepsQuery,
   useSaveProfileSetupMutation,
+  useUpdateRoomInviteSettingsMutation,
 } = profileSetupApi;

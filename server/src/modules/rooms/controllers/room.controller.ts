@@ -1,7 +1,6 @@
 import type { Context } from "hono";
 import { randomUUID } from "crypto";
-import { CLIENT_SAFE_INTERNAL_MESSAGE } from "@/shared/messages";
-import { ApiResponse } from "@/shared/responses";
+import { ApiResponse, internalError } from "@/shared/responses";
 import { emitToUser } from "@/core/socket/socket";
 import logger from "@/core/logging";
 import { getRedis } from "@/core/redis";
@@ -13,12 +12,53 @@ import {
   matchFailedBodySchema,
 } from "../schemas/room.schema";
 import { ensureProfileSnapshotCached } from "@/modules/user/services/profile-snapshot-cache.service";
-import { internalError, invalidRequestBody } from "../lib/http-responses";
+import { zodBodyValidationError } from "../lib/http-responses";
+import {
+  startRoomSessionService,
+  StartRoomSessionError,
+} from "../services/start-room-session.service";
+import { roomsRepository } from "../repositories/rooms.repository";
+import { issueRtcTokenService, IssueRtcTokenError } from "../services/issue-rtc-token.service";
+
+/**
+ * GET /api/room/:roomId/rtc-token
+ * Short-lived JWT for rtc-service Socket.IO (direct or circle rooms; must be live + participant).
+ */
+export const handleIssueRtcToken = async (c: Context) => {
+  const roomId = c.req.param("roomId");
+  const userId = c.get("userId") as string;
+
+  if (!roomId) {
+    return c.json(
+      ApiResponse.error({ message: "roomId is required", statusCode: 400, code: "VALIDATION_ERROR" }),
+      400,
+    );
+  }
+
+  try {
+    const data = await issueRtcTokenService(userId, roomId);
+    return c.json(ApiResponse.success(data, "RTC token issued", 200), 200);
+  } catch (error: unknown) {
+    if (error instanceof IssueRtcTokenError) {
+      const status = error.statusCode as 400 | 403 | 404;
+      return c.json(
+        ApiResponse.error({
+          message: error.message,
+          statusCode: status,
+          code: error.code,
+        }),
+        status,
+      );
+    }
+    logger.error("Issue RTC token error", { error });
+    return internalError(c, error);
+  }
+};
 
 /**
  * POST /internal/rooms/match
  * Called by the match engine to provision a room for a matched pair.
- * Returns a roomId the match engine stores and passes back to clients.
+ * Persists a `rooms` row + participants (category `match`), then Redis (same id).
  */
 export const handleCreateRoom = async (c: Context) => {
   try {
@@ -26,15 +66,36 @@ export const handleCreateRoom = async (c: Context) => {
     const parsed = createRoomBodySchema.safeParse(body);
 
     if (!parsed.success) {
-      return invalidRequestBody(c);
+      return zodBodyValidationError(c, parsed.error);
     }
 
     const { attemptId, pairId, users } = parsed.data;
 
+    const category = await roomsRepository.findActiveCategoryBySlug("match");
+    if (!category) {
+      logger.error("room_categories missing slug=match — run db:seed");
+      return c.json(
+        ApiResponse.error({
+          message: "Match category not configured",
+          statusCode: 503,
+          code: "MATCH_CATEGORY_NOT_CONFIGURED",
+        }),
+        503,
+      );
+    }
+
     const roomId = randomUUID();
+    await roomsRepository.createMatchPairRoom({
+      roomId,
+      hostUserId: users[0],
+      peerUserId: users[1],
+      categoryId: category.id,
+    });
+
     const redis = getRedis();
     const key = `${ROOM_KEYS.ROOM}${roomId}`;
     await redis.hset(key, {
+      sessionKind: "match",
       roomId,
       attemptId,
       pairId,
@@ -44,25 +105,54 @@ export const handleCreateRoom = async (c: Context) => {
     });
     await redis.expire(key, ROOM_TTL);
 
-    logger.info("Room created", { roomId, attemptId, pairId, users });
+    logger.info("Room created (DB + Redis)", { roomId, attemptId, pairId, users });
 
     return c.json(ApiResponse.success({ roomId }, "Room created", 201), 201);
   } catch (error) {
     logger.error("Failed to create room", { error });
+    return internalError(c, error);
+  }
+};
+
+/**
+ * POST /api/room/:roomId/start
+ * Host starts a scheduled DB room: persists live in Postgres, then provisions Redis session state.
+ */
+export const handleStartRoomSession = async (c: Context) => {
+  const roomId = c.req.param("roomId");
+  const userId = c.get("userId") as string;
+
+  if (!roomId) {
     return c.json(
-      ApiResponse.error({
-        message: CLIENT_SAFE_INTERNAL_MESSAGE,
-        statusCode: 500,
-        code: "INTERNAL_ERROR",
-      }),
-      500
+      ApiResponse.error({ message: "roomId is required", statusCode: 400, code: "VALIDATION_ERROR" }),
+      400,
     );
+  }
+
+  try {
+    const result = await startRoomSessionService(userId, roomId);
+    return c.json(ApiResponse.success(result, "Room session started", 200), 200);
+  } catch (error: unknown) {
+    if (error instanceof StartRoomSessionError) {
+      const status =
+        error.code === "ROOM_NOT_FOUND" ? 404 : error.code === "NOT_HOST" ? 403 : 400;
+      return c.json(
+        ApiResponse.error({
+          message: error.message,
+          statusCode: status,
+          code: error.code,
+        }),
+        status,
+      );
+    }
+    logger.error("Failed to start room session", { error });
+    return internalError(c, error);
   }
 };
 
 /**
  * GET /api/room/:roomId
- * Returns room participants for a given roomId.
+ * Returns Redis-backed room payload (match pair or DB session room).
  */
 export const handleGetRoom = async (c: Context) => {
   const roomId = c.req.param("roomId");
@@ -83,6 +173,21 @@ export const handleGetRoom = async (c: Context) => {
       );
     }
 
+    if (room.sessionKind === "db_room") {
+      return c.json(
+        ApiResponse.success(
+          {
+            sessionKind: "db_room" as const,
+            roomId: room.roomId,
+            hostUserId: room.hostUserId,
+            roomType: room.roomType,
+            title: room.title,
+          },
+          "Room found",
+        ),
+      );
+    }
+
     return c.json(
       ApiResponse.success(
         { roomId: room.roomId, userA: room.userA, userB: room.userB, matchScore: room.matchScore ?? null },
@@ -91,7 +196,7 @@ export const handleGetRoom = async (c: Context) => {
     );
   } catch (error) {
     logger.error("Failed to get room", { error });
-    return internalError(c);
+    return internalError(c, error);
   }
 };
 
@@ -106,7 +211,7 @@ export const handleEnsureProfileSnapshot = async (c: Context) => {
     const parsed = ensureProfileSnapshotBodySchema.safeParse(body);
 
     if (!parsed.success) {
-      return invalidRequestBody(c);
+      return zodBodyValidationError(c, parsed.error);
     }
 
     const cached = await ensureProfileSnapshotCached(parsed.data.userId);
@@ -120,7 +225,7 @@ export const handleEnsureProfileSnapshot = async (c: Context) => {
     return c.json(ApiResponse.success({ cached: true }, "Profile snapshot cached"), 200);
   } catch (error) {
     logger.error("Failed to ensure profile snapshot", { error });
-    return internalError(c);
+    return internalError(c, error);
   }
 };
 
@@ -135,7 +240,7 @@ export const handleMatchFailed = async (c: Context) => {
     const parsed = matchFailedBodySchema.safeParse(body);
 
     if (!parsed.success) {
-      return invalidRequestBody(c);
+      return zodBodyValidationError(c, parsed.error);
     }
 
     const { attemptId, userId, reason } = parsed.data;
@@ -147,7 +252,7 @@ export const handleMatchFailed = async (c: Context) => {
     return c.json(ApiResponse.success(null, "Notified"), 200);
   } catch (error) {
     logger.error("Failed to handle match failed webhook", { error });
-    return internalError(c);
+    return internalError(c, error);
   }
 };
 
@@ -162,7 +267,7 @@ export const handleMatchCompleted = async (c: Context) => {
     const parsed = matchCompletedBodySchema.safeParse(body);
 
     if (!parsed.success) {
-      return invalidRequestBody(c);
+      return zodBodyValidationError(c, parsed.error);
     }
 
     const { attemptId, userA, userB, roomId, matchScore, isFallbackMatch } = parsed.data;
@@ -180,6 +285,6 @@ export const handleMatchCompleted = async (c: Context) => {
     return c.json(ApiResponse.success(null, "Notified"), 200);
   } catch (error) {
     logger.error("Failed to handle match completed webhook", { error });
-    return internalError(c);
+    return internalError(c, error);
   }
 };

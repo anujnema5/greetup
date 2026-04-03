@@ -1,13 +1,21 @@
 "use client";
 
 import Link from "next/link";
-import { ChevronRight, Loader2, UserPlus } from "lucide-react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { ChevronRight, Loader2, Search, UserPlus } from "lucide-react";
 
 import type { FetchBaseQueryError } from "@reduxjs/toolkit/query";
 
-import { useGetMyConnectionsQuery } from "@/features/connections/api/connections-api";
+import {
+  useAcceptedConnectionsInfiniteQuery,
+  useGetMyConnectionsQuery,
+} from "@/features/connections/api/connections-api";
 import type { ConnectionListItem } from "@/features/connections/types/connections-api.types";
+import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
+
+const ACCEPTED_PAGE_SIZE = 20;
+const ACCEPTED_PREVIEW_LIMIT = 6;
 
 function peerLabel(item: ConnectionListItem) {
   return item.peer.displayName?.trim() || item.peer.name || "Member";
@@ -65,9 +73,7 @@ function ConnectionRow({ item }: { item: ConnectionListItem }) {
 }
 
 export type ProfileConnectionsSectionProps = {
-  /** Full `/connections` page: skip duplicate “Connections” title (page header already shows it). */
   variant?: "profile" | "page";
-  /** When embedded on profile, link to the full connections page. */
   showSeeAllLink?: boolean;
 };
 
@@ -76,27 +82,82 @@ export function ProfileConnectionsSection({
   showSeeAllLink = false,
 }: ProfileConnectionsSectionProps) {
   const isPage = variant === "page";
+  const [search, setSearch] = useState("");
+  const [debouncedQ, setDebouncedQ] = useState("");
+  const loadMoreSentinelRef = useRef<HTMLDivElement | null>(null);
 
-  const accepted = useGetMyConnectionsQuery({ filter: "accepted" });
+  useEffect(() => {
+    const t = window.setTimeout(() => setDebouncedQ(search.trim()), 350);
+    return () => window.clearTimeout(t);
+  }, [search]);
+
   const incoming = useGetMyConnectionsQuery({ filter: "pending_incoming" });
   const outgoing = useGetMyConnectionsQuery({ filter: "pending_outgoing" });
 
-  const loading =
-    accepted.isLoading || incoming.isLoading || outgoing.isLoading;
-  const hasError = accepted.isError || incoming.isError || outgoing.isError;
-  const error = accepted.error ?? incoming.error ?? outgoing.error;
+  const acceptedPreview = useGetMyConnectionsQuery(
+    { filter: "accepted", limit: ACCEPTED_PREVIEW_LIMIT, page: 1 },
+    { skip: isPage },
+  );
 
-  const acceptedItems = accepted.data?.data?.items ?? [];
+  const acceptedInfinite = useAcceptedConnectionsInfiniteQuery(
+    { limit: ACCEPTED_PAGE_SIZE, q: debouncedQ || undefined },
+    { skip: !isPage },
+  );
+
+  const loadingCore =
+    incoming.isLoading ||
+    outgoing.isLoading ||
+    (isPage ? acceptedInfinite.isLoading : acceptedPreview.isLoading);
+
+  const hasError =
+    incoming.isError || outgoing.isError || (isPage ? acceptedInfinite.isError : acceptedPreview.isError);
+  const error = incoming.error ?? outgoing.error ?? (isPage ? acceptedInfinite.error : acceptedPreview.error);
+
   const incomingItems = incoming.data?.data?.items ?? [];
   const outgoingItems = outgoing.data?.data?.items ?? [];
 
+  const acceptedItems: ConnectionListItem[] = useMemo(() => {
+    if (isPage) {
+      return acceptedInfinite.data?.pages.flatMap((p) => p.items) ?? [];
+    }
+    return acceptedPreview.data?.data?.items ?? [];
+  }, [isPage, acceptedInfinite.data, acceptedPreview.data]);
+
+  const previewHasMore = acceptedPreview.data?.data?.hasMore === true;
+
+  const hasNextAcceptedPage = isPage ? acceptedInfinite.hasNextPage : false;
+  const isFetchingNextAccepted = isPage ? acceptedInfinite.isFetchingNextPage : false;
+
+  const fetchNextAccepted = acceptedInfinite.fetchNextPage;
+
+  const onIntersectLoadMore = useCallback(() => {
+    if (!isPage || !hasNextAcceptedPage || isFetchingNextAccepted) return;
+    void fetchNextAccepted();
+  }, [isPage, hasNextAcceptedPage, isFetchingNextAccepted, fetchNextAccepted]);
+
+  useEffect(() => {
+    if (!isPage) return;
+    const el = loadMoreSentinelRef.current;
+    if (!el) return;
+
+    const obs = new IntersectionObserver(
+      (entries) => {
+        if (entries[0]?.isIntersecting) onIntersectLoadMore();
+      },
+      { root: null, rootMargin: "120px", threshold: 0 },
+    );
+    obs.observe(el);
+    return () => obs.disconnect();
+  }, [isPage, onIntersectLoadMore, acceptedItems.length, debouncedQ]);
+
   const refetchAll = () => {
-    void accepted.refetch();
     void incoming.refetch();
     void outgoing.refetch();
+    if (isPage) void acceptedInfinite.refetch();
+    else void acceptedPreview.refetch();
   };
 
-  if (loading) {
+  if (loadingCore) {
     return (
       <div className="flex flex-col gap-3">
         <div className="flex items-center justify-between gap-2">
@@ -143,9 +204,7 @@ export function ProfileConnectionsSection({
 
   const totalPending = incomingItems.length + outgoingItems.length;
   const hasAny =
-    acceptedItems.length > 0 ||
-    incomingItems.length > 0 ||
-    outgoingItems.length > 0;
+    acceptedItems.length > 0 || incomingItems.length > 0 || outgoingItems.length > 0;
 
   if (!hasAny) {
     return (
@@ -159,6 +218,22 @@ export function ProfileConnectionsSection({
         {isPage && (
           <p className="text-[11px] text-muted-foreground">0 connected · 0 pending</p>
         )}
+        {isPage ? (
+          <div className="relative">
+            <Search
+              className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground pointer-events-none"
+              aria-hidden
+            />
+            <Input
+              type="search"
+              placeholder="Search connections…"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="pl-9 rounded-xl bg-card"
+              autoComplete="off"
+            />
+          </div>
+        ) : null}
         <p className="text-sm text-muted-foreground rounded-2xl border border-dashed border-border bg-muted/20 px-4 py-6 text-center">
           No connection requests or connections yet. When you connect with people, they&apos;ll show up
           here.
@@ -168,7 +243,7 @@ export function ProfileConnectionsSection({
   }
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className="flex flex-col gap-4 min-w-0">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           {!isPage && (
@@ -180,7 +255,10 @@ export function ProfileConnectionsSection({
               !isPage ? "mt-0.5" : "",
             )}
           >
-            {acceptedItems.length} connected
+            {!isPage && previewHasMore
+              ? `${acceptedItems.length}+`
+              : acceptedItems.length}{" "}
+            connected
             {totalPending > 0 ? ` · ${totalPending} pending` : ""}
           </p>
         </div>
@@ -193,6 +271,24 @@ export function ProfileConnectionsSection({
           </Link>
         )}
       </div>
+
+      {isPage && (
+        <div className="relative w-full">
+          <Search
+            className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground pointer-events-none z-10"
+            aria-hidden
+          />
+          <Input
+            type="search"
+            placeholder="Search by name…"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="pl-9 rounded-xl bg-card w-full min-h-11 text-base sm:text-sm"
+            autoComplete="off"
+            enterKeyHint="search"
+          />
+        </div>
+      )}
 
       {incomingItems.length > 0 && (
         <div className="flex flex-col gap-2">
@@ -232,7 +328,23 @@ export function ProfileConnectionsSection({
               <ConnectionRow key={item.connectionId} item={item} />
             ))}
           </div>
+          {isPage && (
+            <>
+              <div ref={loadMoreSentinelRef} className="h-1 w-full shrink-0" aria-hidden />
+              {isFetchingNextAccepted ? (
+                <div className="flex justify-center py-3">
+                  <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" aria-label="Loading more" />
+                </div>
+              ) : null}
+            </>
+          )}
         </div>
+      )}
+
+      {isPage && acceptedItems.length === 0 && debouncedQ.length > 0 && (
+        <p className="text-sm text-muted-foreground text-center py-4 rounded-2xl border border-dashed border-border">
+          No connections match &ldquo;{debouncedQ}&rdquo;.
+        </p>
       )}
 
       {acceptedItems.length === 0 && (incomingItems.length > 0 || outgoingItems.length > 0) && (

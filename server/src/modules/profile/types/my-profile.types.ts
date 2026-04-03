@@ -40,4 +40,9 @@ export type MyProfileResponse = {
     maxAge: number | null;
     connectionTypes: Array<{ id: string; name: string; displayName: string }>;
   } | null;
+  /** Who may add this user when creating a room with friend invites. */
+  roomInvite: {
+    policy: "all_connections" | "selected_only";
+    allowlistedUserIds: string[];
+  };
 };

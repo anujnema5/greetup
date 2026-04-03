@@ -1,8 +1,7 @@
 import type { Context } from "hono";
 
 import logger from "@/core/logging";
-import { CLIENT_SAFE_INTERNAL_MESSAGE } from "@/shared/messages";
-import { ApiResponse } from "@/shared/responses";
+import { ApiResponse, internalError } from "@/shared/responses";
 import { zodFieldErrorsItems } from "@/shared/validation";
 import { fetchProfileStepsService } from "../services/profile-steps.service";
 import { saveProfileSetupStepService } from "../services/profile-setup-save.service";
@@ -12,6 +11,11 @@ import {
   saveProfileSetupBodySchema,
 } from "../schemas/profile-setup.schema";
 import { getMyProfileService } from "../services/get-my-profile.service";
+import {
+  RoomInviteAllowlistNotConnectionError,
+  updateRoomInviteSettingsService,
+} from "../services/room-invite-preferences.service";
+import { roomInviteSettingsBodySchema } from "../schemas/room-invite-preferences.schema";
 
 export const handleGetMyProfile = async (c: Context) => {
   try {
@@ -30,14 +34,7 @@ export const handleGetMyProfile = async (c: Context) => {
     return c.json(ApiResponse.success(profile, "Profile retrieved", 200), 200);
   } catch (error: unknown) {
     logger.error("Get my profile error", { error });
-    return c.json(
-      ApiResponse.error({
-        message: CLIENT_SAFE_INTERNAL_MESSAGE,
-        statusCode: 500,
-        code: "GET_PROFILE_FAILED",
-      }),
-      500
-    );
+    return internalError(c, error, "GET_PROFILE_FAILED");
   }
 };
 
@@ -51,14 +48,7 @@ export const handleGetOnboardingStatus = async (c: Context) => {
     );
   } catch (error: unknown) {
     logger.error("Get onboarding status error", { error });
-    return c.json(
-      ApiResponse.error({
-        message: CLIENT_SAFE_INTERNAL_MESSAGE,
-        statusCode: 500,
-        code: "ONBOARDING_STATUS_FAILED",
-      }),
-      500
-    );
+    return internalError(c, error, "ONBOARDING_STATUS_FAILED");
   }
 };
 
@@ -100,14 +90,47 @@ export const handleSaveProfileSetup = async (c: Context) => {
     );
   } catch (error: unknown) {
     logger.error("Save profile setup error", { error });
-    return c.json(
-      ApiResponse.error({
-        message: CLIENT_SAFE_INTERNAL_MESSAGE,
-        statusCode: 500,
-        code: "SAVE_PROFILE_SETUP_FAILED",
-      }),
-      500
-    );
+    return internalError(c, error, "SAVE_PROFILE_SETUP_FAILED");
+  }
+};
+
+export const handleUpdateRoomInviteSettings = async (c: Context) => {
+  try {
+    const userId = c.get("userId") as string;
+    const body = await c.req.json();
+    const parsed = roomInviteSettingsBodySchema.safeParse(body);
+    if (!parsed.success) {
+      const errors = zodFieldErrorsItems(parsed.error);
+      return c.json(
+        ApiResponse.error({
+          message: "Invalid request body",
+          statusCode: 400,
+          code: "VALIDATION_ERROR",
+          errors,
+        }),
+        400,
+      );
+    }
+
+    try {
+      const data = await updateRoomInviteSettingsService(userId, parsed.data);
+      return c.json(ApiResponse.success(data, "Room invite settings saved", 200), 200);
+    } catch (e: unknown) {
+      if (e instanceof RoomInviteAllowlistNotConnectionError) {
+        return c.json(
+          ApiResponse.error({
+            message: e.message,
+            statusCode: 400,
+            code: "ALLOWLIST_NOT_CONNECTION",
+          }),
+          400,
+        );
+      }
+      throw e;
+    }
+  } catch (error: unknown) {
+    logger.error("Update room invite settings error", { error });
+    return internalError(c, error, "UPDATE_ROOM_INVITE_SETTINGS_FAILED");
   }
 };
 
@@ -138,13 +161,6 @@ export const handleFetchProfileSteps = async (c: Context) => {
     );
   } catch (error: unknown) {
     logger.error("Fetch profile steps error", { error });
-    return c.json(
-      ApiResponse.error({
-        message: CLIENT_SAFE_INTERNAL_MESSAGE,
-        statusCode: 500,
-        code: "FETCH_STEPS_FAILED",
-      }),
-      500
-    );
+    return internalError(c, error, "FETCH_STEPS_FAILED");
   }
 };
