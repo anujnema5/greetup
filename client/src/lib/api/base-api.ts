@@ -5,5 +5,12 @@ export const baseApi = createApi({
   reducerPath: 'api',
   baseQuery: fetchBaseQuery({ baseUrl: API_BASE_URL, credentials: 'include' }),
   endpoints: () => ({}),
-  tagTypes: ['ProfileSetupSteps', 'ProfileMe', 'Connections', 'CircleCategories', 'ActiveCircles'],
+  tagTypes: [
+    'ProfileSetupSteps',
+    'ProfileMe',
+    'Connections',
+    'CircleCategories',
+    'ActiveCircles',
+    'RtcToken',
+  ],
 })

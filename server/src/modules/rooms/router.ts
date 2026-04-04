@@ -4,6 +4,7 @@ import {
   handleEnsureProfileSnapshot,
   handleGetRoom,
   handleIssueRtcToken,
+  handleJoinRoom,
   handleMatchCompleted,
   handleMatchFailed,
   handleStartRoomSession,
@@ -19,5 +20,6 @@ internalRoomsRoute.post("/webhook/match-failed", handleMatchFailed);
 // Public authenticated route (registered under /api)
 export const roomRoute = new Hono();
 roomRoute.get("/:roomId/rtc-token", handleIssueRtcToken);
+roomRoute.post("/:roomId/join", handleJoinRoom);
 roomRoute.post("/:roomId/start", handleStartRoomSession);
 roomRoute.get("/:roomId", handleGetRoom);

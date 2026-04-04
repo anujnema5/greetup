@@ -10,8 +10,10 @@ export type RoomPeerEntry = {
   userId: string;
 };
 
-/** Placeholder for mediasoup / device pipeline — expand with transports, codecs. */
-export type RoomMediaStatus = "idle" | "connecting" | "connected";
+/**
+ * Serializable mediasoup phase (actual `MediaStream`s live in `RtcSocketProvider` context only).
+ */
+export type RoomMediaStatus = "idle" | "connecting" | "connected" | "error";
 
 /** Future: chess, truth-or-dare — `active` null when not playing. */
 export type RoomGamesState = {

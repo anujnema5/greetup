@@ -23,6 +23,7 @@ export const API_ENDPOINTS = {
   ROOM: {
     start: (roomId: string) => `/room/${roomId}/start` as const,
     get: (roomId: string) => `/room/${roomId}` as const,
+    join: (roomId: string) => `/room/${roomId}/join` as const,
     rtcToken: (roomId: string) => `/room/${roomId}/rtc-token` as const,
   },
 }

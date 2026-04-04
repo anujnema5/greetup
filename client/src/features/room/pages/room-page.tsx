@@ -1,38 +1,19 @@
 "use client";
 
-import { useEffect, useCallback } from "react";
+import { useCallback } from "react";
 import { useAppDispatch, useAppSelector } from "@/lib/redux/hooks";
 import {
   selectIsRoomMinimized,
   selectIsVideoSessionActive,
 } from "@/lib/redux/selectors/room-selectors";
-import { startVideoSession } from "@/lib/redux/slices/roomSlice";
 import { useRoom } from "@/features/matching";
-import { RoomVideoView } from "@/features/room/components/room-video-view";
-import { useRoomVideo } from "@/features/room/hooks/use-room-video";
-import { markRoomActive, broadcastRoomMessage } from "@/features/room/lib/room-sync";
-
-function RoomVideoLayer({
-  roomId,
-  onEnd,
-}: {
-  roomId: string;
-  onEnd: () => void;
-}) {
-  const video = useRoomVideo(roomId);
-  return (
-    <div className="fixed inset-0 z-100 flex flex-col overflow-hidden bg-background">
-      <RoomVideoView
-        onEnd={onEnd}
-        onSkip={video.handleSkip}
-        onMinimize={video.handleMinimize}
-      />
-    </div>
-  );
-}
+import { isCircleRoomData } from "@/features/matching/types/room.types";
+import { RoomVideoLayer } from "@/features/room/components/room-video-layer";
+import { useRoomJoinAndStartVideo } from "@/features/room/hooks/use-room-join-and-start-video";
+import { broadcastRoomMessage } from "@/features/room/lib/room-sync";
 
 /**
- * `/circle/[roomId]`: shows a connecting state, then immediately starts the video.
+ * `/circle/[roomId]`: loading → join room → start video session → full UI or minimized dock.
  */
 export function RoomPage() {
   const dispatch = useAppDispatch();
@@ -44,36 +25,55 @@ export function RoomPage() {
     loading,
     error,
     peerId,
+    score,
+    currentUserName,
     goHome,
     leaveAndGoHome,
-    rtcSocket
+    room
   } = useRoom();
 
-  console.log(rtcSocket ? `RTC Socket connected: ${rtcSocket.id}` : "RTC Socket not connected");
+  const myName = currentUserName ?? "You";
+  const scoreLabel = score != null && String(score).length > 0 ? `${String(score)}% match` : null;
+  const isCircleRoom = Boolean(room && isCircleRoomData(room));
+  const shouldStartVideo = !loading && Boolean(room) && (isCircleRoom || Boolean(peerId));
 
-  // Auto-start video as soon as the peer is connected
-  useEffect(() => {
-    if (peerId && !sessionActive) {
-      markRoomActive();
-      dispatch(startVideoSession({ roomId }));
-    }
-  }, [peerId, sessionActive, dispatch, roomId]);
+  const { joinRoomError, joinRoomLoading } = useRoomJoinAndStartVideo({
+    roomId,
+    shouldStartVideo,
+    sessionActive,
+    peerId,
+    dispatch,
+  });
 
-  // Full end-call: notify peer, call backend leave API, clear storage & Redux, navigate home
   const handleEnd = useCallback(() => {
     broadcastRoomMessage({ type: "END_CALL" });
     leaveAndGoHome();
   }, [leaveAndGoHome]);
 
-  if (loading || (peerId && !sessionActive)) {
+  if (loading || joinRoomLoading || (shouldStartVideo && !sessionActive && !joinRoomError)) {
     return (
       <div className="flex h-dvh w-full items-center justify-center bg-background text-sm text-muted-foreground">
-        Connecting to room…
+        {joinRoomLoading ? "Joining room…" : "Connecting to room…"}
       </div>
     );
   }
 
-  if (error && !peerId) {
+  if (joinRoomError) {
+    return (
+      <div className="flex h-dvh w-full flex-col items-center justify-center gap-4 bg-background px-4">
+        <p className="text-center text-sm text-muted-foreground">{joinRoomError}</p>
+        <button
+          type="button"
+          onClick={goHome}
+          className="text-xs text-primary underline underline-offset-2"
+        >
+          Back to dashboard
+        </button>
+      </div>
+    );
+  }
+
+  if (error && !room) {
     return (
       <div className="flex h-dvh w-full flex-col items-center justify-center gap-4 bg-background">
         <p className="text-sm text-muted-foreground">{error}</p>
@@ -89,9 +89,18 @@ export function RoomPage() {
   }
 
   if (sessionActive && !isMinimized) {
-    return <RoomVideoLayer roomId={roomId} onEnd={handleEnd} />;
+    return (
+      <RoomVideoLayer
+        roomId={roomId}
+        onEnd={handleEnd}
+        peerId={peerId}
+        scoreLabel={scoreLabel}
+        myName={myName}
+        isGroupRoom={isCircleRoom}
+        groupRoomTitle={room && isCircleRoomData(room) ? room.title : null}
+      />
+    );
   }
 
-  // Minimized state — the floating dock handles UI; render nothing here
   return null;
 }

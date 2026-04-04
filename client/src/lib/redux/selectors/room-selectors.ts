@@ -13,6 +13,9 @@ export const selectIsRoomMinimized = (state: RootState) => state.room.ui.isMinim
 
 export const selectActiveRoomId = (state: RootState) => state.room.session.activeRoomId;
 
+export const selectRtcPrimaryRemoteUserId = (state: RootState) =>
+  state.room.session.rtcPrimaryRemoteUserId;
+
 export const selectRoomPhase = (state: RootState) => state.room.session.phase;
 
 export const selectRoomPeers = (state: RootState) => state.room.peers.byUserId;
