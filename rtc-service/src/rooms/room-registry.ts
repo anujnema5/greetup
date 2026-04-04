@@ -2,6 +2,7 @@ import type { types as MediasoupTypes } from "mediasoup";
 import { env } from "@/config/env";
 import { createRouter } from "@/mediasoup/mediasoup.service";
 import { getRedis } from "@/redis/client";
+import { RTC_ROOM_METADATA_TTL_SECONDS } from "@/redis/constants";
 import { Keys } from "@/redis/keys";
 
 /** In-memory only: mediasoup Router cannot live in Redis. */
@@ -11,8 +12,6 @@ export type LocalRoom = {
 };
 
 const localRooms = new Map<string, LocalRoom>();
-
-const ROOM_OWNER_TTL_SECONDS = 24 * 60 * 60;
 
 export type WrongInstanceError = {
   ok: false;
@@ -45,7 +44,7 @@ export async function getOrCreateLocalRoom(roomId: string): Promise<LocalRoomRes
   }
 
   if (!owner) {
-    const claimed = await redis.set(ownerKey, instanceId, "EX", ROOM_OWNER_TTL_SECONDS, "NX");
+    const claimed = await redis.set(ownerKey, instanceId, "EX", RTC_ROOM_METADATA_TTL_SECONDS, "NX");
     if (claimed !== "OK") {
       owner = await redis.get(ownerKey);
       if (owner && owner !== instanceId) {
@@ -58,12 +57,17 @@ export async function getOrCreateLocalRoom(roomId: string): Promise<LocalRoomRes
   const room: LocalRoom = { roomId, router };
   localRooms.set(roomId, room);
 
-  await redis.hset(Keys.room(roomId), {
-    routerId: router.id,
-    ownerInstanceId: instanceId,
-    updatedAt: String(Date.now()),
-  });
-  await redis.expire(Keys.room(roomId), ROOM_OWNER_TTL_SECONDS);
+  const now = Date.now();
+  const prevCreated = await redis.hget(Keys.room(roomId), "createdAt");
+  const createdAtIso = prevCreated ?? new Date(now).toISOString();
+  const roomKey = Keys.room(roomId);
+  const pipe = redis.pipeline();
+  pipe.hset(roomKey, "routerId", router.id);
+  pipe.hset(roomKey, "ownerInstanceId", instanceId);
+  pipe.hset(roomKey, "updatedAt", String(now));
+  pipe.hset(roomKey, "createdAt", createdAtIso);
+  await pipe.exec();
+  await redis.expire(roomKey, RTC_ROOM_METADATA_TTL_SECONDS);
 
   return { ok: true, room };
 }
@@ -74,7 +78,7 @@ export async function releaseRoom(roomId: string): Promise<void> {
   const ownerKey = Keys.roomOwner(roomId);
   const owner = await redis.get(ownerKey);
   if (owner === env.rtcInstanceId) {
-    await redis.del(ownerKey);
+    await redis.del(ownerKey, Keys.room(roomId), Keys.roomPeers(roomId));
   }
   await teardownLocalRoom(roomId);
 }

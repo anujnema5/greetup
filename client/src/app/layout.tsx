@@ -8,7 +8,11 @@ import { ReduxProvider } from "@/lib/redux/provider";
 import { RtcSocketProvider } from "@/features/rtc";
 import { ThemeProvider } from "@/components/theme-provider";
 import { Toaster } from "sonner";
-import { RoomMinimizedHydration, MinimizedRoomDock } from "@/features/room";
+import {
+  RoomMinimizedHydration,
+  MinimizedRoomDock,
+  DirectCallPartnerDisconnectHandler,
+} from "@/features/room";
 const plusJakartaSans = Plus_Jakarta_Sans({
   variable: "--font-plus-jakarta",
   subsets: ["latin"],
@@ -33,6 +37,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <ReduxProvider>
             <RoomMinimizedHydration />
             <RtcSocketProvider>
+              <DirectCallPartnerDisconnectHandler />
               <SocketProvider>
                 <Suspense fallback={null}>
                   <MinimizedRoomDock />

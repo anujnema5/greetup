@@ -13,6 +13,7 @@ import {
   subscribeRoomChannel,
   broadcastRoomMessage,
 } from "@/features/room/lib/room-sync";
+import { MATCHMAKING_HUB_PATH } from "@/features/room/constants/call-flow";
 
 /**
  * Full-screen room video: active markers, BroadcastChannel, end / skip / minimize.
@@ -37,7 +38,7 @@ export function useRoomVideo(roomId: string, options?: { skipSetup?: boolean }) 
   const applySkip = useCallback(() => {
     clearRoomStorage();
     dispatch(endVideoSession());
-    router.replace("/explore");
+    router.replace(MATCHMAKING_HUB_PATH);
   }, [dispatch, router]);
 
   useEffect(() => {

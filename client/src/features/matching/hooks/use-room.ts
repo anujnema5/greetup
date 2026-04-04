@@ -9,7 +9,7 @@ import { enterRoomPage, resetRoomState } from "@/lib/redux/slices/roomSlice";
 import { clearRoomStorage } from "@/features/room/lib/room-sync";
 import { useGetRoomQuery, useLeaveRoomMutation, leaveRoomKeepalive } from "../api/matching-api";
 import { useRtcSocketContext } from "@/features/rtc";
-import type { RoomData } from "../types/room.types";
+import { isCircleRoomData, type RoomData } from "../types/room.types";
 
 export type { RoomData };
 
@@ -40,6 +40,22 @@ export function useRoom() {
     rtcTokenSkipped,
     rtcSocket,
     rtcSocketState,
+    mediasoupStatus,
+    mediasoupError,
+    localMediaStream,
+    remoteMediaStream,
+    mainStageShowsScreen,
+    remoteParticipants,
+    peers,
+    rtcRoomType,
+    micEnabled,
+    cameraEnabled,
+    screenSharing,
+    toggleMic,
+    toggleCamera,
+    toggleScreenShare,
+    localMediaDeviceError,
+    clearLocalMediaDeviceError,
   } = useRtcSocketContext();
 
   const fallbackRoom = useMemo((): RoomData | null => {
@@ -93,8 +109,10 @@ export function useRoom() {
     return room.userA === currentUserId ? room.userB : room.userA;
   }, [room, currentUserId, peerIdFromUrl]);
 
+  const currentUserName = session?.user?.name ?? null;
+
   const score = useMemo(() => {
-    if (room && "sessionKind" in room && room.sessionKind === "db_room") return null;
+    if (room && isCircleRoomData(room)) return null;
     return room && "matchScore" in room ? room.matchScore : scoreFromUrl;
   }, [room, scoreFromUrl]);
 
@@ -114,6 +132,7 @@ export function useRoom() {
     peerId,
     score,
     currentUserId,
+    currentUserName,
     goHome,
     leaveAndGoHome,
     rtcToken,
@@ -123,5 +142,21 @@ export function useRoom() {
     rtcTokenExpiresInSec,
     rtcSocket,
     rtcSocketState,
+    mediasoupStatus,
+    mediasoupError,
+    localMediaStream,
+    remoteMediaStream,
+    mainStageShowsScreen,
+    remoteParticipants,
+    peers,
+    rtcRoomType,
+    micEnabled,
+    cameraEnabled,
+    screenSharing,
+    toggleMic,
+    toggleCamera,
+    toggleScreenShare,
+    localMediaDeviceError,
+    clearLocalMediaDeviceError,
   };
 }

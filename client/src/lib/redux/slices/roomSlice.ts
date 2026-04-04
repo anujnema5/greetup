@@ -20,6 +20,8 @@ export interface RoomSliceState {
   session: {
     activeRoomId: string | null;
     phase: RoomSessionPhase;
+    /** Main remote tile (1:1 match peer or pinned user); circles can update or clear for “gallery first”. */
+    rtcPrimaryRemoteUserId: string | null;
   };
   media: {
     status: RoomMediaStatus;
@@ -35,7 +37,7 @@ export interface RoomSliceState {
 
 const initialState = (): RoomSliceState => ({
   ui: { sessionActive: false, isMinimized: false },
-  session: { activeRoomId: null, phase: "idle" },
+  session: { activeRoomId: null, phase: "idle", rtcPrimaryRemoteUserId: null },
   media: { status: "idle" },
   peers: { byUserId: {} },
   chat: { draft: "" },
@@ -57,6 +59,7 @@ export const roomSlice = createSlice({
         state.ui.isMinimized = false;
         state.session.activeRoomId = nextId;
         state.session.phase = "lobby";
+        state.session.rtcPrimaryRemoteUserId = null;
         return;
       }
       state.session.activeRoomId = nextId;
@@ -80,13 +83,19 @@ export const roomSlice = createSlice({
     /** Start fullscreen video session (was `startCall`). */
     startVideoSession: (
       state,
-      action: PayloadAction<{ roomId?: string | null } | undefined>,
+      action: PayloadAction<
+        { roomId?: string | null; primaryRemoteUserId?: string | null } | undefined
+      >,
     ) => {
       state.ui.sessionActive = true;
       state.ui.isMinimized = false;
       const rid = action.payload?.roomId;
       if (rid !== undefined) {
         state.session.activeRoomId = rid ?? null;
+      }
+      const primary = action.payload?.primaryRemoteUserId;
+      if (primary !== undefined) {
+        state.session.rtcPrimaryRemoteUserId = primary;
       }
       state.session.phase = "in_call";
     },
@@ -97,6 +106,7 @@ export const roomSlice = createSlice({
       state.ui.isMinimized = false;
       state.session.activeRoomId = null;
       state.session.phase = "idle";
+      state.session.rtcPrimaryRemoteUserId = null;
       state.media.status = "idle";
       state.peers.byUserId = {};
       state.chat.draft = "";
@@ -117,6 +127,11 @@ export const roomSlice = createSlice({
 
     setMediaStatus: (state, action: PayloadAction<RoomMediaStatus>) => {
       state.media.status = action.payload;
+    },
+
+    /** Circles / group: change who occupies the main remote tile without restarting the call. */
+    setRtcPrimaryRemoteUserId: (state, action: PayloadAction<string | null>) => {
+      state.session.rtcPrimaryRemoteUserId = action.payload;
     },
 
     upsertRoomPeer: (state, action: PayloadAction<RoomPeerEntry>) => {
@@ -148,6 +163,7 @@ export const {
   expandVideoSession,
   setRoomPhase,
   setMediaStatus,
+  setRtcPrimaryRemoteUserId,
   upsertRoomPeer,
   removeRoomPeer,
   setChatDraft,

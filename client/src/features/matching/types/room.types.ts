@@ -8,6 +8,8 @@ export type RoomData =
       userA: string;
       userB: string;
       matchScore: string | null;
+      userAName?: string | null;
+      userBName?: string | null;
     }
   | {
       sessionKind: "db_room";
@@ -39,9 +41,23 @@ export function parseRoomData(data: unknown): RoomData {
       userA: String(d.userA),
       userB: String(d.userB),
       matchScore: ms == null ? null : typeof ms === "string" ? ms : String(ms),
+      userAName: typeof d.userAName === "string" ? d.userAName : null,
+      userBName: typeof d.userBName === "string" ? d.userBName : null,
     };
   }
   throw new Error("Unexpected room payload");
+}
+
+/** DB-backed circle / group room (`GET /room/:id`). */
+export function isCircleRoomData(
+  room: RoomData | null | undefined,
+): room is Extract<RoomData, { sessionKind: "db_room" }> {
+  return Boolean(room && "sessionKind" in room && room.sessionKind === "db_room");
+}
+
+/** Redis match-pair (1:1) room — not a circle. */
+export function isDirectMatchRoom(room: RoomData | null | undefined): boolean {
+  return Boolean(room && !isCircleRoomData(room));
 }
 
 /**

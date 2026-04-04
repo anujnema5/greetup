@@ -8,6 +8,7 @@ import {
 } from "@/lib/redux/selectors/room-selectors";
 import { startVideoSession } from "@/lib/redux/slices/roomSlice";
 import { useRoom } from "@/features/matching";
+import { useRtcSocketContext } from "@/features/rtc";
 import { RoomVideoView } from "@/features/room/components/room-video-view";
 import { useRoomVideo } from "@/features/room/hooks/use-room-video";
 import { markRoomActive, broadcastRoomMessage } from "@/features/room/lib/room-sync";
@@ -15,17 +16,69 @@ import { markRoomActive, broadcastRoomMessage } from "@/features/room/lib/room-s
 function RoomVideoLayer({
   roomId,
   onEnd,
+  peerId,
+  scoreLabel,
+  myName,
 }: {
   roomId: string;
   onEnd: () => void;
+  /** Primary 1:1 peer ID (null for circle rooms). */
+  peerId: string | null;
+  scoreLabel: string | null;
+  myName: string;
 }) {
   const video = useRoomVideo(roomId);
+  const {
+    mediasoupStatus,
+    mediasoupError,
+    localMediaStream,
+    remoteMediaStream,
+    mainStageShowsScreen,
+    remotePeerCameraStream,
+    peers,
+    rtcRoomType,
+    micEnabled,
+    cameraEnabled,
+    screenSharing,
+    toggleMic,
+    toggleCamera,
+    toggleScreenShare,
+    localMediaDeviceError,
+    clearLocalMediaDeviceError,
+  } = useRtcSocketContext();
+
+  // Main stage label: prefer the matched peer, fall back to whoever is first in the RTC peer list.
+  const primaryId = peerId ?? Object.keys(peers)[0] ?? null;
+  const primaryPeer = primaryId ? peers[primaryId] : null;
+  const peerLabel = primaryPeer?.displayName ?? (primaryId ? `Peer ${primaryId.slice(0, 8)}…` : "Peer");
+  // Show initials when the peer has explicitly paused their camera (cameraActive === false).
+  const remotePeerCameraOff = primaryPeer?.cameraActive === false;
+
   return (
     <div className="fixed inset-0 z-100 flex flex-col overflow-hidden bg-background">
       <RoomVideoView
         onEnd={onEnd}
         onSkip={video.handleSkip}
         onMinimize={video.handleMinimize}
+        localStream={localMediaStream}
+        remoteStream={remoteMediaStream}
+        mainStageShowsScreen={mainStageShowsScreen}
+        remotePeerCameraStream={remotePeerCameraStream}
+        mediaStatus={mediasoupStatus}
+        mediaError={mediasoupError}
+        micEnabled={micEnabled}
+        cameraEnabled={cameraEnabled}
+        onToggleMic={toggleMic}
+        onToggleCamera={toggleCamera}
+        rtcRoomType={rtcRoomType}
+        screenSharing={screenSharing}
+        onToggleScreenShare={toggleScreenShare}
+        localMediaDeviceError={localMediaDeviceError}
+        onDismissLocalMediaDeviceError={clearLocalMediaDeviceError}
+        peerLabel={peerLabel}
+        scoreLabel={scoreLabel}
+        myName={myName}
+        remotePeerCameraOff={remotePeerCameraOff}
       />
     </div>
   );
@@ -39,23 +92,17 @@ export function RoomPage() {
   const sessionActive = useAppSelector(selectIsVideoSessionActive);
   const isMinimized = useAppSelector(selectIsRoomMinimized);
 
-  const {
-    roomId,
-    loading,
-    error,
-    peerId,
-    goHome,
-    leaveAndGoHome,
-    rtcSocket
-  } = useRoom();
+  const { roomId, loading, error, peerId, score, currentUserName, goHome, leaveAndGoHome } = useRoom();
 
-  console.log(rtcSocket ? `RTC Socket connected: ${rtcSocket.id}` : "RTC Socket not connected");
+  const myName = currentUserName ?? "You";
+  const scoreLabel =
+    score != null && String(score).length > 0 ? `${String(score)}% match` : null;
 
   // Auto-start video as soon as the peer is connected
   useEffect(() => {
     if (peerId && !sessionActive) {
       markRoomActive();
-      dispatch(startVideoSession({ roomId }));
+      dispatch(startVideoSession({ roomId, primaryRemoteUserId: peerId ?? null }));
     }
   }, [peerId, sessionActive, dispatch, roomId]);
 
@@ -89,7 +136,15 @@ export function RoomPage() {
   }
 
   if (sessionActive && !isMinimized) {
-    return <RoomVideoLayer roomId={roomId} onEnd={handleEnd} />;
+    return (
+      <RoomVideoLayer
+        roomId={roomId}
+        onEnd={handleEnd}
+        peerId={peerId}
+        scoreLabel={scoreLabel}
+        myName={myName}
+      />
+    );
   }
 
   // Minimized state — the floating dock handles UI; render nothing here

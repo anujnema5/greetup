@@ -7,6 +7,7 @@ import {
   endVideoSession,
   minimizeVideoSession,
   expandVideoSession,
+  setRtcPrimaryRemoteUserId,
 } from "@/lib/redux/slices/roomSlice";
 import {
   selectActiveRoomId,
@@ -27,11 +28,14 @@ export function useRoomUi() {
 
   const actions = useMemo(
     () => ({
-      startVideoSession: (payload?: { roomId?: string | null }) =>
-        dispatch(startVideoSession(payload)),
+      startVideoSession: (
+        payload?: { roomId?: string | null; primaryRemoteUserId?: string | null },
+      ) => dispatch(startVideoSession(payload)),
       endVideoSession: () => dispatch(endVideoSession()),
       minimizeVideoSession: () => dispatch(minimizeVideoSession()),
       expandVideoSession: () => dispatch(expandVideoSession()),
+      setRtcPrimaryRemoteUserId: (userId: string | null) =>
+        dispatch(setRtcPrimaryRemoteUserId(userId)),
     }),
     [dispatch],
   );

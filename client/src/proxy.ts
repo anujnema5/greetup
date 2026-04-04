@@ -188,11 +188,7 @@ function setSecurityHeaders(response: NextResponse): void {
   //   cspDirectives.filter(Boolean).join("; ")
   // );
 
-  // Permissions Policy
-  response.headers.set(
-    "Permissions-Policy",
-    "camera=(), microphone=(), geolocation=(), interest-cohort=()"
-  );
+  // Permissions-Policy: see `next.config.ts` (geolocation/cohort only; camera & mic omitted).
 }
 
 // ==================== CACHE MANAGEMENT ====================

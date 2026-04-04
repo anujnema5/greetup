@@ -12,8 +12,25 @@ import { expandVideoSession } from "@/lib/redux/slices/roomSlice";
 import { clearRoomMinimized } from "@/features/room/lib/room-sync";
 import { useRoomVideo } from "@/features/room/hooks/use-room-video";
 import { MOCK_MATCH } from "@/features/room/constants/mock-match";
+import {
+  hasLiveEnabledVideo,
+  hasLiveMedia,
+  hasLiveVideo,
+  useRtcSocketContext,
+} from "@/features/rtc";
+import { canUseScreenShare } from "@/features/rtc/lib/screen-share-policy";
 import { cn } from "@/lib/utils";
-import { Maximize2, PhoneOff, SkipForward, Video } from "lucide-react";
+import {
+  Maximize2,
+  Mic,
+  MicOff,
+  Monitor,
+  MonitorOff,
+  PhoneOff,
+  SkipForward,
+  Video,
+  VideoOff,
+} from "lucide-react";
 
 const DOCK_OFFSET_STORAGE = "circlo-minimized-dock-drag";
 
@@ -44,6 +61,61 @@ export function MinimizedRoomDock() {
     handleEnd: roomHandleEnd,
     handleSkip: roomHandleSkip,
   } = useRoomVideo(activeRoomId ?? "", { skipSetup: true });
+
+  const {
+    localMediaStream,
+    remoteMediaStream,
+    mainStageShowsScreen,
+    remotePeerCameraStream,
+    mediasoupStatus,
+    rtcRoomType,
+    micEnabled,
+    cameraEnabled,
+    screenSharing,
+    toggleMic,
+    toggleCamera,
+    toggleScreenShare,
+    localMediaDeviceError,
+    clearLocalMediaDeviceError,
+  } = useRtcSocketContext();
+  const mediaControlsReady = mediasoupStatus === "ready";
+  const screenShareAllowed = canUseScreenShare(rtcRoomType);
+  const remoteVideoRef = useRef<HTMLVideoElement>(null);
+  const peerCameraInsetRef = useRef<HTMLVideoElement>(null);
+  const localVideoRef = useRef<HTMLVideoElement>(null);
+
+  const remoteVideoLive = hasLiveVideo(remoteMediaStream);
+  const remoteMediaLive = hasLiveMedia(remoteMediaStream);
+  const localVideoLive = hasLiveEnabledVideo(localMediaStream);
+
+  const peerCameraInsetStream =
+    mainStageShowsScreen &&
+    remotePeerCameraStream &&
+    hasLiveVideo(remotePeerCameraStream)
+      ? remotePeerCameraStream
+      : null;
+  const peerCameraInsetLive = hasLiveVideo(peerCameraInsetStream);
+
+  useEffect(() => {
+    const el = remoteVideoRef.current;
+    if (!el) return;
+    el.srcObject = remoteMediaStream ?? null;
+    if (remoteMediaStream) void el.play().catch(() => {});
+  }, [remoteMediaStream, remoteVideoLive]);
+
+  useEffect(() => {
+    const el = localVideoRef.current;
+    if (!el) return;
+    el.srcObject = localMediaStream ?? null;
+    if (localMediaStream) void el.play().catch(() => {});
+  }, [localMediaStream, localVideoLive]);
+
+  useEffect(() => {
+    const el = peerCameraInsetRef.current;
+    if (!el) return;
+    el.srcObject = peerCameraInsetStream ?? null;
+    if (peerCameraInsetStream) void el.play().catch(() => {});
+  }, [peerCameraInsetStream, peerCameraInsetLive]);
 
   /** Full-screen room route (not floating dock). */
   const isFullRoom = pathname.startsWith("/circle/");
@@ -219,56 +291,118 @@ export function MinimizedRoomDock() {
           "h-[11rem] min-h-[11rem] sm:h-[12.75rem] sm:min-h-[12.75rem] md:h-[14rem] md:min-h-[14rem]"
         )}
       >
-        <div
-          className="absolute inset-0"
-          style={{
-            background: `linear-gradient(145deg, ${MOCK_MATCH.gradFrom}40, var(--card) 45%, ${MOCK_MATCH.gradTo}35)`,
-          }}
-        />
-        <div
-          className="pointer-events-none absolute inset-0 opacity-[0.35]"
-          style={{
-            backgroundImage:
-              "repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(255,255,255,0.03) 2px, rgba(255,255,255,0.03) 3px), repeating-linear-gradient(90deg, transparent, transparent 2px, rgba(255,255,255,0.02) 2px, rgba(255,255,255,0.02) 3px)",
-          }}
-        />
-        <div className="absolute inset-0 flex items-center justify-center">
-          <div
-            className="relative flex h-[4.75rem] w-[4.75rem] items-center justify-center rounded-full text-2xl font-bold text-white shadow-lg sm:h-[5.25rem] sm:w-[5.25rem] sm:text-[1.75rem] md:h-[5.75rem] md:w-[5.75rem] md:text-3xl"
-            style={{
-              background: `linear-gradient(135deg, ${MOCK_MATCH.gradFrom}, ${MOCK_MATCH.gradTo})`,
-              boxShadow: `0 0 36px ${MOCK_MATCH.gradFrom}66`,
-            }}
-          >
-            {MOCK_MATCH.initials}
-          </div>
-        </div>
-        <div
-          className={cn(
-            "pointer-events-none absolute overflow-hidden rounded-lg shadow-lg sm:rounded-xl",
-            "bottom-2.5 right-2.5 h-[3.5rem] w-[5rem] sm:bottom-3 sm:right-3 sm:h-[4rem] sm:w-[5.5rem] md:h-[4.25rem] md:w-[6rem]"
-          )}
-          style={{
-            border: "2px solid rgba(255,255,255,0.2)",
-            boxShadow: "0 8px 20px rgba(0,0,0,0.45)",
-          }}
-        >
-          <div
-            className="flex h-full w-full items-center justify-center"
-            style={{
-              background:
-                "linear-gradient(135deg, oklch(28% 0.04 105), oklch(18% 0.02 110))",
-            }}
-          >
+        <div className="flex h-full w-full min-w-0 flex-row overflow-hidden">
+          <div className="relative min-h-0 min-w-0 flex-1">
             <div
-              className="flex h-8 w-8 items-center justify-center rounded-full text-[11px] font-bold sm:h-9 sm:w-9 sm:text-xs"
+              className="absolute inset-0"
               style={{
-                background:
-                  "radial-gradient(circle at 40% 35%, oklch(90% 0.11 105), oklch(78% 0.10 105))",
-                color: "oklch(22% 0.03 110)",
+                background: `linear-gradient(145deg, ${MOCK_MATCH.gradFrom}40, var(--card) 45%, ${MOCK_MATCH.gradTo}35)`,
               }}
+            />
+            <div
+              className="pointer-events-none absolute inset-0 opacity-[0.35]"
+              style={{
+                backgroundImage:
+                  "repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(255,255,255,0.03) 2px, rgba(255,255,255,0.03) 3px), repeating-linear-gradient(90deg, transparent, transparent 2px, rgba(255,255,255,0.02) 2px, rgba(255,255,255,0.02) 3px)",
+              }}
+            />
+            {remoteMediaLive ? (
+              <video
+                ref={remoteVideoRef}
+                playsInline
+                autoPlay
+                className={cn(
+                  remoteVideoLive
+                    ? "pointer-events-none absolute inset-0 h-full w-full"
+                    : "pointer-events-none absolute h-px w-px overflow-hidden opacity-0",
+                  remoteVideoLive &&
+                    (mainStageShowsScreen ? "bg-black object-contain" : "object-cover"),
+                )}
+              />
+            ) : null}
+            {!remoteVideoLive && (
+              <div className="absolute inset-0 flex items-center justify-center">
+                <div
+                  className="relative flex h-[4.75rem] w-[4.75rem] items-center justify-center rounded-full text-2xl font-bold text-white shadow-lg sm:h-[5.25rem] sm:w-[5.25rem] sm:text-[1.75rem] md:h-[5.75rem] md:w-[5.75rem] md:text-3xl"
+                  style={{
+                    background: `linear-gradient(135deg, ${MOCK_MATCH.gradFrom}, ${MOCK_MATCH.gradTo})`,
+                    boxShadow: `0 0 36px ${MOCK_MATCH.gradFrom}66`,
+                  }}
+                >
+                  {MOCK_MATCH.initials}
+                </div>
+              </div>
+            )}
+          </div>
+          {peerCameraInsetStream ? (
+            <div
+              className="flex w-[26%] max-w-[5.5rem] shrink-0 flex-col border-l border-white/15 bg-black/40"
+              aria-label="Peer camera"
             >
-              A
+              <div className="px-0.5 py-0.5 text-center">
+                <span className="text-[7px] font-medium text-white/55">Peer</span>
+              </div>
+              <div className="relative min-h-0 flex-1 overflow-hidden">
+                {peerCameraInsetLive ? (
+                  <video
+                    ref={peerCameraInsetRef}
+                    playsInline
+                    autoPlay
+                    className="pointer-events-none h-full w-full object-cover"
+                  />
+                ) : (
+                  <div
+                    className="flex h-full w-full items-center justify-center"
+                    style={{
+                      background:
+                        "linear-gradient(135deg, oklch(28% 0.04 105), oklch(18% 0.02 110))",
+                    }}
+                  >
+                    <span className="text-[7px] text-white/40">—</span>
+                  </div>
+                )}
+              </div>
+            </div>
+          ) : null}
+          <div
+            className={cn(
+              "flex shrink-0 flex-col border-l border-white/15 bg-black/40",
+              peerCameraInsetStream ? "w-[26%] max-w-[5.5rem]" : "w-[30%] max-w-[6.5rem]",
+            )}
+            aria-label="Your camera"
+          >
+            <div className="px-1 py-0.5 text-center">
+              <span className="text-[8px] font-medium text-white/55">You</span>
+            </div>
+            <div className="relative min-h-0 flex-1 overflow-hidden">
+              {localVideoLive ? (
+                <video
+                  ref={localVideoRef}
+                  playsInline
+                  autoPlay
+                  muted
+                  className="pointer-events-none h-full w-full object-cover"
+                />
+              ) : (
+                <div
+                  className="flex h-full w-full items-center justify-center"
+                  style={{
+                    background:
+                      "linear-gradient(135deg, oklch(28% 0.04 105), oklch(18% 0.02 110))",
+                  }}
+                >
+                  <div
+                    className="flex h-7 w-7 items-center justify-center rounded-full text-[9px] font-bold sm:h-8 sm:w-8 sm:text-[10px]"
+                    style={{
+                      background:
+                        "radial-gradient(circle at 40% 35%, oklch(90% 0.11 105), oklch(78% 0.10 105))",
+                      color: "oklch(22% 0.03 110)",
+                    }}
+                  >
+                    You
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -283,6 +417,77 @@ export function MinimizedRoomDock() {
             </p>
           </div>
           <div className="pointer-events-auto flex shrink-0 items-center gap-1 sm:gap-1.5">
+            <button
+              type="button"
+              aria-label={micEnabled ? "Mute" : "Unmute"}
+              title={micEnabled ? "Mute" : "Unmute"}
+              disabled={!mediaControlsReady}
+              onClick={toggleMic}
+              onPointerDown={(e) => e.stopPropagation()}
+              className={cn(
+                "flex h-8 w-8 shrink-0 cursor-pointer items-center justify-center rounded-full text-white/90 hover:bg-white/10 sm:h-9 sm:w-9",
+                !mediaControlsReady && "cursor-not-allowed opacity-40 hover:bg-transparent",
+              )}
+              style={{
+                background: "rgba(0,0,0,0.5)",
+                border: "1px solid rgba(255,255,255,0.12)",
+                backdropFilter: "blur(6px)",
+              }}
+            >
+              {micEnabled ? (
+                <Mic size={15} strokeWidth={2} className="sm:h-4 sm:w-4" />
+              ) : (
+                <MicOff size={15} strokeWidth={2} className="sm:h-4 sm:w-4 text-amber-200" />
+              )}
+            </button>
+            <button
+              type="button"
+              aria-label={cameraEnabled ? "Stop video" : "Start video"}
+              title={cameraEnabled ? "Stop video" : "Start video"}
+              disabled={!mediaControlsReady}
+              onClick={toggleCamera}
+              onPointerDown={(e) => e.stopPropagation()}
+              className={cn(
+                "flex h-8 w-8 shrink-0 cursor-pointer items-center justify-center rounded-full text-white/90 hover:bg-white/10 sm:h-9 sm:w-9",
+                !mediaControlsReady && "cursor-not-allowed opacity-40 hover:bg-transparent",
+              )}
+              style={{
+                background: "rgba(0,0,0,0.5)",
+                border: "1px solid rgba(255,255,255,0.12)",
+                backdropFilter: "blur(6px)",
+              }}
+            >
+              {cameraEnabled ? (
+                <Video size={15} strokeWidth={2} className="sm:h-4 sm:w-4" />
+              ) : (
+                <VideoOff size={15} strokeWidth={2} className="sm:h-4 sm:w-4 text-amber-200" />
+              )}
+            </button>
+            {screenShareAllowed ? (
+              <button
+                type="button"
+                aria-label={screenSharing ? "Stop sharing" : "Share screen"}
+                title={screenSharing ? "Stop sharing" : "Share screen"}
+                disabled={!mediaControlsReady}
+                onClick={toggleScreenShare}
+                onPointerDown={(e) => e.stopPropagation()}
+                className={cn(
+                  "flex h-8 w-8 shrink-0 cursor-pointer items-center justify-center rounded-full text-white/90 hover:bg-white/10 sm:h-9 sm:w-9",
+                  !mediaControlsReady && "cursor-not-allowed opacity-40 hover:bg-transparent",
+                )}
+                style={{
+                  background: "rgba(0,0,0,0.5)",
+                  border: "1px solid rgba(255,255,255,0.12)",
+                  backdropFilter: "blur(6px)",
+                }}
+              >
+                {screenSharing ? (
+                  <Monitor size={15} strokeWidth={2} className="sm:h-4 sm:w-4" />
+                ) : (
+                  <MonitorOff size={15} strokeWidth={2} className="sm:h-4 sm:w-4 text-amber-200" />
+                )}
+              </button>
+            ) : null}
             <div
               className="rounded-full px-2 py-0.5 font-mono text-[11px] font-semibold text-white/85"
               style={{
@@ -315,6 +520,24 @@ export function MinimizedRoomDock() {
           </span>
         </div>
       </div>
+
+      {localMediaDeviceError ? (
+        <div
+          className="flex items-center justify-between gap-2 border-t border-amber-500/25 bg-amber-950/80 px-2.5 py-1.5 sm:px-3"
+          role="alert"
+        >
+          <p className="min-w-0 flex-1 text-[10px] leading-snug text-amber-100/95 sm:text-[11px]">
+            {localMediaDeviceError}
+          </p>
+          <button
+            type="button"
+            onClick={clearLocalMediaDeviceError}
+            className="shrink-0 text-[10px] font-medium text-amber-200 underline-offset-2 hover:underline sm:text-[11px]"
+          >
+            Dismiss
+          </button>
+        </div>
+      ) : null}
 
       <div className="flex items-center justify-center gap-3 border-t border-white/10 px-2.5 py-3 sm:gap-3 sm:px-4 sm:py-3.5">
         <button
