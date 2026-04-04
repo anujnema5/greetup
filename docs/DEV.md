@@ -21,13 +21,13 @@ In a terminal:
 
 ```bash
 cd server
-cp .env.example .env   # first time only; fill in secrets
-npm install
-npm run dev
+cp env/.env.example env/.env.development   # first time only; fill in secrets
+bun install
+bun run dev
 ```
 
 - API: `http://localhost:5050`
-- Ensure `server/.env` has:
+- Ensure `server/env/.env.development` (or the env file you load) has:
   - `DATABASE_URL=postgresql://postgres:postgres@localhost:25432/circlo_db`
   - `REDIS_URL=redis://localhost:16379`
 

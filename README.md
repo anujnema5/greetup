@@ -7,7 +7,7 @@ Monorepo for Circlo application services.
 | Service | Tech | Role |
 |---|---|---|
 | `client` | Next.js | Frontend app |
-| `server` | Hono / Node.js | Main API, auth, realtime orchestration |
+| `server` | Hono / Bun | Main API, auth, realtime orchestration |
 | `matching-service` | Bun | Async matchmaking microservice |
 | `rtc-service` | Node.js + mediasoup | WebRTC SFU for peer video/audio |
 | `docs` | — | Architecture and developer notes |
@@ -24,7 +24,7 @@ Monorepo for Circlo application services.
              │  REST / WebSocket                  │  WebRTC (SFU)
              ▼                                    ▼
 ┌────────────────────────┐           ┌────────────────────────────┐
-│   SERVER (Hono/Node)   │           │  RTC-SERVICE (mediasoup)   │
+│   SERVER (Hono/Bun)    │           │  RTC-SERVICE (mediasoup)   │
 │   http://localhost:5050│           │  http://localhost:3001      │
 │                        │           │                            │
 │  - Auth (JWT/sessions) │           │  - SFU via mediasoup       │
@@ -100,7 +100,7 @@ A Selective Forwarding Unit receives each peer's media stream once and forwards 
                        │  HTTPS + session cookie
                        ▼
 ┌──────────────────────────────────────────────────────────────┐
-│  SERVER — Hono/Node.js  (Protected zone)                    │
+│  SERVER — Hono/Bun  (Protected zone)                          │
 │  - authMiddleware:     validates session via PostgreSQL      │
 │  - internalMiddleware: validates x-internal-api-key header  │
 │  - /api/*      → public-facing, session-protected           │
@@ -203,7 +203,7 @@ All request bodies are parsed with **Zod** schemas before reaching handlers. Val
 ```
 circlo/
   client/               # Next.js app
-  server/               # Hono/Node backend
+  server/               # Hono/Bun backend
   matching-service/     # Bun matchmaking microservice
   rtc-service/          # mediasoup SFU
   docs/                 # Design + dev docs
@@ -220,8 +220,8 @@ circlo/
 
 ## Prerequisites
 
-- Node.js + npm (for `client`, `server`, `rtc-service`)
-- Bun (for `matching-service`)
+- Bun (for `server`, `matching-service`)
+- Node.js + npm (for `client`, `rtc-service`)
 - Docker Desktop (recommended for Postgres and Redis locally)
 
 ---
@@ -246,9 +246,9 @@ Default exposed ports:
 ```bash
 cd server
 cp env/.env.example env/.env.development   # set DATABASE_URL and secrets
-npm install
-npm run db:migrate      # apply Drizzle migrations (required for a fresh DB)
-npm run dev
+bun install
+bun run db:migrate      # apply Drizzle migrations (required for a fresh DB)
+bun run dev
 # → http://localhost:5050
 ```
 
@@ -324,10 +324,10 @@ Clients connect directly to `rtc-service` for WebRTC signalling after `server` p
 ## Useful scripts
 
 ### `server`
-- `npm run dev`
-- `npm run db:generate`
-- `npm run db:migrate`
-- `npm run db:seed`
+- `bun run dev`
+- `bun run db:generate`
+- `bun run db:migrate`
+- `bun run db:seed`
 
 ### `client`
 - `npm run dev`
