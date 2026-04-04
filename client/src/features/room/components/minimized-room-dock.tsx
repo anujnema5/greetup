@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useCallback, useRef } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { useAppDispatch, useAppSelector } from "@/lib/redux/hooks";
 import {
@@ -10,6 +10,7 @@ import {
 } from "@/lib/redux/selectors/room-selectors";
 import { expandVideoSession } from "@/lib/redux/slices/roomSlice";
 import { clearRoomMinimized } from "@/features/room/lib/room-sync";
+import { useGetRoomQuery, isCircleRoomData } from "@/features/matching";
 import { useRoomVideo } from "@/features/room/hooks/use-room-video";
 import { MOCK_MATCH } from "@/features/room/constants/mock-match";
 import {
@@ -31,23 +32,13 @@ import {
   Video,
   VideoOff,
 } from "lucide-react";
-
-const DOCK_OFFSET_STORAGE = "circlo-minimized-dock-drag";
-
-function clampDragToViewport(
-  el: HTMLElement,
-  drag: { x: number; y: number }
-): { x: number; y: number } {
-  const r = el.getBoundingClientRect();
-  const m = 8;
-  let { x, y } = drag;
-  if (r.left < m) x += m - r.left;
-  if (r.top < m) y += m - r.top;
-  if (r.right > window.innerWidth - m) x -= r.right - (window.innerWidth - m);
-  if (r.bottom > window.innerHeight - m)
-    y -= r.bottom - (window.innerHeight - m);
-  return { x, y };
-}
+import { useAttachMediaStream } from "@/features/room/hooks/use-attach-media-stream";
+import { useCallElapsedSeconds } from "@/features/room/hooks/use-call-elapsed-seconds";
+import {
+  MINIMIZED_DOCK_OFFSET_STORAGE_KEY,
+  useMinimizedDockDrag,
+} from "@/features/room/hooks/use-minimized-dock-drag";
+import { formatCallDuration } from "@/features/room/lib/format-call-duration";
 
 export function MinimizedRoomDock() {
   const router = useRouter();
@@ -57,10 +48,15 @@ export function MinimizedRoomDock() {
   const isMinimized = useAppSelector(selectIsRoomMinimized);
   const activeRoomId = useAppSelector(selectActiveRoomId);
 
-  const {
-    handleEnd: roomHandleEnd,
-    handleSkip: roomHandleSkip,
-  } = useRoomVideo(activeRoomId ?? "", { skipSetup: true });
+  const { data: dockRoomMeta } = useGetRoomQuery(activeRoomId ?? "", {
+    skip: !activeRoomId || !isActive,
+  });
+  const dockSessionIsCircle = Boolean(dockRoomMeta && isCircleRoomData(dockRoomMeta));
+
+  const { handleEnd: roomHandleEnd, handleSkip: roomHandleSkip } = useRoomVideo(
+    activeRoomId ?? "",
+    { skipSetup: true },
+  );
 
   const {
     localMediaStream,
@@ -78,6 +74,7 @@ export function MinimizedRoomDock() {
     localMediaDeviceError,
     clearLocalMediaDeviceError,
   } = useRtcSocketContext();
+
   const mediaControlsReady = mediasoupStatus === "ready";
   const screenShareAllowed = canUseScreenShare(rtcRoomType);
   const remoteVideoRef = useRef<HTMLVideoElement>(null);
@@ -89,111 +86,25 @@ export function MinimizedRoomDock() {
   const localVideoLive = hasLiveEnabledVideo(localMediaStream);
 
   const peerCameraInsetStream =
-    mainStageShowsScreen &&
-    remotePeerCameraStream &&
-    hasLiveVideo(remotePeerCameraStream)
+    mainStageShowsScreen && remotePeerCameraStream && hasLiveVideo(remotePeerCameraStream)
       ? remotePeerCameraStream
       : null;
   const peerCameraInsetLive = hasLiveVideo(peerCameraInsetStream);
 
-  useEffect(() => {
-    const el = remoteVideoRef.current;
-    if (!el) return;
-    el.srcObject = remoteMediaStream ?? null;
-    if (remoteMediaStream) void el.play().catch(() => {});
-  }, [remoteMediaStream, remoteVideoLive]);
+  useAttachMediaStream(remoteVideoRef, remoteMediaStream ?? null, remoteVideoLive);
+  useAttachMediaStream(localVideoRef, localMediaStream ?? null, localVideoLive);
+  useAttachMediaStream(peerCameraInsetRef, peerCameraInsetStream, peerCameraInsetLive);
 
-  useEffect(() => {
-    const el = localVideoRef.current;
-    if (!el) return;
-    el.srcObject = localMediaStream ?? null;
-    if (localMediaStream) void el.play().catch(() => {});
-  }, [localMediaStream, localVideoLive]);
-
-  useEffect(() => {
-    const el = peerCameraInsetRef.current;
-    if (!el) return;
-    el.srcObject = peerCameraInsetStream ?? null;
-    if (peerCameraInsetStream) void el.play().catch(() => {});
-  }, [peerCameraInsetStream, peerCameraInsetLive]);
-
-  /** Full-screen room route (not floating dock). */
   const isFullRoom = pathname.startsWith("/circle/");
-
   const visible = isActive && isMinimized && !isFullRoom;
 
   const cardRef = useRef<HTMLDivElement>(null);
-  /** Drag offset — updated imperatively during move (no React re-render). */
-  const posRef = useRef({ x: 0, y: 0 });
-  const dragSession = useRef<{ lastX: number; lastY: number } | null>(null);
-
-  const applyTransform = useCallback(() => {
-    const el = cardRef.current;
-    if (!el) return;
-    const { x, y } = posRef.current;
-    el.style.transform = `translate(${x}px, ${y}px)`;
-  }, []);
-
-  const clampAndApply = useCallback(() => {
-    const el = cardRef.current;
-    if (!el) return;
-    const { x, y } = posRef.current;
-    el.style.transform = `translate(${x}px, ${y}px)`;
-    const c = clampDragToViewport(el, { x, y });
-    posRef.current = c;
-    el.style.transform = `translate(${c.x}px, ${c.y}px)`;
-  }, []);
-
-  const [elapsed, setElapsed] = useState(0);
-  useEffect(() => {
-    if (!visible) return;
-    const t = setInterval(() => setElapsed((s) => s + 1), 1000);
-    return () => clearInterval(t);
-  }, [visible]);
-
-  useLayoutEffect(() => {
-    if (!visible) return;
-    const el = cardRef.current;
-    if (!el) return;
-    try {
-      const raw = sessionStorage.getItem(DOCK_OFFSET_STORAGE);
-      if (raw) {
-        const p = JSON.parse(raw) as { x?: number; y?: number };
-        if (typeof p.x === "number" && typeof p.y === "number") {
-          posRef.current = { x: p.x, y: p.y };
-        } else {
-          posRef.current = { x: 0, y: 0 };
-        }
-      } else {
-        posRef.current = { x: 0, y: 0 };
-      }
-    } catch {
-      posRef.current = { x: 0, y: 0 };
-    }
-    applyTransform();
-    clampAndApply();
-  }, [visible, applyTransform, clampAndApply]);
-
-  /** Re-apply transform after any re-render so React's inline `style` never drops it (e.g. timer tick). */
-  useLayoutEffect(() => {
-    if (!visible) return;
-    applyTransform();
-  }, [visible, applyTransform, elapsed]);
-
-  useEffect(() => {
-    if (!visible) return;
-    const onResize = () => {
-      clampAndApply();
-      try {
-        sessionStorage.setItem(
-          DOCK_OFFSET_STORAGE,
-          JSON.stringify(posRef.current)
-        );
-      } catch { }
-    };
-    window.addEventListener("resize", onResize);
-    return () => window.removeEventListener("resize", onResize);
-  }, [visible, clampAndApply]);
+  const elapsed = useCallElapsedSeconds(visible);
+  const { onDragPointerDown, onDragPointerMove, onDragPointerUp } = useMinimizedDockDrag(
+    cardRef,
+    visible,
+    elapsed,
+  );
 
   const handleExpand = useCallback(() => {
     dispatch(expandVideoSession());
@@ -205,62 +116,23 @@ export function MinimizedRoomDock() {
     }
   }, [dispatch, router, activeRoomId]);
 
-  const handleEnd = useCallback(() => {
+  const clearDockOffset = useCallback(() => {
     try {
-      sessionStorage.removeItem(DOCK_OFFSET_STORAGE);
-    } catch { }
-    roomHandleEnd();
-  }, [roomHandleEnd]);
-
-  const handleSkip = useCallback(() => {
-    try {
-      sessionStorage.removeItem(DOCK_OFFSET_STORAGE);
-    } catch { }
-    roomHandleSkip();
-  }, [roomHandleSkip]);
-
-  const fmt = (s: number) =>
-    `${String(Math.floor(s / 60)).padStart(2, "0")}:${String(s % 60).padStart(2, "0")}`;
-
-  const onDragPointerDown = useCallback((e: React.PointerEvent) => {
-    if (e.button !== 0) return;
-    e.preventDefault();
-    (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
-    dragSession.current = { lastX: e.clientX, lastY: e.clientY };
+      sessionStorage.removeItem(MINIMIZED_DOCK_OFFSET_STORAGE_KEY);
+    } catch {
+      /* ignore */
+    }
   }, []);
 
-  const onDragPointerMove = useCallback(
-    (e: React.PointerEvent) => {
-      if (!dragSession.current) return;
-      const dx = e.clientX - dragSession.current.lastX;
-      const dy = e.clientY - dragSession.current.lastY;
-      dragSession.current.lastX = e.clientX;
-      dragSession.current.lastY = e.clientY;
-      posRef.current.x += dx;
-      posRef.current.y += dy;
-      applyTransform();
-      clampAndApply();
-    },
-    [applyTransform, clampAndApply]
-  );
+  const handleEnd = useCallback(() => {
+    clearDockOffset();
+    roomHandleEnd();
+  }, [roomHandleEnd, clearDockOffset]);
 
-  const onDragPointerUp = useCallback(
-    (e: React.PointerEvent) => {
-      if (!dragSession.current) return;
-      dragSession.current = null;
-      try {
-        (e.currentTarget as HTMLElement).releasePointerCapture(e.pointerId);
-      } catch { }
-      clampAndApply();
-      try {
-        sessionStorage.setItem(
-          DOCK_OFFSET_STORAGE,
-          JSON.stringify(posRef.current)
-        );
-      } catch { }
-    },
-    [clampAndApply]
-  );
+  const handleSkip = useCallback(() => {
+    clearDockOffset();
+    roomHandleSkip();
+  }, [roomHandleSkip, clearDockOffset]);
 
   if (!visible) return null;
 
@@ -271,15 +143,13 @@ export function MinimizedRoomDock() {
         "fixed z-200 flex max-h-[min(92dvh,calc(100vh-1rem))] flex-col overflow-hidden rounded-2xl border border-border bg-card shadow-2xl max-md:rounded-xl",
         "w-[min(25rem,calc(100vw-1.25rem))]",
         "max-md:bottom-[5.25rem] max-md:right-3",
-        "md:bottom-4 md:right-4"
+        "md:bottom-4 md:right-4",
       )}
       style={{
-        boxShadow:
-          "0 16px 48px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.06)",
+        boxShadow: "0 16px 48px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.06)",
         touchAction: "manipulation",
       }}
     >
-      {/* Video area: drag here; default cursor; direct DOM transform while moving */}
       <div
         aria-label="Move call window"
         onPointerDown={onDragPointerDown}
@@ -288,7 +158,7 @@ export function MinimizedRoomDock() {
         onPointerCancel={onDragPointerUp}
         className={cn(
           "relative w-full shrink-0 cursor-default overflow-hidden select-none touch-none",
-          "h-[11rem] min-h-[11rem] sm:h-[12.75rem] sm:min-h-[12.75rem] md:h-[14rem] md:min-h-[14rem]"
+          "h-[11rem] min-h-[11rem] sm:h-[12.75rem] sm:min-h-[12.75rem] md:h-[14rem] md:min-h-[14rem]",
         )}
       >
         <div className="flex h-full w-full min-w-0 flex-row overflow-hidden">
@@ -411,7 +281,6 @@ export function MinimizedRoomDock() {
           style={{ userSelect: "none" }}
         >
           <div className="flex min-w-0 items-center gap-2">
-
             <p className="truncate text-xs font-semibold text-white sm:text-[13px]">
               {MOCK_MATCH.name}
             </p>
@@ -495,7 +364,7 @@ export function MinimizedRoomDock() {
                 border: "1px solid rgba(255,255,255,0.12)",
               }}
             >
-              {fmt(elapsed)}
+              {formatCallDuration(elapsed)}
             </div>
             <button
               type="button"
@@ -515,9 +384,7 @@ export function MinimizedRoomDock() {
         </div>
         <div className="pointer-events-none absolute bottom-2 left-2.5 flex items-center gap-1.5 rounded-md bg-black/35 px-2 py-1 backdrop-blur-sm sm:bottom-2.5 sm:left-3">
           <Video size={11} className="text-white/70" />
-          <span className="text-[9px] font-medium text-white/65 sm:text-[10px]">
-            Video
-          </span>
+          <span className="text-[9px] font-medium text-white/65 sm:text-[10px]">Video</span>
         </div>
       </div>
 
@@ -540,14 +407,16 @@ export function MinimizedRoomDock() {
       ) : null}
 
       <div className="flex items-center justify-center gap-3 border-t border-white/10 px-2.5 py-3 sm:gap-3 sm:px-4 sm:py-3.5">
-        <button
-          type="button"
-          onClick={handleSkip}
-          className="flex min-h-[44px] min-w-[6.5rem] shrink-0 flex-col items-center justify-center gap-1 rounded-xl border border-white/15 bg-white/5 px-4 py-1.5 text-white/85 hover:bg-white/10 sm:min-h-0 sm:flex-row sm:gap-2 sm:px-5 sm:py-2.5"
-        >
-          <SkipForward size={18} className="shrink-0 sm:size-[18px]" />
-          <span className="text-[10px] font-medium sm:text-xs">Skip</span>
-        </button>
+        {rtcRoomType !== "circle" && !dockSessionIsCircle ? (
+          <button
+            type="button"
+            onClick={handleSkip}
+            className="flex min-h-[44px] min-w-[6.5rem] shrink-0 flex-col items-center justify-center gap-1 rounded-xl border border-white/15 bg-white/5 px-4 py-1.5 text-white/85 hover:bg-white/10 sm:min-h-0 sm:flex-row sm:gap-2 sm:px-5 sm:py-2.5"
+          >
+            <SkipForward size={18} className="shrink-0 sm:size-[18px]" />
+            <span className="text-[10px] font-medium sm:text-xs">Skip</span>
+          </button>
+        ) : null}
         <button
           type="button"
           onClick={handleEnd}

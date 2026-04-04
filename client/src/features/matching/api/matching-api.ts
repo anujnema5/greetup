@@ -12,6 +12,12 @@ type RoomGetApiResponse = {
   message?: string;
 };
 
+type JoinRoomApiResponse = {
+  success: boolean;
+  data?: unknown;
+  message?: string;
+};
+
 /** Fire-and-forget for tab close / refresh; session cookie identifies the user. */
 export function leaveRoomKeepalive(): void {
   if (typeof window === "undefined") return;
@@ -54,6 +60,22 @@ export const matchingApi = baseApi.injectEndpoints({
         return parseRoomData(response.data);
       },
     }),
+    /**
+     * POST `/room/:roomId/join` — ensure `room_participants` row so RTC token can be issued
+     * (direct match + circles).
+     */
+    joinRoom: build.mutation<void, string>({
+      query: (roomId) => ({
+        url: ROOM.join(roomId),
+        method: "POST",
+      }),
+      transformResponse: (response: JoinRoomApiResponse): void => {
+        if (!response.success) {
+          throw new Error(response.message ?? "Could not join room");
+        }
+      },
+      invalidatesTags: (_r, _e, roomId) => [{ type: "RtcToken", id: roomId }],
+    }),
   }),
 });
 
@@ -62,4 +84,5 @@ export const {
   useCancelMatchMutation,
   useLeaveRoomMutation,
   useGetRoomQuery,
+  useJoinRoomMutation,
 } = matchingApi;

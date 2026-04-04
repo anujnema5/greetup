@@ -1,6 +1,7 @@
 "use client";
 
-import { memo } from "react";
+import { memo, useCallback } from "react";
+import { useRouter } from "next/navigation";
 import { ChevronRight, Users } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useListActiveCirclesQuery } from "../api/circles-api";
@@ -32,9 +33,11 @@ function hostLabel(host: ActiveCircleItem["host"]) {
 function CircleCard({
   circle,
   badge,
+  onJoin,
 }: {
   circle: ActiveCircleItem;
   badge?: React.ReactNode;
+  onJoin: (circle: ActiveCircleItem) => void;
 }) {
   const cover = coverFor(circle.id);
   const isLive = circle.status === "live";
@@ -44,9 +47,11 @@ function CircleCard({
     : null;
 
   return (
-    <div
+    <button
+      type="button"
+      onClick={() => onJoin(circle)}
       className={cn(
-        "group relative flex-none w-36 md:w-auto h-44 rounded-2xl overflow-hidden cursor-pointer transition-all duration-300 bg-linear-to-br",
+        "group relative flex-none w-36 md:w-auto h-44 rounded-2xl overflow-hidden cursor-pointer transition-all duration-300 bg-linear-to-br text-left border-0 p-0 font-inherit",
         cover,
       )}
       style={{ boxShadow: "0 1px 0 0 rgba(255,255,255,0.08) inset, 0 4px 20px rgba(0,0,0,0.4)" }}
@@ -93,19 +98,24 @@ function CircleCard({
       </div>
 
       {/* Join hover */}
-      <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+      <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none">
         <span className="text-[11px] font-semibold text-white bg-white/15 border border-white/20 rounded-full px-3.5 py-1 backdrop-blur-sm shadow-lg">
-          Join →
+          {isLive ? "Join →" : "Open"}
         </span>
       </div>
-    </div>
+    </button>
   );
 }
 
 // ─── Section row (horizontal scroll on mobile, grid on desktop) ──────────────
-function CircleRow({ items, renderBadge }: {
+function CircleRow({
+  items,
+  renderBadge,
+  onJoinCircle,
+}: {
   items: ActiveCircleItem[];
   renderBadge?: (item: ActiveCircleItem) => React.ReactNode;
+  onJoinCircle: (circle: ActiveCircleItem) => void;
 }) {
   if (items.length === 0) return null;
   return (
@@ -118,6 +128,7 @@ function CircleRow({ items, renderBadge }: {
           key={c.id}
           circle={c}
           badge={renderBadge?.(c)}
+          onJoin={onJoinCircle}
         />
       ))}
     </div>
@@ -153,7 +164,15 @@ function SkeletonRow({ count = 5 }: { count?: number }) {
 
 // ─── Main component ───────────────────────────────────────────────────────────
 function CirclesGridInner() {
+  const router = useRouter();
   const { data, isLoading } = useListActiveCirclesQuery({}, { refetchOnMountOrArgChange: true });
+
+  const goToCircleRoom = useCallback(
+    (circle: ActiveCircleItem) => {
+      router.push(`/circle/${circle.id}`);
+    },
+    [router],
+  );
 
   const apiData = data?.data;
   const friendInvited = apiData?.friendInvited ?? [];
@@ -189,6 +208,7 @@ function CirclesGridInner() {
       ) : (
         <CircleRow
           items={allItems}
+          onJoinCircle={goToCircleRoom}
           renderBadge={(c) => {
             if (friendInvited.find((f) => f.id === c.id)) return FriendBadge;
             if (joined.find((j) => j.id === c.id)) return JoinedBadge;

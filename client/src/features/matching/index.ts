@@ -12,6 +12,7 @@ export {
   useCancelMatchMutation,
   useLeaveRoomMutation,
   useGetRoomQuery,
+  useJoinRoomMutation,
   leaveRoomKeepalive,
 } from "./api/matching-api";
 export type * from "./types";

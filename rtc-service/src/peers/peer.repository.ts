@@ -7,7 +7,6 @@ import type { PeerRecord } from "@/peers/peer.types";
 export async function savePeer(record: PeerRecord): Promise<void> {
   const redis = getRedis();
   const key = Keys.peer(record.id);
-  // One field per HSET — Redis <4 rejects multi-field `HSET k f1 v1 f2 v2` (ioredis object form).
   const pipe = redis.pipeline();
   pipe.hset(key, "roomId", record.roomId);
   pipe.hset(key, "joinedAt", record.joinedAt);

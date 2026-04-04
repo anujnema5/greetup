@@ -31,7 +31,8 @@ export {
 export { MOCK_MATCH } from "./constants/mock-match";
 export { MATCHMAKING_HUB_PATH, DIRECT_CALL_PEER_LEFT_DEBOUNCE_MS } from "./constants/call-flow";
 export { RoomVideoView } from "./components/room-video-view";
-export type { RoomVideoViewProps } from "./components/room-video-view";
+export type { RoomVideoViewProps } from "./types/room-video-view.types";
+export { RoomVideoLayer } from "./components/room-video-layer";
 export { MinimizedRoomDock } from "./components/minimized-room-dock";
 export { RoomMinimizedHydration } from "./components/room-minimized-hydration";
 export { DirectCallPartnerDisconnectHandler } from "./components/direct-call-partner-disconnect-handler";

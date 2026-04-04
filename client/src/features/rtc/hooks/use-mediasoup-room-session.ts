@@ -34,8 +34,16 @@ import type {
  * Does not call `getUserMedia` — that lives in {@link useMediasoupLocalMedia}.
  */
 export function useMediasoupRoomSession(options: MediasoupRoomSessionOptions): void {
-  const { enabled, rtcSocket, rtcSocketState, rtcRoomId, localDisplayName, cleanupLocalScreenShareRef, refs, set } =
-    options;
+  const {
+    enabled,
+    rtcSocket,
+    rtcSocketState,
+    rtcRoomId,
+    localDisplayName,
+    cleanupLocalScreenShareRef,
+    refs,
+    set
+  } = options;
 
   useEffect(() => {
     if (!enabled) {

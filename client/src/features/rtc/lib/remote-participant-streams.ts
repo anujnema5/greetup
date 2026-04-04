@@ -62,6 +62,24 @@ export function remoteParticipantsFromRecord(
 }
 
 /**
+ * Circle / group gallery: include everyone in the signaling roster, not only peers who already
+ * have consumed tracks. Otherwise both sides see “waiting” while camera/mic are still off.
+ */
+export function mergeGroupGalleryParticipants(
+  peers: Record<string, RemotePeer>,
+  withStreams: RemoteParticipant[],
+): RemoteParticipant[] {
+  const streamByPeerId = new Map(withStreams.map((p) => [p.peer.peerId, p.stream]));
+  const ids = sortPeerIds([
+    ...new Set([...Object.keys(peers), ...withStreams.map((p) => p.peer.peerId)]),
+  ]);
+  return ids.map((peerId) => ({
+    peer: peers[peerId] ?? { peerId },
+    stream: streamByPeerId.get(peerId) ?? new MediaStream(),
+  }));
+}
+
+/**
  * Stream for the main remote tile: explicit focus id, else sole remote, else first stable order.
  * For true gallery mode, bind one `<video>` per {@link remoteParticipantsFromRecord} entry instead.
  */

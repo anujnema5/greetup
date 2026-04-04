@@ -19,6 +19,7 @@ import {
 } from "../services/start-room-session.service";
 import { roomsRepository } from "../repositories/rooms.repository";
 import { issueRtcTokenService, IssueRtcTokenError } from "../services/issue-rtc-token.service";
+import { joinRoomService, JoinRoomError } from "../services/join-room.service";
 
 /**
  * GET /api/room/:roomId/rtc-token
@@ -146,6 +147,40 @@ export const handleStartRoomSession = async (c: Context) => {
       );
     }
     logger.error("Failed to start room session", { error });
+    return internalError(c, error);
+  }
+};
+
+/**
+ * POST /api/room/:roomId/join
+ * Ensures the user is in `room_participants` so they can obtain an RTC token (direct match + circles).
+ */
+export const handleJoinRoom = async (c: Context) => {
+  const roomId = c.req.param("roomId");
+  const userId = c.get("userId") as string;
+
+  if (!roomId) {
+    return c.json(
+      ApiResponse.error({ message: "roomId is required", statusCode: 400, code: "VALIDATION_ERROR" }),
+      400,
+    );
+  }
+
+  try {
+    await joinRoomService(userId, roomId);
+    return c.json(ApiResponse.success({ roomId }, "Joined room", 200), 200);
+  } catch (error: unknown) {
+    if (error instanceof JoinRoomError) {
+      return c.json(
+        ApiResponse.error({
+          message: error.message,
+          statusCode: error.statusCode,
+          code: error.code,
+        }),
+        error.statusCode as 400 | 403 | 404,
+      );
+    }
+    logger.error("Join room error", { error });
     return internalError(c, error);
   }
 };

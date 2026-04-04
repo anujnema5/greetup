@@ -20,7 +20,11 @@ export const roomsRepository = {
 
   async isUserRoomParticipant(roomId: string, userId: string) {
     const row = await db.query.roomParticipants.findFirst({
-      where: and(eq(roomParticipants.roomId, roomId), eq(roomParticipants.userId, userId)),
+      where: and(
+        eq(roomParticipants.roomId, roomId),
+        eq(roomParticipants.userId, userId),
+        isNull(roomParticipants.leftAt),
+      ),
       columns: { id: true },
     });
     return !!row;

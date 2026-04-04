@@ -1,6 +1,5 @@
 "use client";
 
-import { useState, useEffect, useRef, type ReactNode } from "react";
 import {
   Mic,
   MicOff,
@@ -13,46 +12,15 @@ import {
   Video,
   VideoOff,
 } from "lucide-react";
-import { canUseScreenShare } from "@/features/rtc/lib/screen-share-policy";
 import { cn } from "@/lib/utils";
-import {
-  hasLiveEnabledVideo,
-  hasLiveMedia,
-  hasLiveVideo,
-  type MediasoupRoomStatus,
-} from "@/features/rtc";
-import { MOCK_MATCH } from "../constants/mock-match";
+import { MOCK_MATCH } from "@/features/room/constants/mock-match";
+import { useRoomVideoViewModel } from "@/features/room/hooks/use-room-video-view-model";
+import type { RoomVideoViewProps } from "@/features/room/types/room-video-view.types";
+import { MediaToggleButton } from "@/features/room/components/room-video/media-toggle-button";
+import { RemoteParticipantTile } from "@/features/room/components/room-video/remote-participant-tile";
+import { ToolbarActionButton } from "@/features/room/components/room-video/toolbar-action-button";
 
-export type RoomVideoViewProps = {
-  onEnd: () => void;
-  onSkip: () => void;
-  /** Collapse to floating dock and return to the previous route. */
-  onMinimize?: () => void;
-  localStream?: MediaStream | null;
-  remoteStream?: MediaStream | null;
-  /** When true, main stage is a screen share — use contain fit and letterboxing. */
-  mainStageShowsScreen?: boolean;
-  /** Partner camera — shown in sidebar while `mainStageShowsScreen` so they stay visible. */
-  remotePeerCameraStream?: MediaStream | null;
-  mediaStatus?: MediasoupRoomStatus;
-  mediaError?: string | null;
-  peerLabel?: string;
-  scoreLabel?: string | null;
-  micEnabled?: boolean;
-  cameraEnabled?: boolean;
-  onToggleMic?: () => void;
-  onToggleCamera?: () => void;
-  rtcRoomType?: "direct" | "circle" | null;
-  screenSharing?: boolean;
-  onToggleScreenShare?: () => void;
-  /** Camera/mic permission or device error from the last toggle. */
-  localMediaDeviceError?: string | null;
-  onDismissLocalMediaDeviceError?: () => void;
-  /** Current user's display name shown in the local video panel. */
-  myName?: string;
-  /** True when the primary remote peer has explicitly paused their camera — show initials instead of black screen. */
-  remotePeerCameraOff?: boolean;
-};
+export type { RoomVideoViewProps } from "@/features/room/types/room-video-view.types";
 
 export function RoomVideoView({
   onEnd,
@@ -65,7 +33,7 @@ export function RoomVideoView({
   mediaStatus = "idle",
   mediaError = null,
   peerLabel = MOCK_MATCH.name,
-  scoreLabel = `${MOCK_MATCH.vibeScore}% match`,
+  scoreLabel = null,
   micEnabled = true,
   cameraEnabled = true,
   onToggleMic,
@@ -77,76 +45,30 @@ export function RoomVideoView({
   onDismissLocalMediaDeviceError,
   myName = "You",
   remotePeerCameraOff = false,
+  isGroupRoom = false,
+  remoteParticipants = [],
+  remotePeers = {},
+  showSkip = true,
 }: RoomVideoViewProps) {
-  const [elapsed, setElapsed] = useState(0);
-  const remoteVideoRef = useRef<HTMLVideoElement>(null);
-  const peerCameraInsetRef = useRef<HTMLVideoElement>(null);
-  const localVideoRef = useRef<HTMLVideoElement>(null);
+  const vm = useRoomVideoViewModel({
+    remoteStream,
+    remotePeerCameraOff,
+    localStream,
+    mainStageShowsScreen,
+    remotePeerCameraStream,
+    isGroupRoom,
+    remotePeers,
+    remoteParticipants,
+    mediaStatus,
+    rtcRoomType,
+    peerLabel,
+    onToggleMic,
+    onToggleCamera,
+    onToggleScreenShare,
+  });
 
-  useEffect(() => {
-    const t = setInterval(() => setElapsed((s) => s + 1), 1000);
-    return () => clearInterval(t);
-  }, []);
-
-  // Video is live only when the track is active AND the peer hasn't explicitly paused their camera.
-  const remoteVideoLive = hasLiveVideo(remoteStream) && !remotePeerCameraOff;
-  const remoteMediaLive = hasLiveMedia(remoteStream);
-  const localVideoLive = hasLiveEnabledVideo(localStream);
-
-  const peerInitials = peerLabel
-    .split(" ")
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((w) => w[0].toUpperCase())
-    .join("");
-
-  const peerCameraInsetStream =
-    mainStageShowsScreen && remotePeerCameraStream && hasLiveVideo(remotePeerCameraStream)
-      ? remotePeerCameraStream
-      : null;
-  const peerCameraInsetLive = hasLiveVideo(peerCameraInsetStream);
-
-  useEffect(() => {
-    const el = remoteVideoRef.current;
-    if (!el) return;
-    el.srcObject = remoteStream ?? null;
-    if (remoteStream) {
-      void el.play().catch(() => {});
-    }
-  }, [remoteStream, remoteVideoLive]);
-
-  useEffect(() => {
-    const el = localVideoRef.current;
-    if (!el) return;
-    el.srcObject = localStream ?? null;
-    if (localStream) {
-      void el.play().catch(() => {});
-    }
-  }, [localStream, localVideoLive]);
-
-  useEffect(() => {
-    const el = peerCameraInsetRef.current;
-    if (!el) return;
-    el.srcObject = peerCameraInsetStream ?? null;
-    if (peerCameraInsetStream) {
-      void el.play().catch(() => {});
-    }
-  }, [peerCameraInsetStream, peerCameraInsetLive]);
-
-  const fmt = (s: number) =>
-    `${String(Math.floor(s / 60)).padStart(2, "0")}:${String(s % 60).padStart(2, "0")}`;
-  const mediaTogglesReady =
-    mediaStatus === "ready" && Boolean(onToggleMic && onToggleCamera);
-  const screenShareAllowed = canUseScreenShare(rtcRoomType);
-  const showScreenShare =
-    screenShareAllowed && Boolean(onToggleScreenShare && onToggleMic && onToggleCamera);
-  const mediaBusy =
-    mediaStatus === "connecting_socket" ||
-    mediaStatus === "joining" ||
-    mediaStatus === "negotiating";
-
-  const shell = (className: string) => (
-    <div className={cn("flex flex-col overflow-hidden bg-background", className)}>
+  return (
+    <div className={cn("flex h-full min-h-0 w-full min-w-0 flex-col overflow-hidden bg-background")}>
       <div className="relative flex min-h-0 flex-1 flex-col overflow-hidden">
         <div
           className="absolute inset-0"
@@ -156,48 +78,63 @@ export function RoomVideoView({
         />
 
         <div className="flex min-h-0 flex-1 flex-col md:flex-row">
-          {/* Main stage: screen share or remote / self primary video */}
           <div className="relative flex min-h-[48dvh] flex-1 flex-col overflow-hidden md:min-h-0">
-            {remoteMediaLive ? (
-              <video
-                ref={remoteVideoRef}
-                playsInline
-                autoPlay
-                className={cn(
-                  remoteVideoLive
-                    ? "absolute inset-0 h-full w-full"
-                    : "pointer-events-none absolute h-px w-px overflow-hidden opacity-0",
-                  remoteVideoLive &&
-                    (mainStageShowsScreen
-                      ? "bg-black object-contain"
-                      : "object-cover"),
-                )}
-              />
-            ) : null}
-            {!remoteVideoLive && (
-              <div className="absolute inset-0 flex items-center justify-center">
-                <div className="relative">
-                  <div
-                    className="flex h-32 w-32 items-center justify-center rounded-full text-3xl font-bold text-white transition-all duration-300 md:h-36 md:w-36 md:text-4xl"
-                    style={{
-                      background: `linear-gradient(135deg, ${MOCK_MATCH.gradFrom}, ${MOCK_MATCH.gradTo})`,
-                      boxShadow: `0 0 60px ${MOCK_MATCH.gradFrom}55, 0 0 120px ${MOCK_MATCH.gradFrom}22`,
-                    }}
-                  >
-                    {peerInitials}
+            {isGroupRoom ? (
+              vm.groupGalleryParticipants.length > 0 ? (
+                <div className="absolute inset-0 overflow-y-auto p-2 md:p-3">
+                  <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3 sm:gap-3">
+                    {vm.groupGalleryParticipants.map((p) => (
+                      <RemoteParticipantTile key={p.peer.peerId} participant={p} />
+                    ))}
                   </div>
-                  <div
-                    className="absolute -inset-3 animate-pulse rounded-full"
-                    style={{
-                      background: `radial-gradient(circle, ${MOCK_MATCH.gradFrom}30, transparent 70%)`,
-                      animationDuration: "2.5s",
-                    }}
-                  />
                 </div>
-              </div>
+              ) : (
+                <div className="absolute inset-0 flex items-center justify-center px-4 text-center text-sm font-medium text-white/80">
+                  Waiting for others to join…
+                </div>
+              )
+            ) : (
+              <>
+                {vm.remoteMediaLive ? (
+                  <video
+                    ref={vm.remoteVideoRef}
+                    playsInline
+                    autoPlay
+                    className={cn(
+                      vm.remoteVideoLive
+                        ? "absolute inset-0 h-full w-full"
+                        : "pointer-events-none absolute h-px w-px overflow-hidden opacity-0",
+                      vm.remoteVideoLive &&
+                        (mainStageShowsScreen ? "bg-black object-contain" : "object-cover"),
+                    )}
+                  />
+                ) : null}
+                {!vm.remoteVideoLive && (
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <div className="relative">
+                      <div
+                        className="flex h-32 w-32 items-center justify-center rounded-full text-3xl font-bold text-white transition-all duration-300 md:h-36 md:w-36 md:text-4xl"
+                        style={{
+                          background: `linear-gradient(135deg, ${MOCK_MATCH.gradFrom}, ${MOCK_MATCH.gradTo})`,
+                          boxShadow: `0 0 60px ${MOCK_MATCH.gradFrom}55, 0 0 120px ${MOCK_MATCH.gradFrom}22`,
+                        }}
+                      >
+                        {vm.peerInitials}
+                      </div>
+                      <div
+                        className="absolute -inset-3 animate-pulse rounded-full"
+                        style={{
+                          background: `radial-gradient(circle, ${MOCK_MATCH.gradFrom}30, transparent 70%)`,
+                          animationDuration: "2.5s",
+                        }}
+                      />
+                    </div>
+                  </div>
+                )}
+              </>
             )}
 
-            {mediaBusy && (
+            {vm.mediaBusy && (
               <div className="absolute inset-0 z-20 flex items-center justify-center bg-black/35 backdrop-blur-[2px]">
                 <p className="rounded-full bg-black/50 px-4 py-2 text-sm font-medium text-white">
                   Connecting media…
@@ -276,37 +213,38 @@ export function RoomVideoView({
                     backdropFilter: "blur(8px)",
                   }}
                 >
-                  {fmt(elapsed)}
+                  {vm.formatDuration(vm.elapsed)}
                 </div>
               </div>
             </div>
 
-            <div
-              className="pointer-events-none absolute bottom-3 left-3 z-10 flex items-center gap-1.5 rounded-full px-2.5 py-1 md:bottom-4 md:left-4 md:px-3 md:py-1.5"
-              style={{
-                background: "rgba(0,0,0,0.4)",
-                border: "1px solid oklch(88% 0.11 105 / 0.2)",
-                backdropFilter: "blur(8px)",
-              }}
-            >
-              <Sparkles size={11} style={{ color: "oklch(88% 0.11 105)" }} />
-              <span
-                className="text-[11px] font-semibold"
-                style={{ color: "oklch(88% 0.11 105)" }}
+            {scoreLabel != null ? (
+              <div
+                className="pointer-events-none absolute bottom-3 left-3 z-10 flex items-center gap-1.5 rounded-full px-2.5 py-1 md:bottom-4 md:left-4 md:px-3 md:py-1.5"
+                style={{
+                  background: "rgba(0,0,0,0.4)",
+                  border: "1px solid oklch(88% 0.11 105 / 0.2)",
+                  backdropFilter: "blur(8px)",
+                }}
               >
-                {scoreLabel ?? `${MOCK_MATCH.vibeScore}% match`}
-              </span>
-            </div>
+                <Sparkles size={11} style={{ color: "oklch(88% 0.11 105)" }} />
+                <span
+                  className="text-[11px] font-semibold"
+                  style={{ color: "oklch(88% 0.11 105)" }}
+                >
+                  {scoreLabel}
+                </span>
+              </div>
+            ) : null}
           </div>
 
-          {/* Local camera / mic preview — dedicated panel */}
           <aside
             className={cn(
               "flex w-full shrink-0 flex-col border-border bg-card/90 backdrop-blur-md md:w-56 md:border-l",
               "border-t md:border-t-0",
             )}
           >
-            {peerCameraInsetStream ? (
+            {vm.peerCameraInsetStream ? (
               <>
                 <div className="border-b border-border/60 px-3 py-2.5 md:py-2">
                   <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
@@ -323,9 +261,9 @@ export function RoomVideoView({
                       aspectRatio: "16 / 10",
                     }}
                   >
-                    {peerCameraInsetLive ? (
+                    {vm.peerCameraInsetLive ? (
                       <video
-                        ref={peerCameraInsetRef}
+                        ref={vm.peerCameraInsetRef}
                         playsInline
                         autoPlay
                         className="h-full w-full object-cover"
@@ -361,9 +299,9 @@ export function RoomVideoView({
                   aspectRatio: "16 / 10",
                 }}
               >
-                {localVideoLive ? (
+                {vm.localVideoLive ? (
                   <video
-                    ref={localVideoRef}
+                    ref={vm.localVideoRef}
                     playsInline
                     autoPlay
                     muted
@@ -399,7 +337,7 @@ export function RoomVideoView({
       <div
         className={cn(
           "flex shrink-0 flex-wrap items-center justify-center gap-4 border-t border-border px-3 py-3 sm:gap-5 sm:px-6 sm:py-4 md:gap-6",
-          "bg-muted/50 pb-[max(0.75rem,env(safe-area-inset-bottom))] dark:bg-[oklch(11%_0.012_110)] sm:pb-4"
+          "bg-muted/50 pb-[max(0.75rem,env(safe-area-inset-bottom))] dark:bg-[oklch(11%_0.012_110)] sm:pb-4",
         )}
         style={{ userSelect: "none" }}
       >
@@ -410,7 +348,7 @@ export function RoomVideoView({
               labelActive="Mute"
               labelInactive="Unmute"
               onClick={onToggleMic}
-              disabled={!mediaTogglesReady}
+              disabled={!vm.mediaTogglesReady}
               iconActive={<Mic size={20} className="text-foreground/85 dark:text-white/90" />}
               iconInactive={<MicOff size={20} className="text-amber-200/95" />}
             />
@@ -419,31 +357,33 @@ export function RoomVideoView({
               labelActive="Stop video"
               labelInactive="Start video"
               onClick={onToggleCamera}
-              disabled={!mediaTogglesReady}
+              disabled={!vm.mediaTogglesReady}
               iconActive={<Video size={20} className="text-foreground/85 dark:text-white/90" />}
               iconInactive={<VideoOff size={20} className="text-amber-200/95" />}
             />
-            {showScreenShare ? (
+            {vm.showScreenShare ? (
               <MediaToggleButton
                 active={screenSharing}
                 labelActive="Stop sharing"
                 labelInactive="Share screen"
                 onClick={onToggleScreenShare!}
-                disabled={!mediaTogglesReady}
+                disabled={!vm.mediaTogglesReady}
                 iconActive={<Monitor size={20} className="text-foreground/85 dark:text-white/90" />}
                 iconInactive={<MonitorOff size={20} className="text-amber-200/95" />}
               />
             ) : null}
           </>
         )}
-        <ToolbarAction
-          label="Skip"
-          onClick={onSkip}
-          icon={<SkipForward size={20} className="text-foreground/75 dark:text-white/80" />}
-          variant="secondary"
-          size={56}
-        />
-        <ToolbarAction
+        {showSkip ? (
+          <ToolbarActionButton
+            label="Skip"
+            onClick={onSkip}
+            icon={<SkipForward size={20} className="text-foreground/75 dark:text-white/80" />}
+            variant="secondary"
+            size={56}
+          />
+        ) : null}
+        <ToolbarActionButton
           label="End call"
           onClick={onEnd}
           icon={<PhoneOff size={20} className="text-white" />}
@@ -452,90 +392,5 @@ export function RoomVideoView({
         />
       </div>
     </div>
-  );
-
-  return shell("h-full min-h-0 w-full min-w-0");
-}
-
-function MediaToggleButton({
-  active,
-  labelActive,
-  labelInactive,
-  onClick,
-  disabled,
-  iconActive,
-  iconInactive,
-}: {
-  active: boolean;
-  labelActive: string;
-  labelInactive: string;
-  onClick: () => void;
-  disabled: boolean;
-  iconActive: ReactNode;
-  iconInactive: ReactNode;
-}) {
-  const size = 52;
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      disabled={disabled}
-      aria-label={active ? labelActive : labelInactive}
-      title={active ? labelActive : labelInactive}
-      className={cn(
-        "group flex min-h-[44px] min-w-[44px] cursor-pointer flex-col items-center justify-center gap-1 active:opacity-90 md:min-h-0 md:min-w-0 md:gap-1.5",
-        disabled && "pointer-events-none opacity-40",
-      )}
-    >
-      <div
-        className={cn(
-          "flex items-center justify-center rounded-xl border transition-colors duration-200",
-          active
-            ? "border-border bg-muted/60 dark:border-white/15 dark:bg-white/5"
-            : "border-amber-500/35 bg-amber-950/40 dark:border-amber-400/30",
-        )}
-        style={{ width: size, height: size - 4 }}
-      >
-        {active ? iconActive : iconInactive}
-      </div>
-      <span className="max-w-[4.5rem] text-center text-[9px] text-muted-foreground md:max-w-none md:text-[10px] dark:text-white/45">
-        {active ? labelActive : labelInactive}
-      </span>
-    </button>
-  );
-}
-
-function ToolbarAction({
-  label,
-  onClick,
-  icon,
-  variant,
-  size,
-}: {
-  label: string;
-  onClick: () => void;
-  icon: ReactNode;
-  variant: "secondary" | "danger";
-  size: number;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className="group flex min-h-[44px] min-w-[44px] cursor-pointer flex-col items-center justify-center gap-1.5 active:opacity-90 md:min-h-0 md:min-w-0 md:gap-2"
-    >
-      <div
-        className={cn(
-          "flex items-center justify-center rounded-xl transition-all duration-200",
-          variant === "danger"
-            ? "bg-red-500 hover:bg-red-400"
-            : "border border-border bg-muted/60 hover:bg-muted dark:border-white/15 dark:bg-white/5 dark:hover:bg-white/10"
-        )}
-        style={{ width: size, height: size - 4 }}
-      >
-        {icon}
-      </div>
-      <span className="text-[9px] text-muted-foreground md:text-[10px] dark:text-white/45">{label}</span>
-    </button>
   );
 }

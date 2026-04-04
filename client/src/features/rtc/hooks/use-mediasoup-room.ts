@@ -32,8 +32,15 @@ import type {
  * ({@link useMediasoupLocalMedia}) and direct-call display math ({@link buildDirectCallMainStageStream}).
  */
 export function useMediasoupRoom(options: UseMediasoupRoomArgs): UseMediasoupRoomReturn {
-  const { rtcSocket, rtcSocketState, rtcRoomId, rtcRoomType, localUserId, localDisplayName, preferredRemotePeerId } =
-    options;
+  const {
+    rtcSocket,
+    rtcSocketState,
+    rtcRoomId,
+    rtcRoomType,
+    localUserId,
+    localDisplayName,
+    preferredRemotePeerId
+  } = options;
 
   const [status, setStatus] = useState<MediasoupRoomStatus>("idle");
   const [error, setError] = useState<string | null>(null);

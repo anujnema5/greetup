@@ -8,6 +8,7 @@ export const rtcApi = baseApi.injectEndpoints({
   endpoints: (build) => ({
     getRtcToken: build.query<RtcTokenPayload, string>({
       query: (roomId) => ({ url: ROOM.rtcToken(roomId) }),
+      providesTags: (_result, _err, roomId) => [{ type: "RtcToken", id: roomId }],
       transformResponse: (response: RtcTokenApiResponse): RtcTokenPayload => {
         if (response.success && response.data?.token) {
           return response.data;

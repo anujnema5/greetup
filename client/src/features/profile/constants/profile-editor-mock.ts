@@ -1,14 +1,15 @@
 import type { EditableProfile } from "../types/profile-editor.types";
 
+/** Dev / story defaults only; real UI should hydrate from API via `mapMyProfileToEditable`. */
 export const INITIAL_EDITABLE_PROFILE: EditableProfile = {
-  displayName: "Anuj N.",
+  displayName: "",
   age: 28,
   gender: "male",
   country: { code: "IND", name: "India" },
   goalIds: ["g1", "g3"],
   interestIds: ["i1", "i2", "i5"],
   professionId: "p2",
-  bio: "Building cool stuff on the internet. Into deep conversations, indie music, and finding people who get it.",
+  bio: "",
   preferredGender: "any",
   distancePreference: "same country",
   ageRange: { min: 22, max: 35 },

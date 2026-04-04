@@ -31,6 +31,7 @@ export type {
   UseMediasoupRoomReturn,
 } from "./types/mediasoup-room.types";
 export {
+  mergeGroupGalleryParticipants,
   pickPrimaryRemoteStream,
   remoteParticipantsFromRecord,
   remotePeerIdsStableKey,

@@ -230,7 +230,6 @@ export class PeerSessionService {
       kind: producer.kind,
     };
     if (producer.kind === "video") {
-      // Prefer client produce payload — `producer.appData` shape can differ by mediasoup version.
       newProducerPayload.mediaSource = mediaSourceFromProducerAppData(
         payload.appData ?? producer.appData,
       );
