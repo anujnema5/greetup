@@ -21,9 +21,8 @@ export const MATCH_CONFIG = {
 export const MATCH_SCORE_CONFIG = {
   // Higher weights represent stronger matching intent.
   weights: {
-    interests: 25,
+    interests: 40,
     goals: 20,
-    connectionTypes: 15,
     professions: 10,
     agePreference: 10,
     distancePreference: 10,

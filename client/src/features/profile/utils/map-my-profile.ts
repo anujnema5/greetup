@@ -69,7 +69,6 @@ export function mapMyProfileToEditable(api: MyProfileResponse): EditableProfile 
       min: prefs?.minAge != null ? Math.max(18, prefs.minAge) : 18,
       max: prefs?.maxAge != null ? Math.min(99, prefs.maxAge) : 99,
     },
-    connectionTypeIds: prefs?.connectionTypes.map((c) => c.id) ?? [],
     photos: api.photos.length
       ? api.photos.slice(0, 1).map((p) => ({ id: p.id, url: p.url }))
       : [],

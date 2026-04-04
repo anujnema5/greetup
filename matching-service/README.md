@@ -28,7 +28,7 @@ It is intentionally focused on matchmaking only. Video room setup should be orch
 A candidate is considered only if:
 
 - Shared `matchIds` exist
-- Bidirectional hard compatibility passes (age range, distance, connection type overlap)
+- Bidirectional hard compatibility passes (age range, distance)
 - Weighted score meets threshold
 
 Then candidates are ranked by:
@@ -79,7 +79,6 @@ Current weighted signals:
 
 - interests
 - goals
-- connectionTypes
 - professions
 - agePreference
 - distancePreference

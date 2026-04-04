@@ -359,31 +359,6 @@ export function ProfileEditModals({
               />
             </div>
           </div>
-          <div className="space-y-2">
-            <Label>Connection types</Label>
-            {catalog.connectionTypes.length === 0 ? (
-              <p className="text-sm text-muted-foreground">No connection types available.</p>
-            ) : (
-              <div className="flex flex-wrap gap-2">
-                {catalog.connectionTypes.map((c) => {
-                  const selected = d.connectionTypeIds.includes(c.id);
-                  return (
-                    <Chip
-                      key={c.id}
-                      selected={selected}
-                      onClick={() =>
-                        patchDraft({
-                          connectionTypeIds: toggleId(d.connectionTypeIds, c.id),
-                        })
-                      }
-                    >
-                      {c.label}
-                    </Chip>
-                  );
-                })}
-              </div>
-            )}
-          </div>
         </div>
       </ProfileEditShell>
 

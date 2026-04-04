@@ -69,11 +69,6 @@ function buildSteps(profile: ProfileForSteps | undefined, options: StepOptions):
       : null);
 
   const pref = profile?.preferences;
-  const connectionTypesValue =
-    pref?.connectionTypes?.map((pct) => ({
-      id: pct.connectionType.id,
-      name: pct.connectionType.displayName,
-    })) ?? [];
 
   const photosValue =
     profile?.photos
@@ -216,16 +211,6 @@ function buildSteps(profile: ProfileForSteps | undefined, options: StepOptions):
             min: pref?.minAge ?? 18,
             max: pref?.maxAge ?? 99,
           },
-        },
-        {
-          key: "connectionTypes",
-          name: "connectionTypes",
-          label: "Preferred connection types",
-          placeholder: "Select connection types",
-          type: "multi-select",
-          required: false,
-          options: options.connectionTypes.map((c) => ({ id: c.id, name: c.displayName, emoji: c.emoji ?? undefined })),
-          value: connectionTypesValue,
         },
       ],
     },

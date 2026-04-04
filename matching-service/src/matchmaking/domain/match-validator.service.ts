@@ -15,22 +15,6 @@ const toString = (value: unknown): string | null => {
 
 const normalize = (value: string): string => value.trim().toLowerCase();
 
-const toStringArray = (value: unknown): string[] => {
-  if (!Array.isArray(value)) return [];
-  const out: string[] = [];
-  for (const item of value) {
-    const parsed = toString(item);
-    if (parsed) out.push(parsed);
-  }
-  return out;
-};
-
-const hasAnyOverlap = (left: string[], right: string[]): boolean => {
-  if (left.length === 0 || right.length === 0) return false;
-  const rightSet = new Set(right.map(normalize));
-  return left.some((item) => rightSet.has(normalize(item)));
-};
-
 export class MatchValidatorService {
   accepts(
     requesterFilters: Record<string, unknown>,
@@ -70,14 +54,6 @@ export class MatchValidatorService {
         ) {
           return false;
         }
-      }
-    }
-
-    const preferredConnectionTypes = toStringArray(requesterFilters.connectionTypeIds);
-    const candidateConnectionTypes = toStringArray(candidateAttributes.connectionTypeIds);
-    if (preferredConnectionTypes.length > 0) {
-      if (!hasAnyOverlap(preferredConnectionTypes, candidateConnectionTypes)) {
-        return false;
       }
     }
 

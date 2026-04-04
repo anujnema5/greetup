@@ -3,7 +3,6 @@ import { getRedis } from "@/redis/client";
 import { redisKeys } from "@/redis/keys";
 import {
   buildMatchIds,
-  collectConnectionTypeIds,
   collectNestedIds,
   isRecord,
   parseDateToMs,
@@ -22,7 +21,6 @@ const parseSnapshot = (raw: JsonRecord, fallbackUserId: string): SnapshotUserPro
   const interestIds = collectNestedIds(raw.interests, "interest");
   const goalIds = collectNestedIds(raw.goals, "goal");
   const professionIds = collectNestedIds(raw.professions, "profession");
-  const connectionTypeIds = collectConnectionTypeIds(preferences);
   const userId = toStringOrNull(raw.userId) ?? toStringOrNull(user.id) ?? fallbackUserId;
   const updatedAt =
     parseDateToMs(raw.updatedAt) ??
@@ -41,7 +39,6 @@ const parseSnapshot = (raw: JsonRecord, fallbackUserId: string): SnapshotUserPro
       minAge: toNumberOrNull(preferences.minAge) ?? 18,
       maxAge: toNumberOrNull(preferences.maxAge) ?? 99,
       distancePreference: toStringOrNull(preferences.distancePreference) ?? "random",
-      connectionTypeIds,
       countryCode: toStringOrNull(location.countryCode),
       city: toStringOrNull(location.city),
       region: toStringOrNull(location.region),
@@ -52,7 +49,6 @@ const parseSnapshot = (raw: JsonRecord, fallbackUserId: string): SnapshotUserPro
       countryCode: toStringOrNull(location.countryCode),
       city: toStringOrNull(location.city),
       region: toStringOrNull(location.region),
-      connectionTypeIds,
       interestIds,
       goalIds,
       professionIds,

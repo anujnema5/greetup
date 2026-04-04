@@ -58,9 +58,6 @@ export function buildProfileSavePayload(
       if (d.preferredGender) data.preferredGender = d.preferredGender;
       if (d.distancePreference) data.distancePreference = d.distancePreference;
       data.ageRange = { min: d.ageRange.min, max: d.ageRange.max };
-      if (d.connectionTypeIds.length > 0) {
-        data.connectionTypes = d.connectionTypeIds.map((id) => ({ id }));
-      }
       return { step: 5, data };
     }
     case "bio":

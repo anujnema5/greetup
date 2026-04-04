@@ -42,10 +42,6 @@ export const collectNestedIds = (value: unknown, childKey: string): string[] => 
   return ids;
 };
 
-export const collectConnectionTypeIds = (preferences: JsonRecord): string[] => {
-  return collectNestedIds(preferences.connectionTypes, "connectionType");
-};
-
 export const buildMatchIds = (
   interestIds: string[],
   goalIds: string[],

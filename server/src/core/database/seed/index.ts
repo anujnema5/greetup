@@ -11,8 +11,6 @@ import {
   lookingForOptions,
   currentStatusMoods,
   currentStatusLookingFor,
-  connectionTypes,
-  profileConnectionTypes,
 } from "@/core/database/schema";
 import { upsertRoomCategories } from "./upsert-room-categories";
 
@@ -26,7 +24,6 @@ async function seed() {
   await db.delete(profileProfessions);
   await db.delete(currentStatusMoods);
   await db.delete(currentStatusLookingFor);
-  await db.delete(profileConnectionTypes);
 
   // ─── 2. Clear lookup tables ───
   console.log("Clearing lookup tables...");
@@ -35,7 +32,6 @@ async function seed() {
   await db.delete(professions);
   await db.delete(moods);
   await db.delete(lookingForOptions);
-  await db.delete(connectionTypes);
 
   // ─── 3. Fresh insert lookup data ───
 
@@ -109,18 +105,10 @@ async function seed() {
     { name: "networking", displayName: "Networking", description: "Professional networking" },
   ]);
 
-  // Connection types (preference lookup; emoji from backend for profile-setup cards)
-  await db.insert(connectionTypes).values([
-    { name: "voice", displayName: "Voice call", description: "Prefer voice conversation", emoji: "🎙️", isActive: "yes" },
-    { name: "video", displayName: "Video call", description: "Prefer video conversation", emoji: "📹", isActive: "yes" },
-    { name: "text", displayName: "Text chat", description: "Prefer text-based chat", emoji: "💬", isActive: "yes" },
-    { name: "any", displayName: "Any", description: "Flexible with connection type", emoji: "✨", isActive: "yes" },
-  ]);
-
   await upsertRoomCategories();
 
   console.log(
-    "✅ Seed completed: goals, interests, professions, moods, lookingForOptions, connectionTypes, roomCategories",
+    "✅ Seed completed: goals, interests, professions, moods, lookingForOptions, roomCategories",
   );
 }
 

@@ -30,7 +30,7 @@ Users request a room → System finds best available match (Redis) → Creates r
 
 ```
 match:user:{profileId}
-  g, a, pg, amin, amax, lat, lon, cc, city, av, i, gl, pr, ct, ts, la
+  g, a, pg, amin, amax, lat, lon, cc, city, av, i, gl, pr, ts, la
 ```
 
 | Field | Meaning |
@@ -41,7 +41,7 @@ match:user:{profileId}
 | amin, amax | age range |
 | lat, lon | location |
 | av | availability |
-| i, gl, pr, ct | interest, goal, profession, connection IDs |
+| i, gl, pr | interest, goal, profession IDs |
 | ts | trust score |
 | la | last active (unix) |
 

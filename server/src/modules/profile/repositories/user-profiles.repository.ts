@@ -76,19 +76,6 @@ export const userProfilesRepository = {
             minAge: true,
             maxAge: true,
           },
-          with: {
-            connectionTypes: {
-              with: {
-                connectionType: {
-                  columns: {
-                    id: true,
-                    name: true,
-                    displayName: true,
-                  },
-                },
-              },
-            },
-          },
         },
         behavior: {
           columns: {

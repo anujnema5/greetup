@@ -150,9 +150,8 @@ export const MATCH_CONFIG = {
 
 export const MATCH_SCORE_CONFIG = {
   weights: {
-    interests: 25,
+    interests: 40,
     goals: 20,
-    connectionTypes: 15,
     professions: 10,
     agePreference: 10,
     distancePreference: 10,
@@ -510,13 +509,13 @@ export class MatchLockService {
 
 ### `MatchValidatorService`
 
-- **`accepts(requesterFilters, candidateAttributes)`** — age range, `distancePreference` (`same_city` / `same_region` / `same_country` / `random`), connection type overlap when filters specify types.
+- **`accepts(requesterFilters, candidateAttributes)`** — age range, `distancePreference` (`same_city` / `same_region` / `same_country` / `random`).
 - **`isBidirectionallyCompatible(a, b)`** — `accepts(a.filters, b.attributes) && accepts(b.filters, a.attributes)`.
 
 ### `MatchScoreService`
 
 - **`calculateDirectionalScore(requester, candidate)`** — weighted blend of:
-  - Jaccard-style overlap on interests, goals, connection types, professions
+  - Jaccard-style overlap on interests, goals, professions
   - Age fit, distance preference, preferred gender, trust score
 - **`calculateBidirectionalScore`** — average of both directions, rounded.
 - **`isScoreEligible(score)`** — `score >= MATCH_SCORE_CONFIG.minScoreToMatch`.

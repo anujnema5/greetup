@@ -10,7 +10,6 @@ import {
   goals,
   moods,
   lookingForOptions,
-  connectionTypes,
 } from "@/core/database/schema";
 
 export const profileStepsRepository = {
@@ -101,19 +100,6 @@ export const profileStepsRepository = {
             minAge: true,
             maxAge: true,
           },
-          with: {
-            connectionTypes: {
-              with: {
-                connectionType: {
-                  columns: {
-                    id: true,
-                    name: true,
-                    displayName: true,
-                  },
-                },
-              },
-            },
-          },
         },
       },
     });
@@ -121,10 +107,10 @@ export const profileStepsRepository = {
   },
 
   /**
-   * Fetch all lookup options for profile steps (goals, interests, professions, moods, lookingFor, connectionTypes).
+   * Fetch all lookup options for profile steps (goals, interests, professions, moods, lookingFor).
    */
   async fetchStepOptions() {
-    const [goalsList, interestsList, professionsList, moodsList, lookingForList, connectionTypesList] =
+    const [goalsList, interestsList, professionsList, moodsList, lookingForList] =
       await Promise.all([
         db.query.goals.findMany({
           where: eq(goals.isActive, "yes"),
@@ -149,11 +135,6 @@ export const profileStepsRepository = {
           columns: { id: true, name: true, displayName: true, description: true },
           orderBy: (l, { asc }) => [asc(l.displayName)],
         }),
-        db.query.connectionTypes.findMany({
-          where: eq(connectionTypes.isActive, "yes"),
-          columns: { id: true, name: true, displayName: true, description: true, emoji: true },
-          orderBy: (c, { asc }) => [asc(c.displayName)],
-        }),
       ]);
 
     return {
@@ -162,7 +143,6 @@ export const profileStepsRepository = {
       professions: professionsList,
       moods: moodsList,
       lookingForOptions: lookingForList,
-      connectionTypes: connectionTypesList,
     };
   },
 };
@@ -228,13 +208,6 @@ export interface ProfileForSteps {
     distancePreference: string | null;
     minAge: number | null;
     maxAge: number | null;
-    connectionTypes?: Array<{
-      connectionType: {
-        id: string;
-        name: string;
-        displayName: string;
-      };
-    }>;
   } | null;
 }
 

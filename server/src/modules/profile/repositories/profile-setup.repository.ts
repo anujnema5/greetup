@@ -11,7 +11,6 @@ import {
   profileInterests,
   profileProfessions,
   profilePreferences,
-  profileConnectionTypes,
   userPhotos,
 } from "@/core/database/schema";
 import { eq } from "drizzle-orm";
@@ -140,49 +139,6 @@ export const profileSetupRepository = {
         maxAge: data.maxAge ?? 99,
       });
     }
-  },
-
-  async replaceConnectionTypes(
-    profilePreferenceId: string,
-    connectionTypeIds: string[]
-  ) {
-    await db
-      .delete(profileConnectionTypes)
-      .where(eq(profileConnectionTypes.profilePreferenceId, profilePreferenceId));
-    if (connectionTypeIds.length > 0) {
-      await db.insert(profileConnectionTypes).values(
-        connectionTypeIds.map((connectionTypeId) => ({
-          profilePreferenceId,
-          connectionTypeId,
-        }))
-      );
-    }
-  },
-
-  async getProfilePreferenceId(profileId: string): Promise<string | null> {
-    const pref = await db.query.profilePreferences.findFirst({
-      where: (p, { eq }) => eq(p.profileId, profileId),
-      columns: { id: true },
-    });
-    return pref?.id ?? null;
-  },
-
-  async ensureProfilePreference(profileId: string): Promise<string> {
-    const existing = await this.getProfilePreferenceId(profileId);
-    if (existing) return existing;
-
-    const [inserted] = await db
-      .insert(profilePreferences)
-      .values({
-        profileId,
-        preferredGender: "any",
-        distancePreference: "random",
-        minAge: 18,
-        maxAge: 99,
-      })
-      .returning({ id: profilePreferences.id });
-    if (!inserted) throw new Error("Failed to create profile preference");
-    return inserted.id;
   },
 
   async replacePhotos(
