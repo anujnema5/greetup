@@ -1,26 +1,27 @@
 {
   "name": "server",
   "type": "module",
+  "packageManager": "bun@1.2.20",
   "scripts": {
-    "dev": "docker compose -f ../docker-compose.dev.yml up -d && tsx watch src/index.ts",
-    "debug": "tsx watch --inspect src/index.ts",
-    "docker:dev": "docker compose up -d && tsx watch src/index.ts",
+    "dev": "docker compose -f ../docker-compose.dev.yml up -d && bun --watch src/index.ts",
+    "debug": "bun --inspect --watch src/index.ts",
+    "docker:dev": "docker compose up -d && bun --watch src/index.ts",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
     "db:studio": "drizzle-kit studio",
     "db:drop": "drizzle-kit drop",
-    "db:seed": "tsx src/core/database/seed/index.ts",
-    "db:seed:room-categories": "tsx src/core/database/seed/seed-room-categories.ts",
-    "db:seed:dev-users": "tsx src/core/database/seed/seed-dev-users.ts",
+    "db:seed": "bun src/core/database/seed/index.ts",
+    "db:seed:room-categories": "bun src/core/database/seed/seed-room-categories.ts",
+    "db:seed:dev-users": "bun src/core/database/seed/seed-dev-users.ts",
     "build": "tsc",
-    "start": "tsx src/index.ts",
+    "start": "bun src/index.ts",
     "docker:up": "docker compose up -d"
   },
   "dependencies": {
-    "@hono/node-server": "^1.19.6",
+    "@socket.io/bun-engine": "^0.1.0",
     "@socket.io/redis-adapter": "^8.3.0",
     "better-auth": "^1.4.3",
-    "dotenv": "^17.2.3",
+    "dotenv": "^17.4.0",
     "drizzle-orm": "^0.45.1",
     "drizzle-seed": "^0.3.1",
     "hono": "^4.10.7",
@@ -33,10 +34,9 @@
     "socket.io": "^4.8.1"
   },
   "devDependencies": {
-    "@types/node": "^24.10.1",
+    "@types/bun": "^1.2.0",
     "@types/pg": "^8.15.6",
     "drizzle-kit": "^0.31.8",
-    "tsx": "^4.20.6",
     "typescript": "^5.9.3"
   }
 }

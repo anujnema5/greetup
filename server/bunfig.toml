@@ -1,0 +1,2 @@
+preload = ["./src/shared/config/load-env.ts"]
+env = false

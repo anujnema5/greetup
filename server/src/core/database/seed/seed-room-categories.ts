@@ -1,5 +1,3 @@
-import "@/shared/config/load-env";
-
 import { upsertRoomCategories } from "./upsert-room-categories";
 
 async function main() {

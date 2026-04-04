@@ -1,4 +1,4 @@
-import { randomBytes } from "node:crypto";
+import { randomBytes } from "crypto";
 
 import { mergeRoomAdvancedOptions } from "@/core/database/schema";
 import { getAcceptedPeerIdsForUser } from "@/modules/connections/services/accepted-peer-ids.service";

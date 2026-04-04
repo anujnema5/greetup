@@ -1,10 +1,10 @@
 /**
  * Seeds 12 dev users (email/password + profiles + junction rows + user_connections).
- * Run after: npm run db:seed (lookup tables must exist).
+ * Run after: bun run db:seed (lookup tables must exist).
  *
- * Usage: npm run db:seed:dev-users
+ * Usage: bun run db:seed:dev-users
  */
-import "@/shared/config/load-env";
+
 import { generateId } from "@better-auth/core/utils";
 import { hashPassword } from "better-auth/crypto";
 import { inArray } from "drizzle-orm";
@@ -153,7 +153,7 @@ async function seed() {
 
   if (goalRows.length === 0 || interestRows.length === 0 || professionRows.length === 0) {
     throw new Error(
-      "Lookup tables empty. Run `npm run db:seed` first so goals, interests, and professions exist.",
+      "Lookup tables empty. Run `bun run db:seed` first so goals, interests, and professions exist.",
     );
   }
 
