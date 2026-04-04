@@ -20,16 +20,22 @@ export function RoomPage() {
   const sessionActive = useAppSelector(selectIsVideoSessionActive);
   const isMinimized = useAppSelector(selectIsRoomMinimized);
 
-  const { roomId, loading, error, peerId, score, currentUserName, goHome, leaveAndGoHome, room } =
-    useRoom();
+  const {
+    roomId,
+    loading,
+    error,
+    peerId,
+    score,
+    currentUserName,
+    goHome,
+    leaveAndGoHome,
+    room
+  } = useRoom();
 
   const myName = currentUserName ?? "You";
-  const scoreLabel =
-    score != null && String(score).length > 0 ? `${String(score)}% match` : null;
-
+  const scoreLabel = score != null && String(score).length > 0 ? `${String(score)}% match` : null;
   const isCircleRoom = Boolean(room && isCircleRoomData(room));
-  const shouldStartVideo =
-    !loading && Boolean(room) && (isCircleRoom || Boolean(peerId));
+  const shouldStartVideo = !loading && Boolean(room) && (isCircleRoom || Boolean(peerId));
 
   const { joinRoomError, joinRoomLoading } = useRoomJoinAndStartVideo({
     roomId,

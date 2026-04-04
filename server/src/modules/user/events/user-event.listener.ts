@@ -137,7 +137,7 @@ export class UserEventListeners {
         if (!exists) return;
 
         await this.redis.expire(userPresenceKey, UserEventListeners.PRESENCE_TTL_SECONDS);
-        logger.info(`[${this.jobName}] Refreshed TTL for user ${userId} via heartbeat`);
+        // logger.info(`[${this.jobName}] Refreshed TTL for user ${userId} via heartbeat`);
     }
 
     private async userDisconnected(payload: EventPayloads['user:disconnected']) {

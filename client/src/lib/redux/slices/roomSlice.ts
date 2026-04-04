@@ -7,20 +7,14 @@ import type {
   RoomSessionPhase,
 } from "@/lib/redux/types/room-slice.types";
 
-/**
- * Global room state: video UI (minimize / surf app), session id, and extension points
- * for peers, media (mediasoup), chat, and in-call games.
- */
 export interface RoomSliceState {
   ui: {
-    /** True while a video/voice session is active (fullscreen or minimized dock). */
     sessionActive: boolean;
     isMinimized: boolean;
   };
   session: {
     activeRoomId: string | null;
     phase: RoomSessionPhase;
-    /** Main remote tile (1:1 match peer or pinned user); circles can update or clear for “gallery first”. */
     rtcPrimaryRemoteUserId: string | null;
   };
   media: {
@@ -48,10 +42,6 @@ export const roomSlice = createSlice({
   name: "room",
   initialState: initialState(),
   reducers: {
-    /**
-     * User landed on `/room/[roomId]`. Sets `activeRoomId`.
-     * If the id changes, resets to lobby. If same id and a video session is already active (e.g. expand from dock), keeps session and clears minimized.
-     */
     enterRoomPage: (state, action: PayloadAction<{ roomId: string }>) => {
       const nextId = action.payload.roomId;
       if (state.session.activeRoomId !== nextId) {
@@ -71,16 +61,13 @@ export const roomSlice = createSlice({
       }
     },
 
-    /** Full reset — leaving match, ending call, or tearing down session. */
     resetRoomState: () => initialState(),
 
-    /** Clears only video dock UI (e.g. before joining a new room route). */
     resetVideoUi: (state) => {
       state.ui.sessionActive = false;
       state.ui.isMinimized = false;
     },
 
-    /** Start fullscreen video session (was `startCall`). */
     startVideoSession: (
       state,
       action: PayloadAction<
@@ -100,7 +87,6 @@ export const roomSlice = createSlice({
       state.session.phase = "in_call";
     },
 
-    /** End video session and clear room-bound client state. */
     endVideoSession: (state) => {
       state.ui.sessionActive = false;
       state.ui.isMinimized = false;
@@ -129,7 +115,6 @@ export const roomSlice = createSlice({
       state.media.status = action.payload;
     },
 
-    /** Circles / group: change who occupies the main remote tile without restarting the call. */
     setRtcPrimaryRemoteUserId: (state, action: PayloadAction<string | null>) => {
       state.session.rtcPrimaryRemoteUserId = action.payload;
     },
@@ -146,7 +131,6 @@ export const roomSlice = createSlice({
       state.chat.draft = action.payload;
     },
 
-    /** Future: chess / truth-or-dare */
     setActiveGame: (state, action: PayloadAction<RoomGamesState["active"]>) => {
       state.games.active = action.payload;
     },
