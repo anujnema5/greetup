@@ -14,7 +14,6 @@ const profile = (overrides?: Partial<SnapshotUserProfile>): SnapshotUserProfile 
     minAge: 18,
     maxAge: 99,
     distancePreference: "random",
-    connectionTypeIds: [],
   },
   attributes: {
     age: 25,
@@ -22,7 +21,6 @@ const profile = (overrides?: Partial<SnapshotUserProfile>): SnapshotUserProfile 
     countryCode: "IN",
     region: "MH",
     city: "Pune",
-    connectionTypeIds: ["friendship"],
   },
   ...overrides,
 });
@@ -37,7 +35,6 @@ describe("MatchValidatorService", () => {
         maxAge: 30,
         distancePreference: "same_city",
         city: "Pune",
-        connectionTypeIds: ["friendship"],
       },
     });
     const candidate = profile({ userId: "candidate" });
@@ -69,15 +66,6 @@ describe("MatchValidatorService", () => {
     const accepted = validator.accepts(
       { distancePreference: "same_country", countryCode: "IN" },
       { countryCode: "US", age: 22 },
-    );
-
-    expect(accepted).toBe(false);
-  });
-
-  it("requires overlapping connection type ids", () => {
-    const accepted = validator.accepts(
-      { connectionTypeIds: ["dating"] },
-      { connectionTypeIds: ["friendship", "networking"] },
     );
 
     expect(accepted).toBe(false);

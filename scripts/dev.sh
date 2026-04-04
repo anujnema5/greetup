@@ -5,8 +5,8 @@ docker compose up -d postgres redis
 
 echo "Starting server..."
 cd server
-npm install
-npm run dev &
+bun install
+bun run dev &
 SERVER_PID=$!
 cd ..
 

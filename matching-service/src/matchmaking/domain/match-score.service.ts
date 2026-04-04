@@ -107,8 +107,6 @@ export class MatchScoreService {
     const candidateGoals = toStringArray(candidate.attributes.goalIds);
     const requesterProfessions = toStringArray(requester.attributes.professionIds);
     const candidateProfessions = toStringArray(candidate.attributes.professionIds);
-    const requesterConnectionTypes = toStringArray(requester.filters.connectionTypeIds);
-    const candidateConnectionTypes = toStringArray(candidate.attributes.connectionTypeIds);
 
     const minAge = toNumber(requester.filters.minAge);
     const maxAge = toNumber(requester.filters.maxAge);
@@ -129,7 +127,6 @@ export class MatchScoreService {
     const weightedTotal =
       overlapRatio(requesterInterests, candidateInterests) * weights.interests +
       overlapRatio(requesterGoals, candidateGoals) * weights.goals +
-      overlapRatio(requesterConnectionTypes, candidateConnectionTypes) * weights.connectionTypes +
       overlapRatio(requesterProfessions, candidateProfessions) * weights.professions +
       ageScore(minAge, maxAge, candidateAge) * weights.agePreference +
       distanceScore(

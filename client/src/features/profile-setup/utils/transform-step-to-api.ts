@@ -79,14 +79,11 @@ export function transformStepToApiPayload(
           ? String(formValues.distancePreference)
           : undefined,
         ageRange: undefined,
-        connectionTypes: undefined,
       };
       const ageRange = formValues.ageRange as { min?: number; max?: number } | undefined;
       if (ageRange && typeof ageRange.min === "number" && typeof ageRange.max === "number") {
         data.ageRange = { min: ageRange.min, max: ageRange.max };
       }
-      const connectionTypes = toIdArray(formValues.connectionTypes);
-      if (connectionTypes.length > 0) data.connectionTypes = connectionTypes;
       return { step: 5, data };
     }
 

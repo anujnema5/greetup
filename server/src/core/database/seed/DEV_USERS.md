@@ -1,6 +1,6 @@
 # Dev seed users
 
-These accounts are for **local development and testing only**. They are created by `npm run db:seed:dev-users` after the main lookup seed (`npm run db:seed`).
+These accounts are for **local development and testing only**. They are created by `bun run db:seed:dev-users` after the main lookup seed (`bun run db:seed`).
 
 - **Credentials:** see `dev-users.credentials.csv` (same password for every row).
 - **Emails:** `seed01@circlo.local` … `seed12@circlo.local` — safe to delete and re-seed; the script removes existing rows with these emails first.

@@ -106,9 +106,6 @@ export const saveStep5Schema = z.object({
       max: z.number().int().min(18).max(99),
     })
     .optional(),
-  connectionTypes: z
-    .array(z.object({ id: z.string().uuid() }))
-    .optional(),
 });
 
 /* Step 6 – Bio & Photos */

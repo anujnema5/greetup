@@ -1,8 +1,11 @@
-import "./load-env";
+const nodeEnv = process.env.NODE_ENV || "development";
 
 const config = {
-    env: process.env.NODE_ENV || "development",
+    env: nodeEnv,
     port: parseInt(process.env.PORT || "5050"),
+    listenHost:
+        process.env.LISTEN_HOST ??
+        (nodeEnv === "production" ? "0.0.0.0" : "localhost"),
     debug: process.env.APP_DEBUG === "true",
     databaseUrl: process.env.DATABASE_URL!,
     betterAuthUrl: process.env.BETTER_AUTH_URL!,

@@ -12,7 +12,6 @@ export const INITIAL_EDITABLE_PROFILE: EditableProfile = {
   preferredGender: "any",
   distancePreference: "same country",
   ageRange: { min: 22, max: 35 },
-  connectionTypeIds: ["c1", "c2"],
   /** Single profile image for avatar; optional when wiring APIs */
   photos: [
     { id: "ph1", url: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400&h=500&fit=crop" },
@@ -43,11 +42,4 @@ export const MOCK_PROFESSIONS = [
   { id: "p3", label: "Founder" },
   { id: "p4", label: "Student" },
   { id: "p5", label: "Other" },
-] as const;
-
-export const MOCK_CONNECTION_TYPES = [
-  { id: "c1", label: "Friends" },
-  { id: "c2", label: "Networking" },
-  { id: "c3", label: "Social" },
-  { id: "c4", label: "Activity partners" },
 ] as const;

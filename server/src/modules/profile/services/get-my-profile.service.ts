@@ -60,11 +60,6 @@ export async function getMyProfileService(userId: string): Promise<MyProfileResp
           distancePreference: p.preferences.distancePreference,
           minAge: p.preferences.minAge,
           maxAge: p.preferences.maxAge,
-          connectionTypes: (p.preferences.connectionTypes ?? []).map((c) => ({
-            id: c.connectionType.id,
-            name: c.connectionType.name,
-            displayName: c.connectionType.displayName,
-          })),
         }
       : null,
     roomInvite: {

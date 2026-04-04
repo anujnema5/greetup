@@ -1,24 +1,26 @@
 # server
 
-Main API (Hono, Node.js): auth (Better Auth), REST routes, Socket.io, internal webhooks.
+Main API (Hono, Bun): auth (Better Auth), REST routes, Socket.io (Bun engine), internal webhooks.
 
 ## Run
 
 Copy and configure environment (see `env/.env.example` → `env/.env.development`).
 
+Requires [Bun](https://bun.sh) (see `packageManager` in `package.json`).
+
 ```bash
-npm install
-npm run dev
+bun install
+bun run dev
 # http://localhost:5050
 ```
 
 ## Database
 
 ```bash
-npm run db:generate   # Drizzle migrations from schema
-npm run db:migrate    # apply migrations (required after pulling schema changes)
-npm run db:studio     # optional Drizzle Studio
-npm run db:seed       # seed scripts
+bun run db:generate   # Drizzle migrations from schema
+bun run db:migrate    # apply migrations (required after pulling schema changes)
+bun run db:studio     # optional Drizzle Studio
+bun run db:seed       # seed scripts
 ```
 
 ## Layout & conventions

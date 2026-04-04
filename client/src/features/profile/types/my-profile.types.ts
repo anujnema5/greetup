@@ -38,7 +38,6 @@ export type MyProfileResponse = {
     distancePreference: string | null;
     minAge: number | null;
     maxAge: number | null;
-    connectionTypes: Array<{ id: string; name: string; displayName: string }>;
   } | null;
   roomInvite: {
     policy: "all_connections" | "selected_only";

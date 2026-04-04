@@ -1,4 +1,4 @@
-import EventEmitter from "node:events";
+import EventEmitter from "events";
 import { EventPayloads } from "./types/events.types";
 
 class AppEventEmitter extends EventEmitter {

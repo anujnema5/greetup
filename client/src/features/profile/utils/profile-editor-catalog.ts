@@ -4,7 +4,6 @@ export type ProfileEditorCatalog = {
   goals: Array<{ id: string; label: string; emoji?: string }>;
   interests: Array<{ id: string; label: string; category?: string }>;
   professions: Array<{ id: string; label: string }>;
-  connectionTypes: Array<{ id: string; label: string }>;
   goalMax: number;
   interestMax: number;
 };
@@ -49,12 +48,10 @@ export function buildProfileEditorCatalog(steps: ProfileSetupStep[]): ProfileEdi
   const s2 = steps.find((s) => s.step === 2);
   const s3 = steps.find((s) => s.step === 3);
   const s4 = steps.find((s) => s.step === 4);
-  const s5 = steps.find((s) => s.step === 5);
 
   const goalsField = s2?.fields.find((f) => f.key === "goals");
   const interestsField = s3?.fields.find((f) => f.key === "interests");
   const professionField = s4?.fields.find((f) => f.key === "profession");
-  const connField = s5?.fields.find((f) => f.key === "connectionTypes");
 
   const goalsRaw = mapMultiOptions(goalsField);
   const goals = goalsRaw.map((g) => ({ id: g.id, label: g.label, emoji: g.emoji }));
@@ -79,19 +76,6 @@ export function buildProfileEditorCatalog(steps: ProfileSetupStep[]): ProfileEdi
       .filter((p): p is { id: string; label: string } => p !== null && Boolean(p.id));
   }
 
-  let connectionTypes: Array<{ id: string; label: string }> = [];
-  if (connField && connField.type === "multi-select" && Array.isArray(connField.options)) {
-    connectionTypes = connField.options
-      .map((o) => {
-        if (typeof o === "object" && o !== null && "id" in o) {
-          const x = o as { id: string; name?: string };
-          return { id: x.id, label: x.name ?? "" };
-        }
-        return null;
-      })
-      .filter((c): c is { id: string; label: string } => c !== null && Boolean(c.id));
-  }
-
   const interestMax =
     interestsField && interestsField.type === "multi-select"
       ? (interestsField as { max?: number }).max ?? 10
@@ -103,7 +87,6 @@ export function buildProfileEditorCatalog(steps: ProfileSetupStep[]): ProfileEdi
     goals,
     interests,
     professions,
-    connectionTypes,
     goalMax,
     interestMax,
   };

@@ -85,7 +85,6 @@ const snapshotFor = (userId: string, index: number): Record<string, unknown> => 
       minAge: 18,
       maxAge: 99,
       distancePreference: "same_country",
-      connectionTypes: [{ connectionType: { id: "friendship" } }],
     },
     interests: [{ interest: { id: groupId } }],
     goals: [{ goal: { id: "chill" } }],

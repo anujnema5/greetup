@@ -128,7 +128,7 @@ export type SaveProfileSetupPayload =
   | { step: 2; data: { goals: Array<{ id: string }> } }
   | { step: 3; data: { interests: Array<{ id: string }> } }
   | { step: 4; data: { profession: { id: string; name?: string; category?: string } | null } }
-  | { step: 5; data: { preferredGender?: string; distancePreference?: string; ageRange?: { min: number; max: number }; connectionTypes?: Array<{ id: string }> } }
+  | { step: 5; data: { preferredGender?: string; distancePreference?: string; ageRange?: { min: number; max: number } } }
   | { step: 6; data: { bio?: string; photos?: Array<{ url: string; order?: number }> } }
 
 /** GET /profile/me — canonical type: `@/features/profile/types/my-profile.types` */

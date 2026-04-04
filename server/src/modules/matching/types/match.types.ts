@@ -22,7 +22,6 @@ export interface MatchUserData {
   interestIds: string[];
   goalIds: string[];
   professionIds: string[];
-  connectionTypeIds: string[];
   trustScore: number;
   lastActiveAt: number;
 }
@@ -57,7 +56,6 @@ export function parseMatchUserHash(
     interestIds: obj.i ? obj.i.split(",").filter(Boolean) : [],
     goalIds: obj.gl ? obj.gl.split(",").filter(Boolean) : [],
     professionIds: obj.pr ? obj.pr.split(",").filter(Boolean) : [],
-    connectionTypeIds: obj.ct ? obj.ct.split(",").filter(Boolean) : [],
     trustScore: obj.ts ? parseInt(obj.ts, 10) : 100,
     lastActiveAt: obj.la ? parseInt(obj.la, 10) : 0,
   };

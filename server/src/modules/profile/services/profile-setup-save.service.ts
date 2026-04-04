@@ -89,18 +89,6 @@ export async function saveProfileSetupStepService(
         prefs.maxAge = body.data.ageRange.max;
       }
       await profileSetupRepository.upsertPreferences(profileId, prefs);
-
-      if (
-        body.data.connectionTypes &&
-        body.data.connectionTypes.length > 0
-      ) {
-        const prefId =
-          await profileSetupRepository.ensureProfilePreference(profileId);
-        await profileSetupRepository.replaceConnectionTypes(
-          prefId,
-          body.data.connectionTypes.map((c) => c.id)
-        );
-      }
       break;
     }
 

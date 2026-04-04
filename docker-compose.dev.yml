@@ -33,7 +33,7 @@ services:
       - "5050:5050"
     volumes:
       - ./server:/app
-      - /app/node_modules  # keep container node_modules, use host source
+      - /app/node_modules  # keep container-installed deps (Bun), use host source
     env_file:
       - ./server/.env
     environment:

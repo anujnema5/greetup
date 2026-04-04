@@ -1,22 +1,29 @@
-import { serve } from "@hono/node-server";
+import type { WebSocketData } from "@socket.io/bun-engine";
 
 import { registerEventListeners } from "@/core/events/listeners";
 import logger from "@/core/logging";
-import { initSocket, setupSocketAdapter } from "@/core/socket";
+import { isSocketIoRequestPath, wireBunSocketIo } from "@/core/socket";
 import createApp from "@/http/create-app";
 import config from "@/shared/config/config";
 
-const startServer = async () => {
-  const app = await createApp();
+const app = await createApp();
+const engine = wireBunSocketIo();
+registerEventListeners();
 
-  const server = serve({ fetch: app.fetch, port: config.port }, (info) => {
-    logger.info(`Server listening at http://localhost:${info.port}`);
-  });
+const { websocket, idleTimeout, maxRequestBodySize } = engine.handler();
 
-  const io = initSocket();
-  io.attach(server);
-  setupSocketAdapter();
-  registerEventListeners();
+logger.info(`Server listening at http://localhost:${config.port}`);
+
+export default {
+  port: config.port,
+  hostname: config.listenHost,
+  idleTimeout,
+  maxRequestBodySize,
+  development: config.env !== "production",
+  fetch(req: Request, server: Bun.Server<WebSocketData>) {
+    return isSocketIoRequestPath(new URL(req.url).pathname)
+      ? engine.handleRequest(req, server)
+      : app.fetch(req);
+  },
+  websocket,
 };
-
-await startServer();
