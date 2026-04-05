@@ -6,6 +6,8 @@ export const API_ENDPOINTS = {
     ONBOARDING_STATUS: "/profile/onboarding-status",
     /** Who can add you when creating a room with friend invites */
     ROOM_INVITE_SETTINGS: "/profile/room-invite-settings",
+    public: (username: string) =>
+      `/profile/public/${encodeURIComponent(username)}` as const,
   },
   MATCHING: {
     FIND: "/matching/find",
@@ -17,6 +19,14 @@ export const API_ENDPOINTS = {
   },
   CONNECTIONS: {
     LIST: "/connections",
+    REQUEST: "/connections/request",
+    accept: (connectionId: string) =>
+      `/connections/${encodeURIComponent(connectionId)}/accept` as const,
+    reject: (connectionId: string) =>
+      `/connections/${encodeURIComponent(connectionId)}/reject` as const,
+  },
+  SEARCH: {
+    USERS: "/search/users",
   },
   CIRCLES: {
     CATEGORIES: "/circles/categories",

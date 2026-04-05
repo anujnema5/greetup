@@ -5,10 +5,15 @@ export {
   useGetMyConnectionsQuery,
   useLazyGetMyConnectionsQuery,
   useAcceptedConnectionsInfiniteQuery,
+  useRequestConnectionMutation,
+  useAcceptConnectionMutation,
+  useRejectConnectionMutation,
 } from "./api/connections-api";
 export type {
   ConnectionListFilter,
   ConnectionListItem,
   ConnectionPeer,
   ListConnectionsData,
+  RequestConnectionMutationArg,
+  RespondConnectionMutationArg,
 } from "./types/connections-api.types";

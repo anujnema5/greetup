@@ -11,9 +11,15 @@ export const fetchProfileStepsQuerySchema = z.object({
 
 export type FetchProfileStepsQuery = z.infer<typeof fetchProfileStepsQuerySchema>;
 
-/* STEP 1 – Basic Identity */
+/* STEP 1 – Basic Identity (legacy / docs shape; live API uses saveStep1Schema) */
 export const step1Schema = z.object({
   displayName: z.string().min(2).max(30),
+  username: z
+    .string()
+    .min(3)
+    .max(30)
+    .regex(/^[a-zA-Z0-9_]+$/)
+    .transform((s) => s.trim().toLowerCase()),
   age: z.number().min(18).max(60),
   gender: z.enum(["male", "female", "other"]),
   city: z.string().min(2),
@@ -65,6 +71,12 @@ export const step5Schema = z.object({
 /* Step 1 – Basic Identity */
 export const saveStep1Schema = z.object({
   displayName: z.string().min(2).max(100),
+  username: z
+    .string()
+    .min(3)
+    .max(30)
+    .regex(/^[a-zA-Z0-9_]+$/, "Use only letters, numbers, and underscores")
+    .transform((s) => s.trim().toLowerCase()),
   age: z.number().int().min(18).max(99),
   gender: z.enum(["male", "female", "other"]),
   country: z.object({

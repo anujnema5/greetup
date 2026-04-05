@@ -3,6 +3,8 @@ export type ProfileGender = "male" | "female" | "other";
 /** Editable form shape; filled from API via `mapMyProfileToEditable` (`MyProfileResponse`). */
 export type EditableProfile = {
   displayName: string;
+  /** Lowercase handle for /u/{username} */
+  username: string;
   age: number;
   gender: ProfileGender;
   country: { code: string; name: string };

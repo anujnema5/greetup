@@ -13,6 +13,7 @@ export async function getMyProfileService(userId: string): Promise<MyProfileResp
       : [];
 
   return {
+    username: p.user?.username ?? null,
     displayName: p.user?.displayName ?? p.user?.name ?? null,
     bio: p.bio,
     age: p.age,

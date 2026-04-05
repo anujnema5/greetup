@@ -40,9 +40,10 @@ export async function saveProfileSetupStepService(
 
   switch (body.step) {
     case 1: {
-      const { displayName, age, gender, country } = body.data;
+      const { displayName, username, age, gender, country } = body.data;
       await Promise.all([
         profileSetupRepository.updateUserDisplayName(userId, displayName),
+        profileSetupRepository.setUsername(userId, username),
         profileSetupRepository.updateBasicProfile(profileId, { age, gender }),
         profileSetupRepository.upsertLocation(profileId, {
           country: country.name,

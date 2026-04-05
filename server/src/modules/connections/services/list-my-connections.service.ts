@@ -23,6 +23,7 @@ function mapRowsToItems(userId: string, rows: Row[]): ConnectionListItem[] {
         name: peerUser.name,
         image: peerUser.image ?? null,
         profileId: peerUser.profile?.id ?? null,
+        username: peerUser.username ?? null,
       },
       createdAt: row.createdAt.toISOString(),
     };

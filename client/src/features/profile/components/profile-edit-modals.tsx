@@ -142,6 +142,26 @@ export function ProfileEditModals({
             />
           </div>
           <div className="space-y-2">
+            <Label htmlFor="pe-username">Username</Label>
+            <Input
+              id="pe-username"
+              value={d.username}
+              onChange={(e) =>
+                patchDraft({
+                  username: e.target.value.replace(/\s/g, "").toLowerCase(),
+                })
+              }
+              className="rounded-xl"
+              maxLength={30}
+              autoComplete="off"
+              spellCheck={false}
+              placeholder="your_handle"
+            />
+            <p className="text-[11px] text-muted-foreground">
+              Profile link: /u/{d.username || "username"}
+            </p>
+          </div>
+          <div className="space-y-2">
             <Label htmlFor="pe-age">Age</Label>
             <AgeDigitsInput
               id="pe-age"

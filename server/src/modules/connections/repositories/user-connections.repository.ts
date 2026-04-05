@@ -9,13 +9,10 @@ import {
   whereAcceptedConnectionsForUser,
   whereConnectionsListFilter,
 } from "../lib/connection-filters";
+import { escapeIlikePattern } from "@/shared/sql/ilike-escape";
 
 const requesterUser = alias(users, "conn_list_requester");
 const addresseeUser = alias(users, "conn_list_addressee");
-
-function escapeIlikePattern(raw: string): string {
-  return raw.replace(/\\/g, "\\\\").replace(/%/g, "\\%").replace(/_/g, "\\_");
-}
 
 export const userConnectionsRepository = {
   async findManyWithPeersForList(userId: string, filter: ConnectionsListFilter) {
@@ -124,6 +121,16 @@ export const userConnectionsRepository = {
         requesterId: true,
         addresseeId: true,
       },
+    });
+  },
+
+  /** Single row if any connection exists between the two users (either direction). */
+  async findUndirected(userA: string, userB: string) {
+    return db.query.userConnections.findFirst({
+      where: or(
+        and(eq(userConnections.requesterId, userA), eq(userConnections.addresseeId, userB)),
+        and(eq(userConnections.requesterId, userB), eq(userConnections.addresseeId, userA)),
+      ),
     });
   },
 };

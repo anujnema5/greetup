@@ -1,5 +1,5 @@
 'use client'
-import { useFormContext } from 'react-hook-form'
+import { useFormContext, useFormState } from 'react-hook-form'
 import { useRouter } from 'next/navigation'
 
 import {
@@ -35,6 +35,7 @@ import {
   CardTitle,
 } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
+import { Alert, AlertDescription } from '@/components/ui/alert'
 import { useProfileSetup, clearProfileSetupProgress } from '../provider'
 import { firstLetterCapital } from '@/shared/utils/general'
 import { LogOut, Sparkles } from 'lucide-react'
@@ -80,6 +81,9 @@ const ProfileSetupStep = () => {
   } = useProfileSetup()
 
   const form = useFormContext()
+  const { errors: formErrors } = useFormState({ control: form.control })
+  const rootErrorMessage =
+    typeof formErrors.root?.message === 'string' ? formErrors.root.message : undefined
 
   const handleLogout = async () => {
     clearProfileSetupProgress()
@@ -122,9 +126,17 @@ const ProfileSetupStep = () => {
                     placeholder={field.placeholder}
                     {...formField}
                     value={formField.value || ''}
+                    {...(field.autoComplete
+                      ? { autoComplete: field.autoComplete }
+                      : {})}
                     className="border-input bg-background transition-all hover:border-primary/50 focus-visible:border-primary focus-visible:ring-primary/20 "
                   />
                 </FormControl>
+                {field.description ? (
+                  <FormDescription className="text-xs text-muted-foreground">
+                    {field.description}
+                  </FormDescription>
+                ) : null}
                 <FormMessage className="text-xs" />
               </FormItem>
             )}
@@ -595,6 +607,12 @@ const ProfileSetupStep = () => {
                 ))}
               </div>
             </Form>
+
+            {rootErrorMessage ? (
+              <Alert variant="destructive" className="text-left">
+                <AlertDescription>{rootErrorMessage}</AlertDescription>
+              </Alert>
+            ) : null}
 
             {/* Actions */}
             <div className="flex items-center justify-between gap-3 pt-2">

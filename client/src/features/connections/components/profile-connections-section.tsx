@@ -7,10 +7,13 @@ import { ChevronRight, Loader2, Search, UserPlus } from "lucide-react";
 import type { FetchBaseQueryError } from "@reduxjs/toolkit/query";
 
 import {
+  useAcceptConnectionMutation,
   useAcceptedConnectionsInfiniteQuery,
   useGetMyConnectionsQuery,
+  useRejectConnectionMutation,
 } from "@/features/connections/api/connections-api";
 import type { ConnectionListItem } from "@/features/connections/types/connections-api.types";
+import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 
@@ -19,6 +22,12 @@ const ACCEPTED_PREVIEW_LIMIT = 6;
 
 function peerLabel(item: ConnectionListItem) {
   return item.peer.displayName?.trim() || item.peer.name || "Member";
+}
+
+/** Path for public profile when the peer has a username; otherwise null. */
+function publicProfileHref(username: string | null | undefined): string | null {
+  const u = username?.trim();
+  return u ? `/u/${encodeURIComponent(u)}` : null;
 }
 
 function initials(name: string) {
@@ -39,6 +48,33 @@ function rtkErrorMessage(error: unknown): string {
   return "Something went wrong";
 }
 
+function ConnectionPeerSummary({
+  imageUrl,
+  title,
+  subtitle,
+}: {
+  imageUrl: string | null;
+  title: string;
+  subtitle: string;
+}) {
+  return (
+    <>
+      <div className="relative flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full bg-linear-to-br from-primary/90 to-primary/70 text-xs font-bold text-primary-foreground">
+        {imageUrl ? (
+          /* eslint-disable-next-line @next/next/no-img-element */
+          <img src={imageUrl} alt="" className="h-full w-full object-cover" />
+        ) : (
+          initials(title)
+        )}
+      </div>
+      <div className="min-w-0 flex-1">
+        <p className="truncate text-sm font-semibold text-foreground">{title}</p>
+        <p className="truncate text-xs text-muted-foreground">{subtitle}</p>
+      </div>
+    </>
+  );
+}
+
 function ConnectionRow({ item }: { item: ConnectionListItem }) {
   const label = peerLabel(item);
   const sub =
@@ -55,19 +91,93 @@ function ConnectionRow({ item }: { item: ConnectionListItem }) {
         "transition-colors duration-150",
       )}
     >
-      <div className="relative h-10 w-10 shrink-0 overflow-hidden rounded-full bg-linear-to-br from-primary/90 to-primary/70 flex items-center justify-center text-xs font-bold text-primary-foreground">
-        {item.peer.image ? (
-          /* eslint-disable-next-line @next/next/no-img-element */
-          <img src={item.peer.image} alt="" className="h-full w-full object-cover" />
-        ) : (
-          initials(label)
-        )}
-      </div>
-      <div className="min-w-0 flex-1">
-        <p className="truncate text-sm font-semibold text-foreground">{label}</p>
-        <p className="truncate text-xs text-muted-foreground">{sub}</p>
-      </div>
+      <ConnectionPeerSummary imageUrl={item.peer.image} title={label} subtitle={sub} />
       <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground/60" aria-hidden />
+    </div>
+  );
+}
+
+function IncomingRequestRow({ item }: { item: ConnectionListItem }) {
+  const [accept] = useAcceptConnectionMutation();
+  const [reject] = useRejectConnectionMutation();
+  const [busy, setBusy] = useState(false);
+  const [actionError, setActionError] = useState<string | null>(null);
+
+  const label = peerLabel(item);
+  const profileHref = publicProfileHref(item.peer.username);
+
+  const mutationArg = {
+    connectionId: item.connectionId,
+    peerUsername: item.peer.username,
+  };
+
+  const runRespond = (promise: Promise<unknown>) => {
+    setActionError(null);
+    setBusy(true);
+    void promise
+      .catch((e: unknown) => setActionError(rtkErrorMessage(e)))
+      .finally(() => setBusy(false));
+  };
+
+  const summary = (
+    <ConnectionPeerSummary
+      imageUrl={item.peer.image}
+      title={label}
+      subtitle="Wants to connect"
+    />
+  );
+
+  return (
+    <div
+      className={cn(
+        "flex flex-col gap-2 rounded-2xl border border-border bg-card px-4 py-3",
+        "transition-colors duration-150",
+      )}
+    >
+      <div className="flex items-center gap-3 min-w-0">
+        {profileHref ? (
+          <Link
+            href={profileHref}
+            className="flex min-w-0 flex-1 items-center gap-3 rounded-xl outline-none hover:opacity-90 focus-visible:ring-2 focus-visible:ring-ring"
+          >
+            {summary}
+          </Link>
+        ) : (
+          <div className="flex min-w-0 flex-1 items-center gap-3">{summary}</div>
+        )}
+        <div className="flex shrink-0 flex-wrap items-center justify-end gap-2">
+          {busy ? (
+            <Loader2
+              className="h-4 w-4 shrink-0 animate-spin text-muted-foreground"
+              aria-label="Loading"
+            />
+          ) : null}
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            className="rounded-xl"
+            disabled={busy}
+            onClick={() => runRespond(reject(mutationArg).unwrap())}
+          >
+            Reject
+          </Button>
+          <Button
+            type="button"
+            size="sm"
+            className="rounded-xl"
+            disabled={busy}
+            onClick={() => runRespond(accept(mutationArg).unwrap())}
+          >
+            Accept
+          </Button>
+        </div>
+      </div>
+      {actionError ? (
+        <p className="text-xs text-destructive px-0.5" role="alert">
+          {actionError}
+        </p>
+      ) : null}
     </div>
   );
 }
@@ -297,7 +407,7 @@ export function ProfileConnectionsSection({
           </p>
           <div className="flex flex-col gap-2">
             {incomingItems.map((item) => (
-              <ConnectionRow key={item.connectionId} item={item} />
+              <IncomingRequestRow key={item.connectionId} item={item} />
             ))}
           </div>
         </div>

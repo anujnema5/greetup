@@ -15,6 +15,13 @@ import {
 } from "@/core/database/schema";
 import { eq } from "drizzle-orm";
 
+export class UsernameTakenError extends Error {
+  constructor() {
+    super("USERNAME_TAKEN");
+    this.name = "UsernameTakenError";
+  }
+}
+
 export const profileSetupRepository = {
   /**
    * Get or create user profile. Returns profileId.
@@ -37,6 +44,25 @@ export const profileSetupRepository = {
 
   async updateUserDisplayName(userId: string, displayName: string) {
     return db.update(users).set({ displayName }).where(eq(users.id, userId));
+  },
+
+  async setUsername(userId: string, username: string) {
+    const taken = await db.query.users.findFirst({
+      where: eq(users.username, username),
+      columns: { id: true },
+    });
+    if (taken && taken.id !== userId) {
+      throw new UsernameTakenError();
+    }
+    return db.update(users).set({ username }).where(eq(users.id, userId));
+  },
+
+  async getUsername(userId: string): Promise<string | null> {
+    const row = await db.query.users.findFirst({
+      where: eq(users.id, userId),
+      columns: { username: true },
+    });
+    return row?.username ?? null;
   },
 
   async updateBasicProfile(

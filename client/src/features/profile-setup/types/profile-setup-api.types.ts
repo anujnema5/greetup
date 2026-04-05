@@ -42,11 +42,14 @@ export interface ProfileSetupFieldBase {
   value: unknown
   required?: boolean
   placeholder?: string
+  description?: string
+  autoComplete?: string
 }
 
 // Extended field types for specific input variations
 export interface TextField extends ProfileSetupFieldBase {
   type: 'text' | 'textarea'
+  minLength?: number
   maxLength?: number
 }
 
@@ -124,7 +127,16 @@ export type SaveProfileSetupApiResponse = ApiResponse<SaveProfileSetupResponse>
 
 /** Payload for POST /profile-setup - discriminated by step */
 export type SaveProfileSetupPayload =
-  | { step: 1; data: { displayName: string; age: number; gender: string; country: { code: string; name: string } } }
+  | {
+      step: 1;
+      data: {
+        displayName: string;
+        username: string;
+        age: number;
+        gender: string;
+        country: { code: string; name: string };
+      };
+    }
   | { step: 2; data: { goals: Array<{ id: string }> } }
   | { step: 3; data: { interests: Array<{ id: string }> } }
   | { step: 4; data: { profession: { id: string; name?: string; category?: string } | null } }

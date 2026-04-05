@@ -3,8 +3,11 @@
  */
 export const HTTP_PATHS = {
   api: "/api",
-  /** Better Auth handler — must stay a glob so all auth routes are delegated. */
-  authGlob: "/api/auth/**",
+  /**
+   * Better Auth handler — trailing `*` is Hono’s greedy wildcard (matches `/get-session`, `/callback/...`, etc.).
+   * Do not use `**` here: Hono splits on `/`, so `**` is a literal segment and auth URLs would 404.
+   */
+  authGlob: "/api/auth/*",
   internal: "/internal",
   root: "/",
 } as const;

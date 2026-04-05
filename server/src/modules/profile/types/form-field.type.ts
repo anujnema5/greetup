@@ -9,6 +9,10 @@ export interface FormField {
     name: string;
     label: string;
     placeholder?: string;
+    /** Shown under the control when set (from server-driven step config). */
+    description?: string;
+    /** Passed through to HTML autocomplete when relevant (e.g. `"username"`). */
+    autoComplete?: string;
     type: "text" | "number" | "select" | "multi-select" | "radio" | "toggle" | 
           "range" | "textarea" | "photo-upload" | "country-select";
     required?: boolean;
@@ -16,6 +20,7 @@ export interface FormField {
     options?: string[] | any[];
     min?: number;
     max?: number;
+    minLength?: number;
     maxLength?: number;
 }
 
@@ -29,6 +34,8 @@ export interface FormStep {
 export interface ProfileSetupData {
     // Step 1: Basic Identity
     displayName?: string;
+    /** Required for onboarding — public handle for `/u/{username}`. */
+    username?: string;
     age?: number;
     gender?: string;
     country?: {

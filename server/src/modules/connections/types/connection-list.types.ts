@@ -9,6 +9,8 @@ export type ConnectionListItem = {
     name: string;
     image: string | null;
     profileId: string | null;
+    /** Public handle when set (for profile links). */
+    username: string | null;
   };
   createdAt: string;
 };

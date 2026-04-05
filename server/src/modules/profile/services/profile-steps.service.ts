@@ -21,6 +21,7 @@ export const PROFILE_COMPLETE_THRESHOLD = 80;
  */
 function buildSteps(profile: ProfileForSteps | undefined, options: StepOptions): FormStep[] {
   const displayName = profile?.user?.displayName ?? profile?.user?.name ?? null;
+  const usernameValue = profile?.user?.username ?? null;
   const countryValue =
     profile?.location?.countryCode && profile?.location?.country
       ? { code: profile.location.countryCode, name: profile.location.country }
@@ -93,6 +94,20 @@ function buildSteps(profile: ProfileForSteps | undefined, options: StepOptions):
           type: "text",
           required: true,
           value: displayName,
+        },
+        {
+          key: "username",
+          name: "username",
+          label: "Username",
+          placeholder: "your_handle",
+          type: "text",
+          required: true,
+          minLength: 3,
+          maxLength: 30,
+          autoComplete: "username",
+          description:
+            "This becomes your public link. Use at least 3 characters; letters, numbers, and underscores only.",
+          value: usernameValue,
         },
         {
           key: "age",

@@ -28,10 +28,20 @@ export function transformStepToApiPayload(
       if (!country?.code || !country?.name) {
         throw new Error("Country is required");
       }
+      const username = String(formValues.username ?? "")
+        .trim()
+        .toLowerCase();
+      if (username.length < 3) {
+        throw new Error("Username must be at least 3 characters");
+      }
+      if (!/^[a-zA-Z0-9_]+$/.test(username)) {
+        throw new Error("Username may only contain letters, numbers, and underscores");
+      }
       return {
         step: 1,
         data: {
           displayName: String(formValues.displayName ?? "").trim(),
+          username,
           age: Number(formValues.age),
           gender: String(formValues.gender),
           country: { code: country.code, name: country.name },
