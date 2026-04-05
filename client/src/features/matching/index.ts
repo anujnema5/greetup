@@ -6,6 +6,11 @@
  */
 export { useRoom } from "./hooks/use-room";
 export { useFindMatch } from "./hooks/useFindMatch";
+export {
+  MatchmakingProvider,
+  useMatchmaking,
+} from "./providers/matchmaking-provider";
+export type { MatchmakingContextValue } from "./providers/matchmaking-provider";
 export { MatchFoundDialog } from "./components/match-found-dialog";
 export {
   matchingApi,

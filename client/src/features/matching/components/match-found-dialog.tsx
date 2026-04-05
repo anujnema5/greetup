@@ -58,9 +58,11 @@ export function MatchFoundDialog({
     <Dialog open={open} onOpenChange={() => {}}>
       <DialogContent
         showCloseButton={false}
+        overlayClassName="z-[220]"
         onPointerDownOutside={(e) => e.preventDefault()}
         onEscapeKeyDown={(e) => e.preventDefault()}
         className={cn(
+          "z-[220]",
           "max-w-[min(100%-1.5rem,380px)] gap-0 rounded-[1.35rem] border border-zinc-800/90 p-0 shadow-2xl",
           "bg-[#121210] text-zinc-100 sm:max-w-[380px]",
         )}
