@@ -7,6 +7,8 @@ import {
   handleJoinRoom,
   handleMatchCompleted,
   handleMatchFailed,
+  handleMatchProposed,
+  handleMatchProposalCancelled,
   handleStartRoomSession,
 } from "./controllers/room.controller";
 
@@ -16,6 +18,8 @@ internalRoomsRoute.post("/rooms/match", handleCreateRoom);
 internalRoomsRoute.post("/webhook/ensure-profile-snapshot", handleEnsureProfileSnapshot);
 internalRoomsRoute.post("/webhook/match-completed", handleMatchCompleted);
 internalRoomsRoute.post("/webhook/match-failed", handleMatchFailed);
+internalRoomsRoute.post("/webhook/match-proposed", handleMatchProposed);
+internalRoomsRoute.post("/webhook/match-proposal-cancelled", handleMatchProposalCancelled);
 
 // Public authenticated route (registered under /api)
 export const roomRoute = new Hono();

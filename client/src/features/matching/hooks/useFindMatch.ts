@@ -1,10 +1,32 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
-import { useFindMatchMutation, useCancelMatchMutation } from '../api/matching-api';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import {
+  useFindMatchMutation,
+  useCancelMatchMutation,
+  useRespondMatchProposalMutation,
+} from '../api/matching-api';
 import { useSocket } from '@/lib/socket';
+import {
+  messageForFailedStart,
+  messageForNoMatch,
+  messageForProposalCancelled,
+} from './find-match-messages';
+import { runSerialized } from './find-match-queue';
+import {
+  clearMatchAttemptLocal,
+  persistMatchAttemptId,
+  readStoredMatchAttemptId,
+} from './find-match-storage';
+import type {
+  MatchCompletedPayload,
+  MatchNoMatchPayload,
+  MatchProposalCancelledPayload,
+  MatchProposedPayload,
+  MatchStatePayload,
+} from './match-socket-types';
 
-type MatchStatus = 'idle' | 'searching' | 'matched' | 'error';
+type MatchStatus = 'idle' | 'searching' | 'proposed' | 'matched' | 'error';
 
 export interface MatchResult {
   requestId: string;
@@ -14,48 +36,89 @@ export interface MatchResult {
   isFallbackMatch?: boolean;
 }
 
-const STORAGE_KEY = 'match:requestId';
-
-function messageForFailedStart(reason: string | undefined): string {
-  switch (reason) {
-    case 'user_unavailable':
-      return 'Still marked as in a room. Open the room page and use End/Leave, or wait a few minutes and try again.';
-    case 'snapshot_not_found':
-      return 'Could not start matchmaking. Make sure your profile is complete.';
-    default:
-      return 'Could not start matchmaking. Please try again.';
-  }
-}
-
-function messageForNoMatch(reason: string): string {
-  switch (reason) {
-    case 'pool_empty':
-      return 'No one else was searching just then. Try again in a moment.';
-    case 'no_compatible_candidate':
-      return 'No compatible match right now. Try widening preferences or try again in a moment.';
-    default:
-      return 'No match found. Try again in a moment.';
-  }
-}
-
 export function useFindMatch() {
   const [status, setStatus] = useState<MatchStatus>('idle');
   const [result, setResult] = useState<MatchResult | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [respondBusy, setRespondBusy] = useState(false);
 
   const [findMatch, { isLoading: isStarting }] = useFindMatchMutation();
   const [cancelMatch] = useCancelMatchMutation();
+  const [respondMatch] = useRespondMatchProposalMutation();
   const { socket } = useSocket();
 
-  // Track whether this hook instance initiated the search so we can
-  // restore state from localStorage on mount (handles page refresh).
   const requestIdRef = useRef<string | null>(null);
+  /** Peer user id while proposal is open — `match:completed` uses initiator attemptId for both sockets. */
+  const proposalPeerIdRef = useRef<string | null>(null);
+  const findAMatchRef = useRef<() => Promise<void>>(async () => {});
+  const statusRef = useRef<MatchStatus>('idle');
+  const findTailRef = useRef<Promise<void>>(Promise.resolve());
 
-  // On mount: restore any in-progress search from localStorage.
-  // The server will also push match:state on socket connect, this just
-  // pre-sets the UI immediately before the socket event arrives.
   useEffect(() => {
-    const stored = localStorage.getItem(STORAGE_KEY);
+    statusRef.current = status;
+  }, [status]);
+
+  const applies = useCallback(
+    (attemptId: string) =>
+      requestIdRef.current === attemptId || readStoredMatchAttemptId() === attemptId,
+    [],
+  );
+
+  const applyProposedFromServer = useCallback(
+    (
+      requestId: string,
+      peerUserId: string | undefined,
+      matchScore?: number,
+      isFallbackMatch?: boolean,
+    ) => {
+      if (peerUserId) proposalPeerIdRef.current = peerUserId;
+      persistMatchAttemptId(requestIdRef, requestId);
+      setStatus('proposed');
+      setResult({ requestId, peerId: peerUserId, matchScore, isFallbackMatch });
+      setError(null);
+    },
+    [],
+  );
+
+  const findAMatch = useCallback(() => {
+    return runSerialized(findTailRef, async () => {
+      try {
+        setStatus('searching');
+        setResult(null);
+        setError(null);
+
+        const res = await findMatch().unwrap();
+        const { requestId, status: engineStatus, reason, peerUserId, matchScore, isFallbackMatch } = res.data;
+
+        if (engineStatus === 'no_match') {
+          setStatus('error');
+          setError(messageForFailedStart(reason));
+          return;
+        }
+
+        persistMatchAttemptId(requestIdRef, requestId);
+
+        if (engineStatus === 'proposed' && peerUserId) {
+          proposalPeerIdRef.current = peerUserId;
+          setStatus('proposed');
+          setResult({
+            requestId,
+            peerId: peerUserId,
+            matchScore,
+            isFallbackMatch,
+          });
+        }
+      } catch {
+        setStatus('error');
+        setError('Failed to start matchmaking');
+      }
+    });
+  }, [findMatch]);
+
+  findAMatchRef.current = findAMatch;
+
+  useEffect(() => {
+    const stored = readStoredMatchAttemptId();
     if (stored) {
       requestIdRef.current = stored;
       setStatus('searching');
@@ -63,89 +126,99 @@ export function useFindMatch() {
   }, []);
 
   useEffect(() => {
-    // match:completed — fired by the webhook handler when matching engine finds a pair
-    const onMatchCompleted = (data: {
-      roomId: string;
-      attemptId: string;
-      matchScore: number;
-      isFallbackMatch: boolean;
-      peerId: string;
-    }) => {
-      const requestId = requestIdRef.current ?? localStorage.getItem(STORAGE_KEY) ?? data.attemptId;
-      localStorage.removeItem(STORAGE_KEY);
-      requestIdRef.current = null;
+    const onMatchCompleted = (data: MatchCompletedPayload) => {
+      const peerOk = proposalPeerIdRef.current != null && proposalPeerIdRef.current === data.peerId;
+      if (!applies(data.attemptId) && !peerOk) return;
+      proposalPeerIdRef.current = null;
+      const requestId = requestIdRef.current ?? readStoredMatchAttemptId() ?? data.attemptId;
+      clearMatchAttemptLocal(proposalPeerIdRef, requestIdRef);
       setStatus('matched');
-      setResult({ requestId, roomId: data.roomId, peerId: data.peerId, matchScore: data.matchScore, isFallbackMatch: data.isFallbackMatch });
+      setResult({
+        requestId,
+        roomId: data.roomId,
+        peerId: data.peerId,
+        matchScore: data.matchScore,
+        isFallbackMatch: data.isFallbackMatch,
+      });
     };
 
-    // match:state — fired by the server on every socket connect to restore client state
-    const onMatchState = (data: {
-      status: 'searching' | 'matched' | 'idle';
-      requestId?: string;
-      roomId?: string;
-    }) => {
+    const onMatchProposed = (data: MatchProposedPayload) => {
+      const accept =
+        applies(data.attemptId) ||
+        /* Parallel find calls can leave refs/storage on a stale attemptId while the server paired this id. */
+        statusRef.current === 'searching';
+      if (!accept) return;
+      applyProposedFromServer(data.attemptId, data.peerId, data.matchScore, data.isFallbackMatch);
+    };
+
+    const onMatchState = (data: MatchStatePayload) => {
       if (data.status === 'searching' && data.requestId) {
-        requestIdRef.current = data.requestId;
-        localStorage.setItem(STORAGE_KEY, data.requestId);
+        proposalPeerIdRef.current = null;
+        persistMatchAttemptId(requestIdRef, data.requestId);
         setStatus('searching');
+      } else if (data.status === 'proposed' && data.requestId) {
+        applyProposedFromServer(
+          data.requestId,
+          data.peerUserId,
+          data.matchScore,
+          data.isFallbackMatch,
+        );
       } else if (data.status === 'matched' && data.roomId) {
+        proposalPeerIdRef.current = null;
         const requestId = data.requestId ?? requestIdRef.current ?? '';
-        localStorage.removeItem(STORAGE_KEY);
-        requestIdRef.current = null;
+        clearMatchAttemptLocal(proposalPeerIdRef, requestIdRef);
         setStatus('matched');
         setResult({ requestId, roomId: data.roomId });
       } else if (data.status === 'idle') {
-        // Grace period expired while offline — server already removed from pool
-        localStorage.removeItem(STORAGE_KEY);
-        requestIdRef.current = null;
+        clearMatchAttemptLocal(proposalPeerIdRef, requestIdRef);
         setStatus('idle');
+        setResult(null);
       }
     };
 
-    // match:no_match — fired when the engine exhausts all retries with no compatible candidate
-    const onMatchNoMatch = (data: { attemptId: string; reason: string }) => {
-      const stored = localStorage.getItem(STORAGE_KEY);
-      if (stored !== null) {
-        localStorage.removeItem(STORAGE_KEY);
-        requestIdRef.current = null;
-        setStatus('error');
-        setError(messageForNoMatch(data.reason));
-      }
+    const onMatchNoMatch = (data: MatchNoMatchPayload) => {
+      const stored = readStoredMatchAttemptId();
+      if (stored === null) return;
+      if (data.attemptId !== stored && requestIdRef.current !== data.attemptId) return;
+      clearMatchAttemptLocal(proposalPeerIdRef, requestIdRef);
+      setStatus('error');
+      setError(messageForNoMatch(data.reason));
     };
 
-    socket.on('match:completed', onMatchCompleted);
-    socket.on('match:state', onMatchState);
-    socket.on('match:no_match', onMatchNoMatch);
-
-    return () => {
-      socket.off('match:completed', onMatchCompleted);
-      socket.off('match:state', onMatchState);
-      socket.off('match:no_match', onMatchNoMatch);
-    };
-  }, [socket]);
-
-  const findAMatch = async () => {
-    try {
-      setStatus('searching');
+    const onProposalCancelled = (data: MatchProposalCancelledPayload) => {
+      if (!applies(data.attemptId)) return;
+      clearMatchAttemptLocal(proposalPeerIdRef, requestIdRef);
       setResult(null);
       setError(null);
 
-      const res = await findMatch().unwrap();
-      const { requestId, status: engineStatus, reason } = res.data;
-
-      if (engineStatus === 'no_match') {
-        setStatus('error');
-        setError(messageForFailedStart(reason));
+      if (data.reason === 'you_skipped' || data.reason === 'peer_skipped') {
+        void findAMatchRef.current();
         return;
       }
 
-      requestIdRef.current = requestId;
-      localStorage.setItem(STORAGE_KEY, requestId);
-    } catch {
+      if (data.reason === 'cancelled_by_user') {
+        setStatus('idle');
+        return;
+      }
+
       setStatus('error');
-      setError('Failed to start matchmaking');
-    }
-  };
+      setError(messageForProposalCancelled(data.reason));
+    };
+
+    socket.on('match:completed', onMatchCompleted);
+    socket.on('match:proposed', onMatchProposed);
+    socket.on('match:state', onMatchState);
+    socket.on('match:no_match', onMatchNoMatch);
+    socket.on('match:proposal_cancelled', onProposalCancelled);
+
+    return () => {
+      socket.off('match:completed', onMatchCompleted);
+      socket.off('match:proposed', onMatchProposed);
+      socket.off('match:state', onMatchState);
+      socket.off('match:no_match', onMatchNoMatch);
+      socket.off('match:proposal_cancelled', onProposalCancelled);
+    };
+  }, [socket, applies, applyProposedFromServer]);
 
   const cancelSearch = async () => {
     try {
@@ -153,20 +226,41 @@ export function useFindMatch() {
     } catch {
       // best-effort — clear local state regardless
     }
-    localStorage.removeItem(STORAGE_KEY);
-    requestIdRef.current = null;
+    clearMatchAttemptLocal(proposalPeerIdRef, requestIdRef);
     setStatus('idle');
     setResult(null);
     setError(null);
   };
 
+  const respondToProposal = useCallback(
+    async (decision: 'connect' | 'skip') => {
+      const attemptId = requestIdRef.current ?? readStoredMatchAttemptId();
+      if (!attemptId) {
+        setError('No active match proposal.');
+        return;
+      }
+      try {
+        setRespondBusy(true);
+        await respondMatch({ attemptId, decision }).unwrap();
+      } catch {
+        setError(decision === 'connect' ? 'Could not connect. Try again.' : 'Could not skip. Try again.');
+      } finally {
+        setRespondBusy(false);
+      }
+    },
+    [respondMatch],
+  );
+
   return {
     findAMatch,
     cancelSearch,
+    respondToProposal,
     status,
     result,
     error,
     isSearching: status === 'searching',
-    isLoading: isStarting || status === 'searching',
+    isProposed: status === 'proposed',
+    isLoading: isStarting || status === 'searching' || respondBusy,
+    respondBusy,
   };
 }

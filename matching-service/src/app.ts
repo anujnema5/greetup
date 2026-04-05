@@ -1,7 +1,14 @@
 import { Hono } from "hono";
 import { APP_CONFIG } from "@/config/constants";
 import { healthResponse } from "@/controllers/health.controller";
-import { handleFindMatch, handleGetMatchResult, handleGetUserMatchState, handleCancelMatch, handleLeaveRoom } from "@/controllers/matchmaking.controller";
+import {
+  handleFindMatch,
+  handleGetMatchResult,
+  handleGetUserMatchState,
+  handleCancelMatch,
+  handleLeaveRoom,
+  handleMatchRespond,
+} from "@/controllers/matchmaking.controller";
 import { logger } from "@/core/logger";
 import { connectRedis, disconnectRedis } from "@/redis/client";
 import { MatchWorkerService } from "@/matchmaking/application/match-worker.service";
@@ -15,6 +22,7 @@ app.post("/match/find", handleFindMatch);
 app.get("/match/result/:requestId", handleGetMatchResult);
 app.get("/match/state/user/:userId", handleGetUserMatchState);
 app.post("/match/cancel", handleCancelMatch);
+app.post("/match/respond", handleMatchRespond);
 app.post("/match/leave-room", handleLeaveRoom);
 
 const setupShutdownHooks = (): void => {

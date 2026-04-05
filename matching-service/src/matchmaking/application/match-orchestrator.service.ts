@@ -1,4 +1,5 @@
 import type { FindMatchRequest, FindMatchResult, SnapshotUserProfile } from "@/contracts/matchmaking.contracts";
+import type { PairPendingRecord } from "@/matchmaking/infrastructure/services/match-proposal.service";
 import { MATCH_CONFIG } from "@/config/constants";
 import { randomJitter, sleep } from "@/core/async-utils";
 import { logger } from "@/core/logger";
@@ -12,9 +13,19 @@ import { MatchJobQueueService } from "@/matchmaking/infrastructure/services/matc
 import { SnapshotRepository } from "@/matchmaking/infrastructure/repositories/snapshot.repository";
 import { MatchAttemptRepository } from "@/matchmaking/infrastructure/repositories/match-attempt.repository";
 import { RoomOrchestrationService } from "@/matchmaking/infrastructure/services/room-orchestration.service";
+import { MatchProposalService } from "@/matchmaking/infrastructure/services/match-proposal.service";
+import { MatchSkipPeersService } from "@/matchmaking/infrastructure/services/match-skip-peers.service";
 import { MatchWebhookService } from "@/matchmaking/infrastructure/services/match-webhook.service";
 import { getRedis } from "@/redis/client";
 import { redisKeys } from "@/redis/keys";
+import {
+  coalesceActiveSearchOrProposal,
+  releaseStartSearchLockIfHolder,
+  searchingWithRequestId,
+  START_SEARCH_LOCK_POLL_MS,
+  START_SEARCH_LOCK_WAIT_MS,
+  tryAcquireStartSearchLock,
+} from "@/matchmaking/application/start-find-match.helpers";
 
 type ScorePoolMode = "eligible_only" | "all_compatible";
 
@@ -28,8 +39,22 @@ export class MatchOrchestratorService {
     private readonly snapshots = new SnapshotRepository(),
     private readonly attempts = new MatchAttemptRepository(),
     private readonly rooms = new RoomOrchestrationService(),
+    private readonly proposals = new MatchProposalService(),
+    private readonly skipPeers = new MatchSkipPeersService(),
     private readonly webhook = new MatchWebhookService(),
   ) { }
+
+  /** Persist searching attempt, pool membership, and worker job — shared by lock and fallback paths. */
+  private async commitSearchingEnqueue(request: FindMatchRequest): Promise<FindMatchResult> {
+    await this.attempts.setSearching(request.requestId, request.userId);
+    await this.pool.enqueue(request.userId);
+    await this.jobs.enqueue(request);
+    logger.info("[startFindMatch] user enqueued successfully", {
+      userId: request.userId,
+      requestId: request.requestId,
+    });
+    return searchingWithRequestId(request.requestId);
+  }
 
   async findMatch(request: FindMatchRequest): Promise<FindMatchResult> {
     return this.startFindMatch(request);
@@ -56,21 +81,54 @@ export class MatchOrchestratorService {
 
     const state = await getRedis().get(redisKeys.userState(request.userId));
     logger.debug("[startFindMatch] current user state", { userId: request.userId, state });
-    if (state === "locked" || state === "in_room") {
+    if (state === "locked") {
+      const lastId = await getRedis().get(redisKeys.userLastAttempt(request.userId));
+      if (lastId) {
+        const lockedAttempt = await this.attempts.getAttempt(lastId);
+        if (lockedAttempt?.status === "proposed" && lockedAttempt.peerUserId) {
+          logger.info("[startFindMatch] idempotent — already in match proposal", { userId: request.userId, requestId: lastId });
+          return this.attempts.toResult(lockedAttempt);
+        }
+      }
+      logger.warn("[startFindMatch] user unavailable (locked)", { userId: request.userId });
+      await this.attempts.markNoMatch(request.requestId, request.userId, "user_unavailable");
+      return { status: "no_match", reason: "user_unavailable" };
+    }
+    if (state === "in_room") {
       logger.warn("[startFindMatch] user unavailable", { userId: request.userId, state });
       await this.attempts.markNoMatch(request.requestId, request.userId, "user_unavailable");
       return { status: "no_match", reason: "user_unavailable" };
     }
 
-    await this.attempts.setSearching(request.requestId, request.userId);
-    await this.pool.enqueue(request.userId);
-    await this.jobs.enqueue(request);
+    const coalescedEarly = await coalesceActiveSearchOrProposal(this.attempts, request.userId);
+    if (coalescedEarly) return coalescedEarly;
 
-    logger.info("[startFindMatch] user enqueued successfully", { userId: request.userId, requestId: request.requestId });
-    return {
-      status: "searching",
-      retryAfterMs: 1_000,
-    };
+    const deadline = Date.now() + START_SEARCH_LOCK_WAIT_MS;
+    while (Date.now() < deadline) {
+      const coalesced = await coalesceActiveSearchOrProposal(this.attempts, request.userId);
+      if (coalesced) return coalesced;
+
+      const acquired = await tryAcquireStartSearchLock(request.userId, request.requestId);
+      if (acquired) {
+        try {
+          const again = await coalesceActiveSearchOrProposal(this.attempts, request.userId);
+          if (again) return again;
+          return await this.commitSearchingEnqueue(request);
+        } finally {
+          await releaseStartSearchLockIfHolder(request.userId, request.requestId);
+        }
+      }
+      await sleep(START_SEARCH_LOCK_POLL_MS);
+    }
+
+    const finalCoalesce = await coalesceActiveSearchOrProposal(this.attempts, request.userId);
+    if (finalCoalesce) return finalCoalesce;
+
+    logger.warn("[startFindMatch] start-search lock wait exhausted — proceeding without lock", {
+      userId: request.userId,
+      requestId: request.requestId,
+    });
+    return this.commitSearchingEnqueue(request);
   }
 
   async getMatchResult(requestId: string): Promise<FindMatchResult> {
@@ -114,6 +172,11 @@ export class MatchOrchestratorService {
       await this.attempts.markNoMatch(request.requestId, request.userId, "user_unavailable");
       await this.pool.remove(request.userId);
       return { status: "no_match", reason: "user_unavailable" };
+    }
+
+    if (state === "locked") {
+      logger.debug("[processMatchRequest] user locked (proposal in progress) — yielding", { userId: request.userId });
+      return this.attempts.toResult(existingAttempt);
     }
 
     let foundEligibleCandidate = false;
@@ -214,6 +277,7 @@ export class MatchOrchestratorService {
   ): Promise<ScoredMatchCandidate[]> {
     const out: ScoredMatchCandidate[] = [];
     const logSkips = mode === "eligible_only";
+    const skippedPeerIds = await this.skipPeers.getSkippedPeerSet(requesterSnapshot.userId);
 
     for (const candidate of poolCandidates) {
       const candidateSnapshot = await this.getSnapshotWithHydration(candidate.userId);
@@ -248,7 +312,20 @@ export class MatchOrchestratorService {
       });
     }
 
-    return out;
+    if (skippedPeerIds.size === 0) {
+      return out;
+    }
+
+    const preferred: ScoredMatchCandidate[] = [];
+    const deprioritized: ScoredMatchCandidate[] = [];
+    for (const row of out) {
+      if (skippedPeerIds.has(row.userId)) {
+        deprioritized.push(row);
+      } else {
+        preferred.push(row);
+      }
+    }
+    return [...preferred, ...deprioritized];
   }
 
   /**
@@ -269,7 +346,12 @@ export class MatchOrchestratorService {
     });
 
     for (const candidate of sorted) {
-      const locked = await this.lock.tryLockPair(request.userId, candidate.userId, request.requestId);
+      const locked = await this.lock.tryLockPair(
+        request.userId,
+        candidate.userId,
+        request.requestId,
+        MATCH_CONFIG.proposalPhaseLockTtlMs,
+      );
       if (!locked) {
         logger.debug("[tryPairWithSortedCandidates] pair lock not acquired — trying next candidate", {
           attemptId: request.requestId,
@@ -280,7 +362,7 @@ export class MatchOrchestratorService {
         continue;
       }
 
-      logger.debug("[tryPairWithSortedCandidates] pair locked — creating room", {
+      logger.debug("[tryPairWithSortedCandidates] pair locked — awaiting mutual Connect", {
         attemptId: request.requestId,
         requesterId: request.userId,
         candidateId: candidate.userId,
@@ -288,67 +370,83 @@ export class MatchOrchestratorService {
         isFallbackMatch,
       });
 
-      const roomResult = await this.rooms.createRoom({
-        attemptId: request.requestId,
-        requesterId: request.userId,
-        peerUserId: candidate.userId,
-        timeoutMs: MATCH_CONFIG.roomCreateTimeoutMs,
-      });
-
-      if (roomResult.ok) {
-        await this.markPairInRoom(request.userId, candidate.userId);
-        await this.attempts.markMatched(
-          request.requestId,
-          request.userId,
-          candidate.userId,
-          roomResult.roomId,
-          candidate.matchScore,
-        );
-        void this.webhook.notifyMatchCompleted({
-          attemptId: request.requestId,
-          userA: request.userId,
-          userB: candidate.userId,
-          roomId: roomResult.roomId,
-          matchScore: candidate.matchScore,
-          isFallbackMatch,
+      const redis = getRedis();
+      const peerAttemptId = await redis.get(redisKeys.userLastAttempt(candidate.userId));
+      if (!peerAttemptId || peerAttemptId === request.requestId) {
+        logger.warn("[tryPairWithSortedCandidates] peer attempt missing or same as requester — releasing pair", {
+          requesterId: request.userId,
+          candidateId: candidate.userId,
+          peerAttemptId: peerAttemptId ?? null,
         });
-
-        if (isFallbackMatch) {
-          logger.info("[tryPairWithSortedCandidates] fallback match — below normal threshold", {
-            attemptId: request.requestId,
-            requesterId: request.userId,
-            candidateId: candidate.userId,
-            matchScore: candidate.matchScore,
-            roomId: roomResult.roomId,
-          });
-        } else {
-          logger.info("[tryPairWithSortedCandidates] primary match succeeded", {
-            attemptId: request.requestId,
-            requesterId: request.userId,
-            candidateId: candidate.userId,
-            matchScore: candidate.matchScore,
-            roomId: roomResult.roomId,
-          });
-        }
-
-        return {
-          status: "matched",
-          roomId: roomResult.roomId,
-          peerUserId: candidate.userId,
-          matchScore: candidate.matchScore,
-        };
+        await this.lock.releasePair(request.userId, candidate.userId);
+        continue;
       }
 
-      await this.lock.releasePair(request.userId, candidate.userId);
-      const warnMessage = isFallbackMatch
-        ? "Room creation failed in fallback; released pair"
-        : "Room creation failed after lock; released pair";
-      logger.warn(warnMessage, {
+      const peerAttempt = await this.attempts.getAttempt(peerAttemptId);
+      if (!peerAttempt || peerAttempt.userId !== candidate.userId || peerAttempt.status !== "searching") {
+        logger.warn("[tryPairWithSortedCandidates] peer not in searching state — releasing pair", {
+          candidateId: candidate.userId,
+          peerAttemptId,
+          peerStatus: peerAttempt?.status ?? "none",
+        });
+        await this.lock.releasePair(request.userId, candidate.userId);
+        continue;
+      }
+
+      const userLow = request.userId <= candidate.userId ? request.userId : candidate.userId;
+      const userHigh = request.userId <= candidate.userId ? candidate.userId : request.userId;
+      const attemptLow = userLow === request.userId ? request.requestId : peerAttemptId;
+      const attemptHigh = userHigh === request.userId ? request.requestId : peerAttemptId;
+
+      await this.proposals.writePending({
+        userLow,
+        userHigh,
+        attemptLow,
+        attemptHigh,
+        matchScore: candidate.matchScore,
+        isFallbackMatch,
+        roomAttemptId: request.requestId,
+      });
+
+      await this.attempts.markProposed(
+        request.requestId,
+        request.userId,
+        candidate.userId,
+        candidate.matchScore,
+        isFallbackMatch,
+      );
+      await this.attempts.markProposed(
+        peerAttemptId,
+        candidate.userId,
+        request.userId,
+        candidate.matchScore,
+        isFallbackMatch,
+      );
+
+      void this.webhook.notifyMatchProposed({
+        userA: request.userId,
+        userB: candidate.userId,
+        attemptIdA: request.requestId,
+        attemptIdB: peerAttemptId,
+        matchScore: candidate.matchScore,
+        isFallbackMatch,
+      });
+
+      logger.info("[tryPairWithSortedCandidates] proposal created — room after mutual Connect", {
         attemptId: request.requestId,
+        peerAttemptId,
         requesterId: request.userId,
         candidateId: candidate.userId,
-        reason: roomResult.reason,
+        matchScore: candidate.matchScore,
       });
+
+      return {
+        status: "proposed",
+        requestId: request.requestId,
+        peerUserId: candidate.userId,
+        matchScore: candidate.matchScore,
+        isFallbackMatch,
+      };
     }
 
     return null;
@@ -435,10 +533,136 @@ export class MatchOrchestratorService {
     logger.info("[leaveRoom] user match state removed from redis", { userId });
   }
 
+  async respondToMatchProposal(
+    userId: string,
+    attemptId: string,
+    decision: "connect" | "skip",
+  ): Promise<{ ok: true } | { ok: false; error: string }> {
+    const attempt = await this.attempts.getAttempt(attemptId);
+    if (!attempt || attempt.userId !== userId) {
+      return { ok: false, error: "invalid_attempt" };
+    }
+    if (attempt.status !== "proposed" || !attempt.peerUserId) {
+      return { ok: false, error: "not_in_proposal" };
+    }
+
+    const peerUserId = attempt.peerUserId;
+    const pending = await this.proposals.readPending(userId, peerUserId);
+    if (!pending) {
+      return { ok: false, error: "proposal_expired" };
+    }
+
+    if (decision === "skip") {
+      const reasonLow = userId === pending.userLow ? "you_skipped" : "peer_skipped";
+      const reasonHigh = userId === pending.userHigh ? "you_skipped" : "peer_skipped";
+      await this.teardownProposal({
+        pending,
+        skipByUserId: userId,
+        reasonForUserLow: reasonLow,
+        reasonForUserHigh: reasonHigh,
+      });
+      void this.webhook.notifyMatchProposalCancelled({
+        userId: pending.userLow,
+        attemptId: pending.attemptLow,
+        reason: reasonLow,
+      });
+      void this.webhook.notifyMatchProposalCancelled({
+        userId: pending.userHigh,
+        attemptId: pending.attemptHigh,
+        reason: reasonHigh,
+      });
+      return { ok: true };
+    }
+
+    const rc = await this.proposals.recordConnect(userId, peerUserId, userId);
+    if (rc === 0 || rc === 1) {
+      return { ok: true };
+    }
+
+    const roomResult = await this.rooms.createRoom({
+      attemptId: pending.roomAttemptId,
+      requesterId: pending.userLow,
+      peerUserId: pending.userHigh,
+      timeoutMs: MATCH_CONFIG.roomCreateTimeoutMs,
+    });
+
+    if (!roomResult.ok) {
+      logger.warn("[respondToMatchProposal] room creation failed after mutual connect", {
+        reason: roomResult.reason,
+        userLow: pending.userLow,
+        userHigh: pending.userHigh,
+      });
+      await this.proposals.deletePending(pending.userLow, pending.userHigh);
+      await this.lock.releasePair(pending.userLow, pending.userHigh);
+      await this.attempts.markNoMatch(pending.attemptLow, pending.userLow, "room_create_failed");
+      await this.attempts.markNoMatch(pending.attemptHigh, pending.userHigh, "room_create_failed");
+      void this.webhook.notifyMatchProposalCancelled({
+        userId: pending.userLow,
+        attemptId: pending.attemptLow,
+        reason: "room_create_failed",
+      });
+      void this.webhook.notifyMatchProposalCancelled({
+        userId: pending.userHigh,
+        attemptId: pending.attemptHigh,
+        reason: "room_create_failed",
+      });
+      return { ok: false, error: "room_create_failed" };
+    }
+
+    await this.markPairInRoom(pending.userLow, pending.userHigh);
+    await this.attempts.markMatched(
+      pending.attemptLow,
+      pending.userLow,
+      pending.userHigh,
+      roomResult.roomId,
+      pending.matchScore,
+    );
+    await this.attempts.markMatched(
+      pending.attemptHigh,
+      pending.userHigh,
+      pending.userLow,
+      roomResult.roomId,
+      pending.matchScore,
+    );
+    await this.proposals.deletePending(pending.userLow, pending.userHigh);
+
+    void this.webhook.notifyMatchCompleted({
+      attemptId: pending.roomAttemptId,
+      userA: pending.userLow,
+      userB: pending.userHigh,
+      roomId: roomResult.roomId,
+      matchScore: pending.matchScore,
+      isFallbackMatch: pending.isFallbackMatch,
+    });
+
+    return { ok: true };
+  }
+
+  private async teardownProposal(input: {
+    pending: PairPendingRecord;
+    skipByUserId: string | null;
+    reasonForUserLow: string;
+    reasonForUserHigh: string;
+  }): Promise<void> {
+    const { pending, skipByUserId, reasonForUserLow, reasonForUserHigh } = input;
+    if (skipByUserId === pending.userLow) {
+      await this.skipPeers.recordSkip(pending.userLow, pending.userHigh);
+    } else if (skipByUserId === pending.userHigh) {
+      await this.skipPeers.recordSkip(pending.userHigh, pending.userLow);
+    }
+    await this.proposals.deletePending(pending.userLow, pending.userHigh);
+    await this.lock.releasePair(pending.userLow, pending.userHigh);
+    await this.attempts.markNoMatch(pending.attemptLow, pending.userLow, reasonForUserLow);
+    await this.attempts.markNoMatch(pending.attemptHigh, pending.userHigh, reasonForUserHigh);
+  }
+
   async getUserMatchState(userId: string): Promise<{
-    status: "searching" | "matched" | "no_match" | "idle";
+    status: "searching" | "proposed" | "matched" | "no_match" | "idle";
     requestId?: string;
     roomId?: string;
+    peerUserId?: string;
+    matchScore?: number;
+    isFallbackMatch?: boolean;
   }> {
     const requestId = await getRedis().get(redisKeys.userLastAttempt(userId));
     if (!requestId) {
@@ -460,6 +684,15 @@ export class MatchOrchestratorService {
     });
 
     if (attempt.status === "searching") return { status: "searching", requestId };
+    if (attempt.status === "proposed" && attempt.peerUserId) {
+      return {
+        status: "proposed",
+        requestId,
+        peerUserId: attempt.peerUserId,
+        matchScore: attempt.matchScore ?? 0,
+        isFallbackMatch: attempt.isFallbackMatch,
+      };
+    }
     if (attempt.status === "matched" && attempt.roomId) return { status: "matched", requestId, roomId: attempt.roomId };
     return { status: "idle" };
   }
@@ -470,6 +703,32 @@ export class MatchOrchestratorService {
     logger.info("[cancelMatch] cancelling match for user", { userId, requestId: requestId ?? "none" });
     await this.pool.remove(userId);
     if (requestId) {
+      const attempt = await this.attempts.getAttempt(requestId);
+      if (attempt?.status === "proposed" && attempt.peerUserId) {
+        const pending = await this.proposals.readPending(userId, attempt.peerUserId);
+        if (pending) {
+          const reasonLow = userId === pending.userLow ? "cancelled_by_user" : "proposal_peer_cancelled";
+          const reasonHigh = userId === pending.userHigh ? "cancelled_by_user" : "proposal_peer_cancelled";
+          await this.teardownProposal({
+            pending,
+            skipByUserId: null,
+            reasonForUserLow: reasonLow,
+            reasonForUserHigh: reasonHigh,
+          });
+          void this.webhook.notifyMatchProposalCancelled({
+            userId: pending.userLow,
+            attemptId: pending.attemptLow,
+            reason: reasonLow,
+          });
+          void this.webhook.notifyMatchProposalCancelled({
+            userId: pending.userHigh,
+            attemptId: pending.attemptHigh,
+            reason: reasonHigh,
+          });
+          logger.info("[cancelMatch] aborted active proposal", { userId });
+          return;
+        }
+      }
       await this.attempts.markNoMatch(requestId, userId, "cancelled_by_user");
     }
     logger.info("[cancelMatch] done", { userId });

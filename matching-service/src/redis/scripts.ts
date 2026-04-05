@@ -47,4 +47,24 @@ export const redisScripts = {
     redis.call("SET", userStateB, targetState)
     return 1
   `,
+
+  /** Sets this side's connect flag; returns 2 if this caller should create the room, 1 if peer is, 0 if still waiting */
+  recordProposalConnect: `
+    local pendingKey = KEYS[1]
+    local finalizeKey = KEYS[2]
+    local field = ARGV[1]
+    local finalizeTtl = tonumber(ARGV[2])
+
+    redis.call("HSET", pendingKey, field, "1")
+    local c1 = redis.call("HGET", pendingKey, "connectLow")
+    local c2 = redis.call("HGET", pendingKey, "connectHigh")
+    if c1 == "1" and c2 == "1" then
+      local ok = redis.call("SET", finalizeKey, "1", "NX", "EX", finalizeTtl)
+      if ok then
+        return 2
+      end
+      return 1
+    end
+    return 0
+  `,
 };

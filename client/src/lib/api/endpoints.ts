@@ -10,7 +10,10 @@ export const API_ENDPOINTS = {
   MATCHING: {
     FIND: "/matching/find",
     CANCEL: "/matching/cancel",
+    RESPOND: "/matching/respond",
     LEAVE_ROOM: "/matching/leave-room",
+    peerPreview: (peerUserId: string) =>
+      `/matching/peer-preview/${encodeURIComponent(peerUserId)}` as const,
   },
   CONNECTIONS: {
     LIST: "/connections",

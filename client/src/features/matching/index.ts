@@ -6,6 +6,7 @@
  */
 export { useRoom } from "./hooks/use-room";
 export { useFindMatch } from "./hooks/useFindMatch";
+export { MatchFoundDialog } from "./components/match-found-dialog";
 export {
   matchingApi,
   useFindMatchMutation,

@@ -8,7 +8,12 @@ const orderedUserIds = (userA: string, userB: string): [string, string] => {
 };
 
 export class MatchLockService {
-  async tryLockPair(userA: string, userB: string, attemptId: string): Promise<boolean> {
+  async tryLockPair(
+    userA: string,
+    userB: string,
+    attemptId: string,
+    lockTtlMs: number = MATCH_CONFIG.lockTtlMs,
+  ): Promise<boolean> {
     const redis = getRedis();
     const [lowUserId, highUserId] = orderedUserIds(userA, userB);
     const result = await redis.eval(
@@ -20,7 +25,7 @@ export class MatchLockService {
       redisKeys.userState(lowUserId),
       redisKeys.userState(highUserId),
       attemptId,
-      String(MATCH_CONFIG.lockTtlMs),
+      String(lockTtlMs),
       "searching",
       "locked",
     );

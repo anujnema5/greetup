@@ -7,6 +7,7 @@ import { HeroSection } from "../components/hero-section";
 import { CirclesGrid, StartCircleModalProvider } from "@/features/circles";
 import { DashboardHeader } from "../components/dashboard-header";
 import { useDashboardMatchFlow } from "../hooks/use-dashboard-match-flow";
+import { MatchFoundDialog } from "@/features/matching/components/match-found-dialog";
 
 /** Side panel is desktop-only; load it in a separate chunk to keep the main dashboard bundle smaller. */
 const RightPanel = dynamic(
@@ -15,12 +16,33 @@ const RightPanel = dynamic(
 );
 
 export function DashboardPage() {
-  const { status, error, handleFindMatch, handleCancel } = useDashboardMatchFlow();
+  const {
+    status,
+    result,
+    error,
+    handleFindMatch,
+    handleCancel,
+    respondToProposal,
+    respondBusy,
+  } = useDashboardMatchFlow();
+
+  const proposedOpen = status === "proposed";
 
   return (
     <StartCircleModalProvider>
       <div className="flex h-screen overflow-hidden bg-background">
         <NavSidebar activePath="/" />
+
+        <MatchFoundDialog
+          open={proposedOpen}
+          peerUserId={result?.peerId}
+          matchScore={result?.matchScore}
+          isFallbackMatch={result?.isFallbackMatch}
+          busy={respondBusy}
+          onSkip={() => void respondToProposal("skip")}
+          onConnect={() => void respondToProposal("connect")}
+          onCancelSearch={handleCancel}
+        />
 
         <main className="flex flex-1 flex-col overflow-y-auto pb-16 md:pb-0">
           <DashboardHeader />
