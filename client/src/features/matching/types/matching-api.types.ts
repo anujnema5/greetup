@@ -1,11 +1,24 @@
 /**
  * Matching API — RTK Query / fetch shapes (align with server match routes where applicable).
  */
+/** GET `/matching/peer-preview/:peerUserId` — “Match found” card fields */
+export interface MatchPeerPreview {
+  displayName: string;
+  headline: string | null;
+  initials: string;
+  interestTags: string[];
+  moreInterestsCount: number;
+  isOnline: boolean;
+}
+
 export interface FindMatchResponse {
   success: boolean;
   data: {
     requestId: string;
-    status: "searching" | "matched" | "no_match";
+    status: "searching" | "proposed" | "matched" | "no_match";
+    peerUserId?: string;
+    matchScore?: number;
+    isFallbackMatch?: boolean;
     /** Set when status is `no_match` (e.g. `user_unavailable`, `snapshot_not_found`). */
     reason?: string;
   };

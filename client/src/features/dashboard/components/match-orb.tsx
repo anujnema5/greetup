@@ -8,9 +8,11 @@ const BTN_SIZE = 90;
 function MatchOrbInner({
   isSearching,
   onToggle,
+  disabled,
 }: {
   isSearching: boolean;
   onToggle: () => void;
+  disabled?: boolean;
 }) {
   return (
     <div
@@ -47,9 +49,11 @@ function MatchOrbInner({
       <button
         type="button"
         onClick={onToggle}
+        disabled={disabled}
         className={cn(
-          "relative z-10 flex flex-col items-center justify-center gap-2 rounded-full text-primary-foreground font-semibold transition-all duration-500 cursor-pointer hover:scale-100",
-          !isSearching && "hover:brightness-105",
+          "relative z-10 flex flex-col items-center justify-center gap-2 rounded-full text-primary-foreground font-semibold transition-all duration-500 hover:scale-100",
+          disabled ? "cursor-not-allowed opacity-60" : "cursor-pointer",
+          !isSearching && !disabled && "hover:brightness-105",
           isSearching && "animate-match-orb-breathe"
         )}
         style={{

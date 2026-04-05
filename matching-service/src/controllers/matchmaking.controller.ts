@@ -106,6 +106,37 @@ export const handleCancelMatch = async (c: Context): Promise<Response> => {
   }
 };
 
+export const handleMatchRespond = async (c: Context): Promise<Response> => {
+  let userId: string;
+  let attemptId: string;
+  let decision: string;
+  try {
+    const body = await c.req.json();
+    userId = typeof body?.userId === "string" ? body.userId.trim() : "";
+    attemptId = typeof body?.attemptId === "string" ? body.attemptId.trim() : "";
+    decision = typeof body?.decision === "string" ? body.decision.trim() : "";
+  } catch {
+    return c.json({ ok: false, error: "invalid_body" }, 400);
+  }
+
+  if (!userId || !attemptId || (decision !== "connect" && decision !== "skip")) {
+    return c.json(
+      { ok: false, error: "invalid_body", hint: "expected { userId, attemptId, decision: connect|skip }" },
+      400,
+    );
+  }
+
+  try {
+    const result = await orchestrator.respondToMatchProposal(userId, attemptId, decision);
+    if (!result.ok) {
+      return c.json({ ok: false, error: result.error }, 400);
+    }
+    return c.json({ ok: true }, 200);
+  } catch (error) {
+    return c.json({ ok: false, error: "internal_error", detail: String(error) }, 500);
+  }
+};
+
 export const handleLeaveRoom = async (c: Context): Promise<Response> => {
   let userId: string;
   try {

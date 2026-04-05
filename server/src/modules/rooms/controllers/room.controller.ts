@@ -10,6 +10,8 @@ import {
   ensureProfileSnapshotBodySchema,
   matchCompletedBodySchema,
   matchFailedBodySchema,
+  matchProposalCancelledBodySchema,
+  matchProposedBodySchema,
 } from "../schemas/room.schema";
 import { ensureProfileSnapshotCached } from "@/modules/user/services/profile-snapshot-cache.service";
 import { zodBodyValidationError } from "../lib/http-responses";
@@ -269,6 +271,66 @@ export const handleEnsureProfileSnapshot = async (c: Context) => {
  * Called by the match engine when no compatible candidate is found.
  * Emits a socket event to the user so their client can react.
  */
+/**
+ * POST /internal/webhook/match-proposed
+ * Pair is locked; room is created only after both tap Connect on the client.
+ */
+export const handleMatchProposed = async (c: Context) => {
+  try {
+    const body = await c.req.json();
+    const parsed = matchProposedBodySchema.safeParse(body);
+
+    if (!parsed.success) {
+      return zodBodyValidationError(c, parsed.error);
+    }
+
+    const { userA, userB, attemptIdA, attemptIdB, matchScore, isFallbackMatch } = parsed.data;
+
+    logger.info("[handleMatchProposed] emitting match:proposed to both users", {
+      userA,
+      userB,
+      attemptIdA,
+      attemptIdB,
+      matchScore,
+    });
+
+    const base = { matchScore, isFallbackMatch };
+    emitToUser(userA, "match:proposed", { ...base, attemptId: attemptIdA, peerId: userB });
+    emitToUser(userB, "match:proposed", { ...base, attemptId: attemptIdB, peerId: userA });
+
+    return c.json(ApiResponse.success(null, "Notified"), 200);
+  } catch (error) {
+    logger.error("Failed to handle match proposed webhook", { error });
+    return internalError(c, error);
+  }
+};
+
+/**
+ * POST /internal/webhook/match-proposal-cancelled
+ * Skip, cancel, or room failure while in the proposal phase.
+ */
+export const handleMatchProposalCancelled = async (c: Context) => {
+  try {
+    const body = await c.req.json();
+    const parsed = matchProposalCancelledBodySchema.safeParse(body);
+
+    if (!parsed.success) {
+      return zodBodyValidationError(c, parsed.error);
+    }
+
+    const { userId, attemptId, reason } = parsed.data;
+
+    logger.info("[handleMatchProposalCancelled] emitting to user", { userId, attemptId, reason });
+
+    emitToUser(userId, "match:proposal_cancelled", { attemptId, reason });
+
+    return c.json(ApiResponse.success(null, "Notified"), 200);
+  } catch (error) {
+    logger.error("Failed to handle match proposal cancelled webhook", { error });
+    return internalError(c, error);
+  }
+};
+
 export const handleMatchFailed = async (c: Context) => {
   try {
     const body = await c.req.json();

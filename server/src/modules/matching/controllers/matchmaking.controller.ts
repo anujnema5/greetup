@@ -6,7 +6,9 @@ import {
   getUserMatchStateService,
   cancelMatchService,
   leaveRoomService,
+  respondMatchProposalService,
 } from "../services/matchmaking.service";
+import { getMatchPeerPreview } from "../services/match-peer-preview.service";
 import logger from "@/core/logging";
 
 export const handleFindMatch = async (c: Context) => {
@@ -23,6 +25,24 @@ export const handleFindMatch = async (c: Context) => {
         ApiResponse.success(
           { requestId: currentState.requestId, status: "searching" },
           "Already searching",
+          200
+        ),
+        200
+      );
+    }
+
+    if (currentState.status === "proposed" && currentState.requestId) {
+      logger.info("[handleFindMatch] idempotent — match proposal active", { userId, requestId: currentState.requestId });
+      return c.json(
+        ApiResponse.success(
+          {
+            requestId: currentState.requestId,
+            status: "proposed",
+            peerUserId: currentState.peerUserId,
+            matchScore: currentState.matchScore,
+            isFallbackMatch: currentState.isFallbackMatch,
+          },
+          "Match proposal active",
           200
         ),
         200
@@ -47,9 +67,13 @@ export const handleFindMatch = async (c: Context) => {
     const engineResponse = await findMatchService(userId, requestId);
     logger.info("[handleFindMatch] engine response", { userId, requestId, engineData: engineResponse.data });
 
+    const engineData = engineResponse.data as Record<string, unknown>;
+    const effectiveRequestId =
+      typeof engineData.requestId === "string" ? engineData.requestId : requestId;
+
     return c.json(
       ApiResponse.success(
-        { requestId, ...engineResponse.data },
+        { requestId: effectiveRequestId, ...engineResponse.data },
         "Matchmaking started",
         200
       ),
@@ -75,6 +99,41 @@ export const handleCancelMatch = async (c: Context) => {
 };
 
 /** Clears match-engine Redis state (`in_room`) so the user can search again. */
+export const handleRespondMatchProposal = async (c: Context) => {
+  try {
+    const userId = c.get("userId") as string;
+    let body: unknown;
+    try {
+      body = await c.req.json();
+    } catch {
+      return c.json(
+        ApiResponse.error({ message: "Invalid JSON body", statusCode: 400, code: "VALIDATION_ERROR" }),
+        400
+      );
+    }
+    const record = body as Record<string, unknown>;
+    const attemptId = typeof record.attemptId === "string" ? record.attemptId.trim() : "";
+    const decision = record.decision === "connect" || record.decision === "skip" ? record.decision : null;
+
+    if (!attemptId || !decision) {
+      return c.json(
+        ApiResponse.error({
+          message: "attemptId and decision (connect|skip) are required",
+          statusCode: 400,
+          code: "VALIDATION_ERROR",
+        }),
+        400
+      );
+    }
+
+    await respondMatchProposalService(userId, attemptId, decision);
+    return c.json(ApiResponse.success(null, "Recorded", 200), 200);
+  } catch (error) {
+    logger.error("[handleRespondMatchProposal] failed", { error });
+    return internalError(c, error, "MATCH_RESPOND_FAILED");
+  }
+};
+
 export const handleLeaveRoom = async (c: Context) => {
   try {
     const userId = c.get("userId") as string;
@@ -84,5 +143,24 @@ export const handleLeaveRoom = async (c: Context) => {
   } catch (error) {
     logger.error("[handleLeaveRoom] failed", { error });
     return internalError(c, error, "LEAVE_ROOM_FAILED");
+  }
+};
+
+/** GET /matching/peer-preview/:peerUserId — card data for “Match found” UI (Redis profile snapshot). */
+export const handleGetMatchPeerPreview = async (c: Context) => {
+  try {
+    const peerUserId = decodeURIComponent(c.req.param("peerUserId") ?? "").trim();
+    if (!peerUserId) {
+      return c.json(
+        ApiResponse.error({ message: "peerUserId is required", statusCode: 400, code: "VALIDATION_ERROR" }),
+        400
+      );
+    }
+
+    const preview = await getMatchPeerPreview(peerUserId);
+    return c.json(ApiResponse.success(preview, "Peer preview", 200), 200);
+  } catch (error) {
+    logger.error("[handleGetMatchPeerPreview] failed", { error });
+    return internalError(c, error, "PEER_PREVIEW_FAILED");
   }
 };

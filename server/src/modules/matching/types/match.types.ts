@@ -1,8 +1,11 @@
 /** Response shape from match-engine `GET /match/state/user/:userId` */
 export type UserMatchState = {
-  status: "searching" | "matched" | "no_match" | "idle";
+  status: "searching" | "proposed" | "matched" | "no_match" | "idle";
   requestId?: string;
   roomId?: string;
+  peerUserId?: string;
+  matchScore?: number;
+  isFallbackMatch?: boolean;
 };
 
 /** Data stored in Redis for each user (for matching) */

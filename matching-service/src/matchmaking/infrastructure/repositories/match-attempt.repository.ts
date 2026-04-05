@@ -3,7 +3,7 @@ import { MATCH_CONFIG } from "@/config/constants";
 import { getRedis } from "@/redis/client";
 import { redisKeys } from "@/redis/keys";
 
-type AttemptStatus = "searching" | "matched" | "no_match";
+type AttemptStatus = "searching" | "proposed" | "matched" | "no_match";
 
 type AttemptRecord = {
   attemptId: string;
@@ -12,6 +12,7 @@ type AttemptRecord = {
   roomId: string | null;
   peerUserId: string | null;
   matchScore: number | null;
+  isFallbackMatch: boolean;
   reason: string | null;
   createdAt: number;
   updatedAt: number;
@@ -24,13 +25,17 @@ const parseAttemptRecord = (payload: Record<string, string>, fallbackAttemptId: 
   const matchScoreRaw = payload.matchScore ? Number(payload.matchScore) : null;
   const status = payload.status as AttemptStatus;
 
+  const normalizedStatus: AttemptStatus =
+    status === "matched" || status === "no_match" || status === "proposed" ? status : "searching";
+
   return {
     attemptId: payload.attemptId ?? fallbackAttemptId,
     userId: payload.userId ?? "",
-    status: status === "matched" || status === "no_match" ? status : "searching",
+    status: normalizedStatus,
     roomId: payload.roomId ?? null,
     peerUserId: payload.peerUserId ?? null,
     matchScore: matchScoreRaw !== null && Number.isFinite(matchScoreRaw) ? matchScoreRaw : null,
+    isFallbackMatch: payload.isFallbackMatch === "1",
     reason: payload.reason ?? null,
     createdAt: Number.isFinite(createdAt) ? createdAt : now,
     updatedAt: Number.isFinite(updatedAt) ? updatedAt : now,
@@ -61,6 +66,37 @@ export class MatchAttemptRepository {
       "searching",
       "createdAt",
       now,
+      "updatedAt",
+      now,
+    );
+    await redis.expire(key, MATCH_CONFIG.attemptTtlSeconds);
+    await redis.set(redisKeys.userLastAttempt(userId), attemptId, "EX", MATCH_CONFIG.attemptTtlSeconds);
+  }
+
+  async markProposed(
+    attemptId: string,
+    userId: string,
+    peerUserId: string,
+    matchScore: number,
+    isFallbackMatch: boolean,
+  ): Promise<void> {
+    const redis = getRedis();
+    const key = redisKeys.attempt(attemptId);
+    const now = Date.now().toString();
+    await redis.hset(
+      key,
+      "attemptId",
+      attemptId,
+      "userId",
+      userId,
+      "status",
+      "proposed",
+      "peerUserId",
+      peerUserId,
+      "matchScore",
+      String(matchScore),
+      "isFallbackMatch",
+      isFallbackMatch ? "1" : "0",
       "updatedAt",
       now,
     );
@@ -128,6 +164,16 @@ export class MatchAttemptRepository {
       };
     }
 
+    if (record.status === "proposed" && record.peerUserId) {
+      return {
+        status: "proposed",
+        requestId: record.attemptId,
+        peerUserId: record.peerUserId,
+        matchScore: record.matchScore ?? 0,
+        isFallbackMatch: record.isFallbackMatch,
+      };
+    }
+
     if (record.status === "no_match") {
       return {
         status: "no_match",
@@ -138,6 +184,7 @@ export class MatchAttemptRepository {
     return {
       status: "searching",
       retryAfterMs: 1_000,
+      requestId: record.attemptId,
     };
   }
 }

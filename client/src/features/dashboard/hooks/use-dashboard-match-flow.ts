@@ -14,7 +14,15 @@ export function useDashboardMatchFlow() {
   const pathname = usePathname();
   const [, startTransition] = useTransition();
 
-  const { findAMatch, cancelSearch, status, result, error } = useFindMatch();
+  const {
+    findAMatch,
+    cancelSearch,
+    respondToProposal,
+    status,
+    result,
+    error,
+    respondBusy,
+  } = useFindMatch();
 
   useEffect(() => {
     if (status !== "matched" || !result?.roomId) return;
@@ -38,8 +46,11 @@ export function useDashboardMatchFlow() {
 
   return {
     status,
+    result,
     error,
     handleFindMatch,
     handleCancel,
+    respondToProposal,
+    respondBusy,
   };
 }

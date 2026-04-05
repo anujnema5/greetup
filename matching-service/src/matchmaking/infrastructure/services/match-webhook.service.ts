@@ -16,6 +16,21 @@ type MatchFailedPayload = {
   reason: string;
 };
 
+type MatchProposedPayload = {
+  userA: string;
+  userB: string;
+  attemptIdA: string;
+  attemptIdB: string;
+  matchScore: number;
+  isFallbackMatch: boolean;
+};
+
+type MatchProposalCancelledPayload = {
+  userId: string;
+  attemptId: string;
+  reason: string;
+};
+
 type ApiSuccessBody = {
   success?: boolean;
   data?: { cached?: boolean };
@@ -83,6 +98,60 @@ export class MatchWebhookService {
       }
     } catch (err) {
       logger.warn("[MatchWebhookService] no-match webhook call threw — server may be unreachable", { error: err, url, attemptId: payload.attemptId });
+    }
+  }
+
+  async notifyMatchProposed(payload: MatchProposedPayload): Promise<void> {
+    if (!env.matchWebhookUrl) {
+      logger.warn("[MatchWebhookService] matchWebhookUrl is not set — skipping match-proposed webhook");
+      return;
+    }
+
+    const url = `${env.matchWebhookUrl}/webhook/match-proposed`;
+    logger.info("[MatchWebhookService] match-proposed webhook", { url, userA: payload.userA, userB: payload.userB });
+
+    try {
+      const response = await fetch(url, {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          "x-internal-api-key": env.internalApiKey,
+        },
+        body: JSON.stringify(payload),
+      });
+
+      if (!response.ok) {
+        const body = await response.text();
+        logger.warn("[MatchWebhookService] match-proposed returned non-OK", { status: response.status, body });
+      }
+    } catch (err) {
+      logger.warn("[MatchWebhookService] match-proposed threw", { error: err, url });
+    }
+  }
+
+  async notifyMatchProposalCancelled(payload: MatchProposalCancelledPayload): Promise<void> {
+    if (!env.matchWebhookUrl) {
+      logger.warn("[MatchWebhookService] matchWebhookUrl is not set — skipping proposal-cancelled webhook");
+      return;
+    }
+
+    const url = `${env.matchWebhookUrl}/webhook/match-proposal-cancelled`;
+    try {
+      const response = await fetch(url, {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          "x-internal-api-key": env.internalApiKey,
+        },
+        body: JSON.stringify(payload),
+      });
+
+      if (!response.ok) {
+        const body = await response.text();
+        logger.warn("[MatchWebhookService] proposal-cancelled returned non-OK", { status: response.status, body });
+      }
+    } catch (err) {
+      logger.warn("[MatchWebhookService] proposal-cancelled threw", { error: err, url });
     }
   }
 

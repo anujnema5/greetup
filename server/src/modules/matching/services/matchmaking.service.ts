@@ -86,3 +86,21 @@ export const leaveRoomService = async (userId: string): Promise<void> => {
     throw new Error("Match engine error");
   }
 };
+
+export const respondMatchProposalService = async (
+  userId: string,
+  attemptId: string,
+  decision: "connect" | "skip",
+): Promise<void> => {
+  const res = await fetch(`${MATCH_ENGINE_URL}/match/respond`, {
+    method: "POST",
+    headers: engineHeaders(),
+    body: JSON.stringify({ userId, attemptId, decision }),
+  });
+
+  if (!res.ok) {
+    const text = await res.text();
+    logger.error("Match engine /match/respond failed", { status: res.status, body: text });
+    throw new Error("Match engine error");
+  }
+};

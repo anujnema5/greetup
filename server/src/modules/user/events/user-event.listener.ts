@@ -110,6 +110,15 @@ export class UserEventListeners {
             if (state.status === "searching" && state.requestId) {
                 emitToUser(userId, "match:state", { status: "searching", requestId: state.requestId });
                 logger.info(`[${this.jobName}] emitted match:state searching`, { userId, requestId: state.requestId });
+            } else if (state.status === "proposed" && state.requestId) {
+                emitToUser(userId, "match:state", {
+                    status: "proposed",
+                    requestId: state.requestId,
+                    peerUserId: state.peerUserId,
+                    matchScore: state.matchScore,
+                    isFallbackMatch: state.isFallbackMatch,
+                });
+                logger.info(`[${this.jobName}] emitted match:state proposed`, { userId, requestId: state.requestId });
             } else if (state.status === "matched" && state.roomId) {
                 emitToUser(userId, "match:state", { status: "matched", roomId: state.roomId, requestId: state.requestId });
                 logger.info(`[${this.jobName}] emitted match:state matched`, { userId, roomId: state.roomId });
@@ -189,7 +198,7 @@ export class UserEventListeners {
     private async startGracePeriodIfSearching(userId: string): Promise<void> {
         try {
             const state = await getUserMatchStateService(userId);
-            if (state.status !== "searching") return;
+            if (state.status !== "searching" && state.status !== "proposed") return;
 
             logger.info(`[${this.jobName}] Starting ${UserEventListeners.MATCH_GRACE_MS}ms grace period for searching user ${userId}`);
 
