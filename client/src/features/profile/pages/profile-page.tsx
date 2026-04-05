@@ -135,8 +135,8 @@ export function ProfilePage() {
 
   const roomInviteSummary = useMemo(() => {
     const ri = rawProfile?.roomInvite;
-    if (!ri) return "Everyone you know can add you";
-    if (ri.policy === "all_connections") return "Everyone you know can add you";
+    if (!ri) return "Everyone you know can invite you";
+    if (ri.policy === "all_connections") return "Everyone you know can invite you";
     if (ri.allowlistedUserIds.length === 0) return "Only chosen people — none picked yet";
     return `${ri.allowlistedUserIds.length} ${ri.allowlistedUserIds.length === 1 ? "person" : "people"} allowed`;
   }, [rawProfile?.roomInvite]);
@@ -363,7 +363,7 @@ export function ProfilePage() {
             />
             <ProfileSectionRow
               icon={<UserPlus className="h-4 w-4" />}
-              label="Who can add you to a room"
+              label="Who can invite you to a room"
               summary={roomInviteSummary}
               onClick={() => setRoomInviteOpen(true)}
             />
