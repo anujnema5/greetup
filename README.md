@@ -220,8 +220,8 @@ circlo/
 
 ## Prerequisites
 
-- Bun (for `server`, `matching-service`)
-- Node.js + npm (for `client`, `rtc-service`)
+- Bun (for `server`, `matching-service`, `client`)
+- Node.js + npm (for `rtc-service`)
 - Docker Desktop (recommended for Postgres and Redis locally)
 
 ---
@@ -258,8 +258,8 @@ See **`server/README.md`** for layout, repositories, and shared messages.
 
 ```bash
 cd client
-npm install
-npm run dev
+bun install
+bun run dev
 # → http://localhost:3000
 ```
 
@@ -330,9 +330,9 @@ Clients connect directly to `rtc-service` for WebRTC signalling after `server` p
 - `bun run db:seed`
 
 ### `client`
-- `npm run dev`
-- `npm run build`
-- `npm run lint`
+- `bun run dev`
+- `bun run build`
+- `bun run lint`
 
 ### `matching-service`
 - `bun run dev`

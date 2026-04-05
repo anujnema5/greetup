@@ -37,8 +37,8 @@ In another terminal:
 
 ```bash
 cd client
-npm install
-npm run dev
+bun install
+bun run dev
 ```
 
 - App: `http://localhost:3000`

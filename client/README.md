@@ -5,10 +5,12 @@ Next.js app (App Router), Redux Toolkit Query for API calls, Tailwind.
 ## Run
 
 ```bash
-npm install
-npm run dev
+bun install
+bun run dev
 # http://localhost:3000
 ```
+
+Scripts use `bun --bun next …` so the Next.js CLI (dev/build/start/lint) runs on **Bun’s runtime**, not Node.
 
 ## Layout & conventions
 

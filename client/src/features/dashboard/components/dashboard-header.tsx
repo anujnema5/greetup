@@ -1,6 +1,6 @@
 "use client";
 
-import { memo } from "react";
+import { memo, useEffect, useState } from "react";
 import { Bell } from "lucide-react";
 import { useSession } from "@/lib/auth-client";
 
@@ -21,11 +21,19 @@ function initialsFromName(name: string | null | undefined): string {
 
 function DashboardHeaderInner() {
   const { data: session } = useSession();
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
   const displayName = session?.user?.name?.trim() ?? "";
   const firstName = displayName.split(/\s+/).filter(Boolean)[0] ?? "";
   const g = timeGreeting();
-  const headline = firstName ? `${g}, ${firstName}` : g;
-  const avatarInitials = initialsFromName(session?.user?.name);
+  
+  const headline = mounted && firstName ? `${g}, ${firstName}` : g;
+  const avatarInitials = mounted
+    ? initialsFromName(session?.user?.name)
+    : "?";
 
   return (
     <header className="sticky top-0 z-50 flex items-center justify-between px-4 md:px-8 py-4 border-b border-border bg-background shadow-sm">
