@@ -3,14 +3,11 @@
   "version": "0.1.0",
   "private": true,
   "packageManager": "bun@1.2.20",
-  "engines": {
-    "bun": ">=1.1.0"
-  },
   "scripts": {
-    "dev": "bun --bun next dev",
-    "build": "bun --bun next build",
-    "start": "bun --bun next start",
-    "lint": "bun --bun next lint"
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",
