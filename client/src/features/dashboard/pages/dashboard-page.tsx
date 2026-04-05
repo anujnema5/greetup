@@ -24,6 +24,7 @@ export function DashboardPage() {
     handleCancel,
     respondToProposal,
     respondBusy,
+    waitingForPeerConnect,
   } = useDashboardMatchFlow();
 
   const proposedOpen = status === "proposed";
@@ -39,6 +40,7 @@ export function DashboardPage() {
           matchScore={result?.matchScore}
           isFallbackMatch={result?.isFallbackMatch}
           busy={respondBusy}
+          waitingForPeerConnect={waitingForPeerConnect}
           onSkip={() => void respondToProposal("skip")}
           onConnect={() => void respondToProposal("connect")}
           onCancelSearch={handleCancel}

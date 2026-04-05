@@ -22,6 +22,7 @@ export function useDashboardMatchFlow() {
     result,
     error,
     respondBusy,
+    waitingForPeerConnect,
   } = useFindMatch();
 
   useEffect(() => {
@@ -52,5 +53,6 @@ export function useDashboardMatchFlow() {
     handleCancel,
     respondToProposal,
     respondBusy,
+    waitingForPeerConnect,
   };
 }
