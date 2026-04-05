@@ -1,6 +1,6 @@
 "use client";
 
-import { Video, Sparkles, Zap } from "lucide-react";
+import { Loader2, Video, Sparkles, Zap } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -19,6 +19,8 @@ export type MatchFoundDialogProps = {
   matchScore: number | undefined;
   isFallbackMatch?: boolean;
   busy?: boolean;
+  /** After user tapped Connect; room opens when the peer connects too. */
+  waitingForPeerConnect?: boolean;
   onSkip: () => void;
   onConnect: () => void;
   onCancelSearch: () => void;
@@ -30,6 +32,7 @@ export function MatchFoundDialog({
   matchScore,
   isFallbackMatch,
   busy,
+  waitingForPeerConnect = false,
   onSkip,
   onConnect,
   onCancelSearch,
@@ -55,9 +58,11 @@ export function MatchFoundDialog({
     <Dialog open={open} onOpenChange={() => {}}>
       <DialogContent
         showCloseButton={false}
+        overlayClassName="z-[220]"
         onPointerDownOutside={(e) => e.preventDefault()}
         onEscapeKeyDown={(e) => e.preventDefault()}
         className={cn(
+          "z-[220]",
           "max-w-[min(100%-1.5rem,380px)] gap-0 rounded-[1.35rem] border border-zinc-800/90 p-0 shadow-2xl",
           "bg-[#121210] text-zinc-100 sm:max-w-[380px]",
         )}
@@ -152,6 +157,12 @@ export function MatchFoundDialog({
           </div>
         )}
 
+        {waitingForPeerConnect ? (
+          <p className="mx-5 mb-1 text-center text-[11px] leading-relaxed text-zinc-500">
+            You chose Connect. The room opens when they connect too — hang tight.
+          </p>
+        ) : null}
+
         <div className="flex gap-2 border-t border-zinc-800/80 px-5 py-4">
           <button
             type="button"
@@ -164,15 +175,30 @@ export function MatchFoundDialog({
           <button
             type="button"
             onClick={onConnect}
-            disabled={busy}
-            className="flex min-h-11 flex-1 cursor-pointer items-center justify-center gap-2 rounded-xl text-sm font-bold text-zinc-950 transition-opacity hover:opacity-95 disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50"
+            disabled={busy || waitingForPeerConnect}
+            aria-busy={busy || waitingForPeerConnect}
+            className="flex min-h-11 flex-1 cursor-pointer items-center justify-center gap-2 rounded-xl text-sm font-semibold text-zinc-950 transition-opacity hover:opacity-95 disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-70"
             style={{
               background: `linear-gradient(180deg, oklch(92% 0.13 105), ${GOLD})`,
               boxShadow: `0 0 24px oklch(86% 0.11 105 / 0.35), 0 4px 14px oklch(86% 0.11 105 / 0.2)`,
             }}
           >
-            <Video className="size-4 shrink-0" strokeWidth={2.5} />
-            Connect
+            {waitingForPeerConnect ? (
+              <>
+                <Loader2 className="size-4 shrink-0 animate-spin text-zinc-950/80" strokeWidth={2.5} aria-hidden />
+                Waiting for their response
+              </>
+            ) : busy ? (
+              <>
+                <Loader2 className="size-4 shrink-0 animate-spin text-zinc-950/80" strokeWidth={2.5} aria-hidden />
+                Connect
+              </>
+            ) : (
+              <>
+                <Video className="size-4 shrink-0" strokeWidth={2.5} />
+                Connect
+              </>
+            )}
           </button>
         </div>
 

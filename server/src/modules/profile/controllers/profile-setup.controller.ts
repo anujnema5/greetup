@@ -11,6 +11,7 @@ import {
   saveProfileSetupBodySchema,
 } from "../schemas/profile-setup.schema";
 import { getMyProfileService } from "../services/get-my-profile.service";
+import { UsernameTakenError } from "../repositories/profile-setup.repository";
 import {
   RoomInviteAllowlistNotConnectionError,
   updateRoomInviteSettingsService,
@@ -89,6 +90,16 @@ export const handleSaveProfileSetup = async (c: Context) => {
       200
     );
   } catch (error: unknown) {
+    if (error instanceof UsernameTakenError) {
+      return c.json(
+        ApiResponse.error({
+          message: "This username is already taken",
+          statusCode: 409,
+          code: "USERNAME_TAKEN",
+        }),
+        409,
+      );
+    }
     logger.error("Save profile setup error", { error });
     return internalError(c, error, "SAVE_PROFILE_SETUP_FAILED");
   }

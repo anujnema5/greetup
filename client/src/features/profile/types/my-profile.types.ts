@@ -3,6 +3,7 @@
  * (`server/src/modules/profile/types/my-profile.types.ts`).
  */
 export type MyProfileResponse = {
+  username: string | null;
   displayName: string | null;
   bio: string | null;
   age: number | null;

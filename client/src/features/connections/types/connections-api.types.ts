@@ -11,6 +11,7 @@ export type ConnectionPeer = {
   name: string;
   image: string | null;
   profileId: string | null;
+  username: string | null;
 };
 
 export type ConnectionListItem = {
@@ -29,3 +30,21 @@ export type ListConnectionsData = {
 };
 
 export type ListConnectionsApiResponse = ApiResponse<ListConnectionsData>;
+
+/** Client-only: RTK cache invalidation for `getPublicProfile` after connect. */
+export type RequestConnectionMutationArg = {
+  targetUserId: string;
+  invalidatePublicProfileUsername?: string;
+};
+
+export type RequestConnectionResult = {
+  success: boolean;
+  data?: { status: "accepted" | "pending"; connectionId?: string };
+  message?: string;
+};
+
+/** Accept or reject an incoming pending connection (RTK cache invalidation). */
+export type RespondConnectionMutationArg = {
+  connectionId: string;
+  peerUsername?: string | null;
+};

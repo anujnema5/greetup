@@ -13,6 +13,7 @@ import {
   MinimizedRoomDock,
   DirectCallPartnerDisconnectHandler,
 } from "@/features/room";
+import { MatchmakingProvider } from "@/features/matching";
 const plusJakartaSans = Plus_Jakarta_Sans({
   variable: "--font-plus-jakarta",
   subsets: ["latin"],
@@ -42,7 +43,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                 <Suspense fallback={null}>
                   <MinimizedRoomDock />
                 </Suspense>
-                {children}
+                <Suspense fallback={null}>
+                  <MatchmakingProvider>{children}</MatchmakingProvider>
+                </Suspense>
               </SocketProvider>
             </RtcSocketProvider>
           </ReduxProvider>

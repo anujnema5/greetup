@@ -29,18 +29,18 @@ const DEV_PASSWORD = "CircloSeed2026!";
 
 /** Row order matches dev-users.credentials.csv */
 const SEED_USERS = [
-  { email: `seed01@${DEV_EMAIL_DOMAIN}`, name: "Riley", displayName: "Seed Riley" },
-  { email: `seed02@${DEV_EMAIL_DOMAIN}`, name: "Morgan", displayName: "Seed Morgan" },
-  { email: `seed03@${DEV_EMAIL_DOMAIN}`, name: "Avery", displayName: "Seed Avery" },
-  { email: `seed04@${DEV_EMAIL_DOMAIN}`, name: "Jordan", displayName: "Seed Jordan" },
-  { email: `seed05@${DEV_EMAIL_DOMAIN}`, name: "Casey", displayName: "Seed Casey" },
-  { email: `seed06@${DEV_EMAIL_DOMAIN}`, name: "Quinn", displayName: "Seed Quinn" },
-  { email: `seed07@${DEV_EMAIL_DOMAIN}`, name: "Skyler", displayName: "Seed Skyler" },
-  { email: `seed08@${DEV_EMAIL_DOMAIN}`, name: "Reese", displayName: "Seed Reese" },
-  { email: `seed09@${DEV_EMAIL_DOMAIN}`, name: "Drew", displayName: "Seed Drew" },
-  { email: `seed10@${DEV_EMAIL_DOMAIN}`, name: "Jamie", displayName: "Seed Jamie" },
-  { email: `seed11@${DEV_EMAIL_DOMAIN}`, name: "Taylor", displayName: "Seed Taylor" },
-  { email: `seed12@${DEV_EMAIL_DOMAIN}`, name: "Cameron", displayName: "Seed Cameron" },
+  { email: `seed01@${DEV_EMAIL_DOMAIN}`, name: "Riley", displayName: "Seed Riley", username: "seed_riley" },
+  { email: `seed02@${DEV_EMAIL_DOMAIN}`, name: "Morgan", displayName: "Seed Morgan", username: "seed_morgan" },
+  { email: `seed03@${DEV_EMAIL_DOMAIN}`, name: "Avery", displayName: "Seed Avery", username: "seed_avery" },
+  { email: `seed04@${DEV_EMAIL_DOMAIN}`, name: "Jordan", displayName: "Seed Jordan", username: "seed_jordan" },
+  { email: `seed05@${DEV_EMAIL_DOMAIN}`, name: "Casey", displayName: "Seed Casey", username: "seed_casey" },
+  { email: `seed06@${DEV_EMAIL_DOMAIN}`, name: "Quinn", displayName: "Seed Quinn", username: "seed_quinn" },
+  { email: `seed07@${DEV_EMAIL_DOMAIN}`, name: "Skyler", displayName: "Seed Skyler", username: "seed_skyler" },
+  { email: `seed08@${DEV_EMAIL_DOMAIN}`, name: "Reese", displayName: "Seed Reese", username: "seed_reese" },
+  { email: `seed09@${DEV_EMAIL_DOMAIN}`, name: "Drew", displayName: "Seed Drew", username: "seed_drew" },
+  { email: `seed10@${DEV_EMAIL_DOMAIN}`, name: "Jamie", displayName: "Seed Jamie", username: "seed_jamie" },
+  { email: `seed11@${DEV_EMAIL_DOMAIN}`, name: "Taylor", displayName: "Seed Taylor", username: "seed_taylor" },
+  { email: `seed12@${DEV_EMAIL_DOMAIN}`, name: "Cameron", displayName: "Seed Cameron", username: "seed_cameron" },
 ] as const;
 
 const BIOS = [
@@ -108,6 +108,7 @@ async function seed() {
     email: string;
     name: string;
     displayName: string;
+    username: string;
   }[] = [];
 
   for (const u of SEED_USERS) {
@@ -118,6 +119,7 @@ async function seed() {
       email: u.email,
       name: u.name,
       displayName: u.displayName,
+      username: u.username,
     });
   }
 
@@ -128,6 +130,7 @@ async function seed() {
       email: r.email,
       emailVerified: true,
       displayName: r.displayName,
+      username: r.username,
       image: null,
       phoneNumber: null,
       phoneNumberVerified: null,

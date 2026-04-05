@@ -7,7 +7,7 @@
     "debug": "bun --inspect --watch src/index.ts",
     "docker:dev": "docker compose up -d && bun --watch src/index.ts",
     "db:generate": "drizzle-kit generate",
-    "db:migrate": "drizzle-kit migrate",
+    "db:migrate": "bun src/core/database/run-migrations.ts",
     "db:studio": "drizzle-kit studio",
     "db:drop": "drizzle-kit drop",
     "db:seed": "bun src/core/database/seed/index.ts",

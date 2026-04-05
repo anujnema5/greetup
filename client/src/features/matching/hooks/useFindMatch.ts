@@ -41,6 +41,8 @@ export function useFindMatch() {
   const [result, setResult] = useState<MatchResult | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [respondBusy, setRespondBusy] = useState(false);
+  /** True after our Connect succeeded until `match:completed` or proposal ends. */
+  const [waitingForPeerConnect, setWaitingForPeerConnect] = useState(false);
 
   const [findMatch, { isLoading: isStarting }] = useFindMatchMutation();
   const [cancelMatch] = useCancelMatchMutation();
@@ -50,7 +52,7 @@ export function useFindMatch() {
   const requestIdRef = useRef<string | null>(null);
   /** Peer user id while proposal is open — `match:completed` uses initiator attemptId for both sockets. */
   const proposalPeerIdRef = useRef<string | null>(null);
-  const findAMatchRef = useRef<() => Promise<void>>(async () => {});
+  const findAMatchRef = useRef<() => Promise<void>>(async () => { });
   const statusRef = useRef<MatchStatus>('idle');
   const findTailRef = useRef<Promise<void>>(Promise.resolve());
 
@@ -86,9 +88,17 @@ export function useFindMatch() {
         setStatus('searching');
         setResult(null);
         setError(null);
+        setWaitingForPeerConnect(false);
 
         const res = await findMatch().unwrap();
-        const { requestId, status: engineStatus, reason, peerUserId, matchScore, isFallbackMatch } = res.data;
+        const {
+          requestId,
+          status: engineStatus,
+          reason,
+          peerUserId,
+          matchScore,
+          isFallbackMatch
+        } = res.data;
 
         if (engineStatus === 'no_match') {
           setStatus('error');
@@ -132,6 +142,7 @@ export function useFindMatch() {
       proposalPeerIdRef.current = null;
       const requestId = requestIdRef.current ?? readStoredMatchAttemptId() ?? data.attemptId;
       clearMatchAttemptLocal(proposalPeerIdRef, requestIdRef);
+      setWaitingForPeerConnect(false);
       setStatus('matched');
       setResult({
         requestId,
@@ -143,10 +154,7 @@ export function useFindMatch() {
     };
 
     const onMatchProposed = (data: MatchProposedPayload) => {
-      const accept =
-        applies(data.attemptId) ||
-        /* Parallel find calls can leave refs/storage on a stale attemptId while the server paired this id. */
-        statusRef.current === 'searching';
+      const accept = applies(data.attemptId) || statusRef.current === 'searching';
       if (!accept) return;
       applyProposedFromServer(data.attemptId, data.peerId, data.matchScore, data.isFallbackMatch);
     };
@@ -155,6 +163,7 @@ export function useFindMatch() {
       if (data.status === 'searching' && data.requestId) {
         proposalPeerIdRef.current = null;
         persistMatchAttemptId(requestIdRef, data.requestId);
+        setWaitingForPeerConnect(false);
         setStatus('searching');
       } else if (data.status === 'proposed' && data.requestId) {
         applyProposedFromServer(
@@ -167,10 +176,12 @@ export function useFindMatch() {
         proposalPeerIdRef.current = null;
         const requestId = data.requestId ?? requestIdRef.current ?? '';
         clearMatchAttemptLocal(proposalPeerIdRef, requestIdRef);
+        setWaitingForPeerConnect(false);
         setStatus('matched');
         setResult({ requestId, roomId: data.roomId });
       } else if (data.status === 'idle') {
         clearMatchAttemptLocal(proposalPeerIdRef, requestIdRef);
+        setWaitingForPeerConnect(false);
         setStatus('idle');
         setResult(null);
       }
@@ -181,6 +192,7 @@ export function useFindMatch() {
       if (stored === null) return;
       if (data.attemptId !== stored && requestIdRef.current !== data.attemptId) return;
       clearMatchAttemptLocal(proposalPeerIdRef, requestIdRef);
+      setWaitingForPeerConnect(false);
       setStatus('error');
       setError(messageForNoMatch(data.reason));
     };
@@ -188,6 +200,7 @@ export function useFindMatch() {
     const onProposalCancelled = (data: MatchProposalCancelledPayload) => {
       if (!applies(data.attemptId)) return;
       clearMatchAttemptLocal(proposalPeerIdRef, requestIdRef);
+      setWaitingForPeerConnect(false);
       setResult(null);
       setError(null);
 
@@ -227,6 +240,7 @@ export function useFindMatch() {
       // best-effort — clear local state regardless
     }
     clearMatchAttemptLocal(proposalPeerIdRef, requestIdRef);
+    setWaitingForPeerConnect(false);
     setStatus('idle');
     setResult(null);
     setError(null);
@@ -239,11 +253,20 @@ export function useFindMatch() {
         setError('No active match proposal.');
         return;
       }
+      if (decision === 'skip') {
+        setWaitingForPeerConnect(false);
+      }
       try {
         setRespondBusy(true);
         await respondMatch({ attemptId, decision }).unwrap();
+        if (decision === 'connect') {
+          setWaitingForPeerConnect(true);
+        }
       } catch {
         setError(decision === 'connect' ? 'Could not connect. Try again.' : 'Could not skip. Try again.');
+        if (decision === 'connect') {
+          setWaitingForPeerConnect(false);
+        }
       } finally {
         setRespondBusy(false);
       }
@@ -262,5 +285,6 @@ export function useFindMatch() {
     isProposed: status === 'proposed',
     isLoading: isStarting || status === 'searching' || respondBusy,
     respondBusy,
+    waitingForPeerConnect,
   };
 }

@@ -1,6 +1,7 @@
 export interface ProfileSetupData {
     // Step 1 - Basic Identity
     displayName?: string;
+    username?: string;
     age?: number;
     gender?: string;
     country?: { code: string; name: string };

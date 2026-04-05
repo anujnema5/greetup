@@ -6,11 +6,13 @@ import {
   handleSaveProfileSetup,
   handleUpdateRoomInviteSettings,
 } from "./controllers/profile-setup.controller";
+import { handleGetPublicProfile } from "./controllers/public-profile.controller";
 
 export const profileRoute = new Hono();
 
 /** PROFILE ROUTES */
 profileRoute.get("/me", handleGetMyProfile);
+profileRoute.get("/public/:username", handleGetPublicProfile);
 profileRoute.put("/room-invite-settings", handleUpdateRoomInviteSettings);
 profileRoute.get("/onboarding-status", handleGetOnboardingStatus);
 

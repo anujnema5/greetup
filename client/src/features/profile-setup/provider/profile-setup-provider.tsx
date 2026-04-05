@@ -9,6 +9,7 @@ import {
   useRef,
 } from 'react'
 import { useRouter } from 'next/navigation'
+import type { Resolver, FieldValues } from 'react-hook-form'
 import type { ProfileSetupProvider as TProfileSetupProvider } from '../types'
 import {
   useGetProfileSetupStepsQuery,
@@ -18,8 +19,9 @@ import { useForm, FormProvider } from 'react-hook-form'
 import {
   generateStepSchema,
   getStepDefaultValues,
-} from '../utils/generate-step-schema'
-import { transformStepToApiPayload } from '../utils/transform-step-to-api'
+  parseProfileSetupSaveError,
+  transformStepToApiPayload,
+} from '../utils'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 
@@ -82,10 +84,22 @@ export const ProfileSetupProvider: React.FC<ProfileSetupProviderProps> = ({
     return generateStepSchema(currentStepData.fields)
   }, [currentStepData])
 
-  // Initialize form with resolver for current step
-  const methods = useForm({
-    mode: 'onChange',
-    resolver: zodResolver(currentStepSchema),
+  /** RHF keeps the first resolver; point at the latest Zod schema per step. */
+  const stepSchemaRef = useRef<z.ZodTypeAny>(currentStepSchema)
+  stepSchemaRef.current = currentStepSchema
+
+  const dynamicResolver = useMemo(
+    () =>
+      (async (values, context, options) =>
+        zodResolver(stepSchemaRef.current as never)(values, context, options)) as Resolver<FieldValues>,
+    [],
+  )
+
+  const methods = useForm<FieldValues>({
+    mode: 'onSubmit',
+    reValidateMode: 'onSubmit',
+    shouldFocusError: true,
+    resolver: dynamicResolver,
     defaultValues: allFormData,
   })
 
@@ -168,34 +182,49 @@ export const ProfileSetupProvider: React.FC<ProfileSetupProviderProps> = ({
   const onContinue = useCallback(async () => {
     if (!currentStepData) return
 
-    // Trigger validation
-    const isValid = await methods.trigger()
+    methods.clearErrors('root')
 
-    if (!isValid) {
-      // Validation failed, errors are already set by react-hook-form
-      return
-    }
+    const isValid = await methods.trigger(undefined, { shouldFocus: true })
 
-    // Get current form values and merge with all form data
+    if (!isValid) return
+
     const currentValues = methods.getValues()
     const updatedData = { ...allFormData, ...currentValues }
     setAllFormData(updatedData)
 
     try {
       const payload = transformStepToApiPayload(currentStep, updatedData)
-      const result = await saveProfileSetup(payload).unwrap()
+      await saveProfileSetup(payload).unwrap()
 
       if (currentStep === steps.length) {
-        // Last step completed – clear stored progress and go to dashboard
         clearProfileSetupProgress()
-        const destination = '/'
-        router.push(destination)
+        router.push('/')
       } else {
         setCurrentStep((prev) => prev + 1)
       }
     } catch (error) {
-      console.error('Failed to save profile step:', error)
-      // RTK Query throws on error; you can show toast/alert here
+      const { message, code, fieldErrors } = parseProfileSetupSaveError(error)
+      let appliedToField = false
+
+      for (const { name, message: msg } of fieldErrors) {
+        methods.setError(name, { type: 'server', message: msg })
+        appliedToField = true
+      }
+
+      if (code === 'USERNAME_TAKEN') {
+        methods.setError('username', { type: 'server', message })
+        appliedToField = true
+      }
+
+      if (appliedToField) {
+        const focusName =
+          fieldErrors[0]?.name ?? (code === 'USERNAME_TAKEN' ? 'username' : null)
+        if (focusName) {
+          requestAnimationFrame(() => methods.setFocus(focusName as never))
+        }
+      } else {
+        methods.setError('root', { type: 'server', message })
+      }
     }
   }, [
     currentStepData,

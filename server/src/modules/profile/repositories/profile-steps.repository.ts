@@ -40,6 +40,7 @@ export const profileStepsRepository = {
             id: true,
             displayName: true,
             name: true,
+            username: true,
           },
         },
         location: {
@@ -166,6 +167,7 @@ export interface ProfileForSteps {
     id: string;
     displayName: string | null;
     name: string;
+    username: string | null;
   } | null;
   location?: {
     country: string | null;

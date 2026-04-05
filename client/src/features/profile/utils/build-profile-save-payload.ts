@@ -14,6 +14,9 @@ export function validateProfileSection(
   }
   if (section === "basics") {
     if (!d.displayName?.trim()) return "Display name is required.";
+    const u = d.username?.trim().toLowerCase() ?? "";
+    if (u.length < 3) return "Username must be at least 3 characters.";
+    if (!/^[a-z0-9_]+$/.test(u)) return "Username can only use letters, numbers, and underscores.";
     if (!d.country?.code || !d.country?.name) return "Country is required.";
   }
   return null;
@@ -29,6 +32,7 @@ export function buildProfileSavePayload(
         step: 1,
         data: {
           displayName: d.displayName.trim(),
+          username: d.username.trim().toLowerCase(),
           age: d.age,
           gender: d.gender,
           country: { code: d.country.code, name: d.country.name },

@@ -98,7 +98,7 @@ export function RoomInviteSettingsModal({
 
   const friendlySummary = useMemo(() => {
     if (policy === "all_connections") {
-      return "Your friends on Circlo can add you when they start a room and send invites.";
+      return "Your friends on Circlo can add you when they start a circle and send invites.";
     }
     if (selectedIds.length === 0) {
       return "You haven’t picked anyone yet — people you don’t choose won’t be able to add you this way.";
@@ -150,8 +150,8 @@ export function RoomInviteSettingsModal({
     <ProfileEditShell
       open={open}
       onOpenChange={onOpenChange}
-      title="Who can add you to a room?"
-      description="When a friend creates a room and adds people, you decide who is allowed to include you on that list."
+      title="Who can invite you to a circle?"
+      description="When a friend creates a circle and adds people, you decide who is allowed to include you on that list."
       footer={footer}
     >
       <div className="flex flex-col gap-5">
@@ -182,7 +182,7 @@ export function RoomInviteSettingsModal({
                 Everyone I know here
               </span>
               <span className="mt-1 block text-[12px] text-muted-foreground leading-snug">
-                Any friend you’re connected with can add you when they set up a room.
+                Any friend you’re connected with can add you when they set up a circle.
               </span>
             </span>
           </button>

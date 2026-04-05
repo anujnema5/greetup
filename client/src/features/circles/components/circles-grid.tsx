@@ -142,8 +142,8 @@ const FriendBadge = (
 );
 
 const JoinedBadge = (
-  <span className="text-[8px] font-bold text-white bg-emerald-600/80 rounded-full px-1.5 py-0.5 backdrop-blur-sm">
-    joined
+  <span className="text-[9px] tracking-wide font-bold text-white bg-emerald-600/80 rounded-full px-1.5 py-0.5 backdrop-blur-sm">
+    Joined
   </span>
 );
 

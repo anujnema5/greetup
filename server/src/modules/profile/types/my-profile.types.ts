@@ -3,6 +3,8 @@
  * Client mirror: `client/src/features/profile/types/my-profile.types.ts`.
  */
 export type MyProfileResponse = {
+  /** Public handle for profile URL `/u/{username}` */
+  username: string | null;
   displayName: string | null;
   bio: string | null;
   age: number | null;

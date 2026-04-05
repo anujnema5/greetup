@@ -4,9 +4,22 @@ import type {
   ConnectionListFilter,
   ListConnectionsApiResponse,
   ListConnectionsData,
+  RequestConnectionMutationArg,
+  RequestConnectionResult,
+  RespondConnectionMutationArg,
 } from "../types/connections-api.types";
 
 const { CONNECTIONS } = API_ENDPOINTS;
+
+function tagsAfterRespondToConnection(arg: RespondConnectionMutationArg) {
+  return [
+    { type: "Connections" as const, id: "LIST" },
+    { type: "Connections" as const, id: "ACCEPTED_INFINITE" },
+    ...(arg.peerUsername
+      ? [{ type: "PublicProfile" as const, id: arg.peerUsername }]
+      : []),
+  ];
+}
 
 export const connectionsApi = baseApi.injectEndpoints({
   endpoints: (build) => ({
@@ -52,6 +65,37 @@ export const connectionsApi = baseApi.injectEndpoints({
       },
       providesTags: [{ type: "Connections", id: "ACCEPTED_INFINITE" }],
     }),
+
+    requestConnection: build.mutation<RequestConnectionResult, RequestConnectionMutationArg>({
+      query: ({ targetUserId }) => ({
+        url: CONNECTIONS.REQUEST,
+        method: "POST",
+        body: { targetUserId },
+      }),
+      invalidatesTags: (_result, _error, arg) => [
+        { type: "Connections", id: "LIST" },
+        { type: "Connections", id: "ACCEPTED_INFINITE" },
+        ...(arg.invalidatePublicProfileUsername
+          ? [{ type: "PublicProfile" as const, id: arg.invalidatePublicProfileUsername }]
+          : []),
+      ],
+    }),
+
+    acceptConnection: build.mutation<unknown, RespondConnectionMutationArg>({
+      query: ({ connectionId }) => ({
+        url: CONNECTIONS.accept(connectionId),
+        method: "POST",
+      }),
+      invalidatesTags: (_result, _error, arg) => tagsAfterRespondToConnection(arg),
+    }),
+
+    rejectConnection: build.mutation<unknown, RespondConnectionMutationArg>({
+      query: ({ connectionId }) => ({
+        url: CONNECTIONS.reject(connectionId),
+        method: "POST",
+      }),
+      invalidatesTags: (_result, _error, arg) => tagsAfterRespondToConnection(arg),
+    }),
   }),
 });
 
@@ -59,4 +103,7 @@ export const {
   useGetMyConnectionsQuery,
   useLazyGetMyConnectionsQuery,
   useAcceptedConnectionsInfiniteQuery,
+  useRequestConnectionMutation,
+  useAcceptConnectionMutation,
+  useRejectConnectionMutation,
 } = connectionsApi;

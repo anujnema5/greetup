@@ -56,6 +56,7 @@ export function mapMyProfileToEditable(api: MyProfileResponse): EditableProfile 
 
   return {
     displayName: api.displayName?.trim() || "Member",
+    username: api.username?.trim().toLowerCase() ?? "",
     age: api.age != null ? Math.min(99, Math.max(18, api.age)) : 25,
     gender: normalizeGender(api.gender),
     country,

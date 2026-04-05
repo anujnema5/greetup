@@ -15,10 +15,20 @@ const PROTECTED_ROUTES = [
   "/profile",
   "/settings",
   "/profile-setup",
+  "/explore",
+  "/connections",
+  "/u",
 ];
 
 /** Routes that require onboarding to be complete */
-const ONBOARDING_REQUIRED_ROUTES = ["/", "/profile", "/settings"];
+const ONBOARDING_REQUIRED_ROUTES = [
+  "/",
+  "/profile",
+  "/settings",
+  "/explore",
+  "/connections",
+  "/u",
+];
 
 const COMMON_ROUTES = [
   "/about",

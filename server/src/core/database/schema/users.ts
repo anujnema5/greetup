@@ -43,6 +43,8 @@ export const users = pgTable("users", {
   phoneNumber: text("phone_number").unique(),
   phoneNumberVerified: boolean("phone_number_verified").default(false),
   displayName: text("display_name"),
+  /** Lowercase unique handle for URLs and search (e.g. /u/janedoe). Required in DB; inserts omitting it get a placeholder via trigger until onboarding. */
+  username: text("username").notNull().unique(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at")
     .defaultNow()
