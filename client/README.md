@@ -5,8 +5,8 @@ Next.js app (App Router), Redux Toolkit Query for API calls, Tailwind.
 ## Run
 
 ```bash
-npm install
-npm run dev
+bun install
+bun run dev
 # http://localhost:3000
 ```
 
