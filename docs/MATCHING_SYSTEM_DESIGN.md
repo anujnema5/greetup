@@ -13,13 +13,13 @@ Users request a room → System finds best available match (Redis) → Creates r
 │  Client  │────▶│   API    │────▶│  Redis   │
 │ (Find)   │     │  Server  │     │ (Match)  │
 └──────────┘     └────┬─────┘     └──────────┘
-                     │
-                     │ sync on profile/preference change
-                     ▼
-              ┌──────────┐
-              │PostgreSQL│
-              │(Source)  │
-              └──────────┘
+                      │
+                      │ sync on profile/preference change
+                      ▼
+                ┌──────────┐
+                │PostgreSQL│
+                │(Source)  │
+                └──────────┘
 ```
 
 ---
