@@ -85,6 +85,39 @@ export const userProfilesRepository = {
             averageSessionDuration: true,
           },
         },
+        currentStatus: {
+          columns: {
+            sessionGoal: true,
+            connectionPreference: true,
+            availability: true,
+            lastActiveAt: true,
+            updatedAt: true,
+          },
+          with: {
+            moods: {
+              with: {
+                mood: {
+                  columns: {
+                    id: true,
+                    name: true,
+                    displayName: true,
+                  },
+                },
+              },
+            },
+            lookingFor: {
+              with: {
+                lookingForOption: {
+                  columns: {
+                    id: true,
+                    name: true,
+                    displayName: true,
+                  },
+                },
+              },
+            },
+          },
+        },
       },
     });
   },

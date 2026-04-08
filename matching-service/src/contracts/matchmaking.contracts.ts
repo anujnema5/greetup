@@ -16,6 +16,10 @@ export type FindMatchResult =
   | { status: "searching"; retryAfterMs: number; requestId?: string }
   | { status: "no_match"; reason: string };
 
+/**
+ * Parsed `user:profile:snapshot:{userId}` JSON. Populated by the snapshot repository from Redis;
+ * match-prep fields live on `attributes` (e.g. `sessionMoodIds`, `sessionLookingForIds`, `connectionPreference`).
+ */
 export type SnapshotUserProfile = {
   userId: string;
   matchIds: string[];

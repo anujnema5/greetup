@@ -126,4 +126,64 @@ describe("MatchScoreService", () => {
 
     expect(scoreWithMatch).toBeGreaterThan(scoreWithoutMatch);
   });
+
+  it("ranks higher when requester match-prep moods overlap the candidate", () => {
+    const requester = profile({
+      userId: "r",
+      attributes: {
+        age: 25,
+        gender: "female",
+        countryCode: "IN",
+        region: "MH",
+        city: "Pune",
+        interestIds: ["music"],
+        goalIds: ["friends"],
+        professionIds: ["eng"],
+        trustScore: 90,
+        sessionMoodIds: ["m1", "m2"],
+        sessionLookingForIds: [],
+        connectionPreference: null,
+      },
+    });
+
+    const overlapping = profile({
+      userId: "c1",
+      attributes: {
+        age: 26,
+        gender: "male",
+        countryCode: "IN",
+        region: "MH",
+        city: "Pune",
+        interestIds: ["music"],
+        goalIds: ["friends"],
+        professionIds: ["eng"],
+        trustScore: 90,
+        sessionMoodIds: ["m1", "m3"],
+        sessionLookingForIds: [],
+        connectionPreference: null,
+      },
+    });
+
+    const disjoint = profile({
+      userId: "c2",
+      attributes: {
+        age: 26,
+        gender: "male",
+        countryCode: "IN",
+        region: "MH",
+        city: "Pune",
+        interestIds: ["music"],
+        goalIds: ["friends"],
+        professionIds: ["eng"],
+        trustScore: 90,
+        sessionMoodIds: ["x", "y"],
+        sessionLookingForIds: [],
+        connectionPreference: null,
+      },
+    });
+
+    expect(scorer.calculateBidirectionalScore(requester, overlapping)).toBeGreaterThan(
+      scorer.calculateBidirectionalScore(requester, disjoint),
+    );
+  });
 });

@@ -8,6 +8,10 @@ export const API_ENDPOINTS = {
     ROOM_INVITE_SETTINGS: "/profile/room-invite-settings",
     /** Presigned PUT to DigitalOcean Spaces; then save `publicUrl` via profile-setup step 6 */
     PHOTOS_PRESIGN: "/profile/photos/presign",
+    MATCH_PREP_CURRENT: "/profile/match-prep/current",
+    MATCH_PREP_OPTIONS: "/profile/match-prep/options",
+    MATCH_PREP_PROMPT_STATUS: "/profile/match-prep/prompt-status",
+    MATCH_PREP: "/profile/match-prep",
     public: (username: string) =>
       `/profile/public/${encodeURIComponent(username)}` as const,
   },

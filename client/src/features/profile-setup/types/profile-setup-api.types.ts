@@ -152,5 +152,30 @@ export type SaveProfileSetupPayload =
   | { step: 5; data: { preferredGender?: string; distancePreference?: string; ageRange?: { min: number; max: number } } }
   | { step: 6; data: { bio?: string; photos?: Array<{ url: string; order?: number }> } }
 
+/** GET /profile/match-prep/options */
+export interface MatchPrepOptionRow {
+  id: string
+  name: string
+  displayName: string
+  description: string | null
+}
+
+export interface MatchPrepOptionsData {
+  moods: MatchPrepOptionRow[]
+  lookingFor: MatchPrepOptionRow[]
+}
+
+/** GET /profile/match-prep/current */
+export interface MatchPrepCurrentData {
+  moodIds: string[]
+  lookingForIds: string[]
+  connectionPreference:
+    | "same_profession"
+    | "different_profession"
+    | "open_to_anyone"
+    | null
+  sessionGoal: string | null
+}
+
 /** GET /profile/me — canonical type: `@/features/profile/types/my-profile.types` */
 export type { MyProfileResponse } from "@/features/profile/types/my-profile.types";

@@ -6,6 +6,13 @@ export const availabilityEnum = t.pgEnum("availability",
     ['available', 'busy', 'offline']
 );
 
+/** Who to prioritize for 1:1 match prep (stored on current_status, not free text). */
+export const connectionPreferenceEnum = t.pgEnum("connection_preference", [
+    "same_profession",
+    "different_profession",
+    "open_to_anyone",
+]);
+
 export const moods = t.pgTable("moods", {
     id: t.uuid("id").defaultRandom().primaryKey(),
     name: t.varchar("name", { length: 50 }).notNull().unique(),
@@ -30,6 +37,7 @@ export const currentStatus = t.pgTable("current_status", {
         .unique(),
 
     sessionGoal: t.text("session_goal"),
+    connectionPreference: connectionPreferenceEnum("connection_preference"),
     availability: availabilityEnum("availability").default("offline").notNull(),
 
     lastActiveAt: t.timestamp("last_active_at").defaultNow().notNull(),

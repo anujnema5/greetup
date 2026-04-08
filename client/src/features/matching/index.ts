@@ -12,6 +12,7 @@ export {
 } from "./providers/matchmaking-provider";
 export type { MatchmakingContextValue } from "./providers/matchmaking-provider";
 export { MatchFoundDialog } from "./components/match-found-dialog";
+export { MatchPrepDialog } from "./components/match-prep-dialog";
 export {
   matchingApi,
   useFindMatchMutation,
