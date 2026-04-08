@@ -45,7 +45,7 @@ export function NavSidebar({ activePath = "/" }: { activePath?: string }) {
           className="h-10 w-10 rounded-xl text-muted-foreground hover:bg-muted hover:text-foreground"
         />
         <Link
-          href="#"
+          href="/settings"
           title="Settings"
           className="flex h-10 w-10 items-center justify-center rounded-xl text-muted-foreground hover:bg-muted hover:text-foreground transition-all duration-200"
         >

@@ -15,6 +15,7 @@ import {
 import type { ConnectionListItem } from "@/features/connections/types/connections-api.types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { getProfileImageUrl } from "@/lib/ui/profile-image";
 import { cn } from "@/lib/utils";
 
 const ACCEPTED_PAGE_SIZE = 20;
@@ -28,13 +29,6 @@ function peerLabel(item: ConnectionListItem) {
 function publicProfileHref(username: string | null | undefined): string | null {
   const u = username?.trim();
   return u ? `/u/${encodeURIComponent(u)}` : null;
-}
-
-function initials(name: string) {
-  const parts = name.trim().split(/\s+/).filter(Boolean);
-  if (parts.length === 0) return "?";
-  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
-  return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
 }
 
 function rtkErrorMessage(error: unknown): string {
@@ -59,13 +53,9 @@ function ConnectionPeerSummary({
 }) {
   return (
     <>
-      <div className="relative flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full bg-linear-to-br from-primary/90 to-primary/70 text-xs font-bold text-primary-foreground">
-        {imageUrl ? (
-          /* eslint-disable-next-line @next/next/no-img-element */
-          <img src={imageUrl} alt="" className="h-full w-full object-cover" />
-        ) : (
-          initials(title)
-        )}
+      <div className="relative flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full bg-muted/30">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src={getProfileImageUrl(imageUrl)} alt="" className="h-full w-full object-cover" />
       </div>
       <div className="min-w-0 flex-1">
         <p className="truncate text-sm font-semibold text-foreground">{title}</p>

@@ -125,6 +125,15 @@ export interface SaveProfileSetupResponse {
 
 export type SaveProfileSetupApiResponse = ApiResponse<SaveProfileSetupResponse>
 
+/** POST /profile/photos/presign */
+export type PresignProfilePhotoData = {
+  uploadUrl: string
+  publicUrl: string
+  key: string
+  expiresIn: number
+  contentType: string
+}
+
 /** Payload for POST /profile-setup - discriminated by step */
 export type SaveProfileSetupPayload =
   | {

@@ -6,7 +6,8 @@ export type ErrorCode =
   | "PREMIUM_REQUIRED"
   | "PREMIUM_EXPIRED"
   | "CONFLICT"
-  | "INTERNAL_ERROR";
+  | "INTERNAL_ERROR"
+  | "SERVICE_UNAVAILABLE";
 
 export class AppError extends Error {
   statusCode: number;
@@ -70,5 +71,11 @@ export class PremiumSubscriptionExpiredError extends AppError {
 export class ConflictError extends AppError {
   constructor(message: string = "Resource conflict") {
     super(message, 409, "CONFLICT");
+  }
+}
+
+export class ServiceUnavailableError extends AppError {
+  constructor(message: string = "Service temporarily unavailable") {
+    super(message, 503, "SERVICE_UNAVAILABLE");
   }
 }

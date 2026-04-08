@@ -21,6 +21,20 @@ const config = {
     rtcJwtSecret: process.env.RTC_JWT_SECRET!,
     matchEngineUrl: process.env.MATCH_ENGINE_URL ?? "http://localhost:5060",
     logLevel: process.env.LOG_LEVEL,
+
+    /** DigitalOcean Spaces (S3-compatible). All required for profile photo presigned uploads. */
+    doSpacesKey: process.env.DO_SPACES_KEY,
+    doSpacesSecret: process.env.DO_SPACES_SECRET,
+    doSpacesBucket: process.env.DO_SPACES_BUCKET,
+    doSpacesRegion: process.env.DO_SPACES_REGION,
+    doSpacesEndpoint: process.env.DO_SPACES_ENDPOINT,
+    /** Object key prefix, e.g. `profile-images` (no leading/trailing slashes). */
+    doSpacesKeyPrefix: process.env.DO_SPACES_KEY_PREFIX ?? "profile-images",
+    /**
+     * Optional public base URL for objects (CDN or custom domain).
+     * If unset, `https://{bucket}.{region}.digitaloceanspaces.com` is used.
+     */
+    doSpacesPublicBaseUrl: process.env.DO_SPACES_PUBLIC_BASE_URL,
 };
 
 export default config;
