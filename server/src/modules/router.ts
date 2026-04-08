@@ -5,6 +5,7 @@ import { profileRoute } from "./profile/router";
 import { matchmakingRoute } from "./matching/router";
 import { roomRoute } from "./rooms/router";
 import { searchRoute } from "./search/router";
+import { notificationsRoute } from "./notifications/router";
 import { authMiddleware } from "@/middleware";
 
 const router = new Hono();
@@ -16,5 +17,6 @@ router.route("/circles", circlesRoute);
 router.route("/matching", matchmakingRoute);
 router.route("/room", roomRoute);
 router.route("/search", searchRoute);
+router.route("/notifications", notificationsRoute);
 
 export default router;

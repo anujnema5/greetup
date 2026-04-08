@@ -1,0 +1,49 @@
+import { notifications } from "@/core/database/schema";
+import { emitToUser } from "@/core/socket";
+import {
+  notificationsRepository,
+  type CreateNotificationInput,
+  type NotificationActorSnapshot,
+} from "../repositories/notifications.repository";
+
+export type NotificationActorContext = {
+  actor: NotificationActorSnapshot | null;
+  actorName: string;
+};
+
+function emitNotificationCreated(
+  recipientUserId: string,
+  row: typeof notifications.$inferSelect,
+) {
+  emitToUser(recipientUserId, "notification:new", { notification: row });
+}
+
+async function loadActorContext(
+  actorUserId: string,
+  nameFallback: string,
+): Promise<NotificationActorContext> {
+  const actor = await notificationsRepository.findActorSnapshotByUserId(actorUserId);
+  return { actor, actorName: actor?.name ?? nameFallback };
+}
+
+/** Insert notification row; emit realtime event when a row was created (not deduped). */
+export async function dispatchNotification(input: CreateNotificationInput) {
+  const created = await notificationsRepository.create(input);
+  if (created) {
+    emitNotificationCreated(input.recipientUserId, created);
+  }
+  return created;
+}
+
+/**
+ * Loads actor snapshot, then builds and persists the notification.
+ * Domain modules supply `build` with copy, payload, and dedupeKey.
+ */
+export async function dispatchNotificationWithActor(
+  actorUserId: string,
+  nameFallback: string,
+  build: (ctx: NotificationActorContext) => CreateNotificationInput,
+) {
+  const ctx = await loadActorContext(actorUserId, nameFallback);
+  return dispatchNotification(build(ctx));
+}

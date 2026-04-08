@@ -55,6 +55,19 @@ export const roomsRepository = {
     return row ?? null;
   },
 
+  /** Pending/accepted friend invites for a room (e.g. notify invitees when session goes live). */
+  async listActiveFriendInviteeUserIds(roomId: string) {
+    return db.query.roomFriendInvites.findMany({
+      where: and(
+        eq(roomFriendInvites.roomId, roomId),
+        inArray(roomFriendInvites.status, ["pending", "accepted"]),
+      ),
+      columns: {
+        inviteeUserId: true,
+      },
+    });
+  },
+
   async findActiveCategoryById(categoryId: string) {
     return db.query.roomCategories.findFirst({
       where: and(

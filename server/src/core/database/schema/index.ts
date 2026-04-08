@@ -34,3 +34,4 @@ export * from "./behavior";
 export * from "./connections";
 export * from "./blocks";
 export * from "./rooms";
+export * from "./notifications";

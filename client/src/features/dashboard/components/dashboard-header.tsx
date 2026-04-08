@@ -5,6 +5,17 @@ import { Bell, LogOut, Settings, User } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { signOut, useSession } from "@/lib/auth-client";
 import {
+  useGetNotificationsQuery,
+  useGetUnreadNotificationCountQuery,
+  useMarkAllNotificationsReadMutation,
+  useMarkNotificationReadMutation,
+} from "@/features/notifications/api/notifications-api";
+import type { NotificationItem } from "@/features/notifications/types/notifications-api.types";
+import {
+  formatNotificationTime,
+  notificationRoute,
+} from "@/features/notifications/utils/notification-ui";
+import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
@@ -26,6 +37,22 @@ function DashboardHeaderInner() {
   const { data: session } = useSession();
   const [mounted, setMounted] = useState(false);
   const [isSigningOut, setIsSigningOut] = useState(false);
+  const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
+  const { data: unreadData } = useGetUnreadNotificationCountQuery(undefined, {
+    pollingInterval: 15000,
+    refetchOnFocus: true,
+    refetchOnReconnect: true,
+  });
+  const { data: notificationsData, isFetching: notificationsLoading } = useGetNotificationsQuery(
+    { page: 1, limit: 10 },
+    {
+      refetchOnFocus: true,
+      refetchOnReconnect: true,
+    },
+  );
+  const [markNotificationRead, { isLoading: isMarkingRead }] = useMarkNotificationReadMutation();
+  const [markAllNotificationsRead, { isLoading: isMarkingAllRead }] =
+    useMarkAllNotificationsReadMutation();
   useEffect(() => {
     setMounted(true);
   }, []);
@@ -37,6 +64,9 @@ function DashboardHeaderInner() {
   const headline = mounted && firstName ? `${g}, ${firstName}` : g;
   const avatarSrc = getProfileImageUrl(mounted ? (session?.user?.image ?? null) : null);
   const email = session?.user?.email?.trim() ?? "";
+  const unreadCount = unreadData?.data?.unreadCount ?? 0;
+  const unreadBadgeLabel = unreadCount > 99 ? "99+" : String(unreadCount);
+  const notifications = notificationsData?.data?.items ?? [];
 
   const handleGoToProfile = () => {
     router.push("/profile");
@@ -57,6 +87,26 @@ function DashboardHeaderInner() {
     }
   };
 
+  const handleOpenNotification = async (item: NotificationItem) => {
+    if (!item.readAt) {
+      try {
+        await markNotificationRead({ notificationId: item.id }).unwrap();
+      } catch {
+        // Best effort. Navigation should still happen.
+      }
+    }
+    setIsNotificationsOpen(false);
+    router.push(notificationRoute(item));
+  };
+
+  const handleMarkAllRead = async () => {
+    try {
+      await markAllNotificationsRead().unwrap();
+    } catch {
+      // Best effort action.
+    }
+  };
+
   return (
     <header className="sticky top-0 z-50 flex items-center justify-between px-4 md:px-8 py-4 border-b border-border bg-background shadow-sm">
       <div>
@@ -64,13 +114,67 @@ function DashboardHeaderInner() {
         <p className="text-[11px] text-muted-foreground mt-1">Your vibe space is ready</p>
       </div>
       <div className="flex items-center gap-3">
-        <button
-          type="button"
-          className="relative h-9 w-9 flex items-center justify-center rounded-xl text-muted-foreground hover:bg-muted hover:text-foreground transition-colors duration-200 cursor-pointer"
-        >
-          <Bell size={17} />
-          <span className="absolute top-1.5 right-1.5 h-1.5 w-1.5 rounded-full bg-primary" />
-        </button>
+        <DropdownMenu open={isNotificationsOpen} onOpenChange={setIsNotificationsOpen}>
+          <DropdownMenuTrigger asChild>
+            <button
+              type="button"
+              aria-label={`Notifications${unreadCount > 0 ? ` (${unreadCount} unread)` : ""}`}
+              className="relative h-9 w-9 flex items-center justify-center rounded-xl text-muted-foreground hover:bg-muted hover:text-foreground transition-colors duration-200 cursor-pointer"
+            >
+              <Bell size={17} />
+              {unreadCount > 0 ? (
+                <span className="absolute -top-1.5 -right-1.5 min-w-4 h-4 px-1 rounded-full bg-primary text-primary-foreground text-[10px] leading-4 font-semibold text-center">
+                  {unreadBadgeLabel}
+                </span>
+              ) : null}
+            </button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" sideOffset={8} className="w-80 p-0">
+            <div className="flex items-center justify-between px-3 py-2">
+              <DropdownMenuLabel className="p-0 text-sm font-semibold">Notifications</DropdownMenuLabel>
+              <button
+                type="button"
+                onClick={handleMarkAllRead}
+                disabled={unreadCount === 0 || isMarkingAllRead}
+                className="text-xs text-primary disabled:text-muted-foreground cursor-pointer disabled:cursor-default"
+              >
+                Mark all read
+              </button>
+            </div>
+            <DropdownMenuSeparator />
+            <div className="max-h-80 overflow-y-auto p-1">
+              {notificationsLoading ? (
+                <p className="px-2 py-6 text-center text-xs text-muted-foreground">Loading notifications...</p>
+              ) : notifications.length === 0 ? (
+                <p className="px-2 py-6 text-center text-xs text-muted-foreground">No notifications yet</p>
+              ) : (
+                notifications.map((item) => (
+                  <button
+                    key={item.id}
+                    type="button"
+                    onClick={() => void handleOpenNotification(item)}
+                    disabled={isMarkingRead}
+                    className="w-full text-left rounded-sm px-2 py-2 hover:bg-accent transition-colors cursor-pointer disabled:opacity-60"
+                  >
+                    <div className="flex items-start gap-2">
+                      <span
+                        className={`mt-1.5 h-1.5 w-1.5 rounded-full ${item.readAt ? "bg-transparent" : "bg-primary"}`}
+                        aria-hidden
+                      />
+                      <div className="min-w-0">
+                        <p className="text-xs font-medium text-foreground truncate">{item.title}</p>
+                        <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">{item.body}</p>
+                        <p className="text-[11px] text-muted-foreground mt-1">
+                          {formatNotificationTime(item.createdAt)}
+                        </p>
+                      </div>
+                    </div>
+                  </button>
+                ))
+              )}
+            </div>
+          </DropdownMenuContent>
+        </DropdownMenu>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <button

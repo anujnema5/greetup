@@ -162,7 +162,7 @@ export function RoomInviteSettingsModal({
             type="button"
             onClick={() => setPolicy("all_connections")}
             className={cn(
-              "flex w-full items-start gap-3 rounded-2xl border-2 p-3.5 text-left transition-all",
+              "flex w-full cursor-pointer items-start gap-3 rounded-2xl border-2 p-3.5 text-left transition-all",
               "min-h-16 active:scale-[0.99] sm:gap-4 sm:p-4",
               policy === "all_connections"
                 ? "border-primary bg-primary/8 shadow-sm"
@@ -191,7 +191,7 @@ export function RoomInviteSettingsModal({
             type="button"
             onClick={() => setPolicy("selected_only")}
             className={cn(
-              "flex w-full items-start gap-3 rounded-2xl border-2 p-3.5 text-left transition-all",
+              "flex w-full cursor-pointer items-start gap-3 rounded-2xl border-2 p-3.5 text-left transition-all",
               "min-h-16 active:scale-[0.99] sm:gap-4 sm:p-4",
               policy === "selected_only"
                 ? "border-primary bg-primary/8 shadow-sm"
@@ -266,7 +266,7 @@ export function RoomInviteSettingsModal({
                         type="button"
                         onClick={() => togglePeer(id)}
                         className={cn(
-                          "flex w-full min-h-11 items-center gap-2.5 rounded-xl px-3 py-2.5 text-left transition-colors",
+                          "flex w-full min-h-11 cursor-pointer items-center gap-2.5 rounded-xl px-3 py-2.5 text-left transition-colors",
                           "border-2",
                           checked
                             ? "border-primary bg-primary/10 shadow-sm"

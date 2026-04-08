@@ -12,14 +12,10 @@ import {
 } from "@/core/database/schema";
 import { userBlocksRepository } from "@/modules/blocks/repositories/user-blocks.repository";
 import { userConnectionsRepository } from "@/modules/connections/repositories/user-connections.repository";
+import type { PublicProfileConnectionState } from "@/modules/profile/lib/resolve-public-profile-connection";
+import { resolveConnectionForPublicProfile } from "@/modules/profile/lib/resolve-public-profile-connection";
 
-export type PublicProfileConnectionState =
-  | "none"
-  | "pending_outgoing"
-  | "pending_incoming"
-  | "accepted"
-  | "rejected"
-  | "cancelled";
+export type { PublicProfileConnectionState };
 
 export type PublicProfileLocation = {
   city: string | null;
@@ -58,6 +54,7 @@ export type PublicProfileResult = {
     isVerified: boolean | null;
   }>;
   connectionState: PublicProfileConnectionState;
+  connectionId: string | null;
   isViewer: boolean;
 };
 
@@ -221,18 +218,12 @@ export async function getPublicProfileByUsername(
     if (blocked) return null;
   }
 
-  const conn = await userConnectionsRepository.findUndirected(viewerId, target.id);
-  let connectionState: PublicProfileConnectionState = "none";
-  if (conn) {
-    if (conn.status === "accepted") {
-      connectionState = "accepted";
-    } else if (conn.status === "pending") {
-      connectionState =
-        conn.requesterId === viewerId ? "pending_outgoing" : "pending_incoming";
-    } else {
-      connectionState = conn.status;
-    }
-  }
+  const connectionRows =
+    target.id === viewerId ? [] : await userConnectionsRepository.findAllBetween(viewerId, target.id);
+  const { connectionState, connectionId } = resolveConnectionForPublicProfile(
+    connectionRows,
+    viewerId,
+  );
 
   const prof = target.profile;
   const emptyExtras = {
@@ -268,6 +259,7 @@ export async function getPublicProfileByUsername(
     moods: extras.moods,
     photos: extras.photos,
     connectionState,
+    connectionId,
     isViewer: target.id === viewerId,
   };
 }

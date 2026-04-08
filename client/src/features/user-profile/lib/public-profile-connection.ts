@@ -1,13 +1,21 @@
 import type { PublicProfileData } from "../types/public-profile.types";
 
-/** What to show under the avatar for someone else’s profile (connection row). */
+/** Connection CTA under the avatar on someone else’s public profile. */
 export type PublicProfileConnectionPanel =
   | { kind: "connect" }
-  | { kind: "pending_outgoing" }
-  | { kind: "pending_incoming" }
-  | { kind: "accepted" }
+  | { kind: "pending_outgoing"; connectionId: string }
+  | { kind: "pending_incoming"; connectionId: string }
+  | { kind: "accepted"; connectionId: string }
   | { kind: "none" };
 
+function panelWithRequiredId(
+  kind: "accepted" | "pending_outgoing" | "pending_incoming",
+  connectionId: string | null | undefined,
+): PublicProfileConnectionPanel {
+  return connectionId ? { kind, connectionId } : { kind: "none" };
+}
+
+/** Maps API `connectionState` + `connectionId` to UI variants (withdraw, accept, etc.). */
 export function getPublicProfileConnectionPanel(
   profile: PublicProfileData,
 ): PublicProfileConnectionPanel {
@@ -17,11 +25,11 @@ export function getPublicProfileConnectionPanel(
 
   switch (profile.connectionState) {
     case "accepted":
-      return { kind: "accepted" };
+      return panelWithRequiredId("accepted", profile.connectionId);
     case "pending_outgoing":
-      return { kind: "pending_outgoing" };
+      return panelWithRequiredId("pending_outgoing", profile.connectionId);
     case "pending_incoming":
-      return { kind: "pending_incoming" };
+      return panelWithRequiredId("pending_incoming", profile.connectionId);
     case "none":
     case "rejected":
     case "cancelled":

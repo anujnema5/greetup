@@ -13,5 +13,6 @@ export const baseApi = createApi({
     'ActiveCircles',
     'RtcToken',
     'PublicProfile',
+    'Notifications',
   ],
 })

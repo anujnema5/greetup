@@ -8,6 +8,8 @@ export {
   useRequestConnectionMutation,
   useAcceptConnectionMutation,
   useRejectConnectionMutation,
+  useDisconnectConnectionMutation,
+  useWithdrawConnectionRequestMutation,
 } from "./api/connections-api";
 export type {
   ConnectionListFilter,

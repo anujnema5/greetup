@@ -26,6 +26,17 @@ export const API_ENDPOINTS = {
       `/connections/${encodeURIComponent(connectionId)}/accept` as const,
     reject: (connectionId: string) =>
       `/connections/${encodeURIComponent(connectionId)}/reject` as const,
+    disconnect: (connectionId: string) =>
+      `/connections/${encodeURIComponent(connectionId)}/disconnect` as const,
+    withdraw: (connectionId: string) =>
+      `/connections/${encodeURIComponent(connectionId)}/withdraw` as const,
+  },
+  NOTIFICATIONS: {
+    LIST: "/notifications",
+    UNREAD_COUNT: "/notifications/unread-count",
+    READ_ALL: "/notifications/read-all",
+    markRead: (notificationId: string) =>
+      `/notifications/${encodeURIComponent(notificationId)}/read` as const,
   },
   SEARCH: {
     USERS: "/search/users",
