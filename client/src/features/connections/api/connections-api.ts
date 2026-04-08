@@ -1,4 +1,5 @@
 import { API_ENDPOINTS, baseApi } from "@/lib/api";
+import { publicProfileRtkCacheId } from "@/lib/api/public-profile-rtk-cache";
 
 import type {
   ConnectionListFilter,
@@ -16,7 +17,7 @@ function tagsAfterRespondToConnection(arg: RespondConnectionMutationArg) {
     { type: "Connections" as const, id: "LIST" },
     { type: "Connections" as const, id: "ACCEPTED_INFINITE" },
     ...(arg.peerUsername
-      ? [{ type: "PublicProfile" as const, id: arg.peerUsername }]
+      ? [{ type: "PublicProfile" as const, id: publicProfileRtkCacheId(arg.peerUsername) }]
       : []),
   ];
 }
@@ -76,7 +77,12 @@ export const connectionsApi = baseApi.injectEndpoints({
         { type: "Connections", id: "LIST" },
         { type: "Connections", id: "ACCEPTED_INFINITE" },
         ...(arg.invalidatePublicProfileUsername
-          ? [{ type: "PublicProfile" as const, id: arg.invalidatePublicProfileUsername }]
+          ? [
+              {
+                type: "PublicProfile" as const,
+                id: publicProfileRtkCacheId(arg.invalidatePublicProfileUsername),
+              },
+            ]
           : []),
       ],
     }),
@@ -96,6 +102,22 @@ export const connectionsApi = baseApi.injectEndpoints({
       }),
       invalidatesTags: (_result, _error, arg) => tagsAfterRespondToConnection(arg),
     }),
+
+    disconnectConnection: build.mutation<unknown, RespondConnectionMutationArg>({
+      query: ({ connectionId }) => ({
+        url: CONNECTIONS.disconnect(connectionId),
+        method: "POST",
+      }),
+      invalidatesTags: (_result, _error, arg) => tagsAfterRespondToConnection(arg),
+    }),
+
+    withdrawConnectionRequest: build.mutation<unknown, RespondConnectionMutationArg>({
+      query: ({ connectionId }) => ({
+        url: CONNECTIONS.withdraw(connectionId),
+        method: "POST",
+      }),
+      invalidatesTags: (_result, _error, arg) => tagsAfterRespondToConnection(arg),
+    }),
   }),
 });
 
@@ -106,4 +128,6 @@ export const {
   useRequestConnectionMutation,
   useAcceptConnectionMutation,
   useRejectConnectionMutation,
+  useDisconnectConnectionMutation,
+  useWithdrawConnectionRequestMutation,
 } = connectionsApi;

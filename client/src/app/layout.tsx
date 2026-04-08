@@ -7,13 +7,14 @@ import { SocketProvider } from "@/lib/socket";
 import { ReduxProvider } from "@/lib/redux/provider";
 import { RtcSocketProvider } from "@/features/rtc";
 import { ThemeProvider } from "@/components/theme-provider";
-import { Toaster } from "sonner";
+import { Toaster } from "@/components/ui/sonner";
 import {
   RoomMinimizedHydration,
   MinimizedRoomDock,
   DirectCallPartnerDisconnectHandler,
 } from "@/features/room";
 import { MatchmakingProvider } from "@/features/matching";
+import { NotificationsRealtimeBridge } from "@/features/notifications";
 const plusJakartaSans = Plus_Jakarta_Sans({
   variable: "--font-plus-jakarta",
   subsets: ["latin"],
@@ -40,6 +41,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             <RtcSocketProvider>
               <DirectCallPartnerDisconnectHandler />
               <SocketProvider>
+                <NotificationsRealtimeBridge />
                 <Suspense fallback={null}>
                   <MinimizedRoomDock />
                 </Suspense>
@@ -50,7 +52,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             </RtcSocketProvider>
           </ReduxProvider>
         </ThemeProvider>
-        <Toaster />
+        <Toaster position="top-right" closeButton />
       </body>
     </html>
   );

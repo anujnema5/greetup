@@ -13,6 +13,8 @@ import {
   acceptIncomingConnectionService,
   rejectIncomingConnectionService,
 } from "../services/respond-incoming-connection.service";
+import { disconnectConnectionService } from "../services/disconnect-connection.service";
+import { withdrawConnectionRequestService } from "../services/withdraw-connection-request.service";
 import { requestConnectionService } from "../services/request-connection.service";
 
 export const handleListMyConnections = async (c: Context) => {
@@ -148,5 +150,81 @@ export const handleRejectIncomingConnection = async (c: Context) => {
   } catch (error: unknown) {
     logger.error("Reject connection error", { error });
     return internalError(c, error, "REJECT_CONNECTION_FAILED");
+  }
+};
+
+export const handleDisconnectConnection = async (c: Context) => {
+  try {
+    const userId = c.get("userId") as string;
+    const param = parseConnectionIdRouteParam(c);
+    if (!param.ok) {
+      return param.response;
+    }
+
+    const result = await disconnectConnectionService(userId, param.connectionId);
+    if (!result.ok) {
+      const payload =
+        result.error === "NOT_FOUND"
+          ? {
+              message: "Connection not found",
+              statusCode: 404,
+              code: result.error,
+            }
+          : result.error === "FORBIDDEN"
+            ? {
+                message: "You cannot disconnect this connection",
+                statusCode: 403,
+                code: result.error,
+              }
+            : {
+                message: "Only accepted connections can be removed",
+                statusCode: 400,
+                code: result.error,
+              };
+      return c.json(ApiResponse.error(payload), payload.statusCode as 400 | 403 | 404);
+    }
+
+    return c.json(ApiResponse.success({ ok: true }, "Connection removed", 200), 200);
+  } catch (error: unknown) {
+    logger.error("Disconnect connection error", { error });
+    return internalError(c, error, "DISCONNECT_CONNECTION_FAILED");
+  }
+};
+
+export const handleWithdrawConnectionRequest = async (c: Context) => {
+  try {
+    const userId = c.get("userId") as string;
+    const param = parseConnectionIdRouteParam(c);
+    if (!param.ok) {
+      return param.response;
+    }
+
+    const result = await withdrawConnectionRequestService(userId, param.connectionId);
+    if (!result.ok) {
+      const payload =
+        result.error === "NOT_FOUND"
+          ? {
+              message: "Connection request not found",
+              statusCode: 404,
+              code: result.error,
+            }
+          : result.error === "FORBIDDEN"
+            ? {
+                message: "Only the sender can withdraw this request",
+                statusCode: 403,
+                code: result.error,
+              }
+            : {
+                message: "Only pending requests can be withdrawn",
+                statusCode: 400,
+                code: result.error,
+              };
+      return c.json(ApiResponse.error(payload), payload.statusCode as 400 | 403 | 404);
+    }
+
+    return c.json(ApiResponse.success({ ok: true }, "Request withdrawn", 200), 200);
+  } catch (error: unknown) {
+    logger.error("Withdraw connection request error", { error });
+    return internalError(c, error, "WITHDRAW_CONNECTION_REQUEST_FAILED");
   }
 };

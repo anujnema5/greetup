@@ -65,7 +65,7 @@ export function RoomPage() {
         <button
           type="button"
           onClick={goHome}
-          className="text-xs text-primary underline underline-offset-2"
+          className="cursor-pointer text-xs text-primary underline underline-offset-2"
         >
           Back to dashboard
         </button>
@@ -80,7 +80,7 @@ export function RoomPage() {
         <button
           type="button"
           onClick={goHome}
-          className="text-xs text-primary underline underline-offset-2"
+          className="cursor-pointer text-xs text-primary underline underline-offset-2"
         >
           Back to dashboard
         </button>

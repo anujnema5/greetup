@@ -1,24 +1,18 @@
-import { eq } from "drizzle-orm";
-
-import { db } from "@/core/database";
-import { userConnections } from "@/core/database/schema";
+import { userConnectionsRepository } from "../repositories/user-connections.repository";
+import { notifyConnectionRequestAccepted } from "../notifications";
 
 export type RespondIncomingResult =
   | { ok: true }
   | { ok: false; error: "NOT_FOUND" | "FORBIDDEN" | "INVALID_STATE" };
 
-async function assertViewerIsAddresseeOfPendingRequest(
-  connectionId: string,
+type IncomingRespondRow = NonNullable<
+  Awaited<ReturnType<typeof userConnectionsRepository.findByIdForIncomingRespond>>
+>;
+
+function gateAddresseePending(
+  row: IncomingRespondRow | null | undefined,
   viewerId: string,
-): Promise<RespondIncomingResult> {
-  const row = await db.query.userConnections.findFirst({
-    where: eq(userConnections.id, connectionId),
-    columns: {
-      id: true,
-      addresseeId: true,
-      status: true,
-    },
-  });
+): RespondIncomingResult {
   if (!row) {
     return { ok: false, error: "NOT_FOUND" };
   }
@@ -31,25 +25,23 @@ async function assertViewerIsAddresseeOfPendingRequest(
   return { ok: true };
 }
 
-async function setConnectionStatus(
-  connectionId: string,
-  status: "accepted" | "rejected",
-): Promise<void> {
-  await db
-    .update(userConnections)
-    .set({ status, updatedAt: new Date() })
-    .where(eq(userConnections.id, connectionId));
-}
-
 export async function acceptIncomingConnectionService(
   viewerId: string,
   connectionId: string,
 ): Promise<RespondIncomingResult> {
-  const gate = await assertViewerIsAddresseeOfPendingRequest(connectionId, viewerId);
+  const row = await userConnectionsRepository.findByIdForIncomingRespond(connectionId);
+  const gate = gateAddresseePending(row, viewerId);
   if (!gate.ok) {
     return gate;
   }
-  await setConnectionStatus(connectionId, "accepted");
+  await userConnectionsRepository.updateStatusById(connectionId, "accepted");
+  if (row && row.requesterId) {
+    await notifyConnectionRequestAccepted({
+      recipientUserId: row.requesterId,
+      actorUserId: viewerId,
+      connectionId,
+    });
+  }
   return { ok: true };
 }
 
@@ -57,10 +49,11 @@ export async function rejectIncomingConnectionService(
   viewerId: string,
   connectionId: string,
 ): Promise<RespondIncomingResult> {
-  const gate = await assertViewerIsAddresseeOfPendingRequest(connectionId, viewerId);
+  const row = await userConnectionsRepository.findByIdForIncomingRespond(connectionId);
+  const gate = gateAddresseePending(row, viewerId);
   if (!gate.ok) {
     return gate;
   }
-  await setConnectionStatus(connectionId, "rejected");
+  await userConnectionsRepository.updateStatusById(connectionId, "rejected");
   return { ok: true };
 }

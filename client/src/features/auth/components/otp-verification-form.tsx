@@ -76,14 +76,14 @@ function OTPVerification({ phoneNumber, onVerified, onEditPhone }: OTPVerificati
 
                     <p className="text-center text-sm">
                         Didn&apos;t receive the code?{" "}
-                        <button className="underline" type="button" onClick={resendOTP}>
+                        <button className="cursor-pointer underline" type="button" onClick={resendOTP}>
                             Resend
                         </button>
                     </p>
 
                     <p className="text-center text-xs text-muted-foreground">
                         Wrong number?{" "}
-                        <button type="button" className="underline" onClick={onEditPhone}>
+                        <button type="button" className="cursor-pointer underline" onClick={onEditPhone}>
                             Edit phone
                         </button>
                     </p>

@@ -16,10 +16,20 @@ import {
 } from "lucide-react";
 
 import { NavSidebar, BottomNav } from "@/features/app-shell";
-import { useRequestConnectionMutation } from "@/features/connections/api/connections-api";
+import {
+  useAcceptConnectionMutation,
+  useRejectConnectionMutation,
+  useWithdrawConnectionRequestMutation,
+  useDisconnectConnectionMutation,
+  useRequestConnectionMutation,
+} from "@/features/connections/api/connections-api";
+import { DisconnectConnectionDialog } from "@/features/connections/components/disconnect-connection-dialog";
+import { WithdrawRequestDialog } from "@/features/connections/components/withdraw-request-dialog";
 import { getRtkQueryErrorMessage } from "@/lib/api/rtk-query-error";
 import { cn } from "@/lib/utils";
+import { toast } from "sonner";
 
+import { publicProfileRtkCacheId } from "@/lib/api/public-profile-rtk-cache";
 import { useGetPublicProfileQuery } from "../api/public-profile-api";
 import { PublicProfileAvatar } from "../components/public-profile-avatar";
 import { PublicProfileConnectionActions } from "../components/public-profile-connection-actions";
@@ -29,6 +39,7 @@ import {
   formatGenderLabel,
   formatLocationLine,
 } from "../utils/public-profile-display";
+import { useState } from "react";
 
 type Props = {
   username: string;
@@ -78,6 +89,13 @@ function ChipList({ items }: { items: string[] }) {
 export function PublicProfilePage({ username }: Props) {
   const { data, isLoading, isError, error } = useGetPublicProfileQuery(username);
   const [requestConnection, { isLoading: isConnecting }] = useRequestConnectionMutation();
+  const [acceptConnection, { isLoading: isAccepting }] = useAcceptConnectionMutation();
+  const [rejectConnection, { isLoading: isRejecting }] = useRejectConnectionMutation();
+  const [disconnectConnection, { isLoading: isDisconnecting }] = useDisconnectConnectionMutation();
+  const [withdrawConnectionRequest, { isLoading: isWithdrawing }] =
+    useWithdrawConnectionRequestMutation();
+  const [confirmDisconnectOpen, setConfirmDisconnectOpen] = useState(false);
+  const [confirmWithdrawOpen, setConfirmWithdrawOpen] = useState(false);
 
   const panel = data ? getPublicProfileConnectionPanel(data) : null;
 
@@ -85,8 +103,61 @@ export function PublicProfilePage({ username }: Props) {
     if (!data) return;
     void requestConnection({
       targetUserId: data.userId,
-      invalidatePublicProfileUsername: data.username,
-    }).unwrap();
+      invalidatePublicProfileUsername: publicProfileRtkCacheId(data.username),
+    })
+      .unwrap()
+      .then(() => toast.success("Connection request sent"))
+      .catch((e: unknown) => toast.error(getRtkQueryErrorMessage(e)));
+  };
+
+  const handleDisconnect = () => {
+    if (!panel || panel.kind !== "accepted" || !data) return;
+    void disconnectConnection({
+      connectionId: panel.connectionId,
+      peerUsername: data.username,
+    })
+      .unwrap()
+      .then(() => {
+        setConfirmDisconnectOpen(false);
+        toast.success("Connection removed");
+      })
+      .catch((e: unknown) => toast.error(getRtkQueryErrorMessage(e)));
+  };
+
+  const handleWithdraw = () => {
+    if (!panel || panel.kind !== "pending_outgoing" || !data) return;
+    void withdrawConnectionRequest({
+      connectionId: panel.connectionId,
+      peerUsername: data.username,
+    })
+      .unwrap()
+      .then(() => {
+        setConfirmWithdrawOpen(false);
+        toast.success("Request withdrawn");
+      })
+      .catch((e: unknown) => toast.error(getRtkQueryErrorMessage(e)));
+  };
+
+  const handleAccept = () => {
+    if (!panel || panel.kind !== "pending_incoming" || !data) return;
+    void acceptConnection({
+      connectionId: panel.connectionId,
+      peerUsername: data.username,
+    })
+      .unwrap()
+      .then(() => toast.success("Connection accepted"))
+      .catch((e: unknown) => toast.error(getRtkQueryErrorMessage(e)));
+  };
+
+  const handleReject = () => {
+    if (!panel || panel.kind !== "pending_incoming" || !data) return;
+    void rejectConnection({
+      connectionId: panel.connectionId,
+      peerUsername: data.username,
+    })
+      .unwrap()
+      .then(() => toast.success("Request rejected"))
+      .catch((e: unknown) => toast.error(getRtkQueryErrorMessage(e)));
   };
 
   const primaryImage = data ? data.image ?? data.photos[0]?.url ?? null : null;
@@ -178,10 +249,44 @@ export function PublicProfilePage({ username }: Props) {
               {panel && panel.kind !== "none" && (
                 <PublicProfileConnectionActions
                   panel={panel}
-                  isSubmitting={isConnecting}
+                  isSubmittingConnect={isConnecting}
+                  isSubmittingDisconnect={isDisconnecting}
+                  isSubmittingWithdraw={isWithdrawing}
+                  isSubmittingAccept={isAccepting}
+                  isSubmittingReject={isRejecting}
                   onConnect={handleConnect}
+                  onDisconnect={() => setConfirmDisconnectOpen(true)}
+                  onWithdraw={() => setConfirmWithdrawOpen(true)}
+                  onAccept={handleAccept}
+                  onReject={handleReject}
                 />
               )}
+              {panel?.kind === "accepted" && data ? (
+                <DisconnectConnectionDialog
+                  open={confirmDisconnectOpen}
+                  onOpenChange={setConfirmDisconnectOpen}
+                  onConfirm={handleDisconnect}
+                  isSubmitting={isDisconnecting}
+                  peer={{
+                    name: displayTitle,
+                    image: primaryImage,
+                    username: data.username,
+                  }}
+                />
+              ) : null}
+              {panel?.kind === "pending_outgoing" && data ? (
+                <WithdrawRequestDialog
+                  open={confirmWithdrawOpen}
+                  onOpenChange={setConfirmWithdrawOpen}
+                  onConfirm={handleWithdraw}
+                  isSubmitting={isWithdrawing}
+                  peer={{
+                    name: displayTitle,
+                    image: primaryImage,
+                    username: data.username,
+                  }}
+                />
+              ) : null}
 
               {data.purpose?.trim() && (
                 <ProfileDetailSection title="On Circlo" icon={<Target className="h-4 w-4" />}>

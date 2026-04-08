@@ -41,6 +41,7 @@ export type PublicProfileData = {
     isVerified: boolean | null;
   }>;
   connectionState: PublicProfileConnectionState;
+  connectionId: string | null;
   isViewer: boolean;
 };
 

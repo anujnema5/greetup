@@ -1,4 +1,5 @@
 import { roomsRepository } from "@/modules/rooms/repositories/rooms.repository";
+import { notifyCircleStarted } from "../notifications";
 
 import { provisionSessionRoomRedis } from "./session-room-redis.service";
 
@@ -54,6 +55,21 @@ export async function startRoomSessionService(hostUserId: string, roomId: string
     roomType: row.roomType,
     title: existing.title,
   });
+
+  const invitees = await roomsRepository.listActiveFriendInviteeUserIds(row.id);
+
+  if (invitees.length > 0) {
+    await Promise.all(
+      invitees.map((invite) =>
+        notifyCircleStarted({
+          recipientUserId: invite.inviteeUserId,
+          actorUserId: hostUserId,
+          roomId: row.id,
+          roomTitle: existing.title,
+        }),
+      ),
+    );
+  }
 
   return { room: row };
 }
