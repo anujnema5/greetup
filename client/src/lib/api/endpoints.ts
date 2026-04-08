@@ -21,6 +21,7 @@ export const API_ENDPOINTS = {
   },
   CONNECTIONS: {
     LIST: "/connections",
+    PENDING_INCOMING_COUNT: "/connections/pending-incoming-count",
     REQUEST: "/connections/request",
     accept: (connectionId: string) =>
       `/connections/${encodeURIComponent(connectionId)}/accept` as const,

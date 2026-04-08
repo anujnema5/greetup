@@ -4,6 +4,7 @@ import {
   handleDisconnectConnection,
   handleAcceptIncomingConnection,
   handleListMyConnections,
+  handlePendingIncomingCount,
   handleRejectIncomingConnection,
   handleRequestConnection,
   handleWithdrawConnectionRequest,
@@ -12,6 +13,7 @@ import {
 export const connectionsRoute = new Hono();
 
 connectionsRoute.get("/", handleListMyConnections);
+connectionsRoute.get("/pending-incoming-count", handlePendingIncomingCount);
 connectionsRoute.post("/request", handleRequestConnection);
 connectionsRoute.post("/:connectionId/accept", handleAcceptIncomingConnection);
 connectionsRoute.post("/:connectionId/reject", handleRejectIncomingConnection);

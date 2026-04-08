@@ -5,6 +5,7 @@ import type {
   ConnectionListFilter,
   ListConnectionsApiResponse,
   ListConnectionsData,
+  PendingIncomingCountResponse,
   RequestConnectionMutationArg,
   RequestConnectionResult,
   RespondConnectionMutationArg,
@@ -22,8 +23,15 @@ function tagsAfterRespondToConnection(arg: RespondConnectionMutationArg) {
   ];
 }
 
+const pendingIncomingCountTag = { type: "Connections" as const, id: "PENDING_INCOMING_COUNT" };
+
 export const connectionsApi = baseApi.injectEndpoints({
   endpoints: (build) => ({
+    getPendingIncomingConnectionCount: build.query<PendingIncomingCountResponse, void>({
+      query: () => CONNECTIONS.PENDING_INCOMING_COUNT,
+      providesTags: [pendingIncomingCountTag],
+    }),
+
     getMyConnections: build.query<
       ListConnectionsApiResponse,
       { filter?: ConnectionListFilter; page?: number; limit?: number; q?: string }
@@ -76,6 +84,7 @@ export const connectionsApi = baseApi.injectEndpoints({
       invalidatesTags: (_result, _error, arg) => [
         { type: "Connections", id: "LIST" },
         { type: "Connections", id: "ACCEPTED_INFINITE" },
+        pendingIncomingCountTag,
         ...(arg.invalidatePublicProfileUsername
           ? [
               {
@@ -92,7 +101,7 @@ export const connectionsApi = baseApi.injectEndpoints({
         url: CONNECTIONS.accept(connectionId),
         method: "POST",
       }),
-      invalidatesTags: (_result, _error, arg) => tagsAfterRespondToConnection(arg),
+      invalidatesTags: (_result, _error, arg) => [...tagsAfterRespondToConnection(arg), pendingIncomingCountTag],
     }),
 
     rejectConnection: build.mutation<unknown, RespondConnectionMutationArg>({
@@ -100,7 +109,7 @@ export const connectionsApi = baseApi.injectEndpoints({
         url: CONNECTIONS.reject(connectionId),
         method: "POST",
       }),
-      invalidatesTags: (_result, _error, arg) => tagsAfterRespondToConnection(arg),
+      invalidatesTags: (_result, _error, arg) => [...tagsAfterRespondToConnection(arg), pendingIncomingCountTag],
     }),
 
     disconnectConnection: build.mutation<unknown, RespondConnectionMutationArg>({
@@ -122,6 +131,7 @@ export const connectionsApi = baseApi.injectEndpoints({
 });
 
 export const {
+  useGetPendingIncomingConnectionCountQuery,
   useGetMyConnectionsQuery,
   useLazyGetMyConnectionsQuery,
   useAcceptedConnectionsInfiniteQuery,

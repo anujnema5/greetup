@@ -52,7 +52,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             </RtcSocketProvider>
           </ReduxProvider>
         </ThemeProvider>
-        <Toaster position="top-right" closeButton />
+        <Toaster position="bottom-right" closeButton />
       </body>
     </html>
   );

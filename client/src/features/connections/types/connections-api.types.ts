@@ -31,6 +31,8 @@ export type ListConnectionsData = {
 
 export type ListConnectionsApiResponse = ApiResponse<ListConnectionsData>;
 
+export type PendingIncomingCountResponse = ApiResponse<{ pendingIncomingCount: number }>;
+
 /** Client-only: RTK cache invalidation for `getPublicProfile` after connect. */
 export type RequestConnectionMutationArg = {
   targetUserId: string;

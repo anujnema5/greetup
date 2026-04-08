@@ -121,12 +121,14 @@ function DashboardHeaderInner() {
               aria-label={`Notifications${unreadCount > 0 ? ` (${unreadCount} unread)` : ""}`}
               className="relative h-9 w-9 flex items-center justify-center rounded-xl text-muted-foreground hover:bg-muted hover:text-foreground transition-colors duration-200 cursor-pointer"
             >
-              <Bell size={17} />
-              {unreadCount > 0 ? (
-                <span className="absolute -top-1.5 -right-1.5 min-w-4 h-4 px-1 rounded-full bg-primary text-primary-foreground text-[10px] leading-4 font-semibold text-center">
-                  {unreadBadgeLabel}
-                </span>
-              ) : null}
+              <span className="relative inline-flex">
+                <Bell size={17} className="shrink-0" />
+                {unreadCount > 0 ? (
+                  <span className="absolute right-0 top-0 z-10 inline-flex min-h-4 min-w-4 translate-x-[45%] -translate-y-[42%] items-center justify-center rounded-full bg-primary px-1 text-[10px] font-semibold leading-none text-primary-foreground">
+                    {unreadBadgeLabel}
+                  </span>
+                ) : null}
+              </span>
             </button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" sideOffset={8} className="w-80 p-0">
@@ -154,7 +156,7 @@ function DashboardHeaderInner() {
                     type="button"
                     onClick={() => void handleOpenNotification(item)}
                     disabled={isMarkingRead}
-                    className="w-full text-left rounded-sm px-2 py-2 hover:bg-accent transition-colors cursor-pointer disabled:opacity-60"
+                    className="w-full text-left rounded-sm px-2 py-2 hover:bg-muted focus-visible:bg-muted transition-colors cursor-pointer disabled:opacity-60"
                   >
                     <div className="flex items-start gap-2">
                       <span

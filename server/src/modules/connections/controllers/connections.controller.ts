@@ -16,6 +16,21 @@ import {
 import { disconnectConnectionService } from "../services/disconnect-connection.service";
 import { withdrawConnectionRequestService } from "../services/withdraw-connection-request.service";
 import { requestConnectionService } from "../services/request-connection.service";
+import { pendingIncomingCountForUser } from "../services/pending-incoming-count.service";
+
+export const handlePendingIncomingCount = async (c: Context) => {
+  try {
+    const userId = c.get("userId") as string;
+    const pendingIncomingCount = await pendingIncomingCountForUser(userId);
+    return c.json(
+      ApiResponse.success({ pendingIncomingCount }, "Pending incoming count retrieved", 200),
+      200,
+    );
+  } catch (error: unknown) {
+    logger.error("Pending incoming connection count error", { error });
+    return internalError(c, error, "PENDING_INCOMING_COUNT_FAILED");
+  }
+};
 
 export const handleListMyConnections = async (c: Context) => {
   try {
