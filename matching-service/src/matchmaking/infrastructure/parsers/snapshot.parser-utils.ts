@@ -53,3 +53,23 @@ export const buildMatchIds = (
     ...professionIds.map((id) => `profession:${id}`),
   ]);
 };
+
+/** Slice of Redis snapshot JSON under `currentStatus` (see server `findProfileSnapshotForCache`). */
+export type SessionPrepFromSnapshot = {
+  moodIds: string[];
+  lookingForIds: string[];
+  connectionPreference: string | null;
+};
+
+/** Reads match-prep / `current_status` fields from the raw profile snapshot JSON. */
+export const parseSessionPrepFromSnapshot = (raw: JsonRecord): SessionPrepFromSnapshot => {
+  const cs = raw.currentStatus;
+  if (!isRecord(cs)) {
+    return { moodIds: [], lookingForIds: [], connectionPreference: null };
+  }
+  return {
+    moodIds: collectNestedIds(cs.moods, "mood"),
+    lookingForIds: collectNestedIds(cs.lookingFor, "lookingForOption"),
+    connectionPreference: toStringOrNull(cs.connectionPreference),
+  };
+};

@@ -14,5 +14,6 @@ export const baseApi = createApi({
     'RtcToken',
     'PublicProfile',
     'Notifications',
+    'MatchPrepPrompt',
   ],
 })

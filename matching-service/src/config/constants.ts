@@ -27,14 +27,18 @@ export const MATCH_CONFIG = {
 
 export const MATCH_SCORE_CONFIG = {
   // Higher weights represent stronger matching intent.
+  // Match prep (moods / looking for / who to prioritize) is weighted highest so 1:1 intent dominates interests.
   weights: {
-    interests: 40,
-    goals: 20,
-    professions: 10,
-    agePreference: 10,
-    distancePreference: 10,
-    preferredGender: 5,
-    trustScore: 5,
+    interests: 12,
+    goals: 13,
+    professions: 6,
+    agePreference: 6,
+    distancePreference: 6,
+    preferredGender: 3,
+    trustScore: 2,
+    sessionMoods: 28,
+    sessionLookingFor: 28,
+    connectionPreference: 21,
   },
   minScoreToMatch: 35,
 } as const;

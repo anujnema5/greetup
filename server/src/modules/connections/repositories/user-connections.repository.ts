@@ -1,5 +1,5 @@
 import { alias } from "drizzle-orm/pg-core";
-import { and, desc, eq, ilike, inArray, or } from "drizzle-orm";
+import { and, count, desc, eq, ilike, inArray, or } from "drizzle-orm";
 
 import { db } from "@/core/database";
 import { users, userConnections } from "@/core/database/schema";
@@ -15,6 +15,15 @@ const requesterUser = alias(users, "conn_list_requester");
 const addresseeUser = alias(users, "conn_list_addressee");
 
 export const userConnectionsRepository = {
+  async countForListFilter(userId: string, filter: ConnectionsListFilter) {
+    const where = whereConnectionsListFilter(userId, filter);
+    const [{ n }] = await db
+      .select({ n: count() })
+      .from(userConnections)
+      .where(where);
+    return Number(n ?? 0);
+  },
+
   async findManyWithPeersForList(userId: string, filter: ConnectionsListFilter) {
     const where = whereConnectionsListFilter(userId, filter);
     return db.query.userConnections.findMany({

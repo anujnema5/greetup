@@ -37,7 +37,6 @@ const Toaster = ({ ...props }: ToasterProps) => {
       }}
       style={
         {
-          // Keep Circlo's black toast aesthetic, tuned per mode for contrast.
           "--normal-bg": isDark ? "rgba(9, 9, 11, 0.92)" : "rgba(0, 0, 0, 0.9)",
           "--normal-text": "rgb(255 255 255)",
           "--muted-text": isDark ? "rgba(255, 255, 255, 0.72)" : "rgba(255, 255, 255, 0.78)",

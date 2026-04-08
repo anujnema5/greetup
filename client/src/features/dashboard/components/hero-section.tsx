@@ -7,12 +7,13 @@ import { CircleOrb, useStartCircleModal } from "@/features/circles";
 
 function HeroSectionInner({
   appState,
-  onToggle,
+  onRequestMatch,
   onCancel,
   error,
 }: {
   appState: "idle" | "searching" | "proposed" | "matched" | "error";
-  onToggle: () => void;
+  /** Opens match prep when needed, or starts search (idle) — searching uses Cancel instead */
+  onRequestMatch: () => void;
   onCancel: () => void;
   error?: string | null;
 }) {
@@ -25,7 +26,7 @@ function HeroSectionInner({
       ? "finding your people rn…"
       : isProposed
         ? "match found —\ncheck the card"
-        : "your vibe finds\nyour tribe.";
+        : "your circle finds\nyour tribe.";
 
   return (
     <div
@@ -70,13 +71,19 @@ function HeroSectionInner({
         <p className="mt-3 text-xs md:text-sm text-muted-foreground max-w-xs mx-auto leading-relaxed">
           {isProposed
             ? "Use the match card to connect or skip — both of you need to tap Connect to enter the room."
-            : "mood check → match made. network, vibe, or just talk to someone who gets it."}
+            : "Set mood and intent → match. Network, chat, or find someone who gets it."}
         </p>
       </div>
 
       <div className="relative z-10 flex flex-col sm:flex-row items-center justify-center gap-8 md:gap-14 scale-90 md:scale-100">
         <div className="flex flex-col items-center gap-2">
-          <MatchOrb isSearching={isSearching} onToggle={onToggle} disabled={isProposed} />
+          <MatchOrb
+            isSearching={isSearching}
+            onToggle={() => {
+              if (!isSearching) onRequestMatch();
+            }}
+            disabled={isProposed}
+          />
           <span className="text-[10px] font-medium uppercase tracking-widest text-muted-foreground">
             1:1 match
           </span>

@@ -6,6 +6,7 @@ import {
   collectNestedIds,
   isRecord,
   parseDateToMs,
+  parseSessionPrepFromSnapshot,
   toNumberOrNull,
   toStringOrNull,
 } from "@/matchmaking/infrastructure/parsers/snapshot.parser-utils";
@@ -21,6 +22,7 @@ const parseSnapshot = (raw: JsonRecord, fallbackUserId: string): SnapshotUserPro
   const interestIds = collectNestedIds(raw.interests, "interest");
   const goalIds = collectNestedIds(raw.goals, "goal");
   const professionIds = collectNestedIds(raw.professions, "profession");
+  const prep = parseSessionPrepFromSnapshot(raw);
   const userId = toStringOrNull(raw.userId) ?? toStringOrNull(user.id) ?? fallbackUserId;
   const updatedAt =
     parseDateToMs(raw.updatedAt) ??
@@ -53,6 +55,9 @@ const parseSnapshot = (raw: JsonRecord, fallbackUserId: string): SnapshotUserPro
       goalIds,
       professionIds,
       trustScore: toNumberOrNull(behavior.trustScore) ?? 100,
+      sessionMoodIds: prep.moodIds,
+      sessionLookingForIds: prep.lookingForIds,
+      connectionPreference: prep.connectionPreference,
     },
   };
 };

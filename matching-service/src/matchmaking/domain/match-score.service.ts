@@ -1,6 +1,19 @@
 import { MATCH_SCORE_CONFIG } from "@/config/constants";
 import type { SnapshotUserProfile } from "@/contracts/matchmaking.contracts";
 
+/** Aligns with DB enum `connection_preference` and match-prep UI. */
+const CONNECTION_PREF = {
+  OPEN_TO_ANYONE: "open_to_anyone",
+  SAME_PROFESSION: "same_profession",
+  DIFFERENT_PROFESSION: "different_profession",
+} as const;
+
+/** Tunables for `same_profession` / `different_profession` scoring when overlap is ambiguous. */
+const CONNECTION_PREF_SCORE = {
+  SAME_MIN_WHEN_OVERLAP: 0.35,
+  SAME_WHEN_NO_OVERLAP: 0.15,
+} as const;
+
 const normalize = (value: string): string => value.trim().toLowerCase();
 
 const toNumber = (value: unknown): number | null => {
@@ -83,6 +96,62 @@ const genderPreferenceScore = (preferredGender: string | null, candidateGender: 
   return normalize(preferredGender) === normalize(candidateGender) ? 1 : 0;
 };
 
+/**
+ * Jaccard overlap on session mood / “looking for” ids.
+ * Both empty → neutral 1; one side empty → 0.5; else Jaccard.
+ */
+const sessionOverlapComponent = (left: string[], right: string[]): number => {
+  if (left.length === 0 && right.length === 0) return 1;
+  if (left.length === 0 || right.length === 0) return 0.5;
+  return overlapRatio(left, right);
+};
+
+type ScoreWeights = (typeof MATCH_SCORE_CONFIG)["weights"];
+
+/**
+ * Match-prep weights apply only when the requester set that signal (avoids inflating scores for users who skipped prep).
+ */
+const activeMatchPrepWeights = (
+  weights: ScoreWeights,
+  requesterMoods: string[],
+  requesterLookingFor: string[],
+  requesterConnectionPref: string | null,
+): { mood: number; lookingFor: number; connectionPreference: number } => {
+  const pref =
+    requesterConnectionPref?.trim() ? normalize(requesterConnectionPref) : CONNECTION_PREF.OPEN_TO_ANYONE;
+  return {
+    mood: requesterMoods.length > 0 ? weights.sessionMoods : 0,
+    lookingFor: requesterLookingFor.length > 0 ? weights.sessionLookingFor : 0,
+    connectionPreference:
+      pref && pref !== CONNECTION_PREF.OPEN_TO_ANYONE ? weights.connectionPreference : 0,
+  };
+};
+
+/**
+ * How well the candidate fits the requester’s “who to prioritize” vs profession overlap.
+ * `open_to_anyone` → neutral. `same_profession` → reward overlap. `different_profession` → reward low overlap.
+ */
+const connectionPreferenceDirectionalScore = (
+  requesterPref: string | null,
+  requesterProfessions: string[],
+  candidateProfessions: string[],
+): number => {
+  const p = requesterPref?.trim() ? normalize(requesterPref) : CONNECTION_PREF.OPEN_TO_ANYONE;
+  if (p === CONNECTION_PREF.OPEN_TO_ANYONE) return 1;
+  const profOverlap = overlapRatio(requesterProfessions, candidateProfessions);
+  if (p === CONNECTION_PREF.SAME_PROFESSION) {
+    if (requesterProfessions.length === 0 || candidateProfessions.length === 0) return 0.5;
+    return profOverlap > 0
+      ? Math.max(CONNECTION_PREF_SCORE.SAME_MIN_WHEN_OVERLAP, profOverlap)
+      : CONNECTION_PREF_SCORE.SAME_WHEN_NO_OVERLAP;
+  }
+  if (p === CONNECTION_PREF.DIFFERENT_PROFESSION) {
+    if (requesterProfessions.length === 0 || candidateProfessions.length === 0) return 0.5;
+    return 1 - profOverlap;
+  }
+  return 1;
+};
+
 export class MatchScoreService {
   calculateBidirectionalScore(a: SnapshotUserProfile, b: SnapshotUserProfile): number {
     const aToB = this.calculateDirectionalScore(a, b);
@@ -124,6 +193,14 @@ export class MatchScoreService {
     const preferredGender = toString(requester.filters.preferredGender);
     const candidateGender = toString(candidate.attributes.gender);
 
+    const requesterMoods = toStringArray(requester.attributes.sessionMoodIds);
+    const candidateMoods = toStringArray(candidate.attributes.sessionMoodIds);
+    const requesterSessionLf = toStringArray(requester.attributes.sessionLookingForIds);
+    const candidateSessionLf = toStringArray(candidate.attributes.sessionLookingForIds);
+    const requesterConnPref = toString(requester.attributes.connectionPreference);
+
+    const prep = activeMatchPrepWeights(weights, requesterMoods, requesterSessionLf, requesterConnPref);
+
     const weightedTotal =
       overlapRatio(requesterInterests, candidateInterests) * weights.interests +
       overlapRatio(requesterGoals, candidateGoals) * weights.goals +
@@ -136,9 +213,27 @@ export class MatchScoreService {
       ) *
         weights.distancePreference +
       genderPreferenceScore(preferredGender, candidateGender) * weights.preferredGender +
-      trustScore(candidateTrustScore) * weights.trustScore;
+      trustScore(candidateTrustScore) * weights.trustScore +
+      sessionOverlapComponent(requesterMoods, candidateMoods) * prep.mood +
+      sessionOverlapComponent(requesterSessionLf, candidateSessionLf) * prep.lookingFor +
+      connectionPreferenceDirectionalScore(
+        requesterConnPref,
+        requesterProfessions,
+        candidateProfessions,
+      ) *
+        prep.connectionPreference;
 
-    const totalWeight = Object.values(weights).reduce((sum, weight) => sum + weight, 0);
+    const totalWeight =
+      weights.interests +
+      weights.goals +
+      weights.professions +
+      weights.agePreference +
+      weights.distancePreference +
+      weights.preferredGender +
+      weights.trustScore +
+      prep.mood +
+      prep.lookingFor +
+      prep.connectionPreference;
     if (totalWeight <= 0) return 0;
     return (weightedTotal / totalWeight) * 100;
   }

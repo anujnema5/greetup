@@ -29,6 +29,7 @@ export {
   profileProfessionsRelations,
 } from "./professions";
 export * from "./current-status";
+export * from "./match-prep-session";
 export * from "./preferences";
 export * from "./behavior";
 export * from "./connections";
