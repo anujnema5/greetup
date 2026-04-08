@@ -2,6 +2,7 @@ import { API_ENDPOINTS, baseApi } from "@/lib/api";
 import type {
   ApiResponse,
   OnboardingStatusResponse,
+  PresignProfilePhotoData,
   ProfileSetupApiResponse,
   SaveProfileSetupApiResponse,
   SaveProfileSetupPayload,
@@ -57,6 +58,16 @@ export const profileSetupApi = baseApi.injectEndpoints({
       }),
       invalidatesTags: [{ type: "ProfileMe", id: "CURRENT" }],
     }),
+    presignProfilePhoto: build.mutation<
+      ApiResponse<PresignProfilePhotoData>,
+      { contentType: string }
+    >({
+      query: (body) => ({
+        url: PROFILE.PHOTOS_PRESIGN,
+        method: "POST",
+        body,
+      }),
+    }),
   }),
 });
 
@@ -67,4 +78,5 @@ export const {
   useLazyGetProfileSetupStepsQuery,
   useSaveProfileSetupMutation,
   useUpdateRoomInviteSettingsMutation,
+  usePresignProfilePhotoMutation,
 } = profileSetupApi;

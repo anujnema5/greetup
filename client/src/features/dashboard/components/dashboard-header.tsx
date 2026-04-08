@@ -1,8 +1,18 @@
 "use client";
 
 import { memo, useEffect, useState } from "react";
-import { Bell } from "lucide-react";
-import { useSession } from "@/lib/auth-client";
+import { Bell, LogOut, Settings, User } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { signOut, useSession } from "@/lib/auth-client";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { getProfileImageUrl } from "@/lib/ui/profile-image";
 
 function timeGreeting(): string {
   const h = new Date().getHours();
@@ -11,17 +21,11 @@ function timeGreeting(): string {
   return "Good evening";
 }
 
-function initialsFromName(name: string | null | undefined): string {
-  const n = name?.trim();
-  if (!n) return "?";
-  const parts = n.split(/\s+/).filter(Boolean);
-  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
-  return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
-}
-
 function DashboardHeaderInner() {
+  const router = useRouter();
   const { data: session } = useSession();
   const [mounted, setMounted] = useState(false);
+  const [isSigningOut, setIsSigningOut] = useState(false);
   useEffect(() => {
     setMounted(true);
   }, []);
@@ -29,11 +33,29 @@ function DashboardHeaderInner() {
   const displayName = session?.user?.name?.trim() ?? "";
   const firstName = displayName.split(/\s+/).filter(Boolean)[0] ?? "";
   const g = timeGreeting();
-  
+
   const headline = mounted && firstName ? `${g}, ${firstName}` : g;
-  const avatarInitials = mounted
-    ? initialsFromName(session?.user?.name)
-    : "?";
+  const avatarSrc = getProfileImageUrl(mounted ? (session?.user?.image ?? null) : null);
+  const email = session?.user?.email?.trim() ?? "";
+
+  const handleGoToProfile = () => {
+    router.push("/profile");
+  };
+
+  const handleGoToSettings = () => {
+    router.push("/settings");
+  };
+
+  const handleLogout = async () => {
+    if (isSigningOut) return;
+    setIsSigningOut(true);
+    try {
+      await signOut();
+      router.push("/login");
+    } finally {
+      setIsSigningOut(false);
+    }
+  };
 
   return (
     <header className="sticky top-0 z-50 flex items-center justify-between px-4 md:px-8 py-4 border-b border-border bg-background shadow-sm">
@@ -49,9 +71,43 @@ function DashboardHeaderInner() {
           <Bell size={17} />
           <span className="absolute top-1.5 right-1.5 h-1.5 w-1.5 rounded-full bg-primary" />
         </button>
-        <div className="h-9 w-9 rounded-xl bg-linear-to-br from-primary/80 to-primary/40 flex items-center justify-center text-xs font-bold text-primary-foreground cursor-pointer">
-          {avatarInitials}
-        </div>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <button
+              type="button"
+              aria-label="Open profile menu"
+              className="h-9 w-9 overflow-hidden rounded-xl bg-muted/30 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+            >
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={avatarSrc} alt="Profile" className="h-full w-full object-cover" />
+            </button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" sideOffset={8} className="w-56">
+            <DropdownMenuLabel className="space-y-0.5">
+              <p className="truncate text-sm font-medium text-foreground">{displayName || "My Account"}</p>
+              {email ? <p className="truncate text-xs font-normal text-muted-foreground">{email}</p> : null}
+            </DropdownMenuLabel>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem className="cursor-pointer" onClick={handleGoToProfile}>
+              <User className="text-current" />
+              View profile
+            </DropdownMenuItem>
+            <DropdownMenuItem className="cursor-pointer" onClick={handleGoToSettings}>
+              <Settings className="text-current" />
+              Settings
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem
+              className="cursor-pointer"
+              variant="destructive"
+              disabled={isSigningOut}
+              onClick={handleLogout}
+            >
+              <LogOut className="text-current" />
+              {isSigningOut ? "Logging out..." : "Logout"}
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
     </header>
   );

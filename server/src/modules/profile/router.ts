@@ -6,6 +6,7 @@ import {
   handleSaveProfileSetup,
   handleUpdateRoomInviteSettings,
 } from "./controllers/profile-setup.controller";
+import { handlePresignProfileImageUpload } from "./controllers/profile-image-upload.controller";
 import { handleGetPublicProfile } from "./controllers/public-profile.controller";
 
 export const profileRoute = new Hono();
@@ -19,3 +20,6 @@ profileRoute.get("/onboarding-status", handleGetOnboardingStatus);
 /** PROFILE SETUP ROUTES */
 profileRoute.get("/setup-steps", handleFetchProfileSteps);
 profileRoute.post("/profile-setup", handleSaveProfileSetup);
+
+/** Profile images — presigned PUT to DigitalOcean Spaces */
+profileRoute.post("/photos/presign", handlePresignProfileImageUpload);

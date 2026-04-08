@@ -57,6 +57,14 @@ export const profileSetupRepository = {
     return db.update(users).set({ username }).where(eq(users.id, userId));
   },
 
+  /** Syncs Better Auth session `user.image` (get-session) with the profile’s primary photo URL. */
+  async updateUserImage(userId: string, image: string | null) {
+    return db
+      .update(users)
+      .set({ image, updatedAt: new Date() })
+      .where(eq(users.id, userId));
+  },
+
   async getUsername(userId: string): Promise<string | null> {
     const row = await db.query.users.findFirst({
       where: eq(users.id, userId),

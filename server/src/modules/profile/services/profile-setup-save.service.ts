@@ -13,6 +13,7 @@ import {
   PROFILE_COMPLETE_THRESHOLD,
 } from "./profile-steps.service";
 import { refreshProfileSnapshotFromDatabase } from "@/modules/user/services/profile-snapshot-cache.service";
+import { ensureProfileImageUrlsArePublic } from "@/core/storage";
 import logger from "@/core/logging";
 
 /**
@@ -100,13 +101,19 @@ export async function saveProfileSetupStepService(
         });
       }
       if (body.data.photos && body.data.photos.length > 0) {
-        await profileSetupRepository.replacePhotos(
-          profileId,
-          body.data.photos.map((p) => ({
-            url: p.url,
-            order: p.order,
-          }))
+        const photoRows = body.data.photos.map((p) => ({
+          url: p.url,
+          order: p.order,
+        }));
+        await profileSetupRepository.replacePhotos(profileId, photoRows);
+        const sorted = [...photoRows].sort(
+          (a, b) => (a.order ?? 0) - (b.order ?? 0)
         );
+        const primaryUrl = sorted[0]?.url;
+        if (primaryUrl) {
+          await profileSetupRepository.updateUserImage(userId, primaryUrl);
+        }
+        await ensureProfileImageUrlsArePublic(photoRows.map((p) => p.url));
       }
       break;
     }

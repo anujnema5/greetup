@@ -6,6 +6,8 @@ export const API_ENDPOINTS = {
     ONBOARDING_STATUS: "/profile/onboarding-status",
     /** Who can add you when creating a room with friend invites */
     ROOM_INVITE_SETTINGS: "/profile/room-invite-settings",
+    /** Presigned PUT to DigitalOcean Spaces; then save `publicUrl` via profile-setup step 6 */
+    PHOTOS_PRESIGN: "/profile/photos/presign",
     public: (username: string) =>
       `/profile/public/${encodeURIComponent(username)}` as const,
   },

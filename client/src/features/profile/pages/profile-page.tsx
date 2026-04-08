@@ -5,6 +5,7 @@ import type { ReactNode } from "react";
 import { useCallback, useMemo, useState } from "react";
 import {
   Briefcase,
+  Camera,
   FileText,
   Heart,
   Loader2,
@@ -27,11 +28,13 @@ import {
   useGetProfileSetupStepsQuery,
   useSaveProfileSetupMutation,
 } from "@/features/profile-setup/components/profile-setup-api";
+import { getProfileImageUrl } from "@/lib/ui/profile-image";
 import { cn } from "@/lib/utils";
 
 import { ProfileConnectionsSection } from "@/features/connections";
 import { ProfileCompletionCard } from "../components/profile-completion-card";
 import { ProfileEditModals } from "../components/profile-edit-modals";
+import { ProfilePhotoDialog } from "../components/profile-photo-dialog";
 import { ProfileSectionRow } from "../components/profile-section-row";
 import { RoomInviteSettingsModal } from "../components/room-invite-settings-modal";
 import { RECENT_MATCHES, STATS, ACTIVITY } from "../constants/mock-data";
@@ -42,13 +45,6 @@ import {
 } from "../utils/build-profile-save-payload";
 import { mapMyProfileToEditable } from "../utils/map-my-profile";
 import { buildProfileEditorCatalog } from "../utils/profile-editor-catalog";
-
-function initials(name: string) {
-  const parts = name.trim().split(/\s+/).filter(Boolean);
-  if (parts.length === 0) return "?";
-  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
-  return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
-}
 
 function labelsFromIds(ids: string[], catalog: Array<{ id: string; label: string }>) {
   const m = new Map(catalog.map((x) => [x.id, x.label]));
@@ -78,6 +74,7 @@ export function ProfilePage() {
 
   const [activeSection, setActiveSection] = useState<ProfileEditSectionId | null>(null);
   const [roomInviteOpen, setRoomInviteOpen] = useState(false);
+  const [photoDialogOpen, setPhotoDialogOpen] = useState(false);
 
   const rawProfile = profileQuery.data?.data;
   const profile = useMemo(
@@ -150,11 +147,6 @@ export function ProfilePage() {
     ];
     return bits.join(" · ");
   }, [profile]);
-
-  const interestLabelById = useMemo(
-    () => new Map(catalog.interests.map((i) => [i.id, i.label])),
-    [catalog.interests]
-  );
 
   const loading = profileQuery.isLoading || stepsQuery.isLoading;
 
@@ -263,33 +255,40 @@ export function ProfilePage() {
           >
             <div className="flex items-start gap-4 p-5">
               <div className="relative shrink-0">
-                <div
-                  className="h-16 w-16 rounded-2xl flex items-center justify-center text-lg font-bold text-primary-foreground overflow-hidden bg-gradient-to-br from-primary to-primary/85 shadow-md shadow-primary/25 dark:shadow-primary/30"
+                <button
+                  type="button"
+                  onClick={() => setPhotoDialogOpen(true)}
+                  className="group relative h-24 w-24 overflow-hidden rounded-2xl ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 cursor-pointer md:h-28 md:w-28"
+                  aria-label="Change profile photo"
                 >
-                  {profile.photos[0]?.url ? (
-                    /* eslint-disable-next-line @next/next/no-img-element */
-                    <img
-                      src={profile.photos[0].url}
-                      alt=""
-                      className="h-full w-full object-cover"
-                    />
-                  ) : (
-                    initials(profile.displayName)
-                  )}
-                </div>
-                <span className="absolute -bottom-0.5 -right-0.5 h-3.5 w-3.5 rounded-full border-2 border-card bg-emerald-500 dark:bg-emerald-400" />
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={getProfileImageUrl(profile.photos[0]?.url)}
+                    alt=""
+                    className="h-full w-full object-cover"
+                  />
+                  <span className="absolute inset-0 flex items-center justify-center bg-black/45 text-[10px] font-semibold text-white opacity-0 transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100">
+                    Edit
+                  </span>
+                </button>
+                <span className="absolute -bottom-0.5 -right-0.5 h-4 w-4 rounded-full border-2 border-card bg-emerald-500 dark:bg-emerald-400 pointer-events-none" />
               </div>
 
-              <div className="flex-1 min-w-0">
-                <h2 className="text-lg font-bold text-foreground tracking-tight">
-                  {profile.displayName}
-                  <span className="text-muted-foreground font-semibold">, {profile.age}</span>
-                </h2>
-                <p className="text-sm text-muted-foreground mt-0.5 line-clamp-2">{headline}</p>
-                <div className="flex items-center gap-2 mt-2 text-[11px] text-muted-foreground">
-                  <span className="flex items-center gap-1">
-                    <MapPin size={11} /> {profile.country.name}
-                  </span>
+              <div className="min-w-0 flex-1">
+                <div className="flex min-h-24 flex-col md:min-h-28">
+                  <h2 className="text-lg font-bold text-foreground tracking-tight">
+                    {profile.displayName}
+                    <span className="text-muted-foreground font-semibold">, {profile.age}</span>
+                  </h2>
+                  <p className="mt-0.5 text-sm text-muted-foreground">{headline}</p>
+                  <div className="mt-2 flex items-center gap-2 text-[11px] text-muted-foreground">
+                    <span className="flex items-center gap-1">
+                      <MapPin size={11} /> {profile.country.name}
+                    </span>
+                  </div>
+                  <p className="mt-2 text-sm text-muted-foreground leading-relaxed line-clamp-3">
+                    {profile.bio}
+                  </p>
                 </div>
               </div>
 
@@ -303,30 +302,22 @@ export function ProfilePage() {
                 </span>
               </div>
             </div>
-
-            <p className="px-5 text-sm text-muted-foreground leading-relaxed line-clamp-4">
-              {profile.bio}
-            </p>
-            <div className="flex flex-wrap gap-1.5 px-5 pb-5 pt-3">
-              {profile.interestIds.map((id) => {
-                const label = interestLabelById.get(id);
-                if (!label) return null;
-                return (
-                  <span
-                    key={id}
-                    className="rounded-full border border-primary/20 bg-primary/5 px-3 py-1 text-[11px] font-medium text-foreground/90 dark:border-primary/25 dark:bg-primary/10 dark:text-primary"
-                  >
-                    {label}
-                  </span>
-                );
-              })}
-            </div>
           </div>
 
           <div className="flex flex-col gap-2">
             <p className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground px-1">
               Profile details
             </p>
+            <ProfileSectionRow
+              icon={<Camera className="h-4 w-4" />}
+              label="Profile photo"
+              summary={
+                rawProfile?.photos?.length
+                  ? `${rawProfile.photos.length} photo${rawProfile.photos.length === 1 ? "" : "s"} · tap to change`
+                  : "Add a profile photo"
+              }
+              onClick={() => setPhotoDialogOpen(true)}
+            />
             <ProfileSectionRow
               icon={<User className="h-4 w-4" />}
               label="Basics"
@@ -477,6 +468,17 @@ export function ProfilePage() {
           }
         }
       />
+
+      {rawProfile ? (
+        <ProfilePhotoDialog
+          open={photoDialogOpen}
+          onOpenChange={setPhotoDialogOpen}
+          existingPhotos={rawProfile.photos}
+          onUploaded={() => {
+            void profileQuery.refetch();
+          }}
+        />
+      ) : null}
     </div>
   );
 }
