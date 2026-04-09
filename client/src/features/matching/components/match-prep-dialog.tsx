@@ -232,7 +232,7 @@ export function MatchPrepDialog({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent showCloseButton className={dialogShellClass}>
-        <div className="shrink-0 px-5 pt-5 sm:px-6 sm:pt-6">
+        <div className="shrink-0 px-5 pt-5 sm:px-6 sm:pt-6 sm:pb-2">
           <DialogHeader className="space-y-2 text-left">
             <div className="flex items-center gap-2 text-primary">
               <Sparkles className="size-5 shrink-0" aria-hidden />
@@ -272,7 +272,7 @@ export function MatchPrepDialog({
 
             {data && !prefsLoading && (
               <>
-                <section className="space-y-2">
+                <section className="space-y-2 py-1">
                   <p className={sectionLabelClass}>Mood right now</p>
                   <OptionChipList
                     rows={data.moods}
@@ -281,7 +281,7 @@ export function MatchPrepDialog({
                   />
                 </section>
 
-                <section className="space-y-2">
+                <section className="space-y-2 py-1">
                   <p className={sectionLabelClass}>Looking for</p>
                   <OptionChipList
                     rows={data.lookingFor}
@@ -307,7 +307,7 @@ export function MatchPrepDialog({
                   onToggleOption={(id) => setInterests((p) => toggleIdInSet(id, p))}
                 />
 
-                <section className="flex flex-col space-y-2">
+                {/* <section className="flex flex-col space-y-2">
                   <label htmlFor="session-goal" className={sectionLabelClass}>
                     Optional note / specific ask
                   </label>
@@ -319,7 +319,7 @@ export function MatchPrepDialog({
                     className="min-h-[72px] resize-none rounded-xl text-sm"
                     maxLength={280}
                   />
-                </section>
+                </section> */}
               </>
             )}
           </div>

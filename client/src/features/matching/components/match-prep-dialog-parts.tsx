@@ -62,7 +62,7 @@ export function ConnectionPreferenceRow({
   onChange: (next: ConnectionPreferenceValue) => void;
 }) {
   return (
-    <div className="flex flex-wrap gap-2">
+    <div className="flex flex-wrap gap-2 py-1">
       {CONNECTION_OPTIONS.map((o) => (
         <button
           key={o.id}
@@ -114,7 +114,7 @@ export function InterestsBlock({
         </button>
       </div>
       {open && (
-        <div className="space-y-2 rounded-xl border border-border/40 bg-muted/10 p-4">
+        <div className="space-y-2 rounded-xl bg-muted/10 py-1">
           <OptionChipList rows={rows} selected={selected} onToggle={onToggleOption} />
         </div>
       )}
