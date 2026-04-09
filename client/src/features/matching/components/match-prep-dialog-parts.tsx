@@ -21,7 +21,7 @@ const CONNECTION_OPTIONS: { id: ConnectionPreferenceValue; label: string }[] = [
 
 function chipClass(selected: boolean): string {
   return cn(
-    "rounded-full border px-3 py-1.5 text-xs font-medium transition-colors",
+    "rounded-full border px-3 py-1.5 text-xs font-medium transition-colors cursor-pointer",
     selected
       ? "border-primary bg-primary text-primary-foreground shadow-sm"
       : "border-border bg-muted/40 text-foreground hover:bg-muted/70",
@@ -95,7 +95,7 @@ export function InterestsBlock({
   return (
     <div
       ref={sectionRef}
-      className="space-y-3 scroll-mt-4 border-t border-border/50 pt-4"
+      className="space-y-3 scroll-mt-4"
     >
       <div className="flex justify-start">
         <button
