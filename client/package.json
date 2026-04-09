@@ -8,7 +8,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "clean": "node -e \"try { require('fs').rmSync('.next', { recursive: true, force: true }); console.log('Removed .next'); } catch (e) { console.log('No .next to remove'); }\""
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",

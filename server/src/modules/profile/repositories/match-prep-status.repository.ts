@@ -5,6 +5,7 @@ import {
   currentStatus,
   currentStatusLookingFor,
   currentStatusMoods,
+  profileInterests,
 } from "@/core/database/schema";
 
 type ConnectionPreference =
@@ -18,11 +19,22 @@ export const matchPrepStatusRepository = {
     data: {
       moodIds: string[];
       lookingForIds: string[];
+      /** Replaces `profile_interests` for this profile (Redis snapshot interests). */
+      interestIds: string[];
       sessionGoal: string | null;
       connectionPreference: ConnectionPreference | null;
     },
   ): Promise<void> {
     await db.transaction(async (tx) => {
+      await tx
+        .delete(profileInterests)
+        .where(eq(profileInterests.profileId, profileId));
+      if (data.interestIds.length > 0) {
+        await tx.insert(profileInterests).values(
+          data.interestIds.map((interestId) => ({ profileId, interestId })),
+        );
+      }
+
       const existing = await tx.query.currentStatus.findFirst({
         where: eq(currentStatus.profileId, profileId),
         columns: { id: true },
