@@ -107,6 +107,7 @@ export const profileSetupApi = baseApi.injectEndpoints({
       {
         moodIds: string[];
         lookingForIds: string[];
+        interestIds: string[];
         sessionGoal?: string | null;
         connectionPreference?: "same_profession" | "different_profession" | "open_to_anyone";
         clientSessionId?: string;
@@ -126,6 +127,7 @@ export const profileSetupApi = baseApi.injectEndpoints({
         { type: "ProfileMe", id: "CURRENT" },
         { type: "ProfileMe", id: "MATCH_PREP_CURRENT" },
         { type: "MatchPrepPrompt", id: "STATUS" },
+        { type: "ProfileSetupSteps", id: "LIST" },
       ],
     }),
   }),

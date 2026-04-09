@@ -163,12 +163,14 @@ export interface MatchPrepOptionRow {
 export interface MatchPrepOptionsData {
   moods: MatchPrepOptionRow[]
   lookingFor: MatchPrepOptionRow[]
+  interests: MatchPrepOptionRow[]
 }
 
 /** GET /profile/match-prep/current */
 export interface MatchPrepCurrentData {
   moodIds: string[]
   lookingForIds: string[]
+  interestIds: string[]
   connectionPreference:
     | "same_profession"
     | "different_profession"
