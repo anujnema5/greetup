@@ -1,4 +1,4 @@
-import { inArray } from 'drizzle-orm';
+import { desc, inArray, max } from 'drizzle-orm';
 import { db } from '@/core/database';
 import { messages } from '@/core/database/schema';
 import { conversationRepository } from '../repositories/conversation.repository';
@@ -10,14 +10,20 @@ export const conversationService = {
     const ids = filtered.map((c) => c.id);
     if (ids.length === 0) return [];
 
-    const withRows = await db
-      .select({ conversationId: messages.conversationId })
+    const activityRows = await db
+      .select({
+        conversationId: messages.conversationId,
+        lastMessageAt: max(messages.createdAt),
+      })
       .from(messages)
       .where(inArray(messages.conversationId, ids))
-      .groupBy(messages.conversationId);
+      .groupBy(messages.conversationId)
+      .orderBy(desc(max(messages.createdAt)), desc(messages.conversationId));
 
-    const hasMessage = new Set(withRows.map((r) => r.conversationId));
-    return filtered.filter((c) => hasMessage.has(c.id));
+    const convById = new Map(filtered.map((c) => [c.id, c]));
+    return activityRows
+      .map((r) => convById.get(r.conversationId))
+      .filter((c): c is NonNullable<typeof c> => c != null);
   },
 
   async getById(conversationId: string, userId: string) {

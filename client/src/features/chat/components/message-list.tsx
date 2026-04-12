@@ -49,7 +49,7 @@ export function MessageList({
   return (
     <div
       ref={containerRef}
-      className="flex-1 overflow-y-auto px-3 py-3 md:px-5 md:py-4"
+      className="flex-1 overflow-y-auto px-5 py-3 md:px-5 md:py-4"
       onScroll={handleScroll}
     >
       {hasMore && (
@@ -86,7 +86,7 @@ export function MessageList({
           !isOwn && !isGroup && msg.messageType !== 'system' && !prevSamePeer;
 
         return (
-          <div key={msg.id} className={cn(spacingClass)}>
+          <div key={msg.id} className={cn(spacingClass, 'px-5 sm:px-0')}>
             <MessageBubble
               message={msg}
               isOwn={isOwn}
