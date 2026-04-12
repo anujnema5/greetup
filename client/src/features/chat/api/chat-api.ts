@@ -18,16 +18,21 @@ export const chatApi = baseApi.injectEndpoints({
     }),
 
     getMessages: build.query<MessagesPage, { conversationId: string; cursor?: string }>({
-      query: ({ conversationId, cursor }) =>
-        cursor
-          ? `${CHAT.messages(conversationId)}?cursor=${cursor}`
-          : CHAT.messages(conversationId),
+      query: ({ conversationId, cursor }) => ({
+        url:
+          cursor
+            ? `${CHAT.messages(conversationId)}?cursor=${encodeURIComponent(cursor)}`
+            : CHAT.messages(conversationId),
+        cache: 'no-store',
+      }),
       transformResponse: (res: { data: MessagesPage }) => res.data,
       providesTags: (_r, _e, { conversationId }) => [{ type: 'Messages', id: conversationId }],
 
-      // Merge pages — older messages prepended on scroll-up
       serializeQueryArgs: ({ queryArgs }) => queryArgs.conversationId,
-      merge: (cache, incoming) => {
+      merge: (cache, incoming, { arg }) => {
+        if (!arg.cursor || !cache) {
+          return incoming;
+        }
         const existingIds = new Set(cache.messages.map((m) => m.id));
         const newMsgs = incoming.messages.filter((m) => !existingIds.has(m.id));
         cache.messages.unshift(...newMsgs);

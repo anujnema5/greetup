@@ -16,6 +16,8 @@ import {
 } from "@/features/room";
 import { MatchmakingProvider } from "@/features/matching";
 import { NotificationsRealtimeBridge } from "@/features/notifications";
+import { ChatInboxSocketBridge } from "@/features/chat/components/chat-inbox-socket-bridge";
+import { ChatMessagesCacheBridge } from "@/features/chat/components/chat-messages-cache-bridge";
 const plusJakartaSans = Plus_Jakarta_Sans({
   variable: "--font-plus-jakarta",
   subsets: ["latin"],
@@ -44,6 +46,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               <SocketProvider>
                 <RoomDirectExpandSocketBridge />
                 <NotificationsRealtimeBridge />
+                <ChatInboxSocketBridge />
+                <ChatMessagesCacheBridge />
                 <Suspense fallback={null}>
                   <MinimizedRoomDock />
                 </Suspense>

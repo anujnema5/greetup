@@ -1,4 +1,4 @@
-import { and, desc, eq, lt } from 'drizzle-orm';
+import { and, desc, eq, inArray, lt, max, or } from 'drizzle-orm';
 import { db } from '@/core/database';
 import {
   messages,
@@ -93,6 +93,52 @@ export const messageRepository = {
     return toMessageRow(row);
   },
 
+  /** Latest row per conversation (by `createdAt`, then `id`). */
+  async findLatestByConversationIds(conversationIds: string[]): Promise<Map<string, MessageRow>> {
+    const unique = [...new Set(conversationIds)].filter(Boolean);
+    if (unique.length === 0) return new Map();
+
+    const groups = await db
+      .select({
+        conversationId: messages.conversationId,
+        lastAt:           max(messages.createdAt),
+      })
+      .from(messages)
+      .where(inArray(messages.conversationId, unique))
+      .groupBy(messages.conversationId);
+
+    const pairs = groups.filter((g) => g.lastAt != null) as {
+      conversationId: string;
+      lastAt: Date;
+    }[];
+
+    if (pairs.length === 0) return new Map();
+
+    const rowConditions = pairs.map((g) =>
+      and(eq(messages.conversationId, g.conversationId), eq(messages.createdAt, g.lastAt)),
+    );
+    const whereClause = rowConditions.length === 1 ? rowConditions[0]! : or(...rowConditions);
+
+    const rows = await db.select().from(messages).where(whereClause);
+    const map = new Map<string, (typeof rows)[number]>();
+    for (const r of rows) {
+      const prev = map.get(r.conversationId);
+      if (
+        !prev
+        || r.createdAt > prev.createdAt
+        || (r.createdAt.getTime() === prev.createdAt.getTime() && r.id > prev.id)
+      ) {
+        map.set(r.conversationId, r);
+      }
+    }
+
+    const out = new Map<string, MessageRow>();
+    for (const [id, raw] of map) {
+      out.set(id, toMessageRow(raw));
+    }
+    return out;
+  },
+
   async getMessages(params: {
     conversationId: string;
     cursor?: string;
@@ -173,6 +219,20 @@ export const messageRepository = {
     return db.query.messageReactions.findMany({
       where: eq(messageReactions.messageId, messageId),
     });
+  },
+
+  async getReactionsForMessageIds(messageIds: string[]) {
+    const unique = [...new Set(messageIds)];
+    if (unique.length === 0) return new Map<string, (typeof messageReactions.$inferSelect)[]>();
+    const rows = await db.query.messageReactions.findMany({
+      where: inArray(messageReactions.messageId, unique),
+    });
+    const map = new Map<string, (typeof messageReactions.$inferSelect)[]>();
+    for (const id of unique) map.set(id, []);
+    for (const r of rows) {
+      map.get(r.messageId)?.push(r);
+    }
+    return map;
   },
 
   async markRead(messageId: string, userId: string) {

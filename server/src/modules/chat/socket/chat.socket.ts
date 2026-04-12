@@ -1,7 +1,35 @@
 import type { Namespace, Socket } from 'socket.io';
 import logger from '@/core/logging';
-import { messageService } from '../services/message.service';
+import { getRedis } from '@/core/redis';
+import { CHAT_KEYS } from '@/core/redis/keys';
 import { conversationRepository } from '../repositories/conversation.repository';
+import { inboxPreviewFromMessageRow, messageService } from '../services/message.service';
+
+function emitToParticipantUsers(
+  io: Namespace,
+  participants: { userId: string }[],
+  event: string,
+  payload: unknown,
+) {
+  for (const p of participants) {
+    io.to(`user:${p.userId}`).emit(event, payload);
+  }
+}
+
+async function emitReactionUpdateToParticipants(
+  io: Namespace,
+  conversationId: string,
+  messageId: string,
+  reactions: unknown,
+) {
+  const conv = await conversationRepository.findById(conversationId);
+  if (!conv) return;
+  emitToParticipantUsers(io, conv.participants, 'chat:reaction:update', {
+    messageId,
+    conversationId,
+    reactions,
+  });
+}
 
 function handleError(socket: Socket, event: string, err: unknown) {
   const msg = err instanceof Error ? err.message : String(err);
@@ -57,8 +85,38 @@ export function registerChatSocketHandlers(io: Namespace, socket: Socket) {
         mentions:       payload.mentions,
       });
 
-      // Broadcast decrypted message to conversation room (over TLS)
-      io.to(`conv:${payload.conversationId}`).emit('chat:message:new', msg);
+      const conv = await conversationRepository.findById(payload.conversationId);
+      if (conv) {
+        emitToParticipantUsers(io, conv.participants, 'chat:message:new', msg);
+
+        const redis = getRedis();
+        const lastActivityAt =
+          msg.createdAt instanceof Date
+            ? msg.createdAt.toISOString()
+            : typeof msg.createdAt === 'string'
+              ? msg.createdAt
+              : new Date().toISOString();
+
+        const lastMessagePreview = inboxPreviewFromMessageRow(msg);
+
+        for (const p of conv.participants) {
+          io.to(`user:${p.userId}`).emit('chat:conversation:activity', {
+            conversationId:      payload.conversationId,
+            lastActivityAt,
+            lastMessagePreview,
+          });
+
+          if (p.userId === userId) continue;
+          const raw = await redis.hget(CHAT_KEYS.unreadCounts(p.userId), payload.conversationId);
+          const unreadCount = Number.parseInt(raw ?? '0', 10) || 0;
+          io.to(`user:${p.userId}`).emit('chat:unread:sync', {
+            conversationId: payload.conversationId,
+            unreadCount,
+          });
+        }
+      } else {
+        io.to(`user:${userId}`).emit('chat:message:new', msg);
+      }
 
       ack?.({ success: true, messageId: msg.id });
     } catch (err) {
@@ -85,6 +143,11 @@ export function registerChatSocketHandlers(io: Namespace, socket: Socket) {
         conversationId: payload.conversationId,
         userId,
         readAt:         new Date(),
+      });
+
+      io.to(`user:${userId}`).emit('chat:unread:sync', {
+        conversationId: payload.conversationId,
+        unreadCount:    0,
       });
     } catch (err) {
       handleError(socket, 'chat:message:read', err);
@@ -132,10 +195,12 @@ export function registerChatSocketHandlers(io: Namespace, socket: Socket) {
         emoji:          payload.emoji,
       });
 
-      io.to(`conv:${payload.conversationId}`).emit('chat:reaction:update', {
-        messageId: payload.messageId,
+      await emitReactionUpdateToParticipants(
+        io,
+        payload.conversationId,
+        payload.messageId,
         reactions,
-      });
+      );
     } catch (err) {
       handleError(socket, 'chat:reaction:add', err);
     }
@@ -154,10 +219,12 @@ export function registerChatSocketHandlers(io: Namespace, socket: Socket) {
         emoji:          payload.emoji,
       });
 
-      io.to(`conv:${payload.conversationId}`).emit('chat:reaction:update', {
-        messageId: payload.messageId,
+      await emitReactionUpdateToParticipants(
+        io,
+        payload.conversationId,
+        payload.messageId,
         reactions,
-      });
+      );
     } catch (err) {
       handleError(socket, 'chat:reaction:remove', err);
     }
@@ -177,7 +244,22 @@ export function registerChatSocketHandlers(io: Namespace, socket: Socket) {
         content:   payload.content,
       });
 
-      io.to(`conv:${payload.conversationId}`).emit('chat:message:edited', updated);
+      if (updated) {
+        const conv = await conversationRepository.findById(payload.conversationId);
+        if (conv) {
+          emitToParticipantUsers(io, conv.participants, 'chat:message:edited', updated);
+
+          const lastActivityAt = new Date().toISOString();
+          const lastMessagePreview = inboxPreviewFromMessageRow(updated);
+          for (const p of conv.participants) {
+            io.to(`user:${p.userId}`).emit('chat:conversation:activity', {
+              conversationId:      payload.conversationId,
+              lastActivityAt,
+              lastMessagePreview,
+            });
+          }
+        }
+      }
     } catch (err) {
       handleError(socket, 'chat:message:edit', err);
     }
@@ -197,15 +279,28 @@ export function registerChatSocketHandlers(io: Namespace, socket: Socket) {
         deleteForAll: payload.deleteForAll,
       });
 
-      const target = payload.deleteForAll
-        ? io.to(`conv:${payload.conversationId}`)
-        : socket;
-
-      target.emit('chat:message:deleted', {
+      const deletedPayload = {
         messageId:      payload.messageId,
         conversationId: payload.conversationId,
         deletedForAll:  payload.deleteForAll,
-      });
+      };
+
+      const conv = await conversationRepository.findById(payload.conversationId);
+      if (payload.deleteForAll && conv) {
+        emitToParticipantUsers(io, conv.participants, 'chat:message:deleted', deletedPayload);
+      } else if (!payload.deleteForAll) {
+        socket.emit('chat:message:deleted', deletedPayload);
+      }
+
+      if (conv) {
+        const lastMessagePreview = await messageService.inboxPreviewForConversation(payload.conversationId);
+        for (const p of conv.participants) {
+          io.to(`user:${p.userId}`).emit('chat:conversation:activity', {
+            conversationId: payload.conversationId,
+            lastMessagePreview,
+          });
+        }
+      }
     } catch (err) {
       handleError(socket, 'chat:message:delete', err);
     }

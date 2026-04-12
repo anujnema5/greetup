@@ -17,9 +17,8 @@ export interface Message {
   isDeleted: boolean;
   deletedForAll: boolean;
   createdAt: string;
-  // Client-only
+  reactions?: Reaction[];
   status?: MessageStatus;
-  optimisticId?: string;
 }
 
 export interface Reaction {
@@ -61,7 +60,8 @@ export interface Conversation {
   createdAt: string;
   updatedAt: string;
   participants: ConversationParticipant[];
-  /** Present for room-backed threads from API */
+  unreadCount?: number;
+  lastMessagePreview?: string | null;
   room?: { id: string; title: string } | null;
 }
 
@@ -85,6 +85,7 @@ export interface ReadPayload {
 
 export interface ReactionUpdatePayload {
   messageId: string;
+  conversationId: string;
   reactions: Reaction[];
 }
 

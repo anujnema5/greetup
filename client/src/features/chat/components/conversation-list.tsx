@@ -6,7 +6,7 @@ import { cn } from '@/lib/utils';
 import { useListConversationsQuery } from '../api/chat-api';
 import {
   conversationDisplayTitle,
-  conversationSubtitle,
+  conversationListSubtitle,
   conversationListAvatar,
   formatConversationUpdatedAt,
 } from '../lib/conversation-display';
@@ -47,10 +47,10 @@ export function ConversationList({ activeId, onSelect }: ConversationListProps) 
   return (
     <div className="flex flex-col gap-1 overflow-y-auto p-2 md:p-3">
       {conversations.map((conv) => {
-        const unread = unreadCounts[conv.id] ?? 0;
+        const unread = unreadCounts[conv.id] ?? conv.unreadCount ?? 0;
         const isActive = conv.id === activeId;
         const title = conversationDisplayTitle(conv, currentUserId);
-        const subtitle = conversationSubtitle(conv);
+        const subtitle = conversationListSubtitle(conv);
         const { image, label } = conversationListAvatar(conv, currentUserId);
 
         return (

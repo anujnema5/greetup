@@ -1,7 +1,10 @@
 import { desc, inArray, max } from 'drizzle-orm';
 import { db } from '@/core/database';
 import { messages } from '@/core/database/schema';
+import { getRedis } from '@/core/redis';
+import { CHAT_KEYS } from '@/core/redis/keys';
 import { conversationRepository } from '../repositories/conversation.repository';
+import { messageService } from './message.service';
 
 export const conversationService = {
   async listForUser(userId: string) {
@@ -21,9 +24,19 @@ export const conversationService = {
       .orderBy(desc(max(messages.createdAt)), desc(messages.conversationId));
 
     const convById = new Map(filtered.map((c) => [c.id, c]));
-    return activityRows
+    const ordered = activityRows
       .map((r) => convById.get(r.conversationId))
       .filter((c): c is NonNullable<typeof c> => c != null);
+
+    const redis = getRedis();
+    const unreadHash = await redis.hgetall(CHAT_KEYS.unreadCounts(userId));
+    const previewMap = await messageService.inboxPreviewsForConversationIds(ids);
+
+    return ordered.map((c) => ({
+      ...c,
+      unreadCount:         Number.parseInt(unreadHash[c.id] ?? '0', 10) || 0,
+      lastMessagePreview:  previewMap.get(c.id) ?? null,
+    }));
   },
 
   async getById(conversationId: string, userId: string) {

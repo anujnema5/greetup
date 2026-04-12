@@ -4,7 +4,7 @@ import { cn } from '@/lib/utils';
 import {
   conversationDisplayTitle,
   conversationListAvatar,
-  conversationSubtitle,
+  conversationMetaSubtitle,
 } from '../lib/conversation-display';
 import type { Conversation } from '../types/chat.types';
 
@@ -21,7 +21,7 @@ export function ChatThreadHeader({
   className,
 }: ChatThreadHeaderProps) {
   const title = conversationDisplayTitle(conversation, currentUserId);
-  const subtitle = conversationSubtitle(conversation);
+  const subtitle = conversationMetaSubtitle(conversation);
   const { image, label } = conversationListAvatar(conversation, currentUserId);
 
   return (

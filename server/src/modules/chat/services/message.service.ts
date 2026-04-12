@@ -7,6 +7,48 @@ import type { MessageRow } from '../repositories/message.repository';
 import { conversationRepository } from '../repositories/conversation.repository';
 import { messageRepository } from '../repositories/message.repository';
 
+function systemPayloadPreview(payload: unknown): string | null {
+  if (payload == null) return null;
+  if (typeof payload === 'string') {
+    const t = payload.trim();
+    return t.length > 0 ? t : null;
+  }
+  if (typeof payload === 'object' && !Array.isArray(payload)) {
+    const o = payload as Record<string, unknown>;
+    if (typeof o.text === 'string' && o.text.trim()) return o.text.trim();
+    if (typeof o.message === 'string' && o.message.trim()) return o.message.trim();
+    if (typeof o.body === 'string' && o.body.trim()) return o.body.trim();
+    if (o.event === 'user_added') return 'Someone joined the circle';
+  }
+  return 'System message';
+}
+
+export function inboxPreviewFromMessageRow(
+  row: Pick<MessageRow, 'content' | 'messageType' | 'isDeleted' | 'deletedForAll' | 'systemPayload'>,
+): string | null {
+  if (row.isDeleted || row.deletedForAll) return null;
+  switch (row.messageType) {
+    case 'text': {
+      const t = row.content.trim();
+      return t.length > 0 ? t : null;
+    }
+    case 'image':
+      return 'Photo';
+    case 'video':
+      return 'Video';
+    case 'file':
+      return 'File';
+    case 'voice':
+      return 'Voice message';
+    case 'gif':
+      return 'GIF';
+    case 'system':
+      return systemPayloadPreview(row.systemPayload);
+    default:
+      return null;
+  }
+}
+
 export type MessageSenderPreview = {
   id: string;
   name: string;
@@ -37,6 +79,24 @@ async function withSenders(messagesList: MessageRow[]) {
 }
 
 export const messageService = {
+  async inboxPreviewsForConversationIds(
+    conversationIds: string[],
+  ): Promise<Map<string, string | null>> {
+    const unique = [...new Set(conversationIds)].filter(Boolean);
+    const latest = await messageRepository.findLatestByConversationIds(unique);
+    const map = new Map<string, string | null>();
+    for (const id of unique) {
+      const row = latest.get(id);
+      map.set(id, row ? inboxPreviewFromMessageRow(row) : null);
+    }
+    return map;
+  },
+
+  async inboxPreviewForConversation(conversationId: string): Promise<string | null> {
+    const m = await this.inboxPreviewsForConversationIds([conversationId]);
+    return m.get(conversationId) ?? null;
+  },
+
   async checkRateLimit(userId: string): Promise<boolean> {
     const redis = getRedis();
     const key = CHAT_KEYS.messageRate(userId);
@@ -71,7 +131,7 @@ export const messageService = {
     }
 
     const [withSender] = await withSenders([msg]);
-    return withSender;
+    return { ...withSender, reactions: [] as { id: string; messageId: string; userId: string; emoji: string; createdAt: string }[] };
   },
 
   async getMessages(params: {
@@ -88,9 +148,22 @@ export const messageService = {
       cursor: params.cursor,
       limit: params.limit,
     });
+    const reactionMap = await messageRepository.getReactionsForMessageIds(
+      page.messages.map((m) => m.id),
+    );
+    const withSender = await withSenders(page.messages);
     return {
-      ...page,
-      messages: await withSenders(page.messages),
+      nextCursor: page.nextCursor,
+      messages:   withSender.map((m) => ({
+        ...m,
+        reactions: (reactionMap.get(m.id) ?? []).map((r) => ({
+          id:        r.id,
+          messageId: r.messageId,
+          userId:    r.userId,
+          emoji:     r.emoji,
+          createdAt: r.createdAt.toISOString(),
+        })),
+      })),
     };
   },
 
@@ -110,7 +183,17 @@ export const messageService = {
     const updated = await messageRepository.editMessage(params.messageId, params.content);
     if (!updated) return null;
     const [out] = await withSenders([updated]);
-    return out;
+    const reactionRows = await messageRepository.getReactions(params.messageId);
+    return {
+      ...out,
+      reactions: reactionRows.map((r) => ({
+        id:        r.id,
+        messageId: r.messageId,
+        userId:    r.userId,
+        emoji:     r.emoji,
+        createdAt: r.createdAt.toISOString(),
+      })),
+    };
   },
 
   async deleteMessage(params: {

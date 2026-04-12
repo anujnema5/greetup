@@ -15,23 +15,49 @@ interface ChatPanelProps {
 
 export function ChatPanel({ conversationId, conversationType }: ChatPanelProps) {
   const { data: session, isPending: sessionPending } = useSession();
-  const userId = session?.user?.id ?? '';
+  const sessionUserId = session?.user?.id ?? '';
 
   const [replyTo, setReplyTo] = useState<Message | null>(null);
 
-  const { messages, isLoading, hasMore, typingUsers, loadMore } = useConversation(conversationId);
-  const { sendMessage, addReaction } = useChat(conversationId);
+  const {
+    messages,
+    isLoading,
+    hasMore,
+    typingUsers,
+    loadMore,
+    currentUserId,
+  } = useConversation(conversationId, { conversationType });
+
+  const {
+    sendMessage,
+    retryFailedMessage,
+    addReaction,
+    removeReaction,
+    editMessage,
+    deleteMessage,
+  } = useChat(conversationId);
 
   const typingUserIds = Object.entries(typingUsers)
-    .filter(([uid, isTyping]) => isTyping && uid !== userId)
+    .filter(([uid, isTyping]) => isTyping && uid !== currentUserId)
     .map(([uid]) => uid);
 
   const handleSend = (content: string, replyToId?: string) => {
     sendMessage({ content, replyToId });
   };
 
-  const handleReact = (messageId: string, emoji: string) => {
-    addReaction(messageId, emoji);
+  const handleToggleReaction = (messageId: string, emoji: string) => {
+    const msg = messages.find((m) => m.id === messageId);
+    const has = msg?.reactions?.some((r) => r.userId === currentUserId && r.emoji === emoji);
+    if (has) removeReaction(messageId, emoji);
+    else addReaction(messageId, emoji);
+  };
+
+  const handleEdit = (messageId: string, content: string) => {
+    editMessage(messageId, content);
+  };
+
+  const handleDelete = (messageId: string, forAll: boolean) => {
+    deleteMessage(messageId, forAll);
   };
 
   if (isLoading || sessionPending) {
@@ -42,7 +68,7 @@ export function ChatPanel({ conversationId, conversationType }: ChatPanelProps) 
     );
   }
 
-  if (!userId) {
+  if (!sessionUserId) {
     return (
       <div className="flex min-h-0 flex-1 flex-col items-center justify-center px-4 text-center text-sm text-muted-foreground">
         Sign in to read and send messages.
@@ -54,13 +80,16 @@ export function ChatPanel({ conversationId, conversationType }: ChatPanelProps) 
     <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
       <MessageList
         messages={messages}
-        currentUserId={userId}
+        currentUserId={currentUserId}
         conversationType={conversationType}
         typingUserIds={typingUserIds}
         hasMore={hasMore}
         onLoadMore={loadMore}
-        onReact={handleReact}
+        onToggleReaction={handleToggleReaction}
         onReply={setReplyTo}
+        onEditMessage={handleEdit}
+        onDeleteMessage={handleDelete}
+        onRetryFailed={retryFailedMessage}
       />
       <MessageInput
         conversationId={conversationId}

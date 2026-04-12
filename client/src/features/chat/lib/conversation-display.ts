@@ -5,7 +5,6 @@ function peerLabel(u: { displayName: string | null; name: string }): string {
   return u.displayName?.trim() || u.name || 'Member';
 }
 
-/** Title for inbox / header: room title, DM peer name(s), or type fallback. */
 export function conversationDisplayTitle(conv: Conversation, currentUserId: string): string {
   if (conv.type === 'room_circle') {
     return conv.room?.title?.trim() || 'Circle';
@@ -27,19 +26,27 @@ export function conversationDisplayTitle(conv: Conversation, currentUserId: stri
   return conv.type;
 }
 
-export function conversationSubtitle(conv: Conversation): string {
-  if (conv.type === 'room_circle') {
-    const n = conv.participants.length;
-    return `${n} participant${n === 1 ? '' : 's'}`;
-  }
-  if (conv.type === 'connection' || conv.type === 'room_direct') {
-    return 'Direct message';
-  }
-  const n = conv.participants.length;
+function participantPhrase(n: number): string {
   return `${n} participant${n === 1 ? '' : 's'}`;
 }
 
-/** Avatar URL + fallback initials label for list row. */
+export function conversationMetaSubtitle(conv: Conversation): string {
+  const n = conv.participants.length;
+  if (conv.type === 'room_circle') {
+    return participantPhrase(n);
+  }
+  if (conv.type === 'connection' || conv.type === 'room_direct') {
+    return 'Direct Message';
+  }
+  return participantPhrase(n);
+}
+
+export function conversationListSubtitle(conv: Conversation): string {
+  const preview = conv.lastMessagePreview?.trim();
+  if (preview) return preview;
+  return conversationMetaSubtitle(conv);
+}
+
 export function conversationListAvatar(
   conv: Conversation,
   currentUserId: string,

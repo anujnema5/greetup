@@ -1,49 +1,27 @@
 'use client';
 
 import { useCallback } from 'react';
-import { useDispatch } from 'react-redux';
+import { useDispatch, useStore } from 'react-redux';
+import { toast } from 'sonner';
 import { useSession } from '@/lib/auth-client';
 import { useSocket } from '@/lib/socket/provider';
 import { chatApi } from '../api/chat-api';
+import { applyConversationActivityToInbox } from '../lib/inbox-order';
 import {
-  messageReceived,
-  messageUpdated,
-  optimisticIdRegistered,
-} from '../slices/chat.slice';
-import { store, type AppDispatch } from '@/lib/redux/store';
+  patchMessageInGetMessagesCache,
+  pushOptimisticMessage,
+} from '../lib/message-rtk-sync';
+import type { AppDispatch, RootState } from '@/lib/redux/store';
 import type { Message } from '../types/chat.types';
 
-/**
- * After the server accepts an outgoing message: bump this thread in the cached
- * inbox when needed, then invalidate RTK tags (skip inbox refetch if it was
- * already on top to avoid extra list requests).
- */
-function syncInboxAndCachesAfterSendAck(
-  dispatch: AppDispatch,
-  conversationId: string,
-): void {
-  const inboxRows =
-    chatApi.endpoints.listConversations.select(undefined)(store.getState()).data;
-  const threadAlreadyFirst = inboxRows?.[0]?.id === conversationId;
-
-  if (!threadAlreadyFirst) {
-    dispatch(
-      chatApi.util.updateQueryData('listConversations', undefined, (draft) => {
-        const i = draft.findIndex((c) => c.id === conversationId);
-        if (i <= 0) return;
-        const [row] = draft.splice(i, 1);
-        draft.unshift(row);
-      }),
-    );
+function syncInboxAfterSendAck(dispatch: AppDispatch, conversationId: string): void {
+  const hit = applyConversationActivityToInbox(dispatch, conversationId, {
+    lastActivityAt: new Date().toISOString(),
+  });
+  if (!hit) {
+    dispatch(chatApi.util.invalidateTags([{ type: 'Conversations', id: 'LIST' }]));
   }
-
-  const messagesTag = { type: 'Messages' as const, id: conversationId };
-  const listTag = { type: 'Conversations' as const, id: 'LIST' as const };
-  dispatch(
-    chatApi.util.invalidateTags(
-      threadAlreadyFirst ? [messagesTag] : [messagesTag, listTag],
-    ),
-  );
+  dispatch(chatApi.util.invalidateTags([{ type: 'Messages', id: conversationId }]));
 }
 
 function buildOptimisticMessage(
@@ -70,22 +48,22 @@ function buildOptimisticMessage(
           image:       me.image ?? null,
         }
       : undefined,
-    content:        params.content,
-    messageType:    params.messageType ?? 'text',
-    replyToId:      params.replyToId ?? null,
-    mentions:       params.mentions ?? null,
-    systemPayload:  null,
-    editedAt:       null,
-    isDeleted:      false,
-    deletedForAll:  false,
-    createdAt:      new Date().toISOString(),
-    status:         'sending',
-    optimisticId:   params.tempId,
+    content:       params.content,
+    messageType:   params.messageType ?? 'text',
+    replyToId:     params.replyToId ?? null,
+    mentions:      params.mentions ?? null,
+    systemPayload: null,
+    editedAt:      null,
+    isDeleted:     false,
+    deletedForAll: false,
+    createdAt:     new Date().toISOString(),
+    status:        'sending',
   };
 }
 
 export function useChat(conversationId: string) {
   const dispatch = useDispatch<AppDispatch>();
+  const store = useStore<RootState>();
   const { chatSocket: socket } = useSocket();
   const { data: session } = useSession();
   const me = session?.user;
@@ -103,37 +81,44 @@ export function useChat(conversationId: string) {
         me,
       );
 
-      dispatch(messageReceived({ conversationId, message: optimisticMsg }));
+      pushOptimisticMessage(dispatch, () => store.getState(), conversationId, optimisticMsg);
 
       socket.emit(
         'chat:message:send',
         { conversationId, ...params },
         (ack: { success: boolean; messageId?: string; error?: string }) => {
           if (ack.success && ack.messageId) {
-            dispatch(optimisticIdRegistered({ tempId, realId: ack.messageId }));
-            dispatch(
-              messageUpdated({
-                conversationId,
-                messageId: tempId,
-                changes:   { id: ack.messageId, status: 'delivered' },
-              }),
-            );
-            syncInboxAndCachesAfterSendAck(dispatch, conversationId);
+            syncInboxAfterSendAck(dispatch, conversationId);
           } else {
-            dispatch(
-              messageUpdated({
-                conversationId,
-                messageId: tempId,
-                changes:   { status: 'failed' },
-              }),
-            );
+            if (ack.error === 'RATE_LIMITED') {
+              toast.error('You are sending too quickly. Wait a moment and try again.');
+            }
+            patchMessageInGetMessagesCache(dispatch, conversationId, tempId, {
+              status: 'failed',
+            });
           }
         },
       );
 
       return tempId;
     },
-    [socket, dispatch, conversationId, me],
+    [socket, dispatch, store, conversationId, me],
+  );
+
+  const retryFailedMessage = useCallback(
+    (failed: Message) => {
+      if (failed.status !== 'failed') return;
+      dispatch(
+        chatApi.util.updateQueryData('getMessages', { conversationId }, (draft) => {
+          draft.messages = draft.messages.filter((m) => m.id !== failed.id);
+        }),
+      );
+      sendMessage({
+        content:   failed.content,
+        replyToId: failed.replyToId ?? undefined,
+      });
+    },
+    [conversationId, dispatch, sendMessage],
   );
 
   const markRead = useCallback(
@@ -171,5 +156,13 @@ export function useChat(conversationId: string) {
     [socket, conversationId],
   );
 
-  return { sendMessage, markRead, editMessage, deleteMessage, addReaction, removeReaction };
+  return {
+    sendMessage,
+    retryFailedMessage,
+    markRead,
+    editMessage,
+    deleteMessage,
+    addReaction,
+    removeReaction,
+  };
 }

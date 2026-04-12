@@ -13,8 +13,11 @@ interface MessageListProps {
   typingUserIds: string[];
   hasMore: boolean;
   onLoadMore: () => void;
-  onReact: (messageId: string, emoji: string) => void;
+  onToggleReaction: (messageId: string, emoji: string) => void;
   onReply: (message: Message) => void;
+  onEditMessage: (messageId: string, content: string) => void;
+  onDeleteMessage: (messageId: string, forAll: boolean) => void;
+  onRetryFailed: (message: Message) => void;
 }
 
 export function MessageList({
@@ -24,8 +27,11 @@ export function MessageList({
   typingUserIds,
   hasMore,
   onLoadMore,
-  onReact,
+  onToggleReaction,
   onReply,
+  onEditMessage,
+  onDeleteMessage,
+  onRetryFailed,
 }: MessageListProps) {
   const bottomRef    = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -90,11 +96,15 @@ export function MessageList({
             <MessageBubble
               message={msg}
               isOwn={isOwn}
+              currentUserId={currentUserId}
               showPeerHeader={showPeerHeader}
               peerColumnGutter={peerColumnGutter}
               showDirectPeerAvatar={showDirectPeerAvatar}
-              onReact={onReact}
+              onToggleReaction={onToggleReaction}
               onReply={onReply}
+              onEditMessage={onEditMessage}
+              onDeleteMessage={onDeleteMessage}
+              onRetryFailed={onRetryFailed}
             />
           </div>
         );

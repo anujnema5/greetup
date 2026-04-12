@@ -1,25 +1,75 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect } from 'react';
+import { useRouter, usePathname } from 'next/navigation';
 import { ChevronLeft, MessageCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { NavSidebar, BottomNav } from '@/features/app-shell';
 import { useSession } from '@/lib/auth-client';
 import { cn } from '@/lib/utils';
+import { useGetConversationQuery } from '../api/chat-api';
 import { ChatPanel } from '../components/chat-panel';
 import { ChatThreadHeader } from '../components/chat-thread-header';
 import { ConversationList } from '../components/conversation-list';
 import { NewConversationSearch } from '../components/new-conversation-search';
+import {
+  conversationTypeToUrlKind,
+  messagesConversationPath,
+  type MessagesUrlKind,
+} from '../lib/messages-routes';
 import type { Conversation } from '../types/chat.types';
 
-export function MessagesPage() {
-  const [activeConv, setActiveConv] = useState<Conversation | null>(null);
+interface MessagesPageProps {
+  urlKind?: MessagesUrlKind;
+  urlConversationId?: string;
+}
+
+export function MessagesPage({ urlKind, urlConversationId }: MessagesPageProps) {
+  const router = useRouter();
+  const pathname = usePathname();
   const { data: session } = useSession();
   const currentUserId = session?.user?.id ?? '';
 
+  const {
+    data: convQueryData,
+    isLoading: convLoading,
+    isError: convError,
+    isFetching: convFetching,
+  } = useGetConversationQuery(urlConversationId!, {
+    skip: !urlConversationId,
+  });
+
+  /** Avoid showing the previous conversation while a new `conversationId` is loading. */
+  const activeConv =
+    convQueryData?.id === urlConversationId ? convQueryData : undefined;
+
+  useEffect(() => {
+    if (!activeConv || !urlKind || !urlConversationId) return;
+    const canonical = conversationTypeToUrlKind(activeConv.type);
+    if (canonical !== urlKind) {
+      router.replace(messagesConversationPath(activeConv.id, activeConv.type));
+    }
+  }, [activeConv, urlKind, urlConversationId, router]);
+
+  const threadLoading = Boolean(
+    urlConversationId && (convLoading || (convFetching && !activeConv)),
+  );
+  const threadBroken = Boolean(
+    urlConversationId && !threadLoading && (convError || !activeConv),
+  );
+  const threadOpen = Boolean(activeConv && !convError);
+
+  const openConversation = (conv: Conversation) => {
+    router.push(messagesConversationPath(conv.id, conv.type));
+  };
+
+  const closeThread = () => {
+    router.push('/messages');
+  };
+
   return (
     <div className="flex h-screen overflow-hidden bg-background">
-      <NavSidebar activePath="/messages" />
+      <NavSidebar activePath={pathname} />
 
       <main className="flex min-w-0 flex-1 flex-col overflow-hidden pb-16 md:pb-0">
         <header className="sticky top-0 z-40 flex shrink-0 items-center border-b border-border bg-background/95 px-4 py-4 shadow-sm backdrop-blur-md md:px-8">
@@ -36,7 +86,7 @@ export function MessagesPage() {
             <aside
               className={cn(
                 'flex min-h-0 w-full shrink-0 flex-col border-border bg-card/70 md:w-[min(100%,20rem)] md:border-r md:bg-card/50',
-                activeConv ? 'hidden md:flex' : 'flex',
+                threadOpen || threadLoading ? 'hidden md:flex' : 'flex',
               )}
             >
               <div className="shrink-0 border-b border-border px-4 py-3">
@@ -45,11 +95,11 @@ export function MessagesPage() {
                   Select a thread or message a connection.
                 </p>
               </div>
-              <NewConversationSearch onConversationOpen={setActiveConv} />
+              <NewConversationSearch onConversationOpen={openConversation} />
               <div className="min-h-0 flex-1 overflow-y-auto">
                 <ConversationList
-                  activeId={activeConv?.id ?? null}
-                  onSelect={setActiveConv}
+                  activeId={urlConversationId ?? activeConv?.id ?? null}
+                  onSelect={openConversation}
                 />
               </div>
             </aside>
@@ -57,10 +107,28 @@ export function MessagesPage() {
             <section
               className={cn(
                 'flex min-h-0 min-w-0 flex-1 flex-col bg-background',
-                !activeConv ? 'hidden md:flex' : 'flex',
+                !(threadOpen || threadLoading || threadBroken) ? 'hidden md:flex' : 'flex',
               )}
             >
-              {activeConv ? (
+              {threadLoading && (
+                <div className="flex min-h-0 flex-1 flex-col items-center justify-center text-sm text-muted-foreground">
+                  Loading conversation…
+                </div>
+              )}
+
+              {threadBroken && !threadLoading && (
+                <div className="flex min-h-0 flex-1 flex-col items-center justify-center gap-3 px-6 text-center">
+                  <p className="text-sm font-medium text-foreground">Conversation unavailable</p>
+                  <p className="max-w-xs text-xs text-muted-foreground">
+                    This chat may have been removed or you may not have access.
+                  </p>
+                  <Button type="button" variant="outline" size="sm" onClick={closeThread}>
+                    Back to inbox
+                  </Button>
+                </div>
+              )}
+
+              {threadOpen && activeConv && (
                 <>
                   <div className="flex shrink-0 items-center gap-2 border-b border-border bg-background/90 px-2 py-2 backdrop-blur-md md:gap-3 md:px-4 md:py-3">
                     <Button
@@ -68,7 +136,7 @@ export function MessagesPage() {
                       variant="ghost"
                       size="icon"
                       className="shrink-0 rounded-xl md:hidden"
-                      onClick={() => setActiveConv(null)}
+                      onClick={closeThread}
                       aria-label="Back to conversations"
                     >
                       <ChevronLeft className="size-5" strokeWidth={2} />
@@ -80,12 +148,15 @@ export function MessagesPage() {
                   </div>
                   <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
                     <ChatPanel
+                      key={activeConv.id}
                       conversationId={activeConv.id}
                       conversationType={activeConv.type}
                     />
                   </div>
                 </>
-              ) : (
+              )}
+
+              {!threadOpen && !threadLoading && !threadBroken && (
                 <div className="flex flex-1 flex-col items-center justify-center gap-3 px-6 text-center">
                   <div className="flex size-14 items-center justify-center rounded-2xl bg-primary/10 text-primary shadow-inner shadow-primary/5">
                     <MessageCircle className="size-7 opacity-90" strokeWidth={1.75} />
@@ -103,7 +174,7 @@ export function MessagesPage() {
         </div>
       </main>
 
-      <BottomNav activePath="/messages" />
+      <BottomNav activePath={pathname} />
     </div>
   );
 }
