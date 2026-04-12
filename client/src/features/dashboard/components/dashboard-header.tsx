@@ -51,8 +51,7 @@ function DashboardHeaderInner() {
     },
   );
   const [markNotificationRead, { isLoading: isMarkingRead }] = useMarkNotificationReadMutation();
-  const [markAllNotificationsRead, { isLoading: isMarkingAllRead }] =
-    useMarkAllNotificationsReadMutation();
+  const [markAllNotificationsRead] = useMarkAllNotificationsReadMutation();
   useEffect(() => {
     setMounted(true);
   }, []);
@@ -99,11 +98,14 @@ function DashboardHeaderInner() {
     router.push(notificationRoute(item));
   };
 
-  const handleMarkAllRead = async () => {
-    try {
-      await markAllNotificationsRead().unwrap();
-    } catch {
-      // Best effort action.
+  const handleNotificationsOpenChange = (open: boolean) => {
+    setIsNotificationsOpen(open);
+    if (open && unreadCount > 0) {
+      void markAllNotificationsRead()
+        .unwrap()
+        .catch(() => {
+          // Best effort; badge may refresh on next poll.
+        });
     }
   };
 
@@ -114,7 +116,7 @@ function DashboardHeaderInner() {
         <p className="text-[11px] text-muted-foreground mt-1">Your vibe space is ready</p>
       </div>
       <div className="flex items-center gap-3">
-        <DropdownMenu open={isNotificationsOpen} onOpenChange={setIsNotificationsOpen}>
+        <DropdownMenu open={isNotificationsOpen} onOpenChange={handleNotificationsOpenChange}>
           <DropdownMenuTrigger asChild>
             <button
               type="button"
@@ -132,16 +134,8 @@ function DashboardHeaderInner() {
             </button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" sideOffset={8} className="w-80 p-0">
-            <div className="flex items-center justify-between px-3 py-2">
+            <div className="px-3 py-2">
               <DropdownMenuLabel className="p-0 text-sm font-semibold">Notifications</DropdownMenuLabel>
-              <button
-                type="button"
-                onClick={handleMarkAllRead}
-                disabled={unreadCount === 0 || isMarkingAllRead}
-                className="text-xs text-primary disabled:text-muted-foreground cursor-pointer disabled:cursor-default"
-              >
-                Mark all read
-              </button>
             </div>
             <DropdownMenuSeparator />
             <div className="max-h-80 overflow-y-auto p-1">
