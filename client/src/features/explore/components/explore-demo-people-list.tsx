@@ -1,4 +1,4 @@
-import { Sparkles, Zap } from "lucide-react";
+import { Zap } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 
@@ -43,7 +43,7 @@ export function ExploreDemoPeopleList({ people }: Props) {
           </div>
 
           <div className="flex items-center gap-1 shrink-0">
-            <Sparkles size={11} className="text-primary" aria-hidden />
+            <Zap size={11} className="text-primary" aria-hidden />
             <span className="text-xs font-semibold text-primary">{p.vibeScore}%</span>
           </div>
 

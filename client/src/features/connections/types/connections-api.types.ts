@@ -33,6 +33,15 @@ export type ListConnectionsApiResponse = ApiResponse<ListConnectionsData>;
 
 export type PendingIncomingCountResponse = ApiResponse<{ pendingIncomingCount: number }>;
 
+export type PeerCallStatusEntry = {
+  isOnline: boolean;
+  inLiveRoom: boolean;
+  liveRoomId: string | null;
+  liveRoomTitle: string | null;
+};
+
+export type PeersCallStatusApiResponse = ApiResponse<{ statuses: Record<string, PeerCallStatusEntry> }>;
+
 /** Client-only: RTK cache invalidation for `getPublicProfile` after connect. */
 export type RequestConnectionMutationArg = {
   targetUserId: string;

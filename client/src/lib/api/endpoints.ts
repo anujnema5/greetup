@@ -25,6 +25,7 @@ export const API_ENDPOINTS = {
   },
   CONNECTIONS: {
     LIST: "/connections",
+    PEERS_CALL_STATUS: "/connections/peers-call-status",
     PENDING_INCOMING_COUNT: "/connections/pending-incoming-count",
     REQUEST: "/connections/request",
     accept: (connectionId: string) =>
@@ -51,10 +52,22 @@ export const API_ENDPOINTS = {
     CREATE: "/circles",
     ACTIVE: "/circles/active",
   },
+  CHAT: {
+    CONVERSATIONS:        '/chat/conversations',
+    CONVERSATIONS_CONNECTION: '/chat/conversations/connection',
+    conversation: (id: string) => `/chat/conversations/${encodeURIComponent(id)}` as const,
+    messages:     (id: string) => `/chat/conversations/${encodeURIComponent(id)}/messages` as const,
+    persistence:  (id: string) => `/chat/conversations/${encodeURIComponent(id)}/persistence` as const,
+    deleteMessage: (id: string) => `/chat/messages/${encodeURIComponent(id)}` as const,
+    pinMessage:   (id: string) => `/chat/messages/${encodeURIComponent(id)}/pin` as const,
+    REPORT:       '/chat/report',
+  },
   ROOM: {
     start: (roomId: string) => `/room/${roomId}/start` as const,
     get: (roomId: string) => `/room/${roomId}` as const,
     join: (roomId: string) => `/room/${roomId}/join` as const,
     rtcToken: (roomId: string) => `/room/${roomId}/rtc-token` as const,
+    expandDirectInvite: (roomId: string) => `/room/${roomId}/expand-direct/invite` as const,
+    expandDirectRespond: (roomId: string) => `/room/${roomId}/expand-direct/respond` as const,
   },
 }

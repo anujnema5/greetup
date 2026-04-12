@@ -58,16 +58,12 @@ export function useAppMatchFlow() {
 
     roomIdWeAlreadyOpenedRef.current = roomId;
 
-    // Where to return when minimizing the call (snapshot at the moment we enter the room).
     setRoomReturnPath(pathname);
 
     const url = circleRoomUrl(roomId, result);
     startTransition(() => {
       router.push(url);
     });
-    // `pathname` is deliberately omitted: it updates when the user leaves the call, but `status` can
-    // still be `matched`, which would re-run this effect and trap them on the room route again.
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- read `pathname` only on first open for this `roomId`
   }, [status, result, router, startTransition]);
 
   const handleFindMatch = useCallback(() => {

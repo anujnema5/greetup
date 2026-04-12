@@ -11,6 +11,7 @@ import { registerSignalingHandlers } from "@/signaling/signaling.handler";
 import { registerChessHandlers } from "@/games/chess/chess.handler";
 import { registerLudoHandlers } from "@/games/ludo/ludo.handler";
 import { healthHandler } from "@/controllers/health.controller";
+import { createInternalRoomTypeRouter } from "@/routes/internal-room-type.route";
 
 const app = new Hono();
 
@@ -42,7 +43,8 @@ const bootstrap = async (): Promise<void> => {
   });
 
   registerRtcSocketAuth(io);
-  registerSignalingHandlers(io);
+  const peers = registerSignalingHandlers(io);
+  app.route("/internal", createInternalRoomTypeRouter(peers));
   registerChessHandlers(io);
   registerLudoHandlers(io);
 

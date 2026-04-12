@@ -1,6 +1,7 @@
 "use client";
 
-import { Loader2, Video, Sparkles, Zap } from "lucide-react";
+import { useEffect, useState } from "react";
+import { Loader2, Video, Zap } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -19,7 +20,6 @@ export type MatchFoundDialogProps = {
   matchScore: number | undefined;
   isFallbackMatch?: boolean;
   busy?: boolean;
-  /** After user tapped Connect; room opens when the peer connects too. */
   waitingForPeerConnect?: boolean;
   onSkip: () => void;
   onConnect: () => void;
@@ -48,6 +48,20 @@ export function MatchFoundDialog({
   const tags = peer?.interestTags ?? [];
   const moreCount = peer?.moreInterestsCount ?? 0;
   const online = peer?.isOnline ?? true;
+  const insight = peer?.insight ?? null;
+  const image = peer?.image ?? null;
+
+  const [showInsight, setShowInsight] = useState(false);
+
+  useEffect(() => {
+    if (!open) {
+      setShowInsight(false);
+      return;
+    }
+    if (!insight) return;
+    const t = setTimeout(() => setShowInsight(true), 500);
+    return () => clearTimeout(t);
+  }, [open, insight]);
 
   const scorePct =
     matchScore != null && Number.isFinite(matchScore)
@@ -55,7 +69,7 @@ export function MatchFoundDialog({
       : null;
 
   return (
-    <Dialog open={open} onOpenChange={() => {}}>
+    <Dialog open={open} onOpenChange={() => { }}>
       <DialogContent
         showCloseButton={false}
         overlayClassName="z-[220]"
@@ -75,20 +89,25 @@ export function MatchFoundDialog({
             className="mb-5 inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.12em]"
             style={{ borderColor: GOLD_BORDER, color: GOLD }}
           >
-            <Sparkles className="size-3 shrink-0" strokeWidth={2.2} />
             Match Found
           </div>
 
           <div className="relative mb-3">
             <div
-              className="flex size-22 items-center justify-center rounded-full text-xl font-bold text-white shadow-lg"
-              style={{
-                background: `radial-gradient(circle at 35% 30%, oklch(58% 0.22 285), ${PURPLE_AVATAR})`,
-                boxShadow: `0 0 40px ${PURPLE_AVATAR}55, inset 0 1px 0 oklch(100% 0 0 / 0.12)`,
-              }}
+              className="flex size-22 items-center justify-center overflow-hidden rounded-full text-xl font-bold text-white shadow-lg"
+              style={
+                image
+                  ? { boxShadow: `0 0 40px ${PURPLE_AVATAR}55, inset 0 1px 0 oklch(100% 0 0 / 0.12)` }
+                  : {
+                    background: `radial-gradient(circle at 35% 30%, oklch(58% 0.22 285), ${PURPLE_AVATAR})`,
+                    boxShadow: `0 0 40px ${PURPLE_AVATAR}55, inset 0 1px 0 oklch(100% 0 0 / 0.12)`,
+                  }
+              }
             >
               {isFetching ? (
                 <span className="size-6 animate-pulse rounded-md bg-white/20" />
+              ) : image ? (
+                <img src={image} alt={displayName} className="size-full object-cover" />
               ) : (
                 initials
               )}
@@ -136,6 +155,17 @@ export function MatchFoundDialog({
                 }}
               />
             </div>
+          </div>
+        )}
+
+        {insight && (
+          <div
+            className={cn(
+              "mx-5 mb-4 rounded-2xl border border-zinc-700/60 bg-zinc-900/60 px-3.5 py-2.5 text-center text-[12px] leading-snug text-zinc-300 transition-all duration-500",
+              showInsight ? "opacity-100 translate-y-0" : "opacity-0 translate-y-1 pointer-events-none",
+            )}
+          >
+            {insight}
           </div>
         )}
 

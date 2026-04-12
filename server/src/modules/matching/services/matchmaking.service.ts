@@ -1,5 +1,6 @@
 import config from "@/shared/config/config";
 import logger from "@/core/logging";
+import { clearUserActiveRtcRoom } from "@/modules/rooms/services/user-active-rtc-room-redis.service";
 
 import type { UserMatchState } from "../types/match.types";
 
@@ -85,6 +86,8 @@ export const leaveRoomService = async (userId: string): Promise<void> => {
     logger.error("Match engine /match/leave-room failed", { status: res.status, body: text });
     throw new Error("Match engine error");
   }
+
+  await clearUserActiveRtcRoom(userId);
 };
 
 export const respondMatchProposalService = async (

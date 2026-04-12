@@ -22,11 +22,7 @@ function getOrCreateDeviceId(): string {
 const SocketContext = createContext<TSocketContext | null>(null);
 
 export const SocketProvider = ({ children }: { children: React.ReactNode }) => {
-    const { data, error } = useSession();
-    if (error) {
-        // throw new Error(`User not authenticated, ${error}`)
-        // console.error(`User not authenticated, ${error}`);
-    };
+    const { data } = useSession();
 
     const [connectionState, setConnectionState] = useState({
         pending: false,
@@ -34,14 +30,12 @@ export const SocketProvider = ({ children }: { children: React.ReactNode }) => {
         status: 'disconnected'
     });
 
-    const socket = useMemo(() => io(
-        SOCKET_SERVER_URL, {
+    const socketOptions = useMemo(() => ({
         autoConnect: true,
-        // reconnection: true,
         reconnectionDelay: 2000,
         timeout: 10000,
         reconnectionDelayMax: 5000,
-        transports: ["websocket", "polling"],
+        transports: ["websocket", "polling"] as string[],
         query: {
             timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
             userId: data?.user.id,
@@ -49,12 +43,16 @@ export const SocketProvider = ({ children }: { children: React.ReactNode }) => {
         },
         withCredentials: true,
         forceNew: false,
-    }
-    ), [data?.user.id]);
+    }), [data?.user.id]);
+
+    // Global namespace — presence, match events, notifications
+    const socket = useMemo(() => io(SOCKET_SERVER_URL, socketOptions), [socketOptions]);
+
+    // Chat namespace — all chat:* events are isolated here
+    const chatSocket = useMemo(() => io(`${SOCKET_SERVER_URL}/chat`, socketOptions), [socketOptions]);
 
     useEffect(() => {
         socket.on('connect', () => {
-            console.log(`Socket Connected ${socket.id}`);
             setConnectionState({
                 connected: true,
                 status: 'connected',
@@ -79,43 +77,22 @@ export const SocketProvider = ({ children }: { children: React.ReactNode }) => {
     }, [socket]);
 
     const disconnectSocket = () => {
-        try {
-            if (socket.connected) {
-                console.log("Disconnecting socket...");
-                socket.disconnect();
-                setConnectionState({
-                    connected: false,
-                    status: 'disconnected',
-                    pending: false
-                });
-            } else {
-                console.log("Socket is already disconnected");
-            }
-        } catch (error) {
-            console.error("Error disconnecting socket:", error);
-        }
-    }
-
-    const forceReconnect = () => {
-        try {
-            if (socket.connected) {
-                console.log("Forcing socket to reconnect...");
-                socket.disconnect();
-                setConnectionState({
-                    connected: false,
-                    status: 'connecting',
-                    pending: true
-                });
-            }
-
-            socket.connect();
-        } catch (error) {
-            console.error("Error forcing socket reconnection:", error);
+        if (socket.connected) {
+            socket.disconnect();
+            setConnectionState({ connected: false, status: 'disconnected', pending: false });
         }
     };
 
+    const forceReconnect = () => {
+        if (socket.connected) {
+            socket.disconnect();
+            setConnectionState({ connected: false, status: 'connecting', pending: true });
+        }
+        socket.connect();
+    };
+
     return (
-        <SocketContext.Provider value={{ socket, connectionState, disconnectSocket, forceReconnect }}>
+        <SocketContext.Provider value={{ socket, chatSocket, connectionState, disconnectSocket, forceReconnect }}>
             {children}
         </SocketContext.Provider>
     );

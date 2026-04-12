@@ -40,6 +40,15 @@ export const ensureProfileSnapshotBodySchema = z.object({
   userId: z.string().min(1),
 });
 
+export const expandDirectInviteBodySchema = z.object({
+  inviteeUserId: z.string().min(1),
+});
+
+export const expandDirectRespondBodySchema = z.object({
+  inviteId: z.string().uuid(),
+  accept: z.boolean(),
+});
+
 export type CreateRoomBody = z.infer<typeof createRoomBodySchema>;
 export type MatchCompletedBody = z.infer<typeof matchCompletedBodySchema>;
 export type MatchFailedBody = z.infer<typeof matchFailedBodySchema>;

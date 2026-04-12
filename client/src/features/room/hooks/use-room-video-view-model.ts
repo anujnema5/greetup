@@ -14,6 +14,7 @@ import {
 import { useAttachMediaStream } from "@/features/room/hooks/use-attach-media-stream";
 import { useCallElapsedSeconds } from "@/features/room/hooks/use-call-elapsed-seconds";
 import { formatCallDuration } from "@/features/room/lib/format-call-duration";
+import type { RoomSessionType } from "@/shared/types/room-session";
 
 export type UseRoomVideoViewModelArgs = {
   remoteStream: MediaStream | null;
@@ -25,7 +26,7 @@ export type UseRoomVideoViewModelArgs = {
   remotePeers: Record<string, RemotePeer>;
   remoteParticipants: RemoteParticipant[];
   mediaStatus: MediasoupRoomStatus;
-  rtcRoomType: "direct" | "circle" | null;
+  rtcRoomType: RoomSessionType | null;
   peerLabel: string;
   onToggleMic?: () => void;
   onToggleCamera?: () => void;

@@ -38,7 +38,7 @@ import { Badge } from '@/components/ui/badge'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { useProfileSetup, clearProfileSetupProgress } from '../provider'
 import { firstLetterCapital } from '@/shared/utils/general'
-import { LogOut, Sparkles } from 'lucide-react'
+import { LogOut } from 'lucide-react'
 import { signOut } from '@/lib/auth-client'
 import { ThemeToggle } from '@/components/theme-toggle'
 import { CountryDropdown, type Country } from '@/components/ui/country-dropdown'
@@ -55,9 +55,6 @@ const Logo = ({ className }: { className?: string }) => {
     >
       <div className="relative flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-primary to-primary/80 text-primary-foreground shadow-lg shadow-primary/20">
         <span className="text-lg font-extrabold">VR</span>
-        <div className="absolute -right-1 -top-1">
-          <Sparkles className="h-3 w-3 text-primary animate-pulse" />
-        </div>
       </div>
       <span className="text-2xl font-bold bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text">
         Circlo

@@ -157,7 +157,8 @@ export const handleGetMatchPeerPreview = async (c: Context) => {
       );
     }
 
-    const preview = await getMatchPeerPreview(peerUserId);
+    const userId = c.get("userId") as string;
+    const preview = await getMatchPeerPreview(userId, peerUserId);
     return c.json(ApiResponse.success(preview, "Peer preview", 200), 200);
   } catch (error) {
     logger.error("[handleGetMatchPeerPreview] failed", { error });

@@ -1,6 +1,6 @@
 "use client";
 
-import { CheckCircle2, Sparkles } from "lucide-react";
+import { CheckCircle2, Star } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 
@@ -95,7 +95,7 @@ export function ProfileCompletionCard({
               : "border-primary/25 bg-primary/10 text-primary"
           )}
         >
-          {isDone ? <CheckCircle2 className="h-5 w-5" aria-hidden /> : <Sparkles className="h-5 w-5" aria-hidden />}
+          {isDone ? <CheckCircle2 className="h-5 w-5" aria-hidden /> : <Star className="h-5 w-5" aria-hidden />}
         </div>
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-baseline justify-between gap-2">

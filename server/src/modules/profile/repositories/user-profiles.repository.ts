@@ -24,6 +24,8 @@ export const userProfilesRepository = {
             id: true,
             displayName: true,
             name: true,
+            age: true,
+            image: true
           },
         },
         location: {

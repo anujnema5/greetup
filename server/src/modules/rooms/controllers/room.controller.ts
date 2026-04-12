@@ -8,6 +8,8 @@ import { ROOM_KEYS, ROOM_TTL } from "@/core/redis/keys";
 import {
   createRoomBodySchema,
   ensureProfileSnapshotBodySchema,
+  expandDirectInviteBodySchema,
+  expandDirectRespondBodySchema,
   matchCompletedBodySchema,
   matchFailedBodySchema,
   matchProposalCancelledBodySchema,
@@ -22,6 +24,11 @@ import {
 import { roomsRepository } from "../repositories/rooms.repository";
 import { issueRtcTokenService, IssueRtcTokenError } from "../services/issue-rtc-token.service";
 import { joinRoomService, JoinRoomError } from "../services/join-room.service";
+import {
+  createExpandDirectInviteService,
+  respondExpandDirectInviteService,
+  ExpandDirectRoomError,
+} from "../services/expand-direct-room.service";
 
 /**
  * GET /api/room/:roomId/rtc-token
@@ -188,6 +195,106 @@ export const handleJoinRoom = async (c: Context) => {
 };
 
 /**
+ * POST /api/room/:roomId/expand-direct/invite
+ * Participant invites a connection to upgrade this direct call to a circle (pending until they accept).
+ */
+export const handleExpandDirectInvite = async (c: Context) => {
+  const roomId = c.req.param("roomId");
+  const userId = c.get("userId") as string;
+
+  if (!roomId) {
+    return c.json(
+      ApiResponse.error({ message: "roomId is required", statusCode: 400, code: "VALIDATION_ERROR" }),
+      400,
+    );
+  }
+
+  let body: unknown;
+  try {
+    body = await c.req.json();
+  } catch {
+    body = {};
+  }
+  const parsed = expandDirectInviteBodySchema.safeParse(body);
+  if (!parsed.success) {
+    return zodBodyValidationError(c, parsed.error);
+  }
+
+  try {
+    const data = await createExpandDirectInviteService(userId, roomId, parsed.data.inviteeUserId);
+    return c.json(ApiResponse.success(data, "Invite sent", 200), 200);
+  } catch (error: unknown) {
+    if (error instanceof ExpandDirectRoomError) {
+      return c.json(
+        ApiResponse.error({
+          message: error.message,
+          statusCode: error.statusCode,
+          code: error.code,
+        }),
+        error.statusCode as 400 | 403 | 404,
+      );
+    }
+    logger.error("Expand direct invite error", { error });
+    return internalError(c, error);
+  }
+};
+
+/**
+ * POST /api/room/:roomId/expand-direct/respond
+ * Invitee accepts or declines — on accept the room becomes a circle in place.
+ */
+export const handleExpandDirectRespond = async (c: Context) => {
+  const roomId = c.req.param("roomId");
+  const userId = c.get("userId") as string;
+
+  if (!roomId) {
+    return c.json(
+      ApiResponse.error({ message: "roomId is required", statusCode: 400, code: "VALIDATION_ERROR" }),
+      400,
+    );
+  }
+
+  let body: unknown;
+  try {
+    body = await c.req.json();
+  } catch {
+    body = {};
+  }
+  const parsed = expandDirectRespondBodySchema.safeParse(body);
+  if (!parsed.success) {
+    return zodBodyValidationError(c, parsed.error);
+  }
+
+  try {
+    const data = await respondExpandDirectInviteService(userId, parsed.data.inviteId, parsed.data.accept);
+    if (data.roomId !== roomId) {
+      return c.json(
+        ApiResponse.error({
+          message: "Invite does not match this room",
+          statusCode: 400,
+          code: "ROOM_MISMATCH",
+        }),
+        400,
+      );
+    }
+    return c.json(ApiResponse.success(data, data.expanded ? "Call expanded" : "Invite declined", 200), 200);
+  } catch (error: unknown) {
+    if (error instanceof ExpandDirectRoomError) {
+      return c.json(
+        ApiResponse.error({
+          message: error.message,
+          statusCode: error.statusCode,
+          code: error.code,
+        }),
+        error.statusCode as 400 | 403 | 404 | 409,
+      );
+    }
+    logger.error("Expand direct respond error", { error });
+    return internalError(c, error);
+  }
+};
+
+/**
  * GET /api/room/:roomId
  * Returns Redis-backed room payload (match pair or DB session room).
  */
@@ -225,12 +332,18 @@ export const handleGetRoom = async (c: Context) => {
       );
     }
 
-    return c.json(
-      ApiResponse.success(
-        { roomId: room.roomId, userA: room.userA, userB: room.userB, matchScore: room.matchScore ?? null },
-        "Room found"
-      )
-    );
+    const dbRoom = await roomsRepository.findRoomById(roomId);
+    const matchPayload: Record<string, unknown> = {
+      roomId: room.roomId,
+      userA: room.userA,
+      userB: room.userB,
+      matchScore: room.matchScore ?? null,
+    };
+    if (dbRoom?.roomType === "circle") {
+      matchPayload.roomType = "circle";
+    }
+
+    return c.json(ApiResponse.success(matchPayload, "Room found"));
   } catch (error) {
     logger.error("Failed to get room", { error });
     return internalError(c, error);

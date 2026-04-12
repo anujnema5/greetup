@@ -1,6 +1,7 @@
 import type { Server, Socket } from "socket.io";
 import { jwtVerify } from "jose";
 import { logger } from "@/core/logger";
+import { isRoomSessionType, type RoomSessionType } from "@/types/room-session";
 
 function getSecret(): Uint8Array {
   const raw = process.env.RTC_JWT_SECRET;
@@ -46,7 +47,7 @@ export function registerRtcSocketAuth(io: Server): void {
         return next(new Error("Unauthorized"));
       }
 
-      if (roomType !== "direct" && roomType !== "circle") {
+      if (!isRoomSessionType(roomType)) {
         logger.warn("RTC socket auth: unsupported roomType", { roomType });
         return next(new Error("Unauthorized"));
       }
@@ -67,6 +68,6 @@ declare module "socket.io" {
   interface SocketData {
     userId?: string;
     roomId?: string;
-    roomType?: "direct" | "circle";
+    roomType?: RoomSessionType;
   }
 }

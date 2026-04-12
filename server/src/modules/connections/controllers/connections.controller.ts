@@ -8,6 +8,8 @@ import { parseConnectionIdRouteParam } from "../lib/connection-id-route-param";
 import { respondIncomingFailurePayload } from "../lib/respond-incoming-http";
 import { connectionRequestBodySchema } from "../schemas/connection-request.schema";
 import { listConnectionsQuerySchema } from "../schemas/connections-list.query.schema";
+import { peersCallStatusBodySchema } from "../schemas/peers-call-status.schema";
+import { peersCallStatusForUser } from "../services/peers-call-status.service";
 import { listMyConnectionsService } from "../services/list-my-connections.service";
 import {
   acceptIncomingConnectionService,
@@ -29,6 +31,37 @@ export const handlePendingIncomingCount = async (c: Context) => {
   } catch (error: unknown) {
     logger.error("Pending incoming connection count error", { error });
     return internalError(c, error, "PENDING_INCOMING_COUNT_FAILED");
+  }
+};
+
+export const handlePeersCallStatus = async (c: Context) => {
+  try {
+    const userId = c.get("userId") as string;
+    let body: unknown;
+    try {
+      body = await c.req.json();
+    } catch {
+      body = {};
+    }
+    const parsed = peersCallStatusBodySchema.safeParse(body);
+    if (!parsed.success) {
+      const errors = zodFieldErrorsItems(parsed.error);
+      return c.json(
+        ApiResponse.error({
+          message: "Invalid body",
+          statusCode: 400,
+          code: "VALIDATION_ERROR",
+          errors,
+        }),
+        400,
+      );
+    }
+
+    const statuses = await peersCallStatusForUser(userId, parsed.data.userIds);
+    return c.json(ApiResponse.success({ statuses }, "Peer status retrieved", 200), 200);
+  } catch (error: unknown) {
+    logger.error("Peers call status error", { error });
+    return internalError(c, error, "PEERS_CALL_STATUS_FAILED");
   }
 };
 

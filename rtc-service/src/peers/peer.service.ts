@@ -11,6 +11,7 @@ import * as peerRepository from "@/peers/peer.repository";
 import type { PeerRecord } from "@/peers/peer.types";
 import { mediaSourceFromProducerAppData, type ProducerMediaSource } from "@/peers/media-source.util";
 import { roomService } from "@/rooms/room.service";
+import type { RoomSessionType } from "@/types/room-session";
 
 export type ExistingProducerInfo = {
   peerId: string;
@@ -202,7 +203,7 @@ export class PeerSessionService {
 
     session.producers.set(producer.id, producer);
 
-    const roomType = session.socket.data.roomType as string | undefined;
+    const roomType = session.socket.data.roomType;
     if (
       roomType === "direct" &&
       payload.kind === "video" &&
@@ -443,6 +444,27 @@ export class PeerSessionService {
     const userId = socket.data.userId;
     if (!userId) return;
     await this.removeSession(userId, { skipRedis: false, skipSocketLeave: true, releaseRoomIfEmpty: true });
+  }
+
+  /**
+   * Updates JWT-derived `roomType` on all mediasoup sessions in a Socket.IO room (e.g. direct → circle)
+   * without disconnecting transports — used when the main API expands a 1:1 call in place.
+   */
+  setRoomTypeForRoomPeers(roomId: string, roomType: RoomSessionType): { updated: number } {
+    let updated = 0;
+    const members = this.roomMembers.get(roomId);
+    if (!members) {
+      logger.info("setRoomTypeForRoomPeers: no local members", { roomId, roomType });
+      return { updated: 0 };
+    }
+    for (const uid of members) {
+      const session = this.sessions.get(uid);
+      if (!session) continue;
+      session.socket.data.roomType = roomType;
+      updated += 1;
+    }
+    logger.info("setRoomTypeForRoomPeers", { roomId, roomType, updated });
+    return { updated };
   }
 
   private collectProducersInRoom(roomId: string, excludeUserId: string): ExistingProducerInfo[] {

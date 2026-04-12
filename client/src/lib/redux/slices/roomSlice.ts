@@ -16,6 +16,7 @@ export interface RoomSliceState {
     activeRoomId: string | null;
     phase: RoomSessionPhase;
     rtcPrimaryRemoteUserId: string | null;
+    conversationId: string | null;
   };
   media: {
     status: RoomMediaStatus;
@@ -31,7 +32,7 @@ export interface RoomSliceState {
 
 const initialState = (): RoomSliceState => ({
   ui: { sessionActive: false, isMinimized: false },
-  session: { activeRoomId: null, phase: "idle", rtcPrimaryRemoteUserId: null },
+  session: { activeRoomId: null, phase: "idle", rtcPrimaryRemoteUserId: null, conversationId: null },
   media: { status: "idle" },
   peers: { byUserId: {} },
   chat: { draft: "" },
@@ -71,7 +72,7 @@ export const roomSlice = createSlice({
     startVideoSession: (
       state,
       action: PayloadAction<
-        { roomId?: string | null; primaryRemoteUserId?: string | null } | undefined
+        { roomId?: string | null; primaryRemoteUserId?: string | null; conversationId?: string | null } | undefined
       >,
     ) => {
       state.ui.sessionActive = true;
@@ -84,6 +85,10 @@ export const roomSlice = createSlice({
       if (primary !== undefined) {
         state.session.rtcPrimaryRemoteUserId = primary;
       }
+      const convId = action.payload?.conversationId;
+      if (convId !== undefined) {
+        state.session.conversationId = convId ?? null;
+      }
       state.session.phase = "in_call";
     },
 
@@ -93,6 +98,7 @@ export const roomSlice = createSlice({
       state.session.activeRoomId = null;
       state.session.phase = "idle";
       state.session.rtcPrimaryRemoteUserId = null;
+      state.session.conversationId = null;
       state.media.status = "idle";
       state.peers.byUserId = {};
       state.chat.draft = "";

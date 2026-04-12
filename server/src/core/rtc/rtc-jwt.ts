@@ -1,10 +1,11 @@
 import { SignJWT, type JWTPayload } from "jose";
 import config from "@/shared/config/config";
+import type { RoomSessionType } from "@/shared/types/room-session";
 
 const ALG = "HS256";
 
-/** Claim value for `roomType` — matches DB `room_type` enum. */
-export type RtcJwtRoomType = "direct" | "circle";
+/** Alias for JWT claim `roomType` — same as `RoomSessionType`. */
+export type RtcJwtRoomType = RoomSessionType;
 
 function getSecret(): Uint8Array {
   const raw = config.rtcJwtSecret;
@@ -16,7 +17,7 @@ function getSecret(): Uint8Array {
 
 export type RtcJwtClaims = JWTPayload & {
   roomId: string;
-  roomType: RtcJwtRoomType;
+  roomType: RoomSessionType;
 };
 
 /**
@@ -25,7 +26,7 @@ export type RtcJwtClaims = JWTPayload & {
 export async function signRtcJwtForRoom(params: {
   userId: string;
   roomId: string;
-  roomType: RtcJwtRoomType;
+  roomType: RoomSessionType;
   expiresInSec?: number;
 }): Promise<{ token: string; expiresInSec: number }> {
   const expiresInSec = params.expiresInSec ?? 15 * 60;

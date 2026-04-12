@@ -1,11 +1,12 @@
 import { getRedis } from "@/core/redis";
 import { ROOM_KEYS, ROOM_TTL } from "@/core/redis/keys";
 import logger from "@/core/logging";
+import type { RoomSessionType } from "@/shared/types/room-session";
 
 export type DbSessionRoomRedisPayload = {
   roomId: string;
   hostUserId: string;
-  roomType: "direct" | "circle";
+  roomType: RoomSessionType;
   title: string;
 };
 
@@ -34,4 +35,17 @@ export async function provisionSessionRoomRedis(
     roomId: payload.roomId,
     roomType: payload.roomType,
   });
+}
+
+/** Updates `roomType` on an existing session-room hash (no-op if key missing). */
+export async function patchSessionRoomRedisRoomType(
+  roomId: string,
+  roomType: RoomSessionType,
+): Promise<void> {
+  const redis = getRedis();
+  const key = `${ROOM_KEYS.ROOM}${roomId}`;
+  const exists = await redis.exists(key);
+  if (!exists) return;
+  await redis.hset(key, { roomType });
+  await redis.expire(key, ROOM_TTL);
 }

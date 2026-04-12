@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { ChevronRight, Loader2, Search, UserPlus } from "lucide-react";
 import { useSearchParams } from "next/navigation";
 
@@ -12,10 +12,14 @@ import {
   useAcceptedConnectionsInfiniteQuery,
   useDisconnectConnectionMutation,
   useGetMyConnectionsQuery,
+  usePeersCallStatusQuery,
   useRejectConnectionMutation,
   useWithdrawConnectionRequestMutation,
 } from "@/features/connections/api/connections-api";
-import type { ConnectionListItem } from "@/features/connections/types/connections-api.types";
+import type {
+  ConnectionListItem,
+  PeerCallStatusEntry,
+} from "@/features/connections/types/connections-api.types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { getProfileImageUrl } from "@/lib/ui/profile-image";
@@ -52,10 +56,12 @@ function ConnectionPeerSummary({
   imageUrl,
   title,
   subtitle,
+  titleExtra,
 }: {
   imageUrl: string | null;
   title: string;
   subtitle: string;
+  titleExtra?: ReactNode;
 }) {
   return (
     <>
@@ -64,14 +70,23 @@ function ConnectionPeerSummary({
         <img src={getProfileImageUrl(imageUrl)} alt="" className="h-full w-full object-cover" />
       </div>
       <div className="min-w-0 flex-1">
-        <p className="truncate text-sm font-semibold text-foreground">{title}</p>
+        <div className="flex min-w-0 flex-wrap items-center gap-2">
+          <p className="min-w-0 truncate text-sm font-semibold text-foreground">{title}</p>
+          {titleExtra}
+        </div>
         <p className="truncate text-xs text-muted-foreground">{subtitle}</p>
       </div>
     </>
   );
 }
 
-function ConnectionRow({ item }: { item: ConnectionListItem }) {
+function ConnectionRow({
+  item,
+  peerCallStatus,
+}: {
+  item: ConnectionListItem;
+  peerCallStatus?: PeerCallStatusEntry;
+}) {
   const [disconnect] = useDisconnectConnectionMutation();
   const [withdraw] = useWithdrawConnectionRequestMutation();
   const [busy, setBusy] = useState(false);
@@ -88,6 +103,12 @@ function ConnectionRow({ item }: { item: ConnectionListItem }) {
       : "Connected";
   const isAccepted = item.status === "accepted";
   const isPendingOutgoing = item.status === "pending" && item.direction === "outgoing";
+  const inCallBadge =
+    isAccepted && peerCallStatus?.inLiveRoom ? (
+      <span className="shrink-0 rounded-full bg-destructive/15 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-destructive">
+        In a call
+      </span>
+    ) : null;
 
   const mutationArg = {
     connectionId: item.connectionId,
@@ -142,11 +163,21 @@ function ConnectionRow({ item }: { item: ConnectionListItem }) {
             className="flex min-w-0 flex-1 items-center gap-3 rounded-xl outline-none hover:opacity-90 cursor-pointer focus-visible:ring-2 focus-visible:ring-ring"
             aria-label={`Open ${label} profile`}
           >
-            <ConnectionPeerSummary imageUrl={item.peer.image} title={label} subtitle={sub} />
+            <ConnectionPeerSummary
+              imageUrl={item.peer.image}
+              title={label}
+              subtitle={sub}
+              titleExtra={inCallBadge}
+            />
           </Link>
         ) : (
           <div className="flex min-w-0 flex-1 items-center gap-3">
-            <ConnectionPeerSummary imageUrl={item.peer.image} title={label} subtitle={sub} />
+            <ConnectionPeerSummary
+              imageUrl={item.peer.image}
+              title={label}
+              subtitle={sub}
+              titleExtra={inCallBadge}
+            />
           </div>
         )}
         {busy ? (
@@ -367,6 +398,22 @@ export function ProfileConnectionsSection({
     return acceptedPreview.data?.data?.items ?? [];
   }, [isPage, acceptedInfinite.data, acceptedPreview.data]);
 
+  const acceptedPeerStatusKey = useMemo(
+    () =>
+      acceptedItems
+        .filter((i) => i.status === "accepted")
+        .map((i) => i.peer.userId)
+        .sort()
+        .join("|"),
+    [acceptedItems],
+  );
+
+  const { data: peerCallStatuses } = usePeersCallStatusQuery(acceptedPeerStatusKey, {
+    skip: acceptedPeerStatusKey.length === 0,
+    refetchOnMountOrArgChange: true,
+    refetchOnFocus: true,
+  });
+
   const previewHasMore = acceptedPreview.data?.data?.hasMore === true;
 
   const hasNextAcceptedPage = isPage ? acceptedInfinite.hasNextPage : false;
@@ -569,7 +616,11 @@ export function ProfileConnectionsSection({
           )}
           <div className="flex flex-col gap-2">
             {acceptedItems.map((item) => (
-              <ConnectionRow key={item.connectionId} item={item} />
+              <ConnectionRow
+                key={item.connectionId}
+                item={item}
+                peerCallStatus={peerCallStatuses?.[item.peer.userId]}
+              />
             ))}
           </div>
           {isPage && (

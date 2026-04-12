@@ -243,37 +243,12 @@ export function StartCircleModalDialog(props: StartCircleModalDialogProps) {
                   />
                 </div>
 
-                <FormField
-                  control={form.control}
-                  name="description"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel className="text-sm font-medium text-muted-foreground">
-                        {C.descriptionLabel}{" "}
-                        <span className="font-normal">
-                          {C.descriptionOptional}
-                        </span>
-                      </FormLabel>
-                      <FormControl>
-                        <Textarea
-                          placeholder={C.descriptionPlaceholder}
-                          rows={2}
-                          maxLength={2000}
-                          className="resize-none border-border/80 bg-background/50"
-                          {...field}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <div className="grid gap-5 sm:grid-cols-2 sm:gap-x-6">
+                <div className="grid items-start gap-5 sm:grid-cols-2 sm:gap-x-6">
                   <FormField
                     control={form.control}
                     name="maxParticipants"
                     render={({ field }) => (
-                      <FormItem>
+                      <FormItem className="gap-1.5">
                         <FormLabel
                           htmlFor="max-p"
                           className="text-sm font-medium"
@@ -311,7 +286,7 @@ export function StartCircleModalDialog(props: StartCircleModalDialogProps) {
                     control={form.control}
                     name="scheduleMode"
                     render={({ field }) => (
-                      <FormItem>
+                      <FormItem className="gap-1.5">
                         <FormLabel className="text-sm font-medium">
                           {C.whenLabel}
                         </FormLabel>
@@ -412,6 +387,31 @@ export function StartCircleModalDialog(props: StartCircleModalDialogProps) {
                     />
                   </div>
                 )}
+
+                <FormField
+                  control={form.control}
+                  name="description"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="text-sm font-medium text-muted-foreground">
+                        {C.descriptionLabel}{" "}
+                        <span className="font-normal">
+                          {C.descriptionOptional}
+                        </span>
+                      </FormLabel>
+                      <FormControl>
+                        <Textarea
+                          placeholder={C.descriptionPlaceholder}
+                          rows={2}
+                          maxLength={2000}
+                          className="resize-none border-border/80 bg-background/50"
+                          {...field}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
 
                 <div className="flex items-center justify-between gap-4 rounded-xl border border-border/50 bg-muted/10 px-4 py-3.5">
                   <div className="min-w-0">
