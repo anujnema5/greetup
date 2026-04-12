@@ -9,6 +9,7 @@ export interface MatchPeerPreview {
   interestTags: string[];
   moreInterestsCount: number;
   isOnline: boolean;
+  insight: string | null;
 }
 
 export interface FindMatchResponse {

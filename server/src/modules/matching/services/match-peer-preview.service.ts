@@ -1,6 +1,7 @@
 import { getRedis } from "@/core/redis";
 import { USER_CACHE_KEYS, USER_PRESENCE_KEYS } from "@/core/redis/keys";
 import { ensureProfileSnapshotCached } from "@/modules/user/services/profile-snapshot-cache.service";
+import { generateMatchInsight, type InsightProfileSnapshot } from "./match-insight.service";
 
 export type MatchPeerPreview = {
   displayName: string;
@@ -9,11 +10,14 @@ export type MatchPeerPreview = {
   interestTags: string[];
   moreInterestsCount: number;
   isOnline: boolean;
+  insight: string | null;
 };
 
 type SnapshotInterest = { interest?: { displayName?: string | null; name?: string | null } | null };
 type SnapshotProfession = { profession?: { displayName?: string | null; name?: string | null } | null };
 type SnapshotGoal = { goal?: { displayName?: string | null; name?: string | null } | null };
+type SnapshotMood = { mood?: { displayName?: string | null; name?: string | null } | null };
+type SnapshotLookingFor = { lookingForOption?: { displayName?: string | null; name?: string | null } | null };
 
 function labelFromRelation(
   row: { displayName?: string | null; name?: string | null } | null | undefined,
@@ -44,7 +48,24 @@ function parseSnapshot(raw: string): unknown {
   }
 }
 
-function buildPreviewFromSnapshot(data: unknown): MatchPeerPreview | null {
+type ParsedSnapshot = {
+  displayName: string;
+  bio: string;
+  age?: number;
+  interests: string[];
+  goals: string[];
+  professions: string[];
+  moods: string[];
+  lookingFor: string[];
+  preview: {
+    headline: string | null;
+    initials: string;
+    interestTags: string[];
+    moreInterestsCount: number;
+  };
+} | null;
+
+function parseSnapshotData(data: unknown): ParsedSnapshot {
   if (!data || typeof data !== "object") return null;
   const o = data as Record<string, unknown>;
 
@@ -54,10 +75,27 @@ function buildPreviewFromSnapshot(data: unknown): MatchPeerPreview | null {
     (typeof user?.name === "string" && user.name.trim()) ||
     "Someone";
 
+  const age = typeof user?.age === "number" ? user.age : undefined;
   const bio = typeof o.bio === "string" ? o.bio.trim().split("\n")[0]?.trim() ?? "" : "";
   const professions = Array.isArray(o.professions) ? (o.professions as SnapshotProfession[]) : [];
   const goals = Array.isArray(o.goals) ? (o.goals as SnapshotGoal[]) : [];
   const interests = Array.isArray(o.interests) ? (o.interests as SnapshotInterest[]) : [];
+
+  const currentStatus = o.currentStatus as Record<string, unknown> | undefined;
+  const rawMoods = Array.isArray(currentStatus?.moods) ? (currentStatus.moods as SnapshotMood[]) : [];
+  const rawLookingFor = Array.isArray(currentStatus?.lookingFor) ? (currentStatus.lookingFor as SnapshotLookingFor[]) : [];
+
+  const moodLabels: string[] = [];
+  for (const row of rawMoods) {
+    const lab = labelFromRelation(row.mood ?? null);
+    if (lab) moodLabels.push(lab);
+  }
+
+  const lookingForLabels: string[] = [];
+  for (const row of rawLookingFor) {
+    const lab = labelFromRelation(row.lookingForOption ?? null);
+    if (lab) lookingForLabels.push(lab);
+  }
 
   const p0 = labelFromRelation(professions[0]?.profession ?? null);
   const g0 = labelFromRelation(goals[0]?.goal ?? null);
@@ -73,59 +111,104 @@ function buildPreviewFromSnapshot(data: unknown): MatchPeerPreview | null {
     headline = g0;
   }
 
-  const interestTags: string[] = [];
+  const interestLabels: string[] = [];
   for (const row of interests) {
     const lab = labelFromRelation(row.interest ?? null);
-    if (lab) interestTags.push(lab);
+    if (lab) interestLabels.push(lab);
   }
 
-  const visible = interestTags.slice(0, 3);
-  const moreInterestsCount = Math.max(0, interestTags.length - visible.length);
+  const goalLabels: string[] = [];
+  for (const row of goals) {
+    const lab = labelFromRelation(row.goal ?? null);
+    if (lab) goalLabels.push(lab);
+  }
+
+  const professionLabels: string[] = [];
+  for (const row of professions) {
+    const lab = labelFromRelation(row.profession ?? null);
+    if (lab) professionLabels.push(lab);
+  }
+
+  const visible = interestLabels.slice(0, 3);
+  const moreInterestsCount = Math.max(0, interestLabels.length - visible.length);
 
   return {
     displayName: displayNameRaw,
-    headline,
-    initials: initialsFromName(displayNameRaw),
-    interestTags: visible,
-    moreInterestsCount,
-    isOnline: false,
+    bio,
+    age,
+    interests: interestLabels,
+    goals: goalLabels,
+    professions: professionLabels,
+    moods: moodLabels,
+    lookingFor: lookingForLabels,
+    preview: { headline, initials: initialsFromName(displayNameRaw), interestTags: visible, moreInterestsCount },
   };
 }
 
-export async function getMatchPeerPreview(peerUserId: string): Promise<MatchPeerPreview | null> {
+async function fetchSnapshot(userId: string): Promise<unknown> {
   const redis = getRedis();
-  const key = `${USER_CACHE_KEYS.PROFILE_SNAPSHOT}${peerUserId}`;
+  const key = `${USER_CACHE_KEYS.PROFILE_SNAPSHOT}${userId}`;
   let raw = await redis.get(key);
-
   if (!raw) {
-    await ensureProfileSnapshotCached(peerUserId);
+    await ensureProfileSnapshotCached(userId);
     raw = await redis.get(key);
   }
+  return raw ? parseSnapshot(raw) : null;
+}
 
-  if (!raw) {
-    return {
-      displayName: "Someone",
-      headline: null,
-      initials: "?",
-      interestTags: [],
-      moreInterestsCount: 0,
-      isOnline: (await redis.sismember(USER_PRESENCE_KEYS.ONLINE_USERS_SET, peerUserId)) === 1,
-    };
-  }
+function fallback(_peerUserId: string, isOnline: boolean): MatchPeerPreview {
+  return {
+    displayName: "Someone",
+    headline: null,
+    initials: "?",
+    interestTags: [],
+    moreInterestsCount: 0,
+    isOnline,
+    insight: null,
+  };
+}
 
-  const parsed = parseSnapshot(raw);
-  const preview = buildPreviewFromSnapshot(parsed);
-  if (!preview) {
-    return {
-      displayName: "Someone",
-      headline: null,
-      initials: "?",
-      interestTags: [],
-      moreInterestsCount: 0,
-      isOnline: (await redis.sismember(USER_PRESENCE_KEYS.ONLINE_USERS_SET, peerUserId)) === 1,
-    };
-  }
+export async function getMatchPeerPreview(
+  myUserId: string,
+  peerUserId: string,
+): Promise<MatchPeerPreview> {
+  const redis = getRedis();
 
-  preview.isOnline = (await redis.sismember(USER_PRESENCE_KEYS.ONLINE_USERS_SET, peerUserId)) === 1;
-  return preview;
+  const [myRaw, peerRaw, isOnline] = await Promise.all([
+    fetchSnapshot(myUserId),
+    fetchSnapshot(peerUserId),
+    redis.sismember(USER_PRESENCE_KEYS.ONLINE_USERS_SET, peerUserId).then((v) => v === 1),
+  ]);
+
+  const peerData = parseSnapshotData(peerRaw);
+  if (!peerData) return fallback(peerUserId, isOnline);
+
+  const myData = parseSnapshotData(myRaw);
+
+  const meForInsight: InsightProfileSnapshot = myData
+    ? { displayName: myData.displayName, bio: myData.bio, interests: myData.interests, goals: myData.goals, professions: myData.professions }
+    : { displayName: "User", interests: [], goals: [], professions: [] };
+
+  const peerForInsight: InsightProfileSnapshot = {
+    displayName: peerData.displayName,
+    bio: peerData.bio,
+    age: peerData.age,
+    interests: peerData.interests,
+    goals: peerData.goals,
+    professions: peerData.professions,
+    moods: peerData.moods,
+    lookingFor: peerData.lookingFor,
+  };
+
+  const insight = await generateMatchInsight(meForInsight, peerForInsight);
+
+  return {
+    displayName: peerData.displayName,
+    headline: peerData.preview.headline,
+    initials: peerData.preview.initials,
+    interestTags: peerData.preview.interestTags,
+    moreInterestsCount: peerData.preview.moreInterestsCount,
+    isOnline,
+    insight,
+  };
 }

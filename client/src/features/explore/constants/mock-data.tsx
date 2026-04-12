@@ -1,4 +1,4 @@
-import { Search, Sparkles, Users, Zap, Music, Code, Palette, Globe, Coffee, Dumbbell } from "lucide-react";
+import { Search, Users, Zap, Music, Code, Palette, Globe, Coffee, Dumbbell } from "lucide-react";
 
 export const VIBES = [
   { icon: Code, label: "Tech & AI", count: 312, color: "from-violet-500 to-indigo-600" },

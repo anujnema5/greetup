@@ -8,7 +8,7 @@ import {
   MonitorOff,
   PhoneOff,
   SkipForward,
-  Sparkles,
+  Zap,
   Video,
   VideoOff,
 } from "lucide-react";
@@ -227,7 +227,7 @@ export function RoomVideoView({
                   backdropFilter: "blur(8px)",
                 }}
               >
-                <Sparkles size={11} style={{ color: "oklch(88% 0.11 105)" }} />
+                <Zap size={11} style={{ color: "oklch(88% 0.11 105)" }} />
                 <span
                   className="text-[11px] font-semibold"
                   style={{ color: "oklch(88% 0.11 105)" }}

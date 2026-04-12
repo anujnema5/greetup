@@ -1,7 +1,7 @@
 "use client";
 
 import { memo } from "react";
-import { Video, Zap, Sparkles, X } from "lucide-react";
+import { Video, Zap, X } from "lucide-react";
 import { MatchOrb } from "./match-orb";
 import { CircleOrb, useStartCircleModal } from "@/features/circles";
 
@@ -130,7 +130,7 @@ function HeroSectionInner({
         </span>
         <span className="h-3 w-px bg-border hidden sm:block" />
         <span className="flex items-center gap-1.5">
-          <Sparkles size={12} className="text-primary" />
+          <Zap size={12} className="text-primary" />
           <span>
             <strong className="text-foreground">8</strong> great matches waiting
           </span>

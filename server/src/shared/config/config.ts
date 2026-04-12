@@ -35,6 +35,8 @@ const config = {
      * If unset, `https://{bucket}.{region}.digitaloceanspaces.com` is used.
      */
     doSpacesPublicBaseUrl: process.env.DO_SPACES_PUBLIC_BASE_URL,
+
+    geminiApiKey: process.env.GEMINI_API_KEY!,
 };
 
 export default config;

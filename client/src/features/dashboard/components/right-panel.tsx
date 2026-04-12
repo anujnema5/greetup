@@ -1,7 +1,7 @@
 "use client";
 
 import { memo } from "react";
-import { Plus, Users, Sparkles } from "lucide-react";
+import { Plus, Users, Zap } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { CIRCLES, CONNECTIONS, TRENDING_TAGS } from "../constants/mock-data";
 import { useStartCircleModal } from "@/features/circles";
@@ -77,7 +77,7 @@ function RightPanelInner() {
                 <p className="text-[11px] text-muted-foreground truncate">{conn.sub}</p>
               </div>
               <div className="flex items-center gap-1 text-[11px] text-primary shrink-0">
-                <Sparkles size={10} />
+                <Zap size={10} />
                 {conn.mutual}
               </div>
             </div>
@@ -103,7 +103,7 @@ function RightPanelInner() {
 
       <div className="mt-auto rounded-2xl bg-primary/8 border border-primary/15 px-4 py-3.5">
         <div className="flex items-center gap-2 mb-1.5">
-          <Sparkles size={13} className="text-primary" />
+          <Zap size={13} className="text-primary" />
           <p className="text-sm font-semibold text-foreground">High match quality today</p>
         </div>
         <p className="text-xs text-muted-foreground leading-relaxed">

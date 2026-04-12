@@ -2,7 +2,7 @@
 
 import dynamic from "next/dynamic";
 import { useState } from "react";
-import { SlidersHorizontal, Sparkles } from "lucide-react";
+import { SlidersHorizontal, Zap } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { NavSidebar, BottomNav } from "@/features/app-shell";
 import { HeroSection } from "../components/hero-section";
@@ -83,7 +83,7 @@ export function DashboardPage() {
             <CirclesGrid />
 
             <div className="flex items-start gap-3 rounded-2xl border border-primary/20 bg-primary/5 px-5 py-4">
-              <Sparkles size={15} className="text-primary mt-0.5 shrink-0" />
+              <Zap size={15} className="text-primary mt-0.5 shrink-0" />
               <div>
                 <p className="text-sm font-semibold text-foreground">Your match quality is high today</p>
                 <p className="text-xs text-muted-foreground mt-0.5">

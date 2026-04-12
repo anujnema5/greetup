@@ -11,8 +11,8 @@ import {
   Loader2,
   MapPin,
   SlidersHorizontal,
-  Sparkles,
   Star,
+  Zap,
   Target,
   User,
   UserPlus,
@@ -45,27 +45,7 @@ import {
 } from "../utils/build-profile-save-payload";
 import { mapMyProfileToEditable } from "../utils/map-my-profile";
 import { buildProfileEditorCatalog } from "../utils/profile-editor-catalog";
-
-function labelsFromIds(ids: string[], catalog: Array<{ id: string; label: string }>) {
-  const m = new Map(catalog.map((x) => [x.id, x.label]));
-  return ids.map((id) => m.get(id)).filter(Boolean).join(", ");
-}
-
-function professionLabel(id: string | null, catalog: Array<{ id: string; label: string }>) {
-  if (!id) return "Not set";
-  return catalog.find((p) => p.id === id)?.label ?? "—";
-}
-
-function rtkErrorMessage(error: unknown): string {
-  if (error && typeof error === "object" && "data" in error) {
-    const d = (error as FetchBaseQueryError).data;
-    if (d && typeof d === "object" && "message" in d && typeof (d as { message?: string }).message === "string") {
-      return (d as { message: string }).message;
-    }
-  }
-  if (error instanceof Error && error.message) return error.message;
-  return "Something went wrong";
-}
+import { labelsFromIds, professionLabel, rtkErrorMessage } from "../utils/profile-utils";
 
 export function ProfilePage() {
   const profileQuery = useGetMyProfileQuery();
@@ -293,7 +273,7 @@ export function ProfilePage() {
               </div>
 
               <div className="shrink-0 flex flex-col items-center gap-0.5 rounded-2xl border border-primary/25 bg-primary/10 px-3 py-2 dark:border-primary/30 dark:bg-primary/15">
-                <Sparkles size={14} className="text-primary" />
+                <Star size={14} className="text-primary" />
                 <span className="text-lg font-black tabular-nums text-primary">
                   {completionRounded != null ? completionRounded : "—"}
                 </span>
@@ -412,7 +392,7 @@ export function ProfilePage() {
                     <p className="text-xs text-muted-foreground truncate">{m.tagline}</p>
                   </div>
                   <div className="flex items-center gap-1 shrink-0">
-                    <Sparkles size={11} className="text-primary" />
+                    <Zap size={11} className="text-primary" />
                     <span className="text-xs font-semibold text-primary">{m.score}%</span>
                   </div>
                   <button

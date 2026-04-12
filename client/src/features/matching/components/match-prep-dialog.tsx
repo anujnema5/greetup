@@ -1,6 +1,6 @@
 "use client";
 
-import { Loader2, Sparkles } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import { Button } from "@/components/ui/button";
@@ -235,7 +235,6 @@ export function MatchPrepDialog({
         <div className="shrink-0 px-5 pt-5 sm:px-6 sm:pt-6 sm:pb-2">
           <DialogHeader className="space-y-2 text-left">
             <div className="flex items-center gap-2 text-primary">
-              <Sparkles className="size-5 shrink-0" aria-hidden />
               <DialogTitle className="text-lg font-semibold tracking-tight">
                 {isEdit ? "Match preferences" : "Before you match"}
               </DialogTitle>

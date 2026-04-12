@@ -20,6 +20,7 @@
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1026.0",
     "@aws-sdk/s3-request-presigner": "^3.1026.0",
+    "@google/generative-ai": "^0.24.1",
     "@socket.io/bun-engine": "^0.1.0",
     "@socket.io/redis-adapter": "^8.3.0",
     "better-auth": "^1.5.6",
