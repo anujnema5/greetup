@@ -1,9 +1,23 @@
+import { inArray } from 'drizzle-orm';
+import { db } from '@/core/database';
+import { messages } from '@/core/database/schema';
 import { conversationRepository } from '../repositories/conversation.repository';
 
 export const conversationService = {
   async listForUser(userId: string) {
     const convs = await conversationRepository.listForUser(userId);
-    return convs.filter(Boolean);
+    const filtered = convs.filter(Boolean);
+    const ids = filtered.map((c) => c.id);
+    if (ids.length === 0) return [];
+
+    const withRows = await db
+      .select({ conversationId: messages.conversationId })
+      .from(messages)
+      .where(inArray(messages.conversationId, ids))
+      .groupBy(messages.conversationId);
+
+    const hasMessage = new Set(withRows.map((r) => r.conversationId));
+    return filtered.filter((c) => hasMessage.has(c.id));
   },
 
   async getById(conversationId: string, userId: string) {

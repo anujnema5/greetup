@@ -438,7 +438,12 @@ export function useMediasoupRoomSession(options: MediasoupRoomSessionOptions): v
           if (p.kind !== "audio" && p.kind !== "video") continue;
           const src: ProducerMediaSource =
             p.kind === "video" && p.mediaSource === "screen" ? "screen" : "camera";
-          await consumeRemoteProducer(p.producerId, p.kind, p.peerId, src);
+          try {
+            await consumeRemoteProducer(p.producerId, p.kind, p.peerId, src);
+          } catch (err) {
+            // Stale ids after reconnect / reorder — `newProducer` will attach live tracks.
+            console.warn("[RTC] existingProducer consume skipped", p.producerId, err);
+          }
           if (cancelled) return;
         }
 

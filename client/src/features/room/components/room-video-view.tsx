@@ -13,6 +13,7 @@ import {
   Video,
   VideoOff,
   MessageCircle,
+  UserPlus,
   X,
 } from "lucide-react";
 import { ChatPanel } from "@/features/chat/components/chat-panel";
@@ -54,6 +55,8 @@ export function RoomVideoView({
   remotePeers = {},
   showSkip = true,
   conversationId = null,
+  showAddToCircle = false,
+  onOpenAddToCircle,
 }: RoomVideoViewProps) {
   const [chatOpen, setChatOpen] = useState(false);
   const vm = useRoomVideoViewModel({
@@ -355,7 +358,10 @@ export function RoomVideoView({
                 </button>
               </div>
               <div className="flex-1 min-h-0">
-                <ChatPanel conversationId={conversationId} />
+                <ChatPanel
+                  conversationId={conversationId}
+                  conversationType={isGroupRoom ? "room_circle" : "room_direct"}
+                />
               </div>
             </div>
           )}
@@ -411,6 +417,15 @@ export function RoomVideoView({
             size={56}
           />
         )}
+        {showAddToCircle && onOpenAddToCircle ? (
+          <ToolbarActionButton
+            label="Add"
+            onClick={onOpenAddToCircle}
+            icon={<UserPlus size={20} className="text-foreground/75 dark:text-white/80" />}
+            variant="secondary"
+            size={56}
+          />
+        ) : null}
         {showSkip ? (
           <ToolbarActionButton
             label="Skip"

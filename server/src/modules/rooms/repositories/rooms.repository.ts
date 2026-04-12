@@ -1,6 +1,7 @@
 import { and, asc, eq, inArray, isNull, notExists, sql } from "drizzle-orm";
 
 import { db } from "@/core/database";
+import type { RoomSessionType } from "@/shared/types/room-session";
 import {
   mergeRoomAdvancedOptions,
   roomCategories,
@@ -28,6 +29,28 @@ export const roomsRepository = {
       columns: { id: true },
     });
     return !!row;
+  },
+
+  async listActiveParticipantUserIds(roomId: string): Promise<string[]> {
+    const rows = await db.query.roomParticipants.findMany({
+      where: and(eq(roomParticipants.roomId, roomId), isNull(roomParticipants.leftAt)),
+      columns: { userId: true },
+    });
+    return rows.map((r) => r.userId);
+  },
+
+  async findRoomTitlesByIds(roomIds: string[]): Promise<Map<string, string>> {
+    const out = new Map<string, string>();
+    const unique = [...new Set(roomIds.filter((id) => id.length > 0))];
+    if (unique.length === 0) return out;
+    const titleRows = await db
+      .select({ id: rooms.id, title: rooms.title })
+      .from(rooms)
+      .where(inArray(rooms.id, unique));
+    for (const r of titleRows) {
+      out.set(r.id, r.title);
+    }
+    return out;
   },
 
   /**
@@ -166,7 +189,7 @@ export const roomsRepository = {
     inviteCode: string | null;
     advancedOptions: RoomAdvancedOptions;
     inviteeUserIds: string[];
-    roomType: "direct" | "circle";
+    roomType: RoomSessionType;
   }) {
     return db.transaction(async (tx) => {
       const [row] = await tx

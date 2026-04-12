@@ -6,14 +6,15 @@ import { useChat } from '../hooks/use-chat';
 import { useConversation } from '../hooks/use-conversation';
 import { MessageList } from './message-list';
 import { MessageInput } from './message-input';
-import type { Message } from '../types/chat.types';
+import type { ConversationType, Message } from '../types/chat.types';
 
 interface ChatPanelProps {
   conversationId: string;
+  conversationType?: ConversationType;
 }
 
-export function ChatPanel({ conversationId }: ChatPanelProps) {
-  const { data: session } = useSession();
+export function ChatPanel({ conversationId, conversationType }: ChatPanelProps) {
+  const { data: session, isPending: sessionPending } = useSession();
   const userId = session?.user?.id ?? '';
 
   const [replyTo, setReplyTo] = useState<Message | null>(null);
@@ -33,19 +34,28 @@ export function ChatPanel({ conversationId }: ChatPanelProps) {
     addReaction(messageId, emoji);
   };
 
-  if (isLoading) {
+  if (isLoading || sessionPending) {
     return (
-      <div className="flex flex-col h-full items-center justify-center text-muted-foreground text-sm">
+      <div className="flex min-h-0 flex-1 flex-col items-center justify-center text-sm text-muted-foreground">
         Loading messages…
       </div>
     );
   }
 
+  if (!userId) {
+    return (
+      <div className="flex min-h-0 flex-1 flex-col items-center justify-center px-4 text-center text-sm text-muted-foreground">
+        Sign in to read and send messages.
+      </div>
+    );
+  }
+
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
       <MessageList
         messages={messages}
         currentUserId={userId}
+        conversationType={conversationType}
         typingUserIds={typingUserIds}
         hasMore={hasMore}
         onLoadMore={loadMore}

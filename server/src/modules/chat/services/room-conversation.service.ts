@@ -1,11 +1,12 @@
-import { and, eq, or } from 'drizzle-orm';
-import { db } from '@/core/database';
+import { and, eq, or } from "drizzle-orm";
+import { db } from "@/core/database";
 import {
   conversations,
   conversationParticipants,
-} from '@/core/database/schema';
-import { userConnections } from '@/core/database/schema/connections';
-import { roomParticipants } from '@/core/database/schema/rooms';
+} from "@/core/database/schema";
+import { userConnections } from "@/core/database/schema/connections";
+import { roomParticipants } from "@/core/database/schema/rooms";
+import type { RoomSessionType } from "@/shared/types/room-session";
 
 /**
  * Get or create the chat conversation for a room.
@@ -20,7 +21,7 @@ import { roomParticipants } from '@/core/database/schema/rooms';
  */
 export async function getOrCreateRoomConversation(
   roomId: string,
-  roomType: 'direct' | 'circle',
+  roomType: RoomSessionType,
   hostUserId: string,
 ): Promise<string> {
   // If a conversation already exists for this room, return it
@@ -33,7 +34,7 @@ export async function getOrCreateRoomConversation(
 
   if (existing) return existing.id;
 
-  if (roomType === 'direct') {
+  if (roomType === "direct") {
     return createDirectRoomConversation(roomId, hostUserId);
   }
 

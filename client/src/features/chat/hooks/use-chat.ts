@@ -2,6 +2,7 @@
 
 import { useCallback } from 'react';
 import { useDispatch } from 'react-redux';
+import { useSession } from '@/lib/auth-client';
 import { useSocket } from '@/lib/socket/provider';
 import { chatApi } from '../api/chat-api';
 import {
@@ -15,6 +16,8 @@ import type { Message } from '../types/chat.types';
 export function useChat(conversationId: string) {
   const dispatch = useDispatch<AppDispatch>();
   const { chatSocket: socket } = useSocket();
+  const { data: session } = useSession();
+  const me = session?.user;
 
   const sendMessage = useCallback((params: {
     content: string;
@@ -25,10 +28,19 @@ export function useChat(conversationId: string) {
     const tempId = `temp_${Date.now()}`;
 
     // Optimistic update
+    const myId = me?.id ?? '';
     const optimisticMsg: Message = {
       id:             tempId,
       conversationId,
-      senderId:       '',     // filled when ack returns
+      senderId:       myId,
+      sender:         me
+        ? {
+            id:          me.id,
+            name:        me.name ?? '',
+            displayName: me.name ?? null,
+            image:       me.image ?? null,
+          }
+        : undefined,
       content:        params.content,
       messageType:    params.messageType ?? 'text',
       replyToId:      params.replyToId ?? null,
@@ -68,7 +80,7 @@ export function useChat(conversationId: string) {
     );
 
     return tempId;
-  }, [socket, dispatch, conversationId]);
+  }, [socket, dispatch, conversationId, me]);
 
   const markRead = useCallback((messageId: string) => {
     socket.emit('chat:message:read', { conversationId, messageId });

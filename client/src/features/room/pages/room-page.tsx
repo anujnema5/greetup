@@ -7,7 +7,7 @@ import {
   selectIsVideoSessionActive,
 } from "@/lib/redux/selectors/room-selectors";
 import { useRoom } from "@/features/matching";
-import { isCircleRoomData } from "@/features/matching/types/room.types";
+import { isRoomGroupLayout } from "@/features/matching/types/room.types";
 import { RoomVideoLayer } from "@/features/room/components/room-video-layer";
 import { useRoomJoinAndStartVideo } from "@/features/room/hooks/use-room-join-and-start-video";
 import { broadcastRoomMessage } from "@/features/room/lib/room-sync";
@@ -29,12 +29,13 @@ export function RoomPage() {
     currentUserName,
     goHome,
     leaveAndGoHome,
-    room
+    room,
+    rtcRoomType,
   } = useRoom();
 
   const myName = currentUserName ?? "You";
   const scoreLabel = score != null && String(score).length > 0 ? `${String(score)}% match` : null;
-  const isCircleRoom = Boolean(room && isCircleRoomData(room));
+  const isCircleRoom = isRoomGroupLayout(room, rtcRoomType);
   const shouldStartVideo = !loading && Boolean(room) && (isCircleRoom || Boolean(peerId));
 
   const { joinRoomError, joinRoomLoading } = useRoomJoinAndStartVideo({
@@ -97,7 +98,7 @@ export function RoomPage() {
         scoreLabel={scoreLabel}
         myName={myName}
         isGroupRoom={isCircleRoom}
-        groupRoomTitle={room && isCircleRoomData(room) ? room.title : null}
+        groupRoomTitle={room && "title" in room ? room.title : null}
       />
     );
   }

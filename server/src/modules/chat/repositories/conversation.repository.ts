@@ -3,15 +3,26 @@ import { db } from '@/core/database';
 import {
   conversations,
   conversationParticipants,
-  messages,
 } from '@/core/database/schema';
 import { userConnections } from '@/core/database/schema/connections';
+
+/** Nested load for API responses: participant users + room title for circles. */
+const conversationWithDisplay = {
+  participants: {
+    with: {
+      user: {
+        columns: { id: true, name: true, displayName: true, image: true },
+      },
+    },
+  },
+  room: { columns: { id: true, title: true } },
+} as const;
 
 export const conversationRepository = {
   async findById(id: string) {
     return db.query.conversations.findFirst({
       where: eq(conversations.id, id),
-      with: { participants: true },
+      with: conversationWithDisplay,
     });
   },
 
@@ -34,7 +45,7 @@ export const conversationRepository = {
         eq(conversations.type, 'connection'),
         eq(conversations.connectionId, conn.id),
       ),
-      with: { participants: true },
+      with: conversationWithDisplay,
     });
   },
 
@@ -67,7 +78,7 @@ export const conversationRepository = {
 
     return db.query.conversations.findFirst({
       where: eq(conversations.id, conv.id),
-      with: { participants: true },
+      with: conversationWithDisplay,
     });
   },
 
@@ -80,7 +91,7 @@ export const conversationRepository = {
       ),
       with: {
         conversation: {
-          with: { participants: true },
+          with: conversationWithDisplay,
         },
       },
     });

@@ -4,6 +4,8 @@ import {
   getOrCreateRoomConversation,
   ensureRoomConversationParticipant,
 } from "@/modules/chat/services/room-conversation.service";
+import { setUserActiveRtcRoom } from "@/modules/rooms/services/user-active-rtc-room-redis.service";
+import { isRoomSessionType } from "@/shared/types/room-session";
 
 export class IssueRtcTokenError extends Error {
   constructor(
@@ -34,7 +36,7 @@ export async function issueRtcTokenService(userId: string, roomId: string) {
   }
 
   const { roomType } = room;
-  if (roomType !== "direct" && roomType !== "circle") {
+  if (!isRoomSessionType(roomType)) {
     throw new IssueRtcTokenError(
       "RTC token is not supported for this room type",
       "UNSUPPORTED_ROOM_TYPE",
@@ -66,6 +68,8 @@ export async function issueRtcTokenService(userId: string, roomId: string) {
   // Auto-create room conversation and ensure this user is a participant
   const conversationId = await getOrCreateRoomConversation(roomId, roomType, room.hostUserId);
   await ensureRoomConversationParticipant(roomId, userId);
+
+  await setUserActiveRtcRoom(userId, roomId);
 
   return {
     token,

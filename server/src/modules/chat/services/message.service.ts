@@ -1,7 +1,40 @@
+import { inArray } from 'drizzle-orm';
+import { db } from '@/core/database';
+import { users } from '@/core/database/schema';
 import { getRedis } from '@/core/redis';
 import { CHAT_KEYS, CHAT_RATE_LIMIT, CHAT_RATE_WINDOW } from '@/core/redis/keys';
+import type { MessageRow } from '../repositories/message.repository';
 import { conversationRepository } from '../repositories/conversation.repository';
 import { messageRepository } from '../repositories/message.repository';
+
+export type MessageSenderPreview = {
+  id: string;
+  name: string;
+  displayName: string | null;
+  image: string | null;
+};
+
+function unknownSender(id: string): MessageSenderPreview {
+  return { id, name: 'Unknown', displayName: null, image: null };
+}
+
+async function senderMapForIds(ids: string[]): Promise<Map<string, MessageSenderPreview>> {
+  const unique = [...new Set(ids)];
+  if (unique.length === 0) return new Map();
+  const rows = await db.query.users.findMany({
+    where: inArray(users.id, unique),
+    columns: { id: true, name: true, displayName: true, image: true },
+  });
+  return new Map(rows.map((u) => [u.id, u]));
+}
+
+async function withSenders(messagesList: MessageRow[]) {
+  const map = await senderMapForIds(messagesList.map((m) => m.senderId));
+  return messagesList.map((m) => ({
+    ...m,
+    sender: map.get(m.senderId) ?? unknownSender(m.senderId),
+  }));
+}
 
 export const messageService = {
   async checkRateLimit(userId: string): Promise<boolean> {
@@ -37,7 +70,8 @@ export const messageService = {
       }
     }
 
-    return msg;
+    const [withSender] = await withSenders([msg]);
+    return withSender;
   },
 
   async getMessages(params: {
@@ -49,11 +83,15 @@ export const messageService = {
     const isMember = await conversationRepository.isParticipant(params.conversationId, params.userId);
     if (!isMember) throw new Error('UNAUTHORIZED');
 
-    return messageRepository.getMessages({
+    const page = await messageRepository.getMessages({
       conversationId: params.conversationId,
       cursor: params.cursor,
       limit: params.limit,
     });
+    return {
+      ...page,
+      messages: await withSenders(page.messages),
+    };
   },
 
   async markRead(params: { conversationId: string; messageId: string; userId: string }) {
@@ -69,7 +107,10 @@ export const messageService = {
     const existing = await messageRepository.findById(params.messageId);
     if (!existing) throw new Error('NOT_FOUND');
     if (existing.senderId !== params.senderId) throw new Error('UNAUTHORIZED');
-    return messageRepository.editMessage(params.messageId, params.content);
+    const updated = await messageRepository.editMessage(params.messageId, params.content);
+    if (!updated) return null;
+    const [out] = await withSenders([updated]);
+    return out;
   },
 
   async deleteMessage(params: {

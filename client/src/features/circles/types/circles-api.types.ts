@@ -1,4 +1,5 @@
 import type { ApiResponse } from "@/features/profile-setup/types/profile-setup-api.types";
+import type { RoomSessionType } from "@/shared/types/room-session";
 
 export type RoomCategoryDto = {
   id: string;
@@ -26,7 +27,7 @@ export type CreateCircleAdvancedOptions = {
 
 export type CreateCircleRequest = {
   /** Omit or `circle` for group circles; `direct` for 1:1-style rooms. */
-  roomType?: "direct" | "circle";
+  roomType?: RoomSessionType;
   categoryId: string;
   title: string;
   description?: string;
@@ -47,7 +48,7 @@ export type CreateCircleResult = {
     inviteCode: string | null;
     scheduledStartAt: string | null;
     startedAt: string | null;
-    roomType: "direct" | "circle";
+    roomType: RoomSessionType;
   };
   category: Pick<RoomCategoryDto, "id" | "slug" | "displayName" | "emoji">;
   friendInvitesCreated: number;

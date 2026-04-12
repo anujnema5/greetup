@@ -25,6 +25,7 @@ export const API_ENDPOINTS = {
   },
   CONNECTIONS: {
     LIST: "/connections",
+    PEERS_CALL_STATUS: "/connections/peers-call-status",
     PENDING_INCOMING_COUNT: "/connections/pending-incoming-count",
     REQUEST: "/connections/request",
     accept: (connectionId: string) =>
@@ -66,5 +67,7 @@ export const API_ENDPOINTS = {
     get: (roomId: string) => `/room/${roomId}` as const,
     join: (roomId: string) => `/room/${roomId}/join` as const,
     rtcToken: (roomId: string) => `/room/${roomId}/rtc-token` as const,
+    expandDirectInvite: (roomId: string) => `/room/${roomId}/expand-direct/invite` as const,
+    expandDirectRespond: (roomId: string) => `/room/${roomId}/expand-direct/respond` as const,
   },
 }

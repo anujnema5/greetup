@@ -12,6 +12,7 @@ import {
   RoomMinimizedHydration,
   MinimizedRoomDock,
   DirectCallPartnerDisconnectHandler,
+  RoomDirectExpandSocketBridge,
 } from "@/features/room";
 import { MatchmakingProvider } from "@/features/matching";
 import { NotificationsRealtimeBridge } from "@/features/notifications";
@@ -41,6 +42,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             <RtcSocketProvider>
               <DirectCallPartnerDisconnectHandler />
               <SocketProvider>
+                <RoomDirectExpandSocketBridge />
                 <NotificationsRealtimeBridge />
                 <Suspense fallback={null}>
                   <MinimizedRoomDock />

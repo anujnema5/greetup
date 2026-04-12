@@ -16,6 +16,7 @@ import { useMediasoupRoom } from "../hooks/use-mediasoup-room";
 import type { MediasoupRoomStatus, RemoteParticipant, RemotePeer } from "../types/mediasoup-room.types";
 import type { RoomRtcState } from "@/features/matching/types/room.types";
 import type { UseRtcSocketReturn } from "../hooks/use-rtc-socket";
+import type { RoomSessionType } from "@/shared/types/room-session";
 
 export type RtcSocketContextValue = RoomRtcState &
   UseRtcSocketReturn & {
@@ -36,7 +37,7 @@ export type RtcSocketContextValue = RoomRtcState &
     toggleMic: () => void;
     toggleCamera: () => void;
     toggleScreenShare: () => void;
-    rtcRoomType: "direct" | "circle" | null;
+    rtcRoomType: RoomSessionType | null;
     localMediaDeviceError: string | null;
     clearLocalMediaDeviceError: () => void;
   };

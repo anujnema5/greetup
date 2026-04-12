@@ -20,7 +20,9 @@ export {
   useLeaveRoomMutation,
   useGetRoomQuery,
   useJoinRoomMutation,
+  useExpandDirectInviteMutation,
+  useExpandDirectRespondMutation,
   leaveRoomKeepalive,
 } from "./api/matching-api";
 export type * from "./types";
-export { isCircleRoomData, isDirectMatchRoom } from "./types/room.types";
+export { isCircleRoomData, isDirectMatchRoom, isRoomGroupLayout } from "./types/room.types";

@@ -37,7 +37,7 @@ import { ProfileEditModals } from "../components/profile-edit-modals";
 import { ProfilePhotoDialog } from "../components/profile-photo-dialog";
 import { ProfileSectionRow } from "../components/profile-section-row";
 import { RoomInviteSettingsModal } from "../components/room-invite-settings-modal";
-import { RECENT_MATCHES, STATS, ACTIVITY } from "../constants/mock-data";
+import { RECENT_MATCHES, STATS } from "../constants/mock-data";
 import type { EditableProfile, ProfileEditSectionId } from "../types/profile-editor.types";
 import {
   buildProfileSavePayload,
@@ -402,24 +402,6 @@ export function ProfilePage() {
                     <Video size={11} />
                     Call
                   </button>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          <div className="rounded-2xl border border-border bg-card px-5 py-4">
-            <div className="flex items-center gap-2 mb-4">
-              <Star size={14} className="text-primary" />
-              <h3 className="text-sm font-semibold text-foreground">Activity</h3>
-            </div>
-            <div className="flex flex-col gap-3 text-sm">
-              {ACTIVITY.map(({ action, time }) => (
-                <div key={action} className="flex items-center justify-between gap-3">
-                  <div className="flex items-center gap-2.5 text-muted-foreground min-w-0">
-                    <Users size={13} className="text-primary shrink-0" />
-                    <span className="truncate">{action}</span>
-                  </div>
-                  <span className="text-xs text-muted-foreground shrink-0">{time}</span>
                 </div>
               ))}
             </div>

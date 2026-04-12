@@ -1,9 +1,11 @@
+import type { RoomSessionType } from "@/shared/types/room-session";
+
 /** Successful RTC JWT payload from `GET /room/:id/rtc-token` (after unwrap). */
 export type RtcTokenPayload = {
   token: string;
   expiresInSec: number;
   roomId: string;
-  roomType: "direct" | "circle";
+  roomType: RoomSessionType;
   /** Chat conversation linked to this room — always present after issue-rtc-token. */
   conversationId: string;
 };

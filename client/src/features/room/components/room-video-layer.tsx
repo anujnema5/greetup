@@ -1,6 +1,9 @@
 "use client";
 
+import { useState } from "react";
+import { useSession } from "@/lib/auth-client";
 import { useRtcSocketContext } from "@/features/rtc";
+import { AddToCircleDialog } from "@/features/room/components/add-to-circle-dialog";
 import { RoomVideoView } from "@/features/room/components/room-video-view";
 import { useRoomPeerChrome } from "@/features/room/hooks/use-room-peer-chrome";
 import { useRoomVideo } from "@/features/room/hooks/use-room-video";
@@ -24,6 +27,8 @@ export function RoomVideoLayer({
   isGroupRoom,
   groupRoomTitle,
 }: RoomVideoLayerProps) {
+  const { data: session } = useSession();
+  const [addCircleOpen, setAddCircleOpen] = useState(false);
   const video = useRoomVideo(roomId);
   const {
     mediasoupStatus,
@@ -46,6 +51,10 @@ export function RoomVideoLayer({
     roomConversationId,
   } = useRtcSocketContext();
 
+  const excludeAddIds = [session?.user?.id, peerId].filter((x): x is string => Boolean(x));
+  /** `null` while the RTC token query resolves — treat like direct; hide only when API says `circle`. */
+  const showAddToCircle = !isGroupRoom && rtcRoomType !== "circle";
+
   const { peerLabel, remotePeerCameraOff } = useRoomPeerChrome({
     peerId,
     peers,
@@ -55,6 +64,12 @@ export function RoomVideoLayer({
 
   return (
     <div className="fixed inset-0 z-100 flex flex-col overflow-hidden bg-background">
+      <AddToCircleDialog
+        open={addCircleOpen}
+        onOpenChange={setAddCircleOpen}
+        roomId={roomId}
+        excludeUserIds={excludeAddIds}
+      />
       <RoomVideoView
         onEnd={onEnd}
         onSkip={video.handleSkip}
@@ -83,6 +98,8 @@ export function RoomVideoLayer({
         myName={myName}
         remotePeerCameraOff={remotePeerCameraOff}
         conversationId={roomConversationId}
+        showAddToCircle={showAddToCircle}
+        onOpenAddToCircle={() => setAddCircleOpen(true)}
       />
     </div>
   );

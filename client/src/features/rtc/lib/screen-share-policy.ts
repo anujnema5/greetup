@@ -1,4 +1,6 @@
-export type RtcRoomType = "direct" | "circle";
+import type { RoomSessionType } from "@/shared/types/room-session";
+
+export type RtcRoomType = RoomSessionType;
 
 /** Client-side guard for screen share UX; server enforces single screen in direct rooms. */
 export function canUseScreenShare(roomType: RtcRoomType | null | undefined): boolean {

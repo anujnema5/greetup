@@ -6,6 +6,8 @@ export interface Message {
   id: string;
   conversationId: string;
   senderId: string;
+  /** Present on API / socket payloads when server attaches it */
+  sender?: ChatUserPreview;
   content: string;
   messageType: MessageType;
   replyToId: string | null;
@@ -28,6 +30,13 @@ export interface Reaction {
   createdAt: string;
 }
 
+export interface ChatUserPreview {
+  id: string;
+  name: string;
+  displayName: string | null;
+  image: string | null;
+}
+
 export interface ConversationParticipant {
   conversationId: string;
   userId: string;
@@ -36,6 +45,8 @@ export interface ConversationParticipant {
   lastReadAt: string | null;
   joinedAt: string;
   leftAt: string | null;
+  /** Present when loaded from list/detail API */
+  user?: ChatUserPreview;
 }
 
 export interface Conversation {
@@ -50,6 +61,8 @@ export interface Conversation {
   createdAt: string;
   updatedAt: string;
   participants: ConversationParticipant[];
+  /** Present for room-backed threads from API */
+  room?: { id: string; title: string } | null;
 }
 
 export interface MessagesPage {

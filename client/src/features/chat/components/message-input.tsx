@@ -42,7 +42,7 @@ export function MessageInput({
   };
 
   return (
-    <div className="border-t bg-background px-4 py-3">
+    <div className="shrink-0 border-t border-border bg-background/95 px-3 py-3 backdrop-blur-sm md:px-4">
       {replyTo && (
         <div className="flex items-center gap-2 mb-2 text-xs text-muted-foreground border-l-2 border-primary pl-2">
           <span className="truncate flex-1">

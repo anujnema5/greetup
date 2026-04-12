@@ -15,9 +15,3 @@ export const RECENT_MATCHES = [
   { name: "Mia C.", tagline: "UI designer · Music lover", initials: "MC", grad: "from-pink-400 to-rose-600", score: 91 },
   { name: "Rohan V.", tagline: "Full-stack dev · Founder", initials: "RV", grad: "from-sky-400 to-blue-600", score: 88 },
 ] as const;
-
-export const ACTIVITY = [
-  { action: "Matched with Zara K.", time: "2h ago" },
-  { action: "Joined Tech & Startups circle", time: "5h ago" },
-  { action: "New connection: Mia C.", time: "1d ago" },
-] as const;

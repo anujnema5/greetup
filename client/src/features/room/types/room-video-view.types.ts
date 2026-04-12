@@ -3,6 +3,7 @@ import type {
   RemoteParticipant,
   RemotePeer,
 } from "@/features/rtc";
+import type { RoomSessionType } from "@/shared/types/room-session";
 
 export type RoomVideoViewProps = {
   onEnd: () => void;
@@ -23,7 +24,7 @@ export type RoomVideoViewProps = {
   cameraEnabled?: boolean;
   onToggleMic?: () => void;
   onToggleCamera?: () => void;
-  rtcRoomType?: "direct" | "circle" | null;
+  rtcRoomType?: RoomSessionType | null;
   screenSharing?: boolean;
   onToggleScreenShare?: () => void;
   /** Camera/mic permission or device error from the last toggle. */
@@ -42,4 +43,7 @@ export type RoomVideoViewProps = {
   showSkip?: boolean;
   /** Chat conversation linked to this room — renders in-call chat panel when provided. */
   conversationId?: string | null;
+  /** Direct call only: show “Add to circle” in the toolbar. */
+  showAddToCircle?: boolean;
+  onOpenAddToCircle?: () => void;
 };

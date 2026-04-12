@@ -1,3 +1,7 @@
+import type { RoomSessionType } from "@/shared/types/room-session";
+
+export type { RoomSessionType };
+
 /**
  * Room document from GET `/room/:roomId` (match engine Redis pair or DB-backed room).
  */
@@ -10,12 +14,15 @@ export type RoomData =
       matchScore: string | null;
       userAName?: string | null;
       userBName?: string | null;
+      /** After an in-place 1:1 → circle expansion, Postgres `room_type` is `circle`. */
+      roomType?: RoomSessionType;
     }
   | {
       sessionKind: "db_room";
       roomId: string;
       hostUserId: string;
-      roomType: string;
+      /** API may send other strings; callers treat unknown values defensively. */
+      roomType: RoomSessionType | string;
       title: string;
     };
 
@@ -26,16 +33,20 @@ export function parseRoomData(data: unknown): RoomData {
   }
   const d = data as Record<string, unknown>;
   if (d.sessionKind === "db_room") {
+    const rtRaw = d.roomType;
+    const roomType: RoomSessionType | string =
+      rtRaw === "circle" || rtRaw === "direct" ? rtRaw : String(rtRaw);
     return {
       sessionKind: "db_room",
       roomId: String(d.roomId),
       hostUserId: String(d.hostUserId),
-      roomType: String(d.roomType),
+      roomType,
       title: String(d.title),
     };
   }
   if ("userA" in d && "userB" in d && "roomId" in d) {
     const ms = d.matchScore;
+    const rt = d.roomType;
     return {
       roomId: String(d.roomId),
       userA: String(d.userA),
@@ -43,6 +54,7 @@ export function parseRoomData(data: unknown): RoomData {
       matchScore: ms == null ? null : typeof ms === "string" ? ms : String(ms),
       userAName: typeof d.userAName === "string" ? d.userAName : null,
       userBName: typeof d.userBName === "string" ? d.userBName : null,
+      roomType: rt === "circle" || rt === "direct" ? rt : undefined,
     };
   }
   throw new Error("Unexpected room payload");
@@ -58,6 +70,17 @@ export function isCircleRoomData(
 /** Redis match-pair (1:1) room — not a circle. */
 export function isDirectMatchRoom(room: RoomData | null | undefined): boolean {
   return Boolean(room && !isCircleRoomData(room));
+}
+
+/** Use circle (gallery) layout when the DB/RTC session is a group room. */
+export function isRoomGroupLayout(
+  room: RoomData | null | undefined,
+  rtcRoomType: RoomSessionType | null | undefined,
+): boolean {
+  if (rtcRoomType === "circle") return true;
+  if (room && isCircleRoomData(room)) return true;
+  if (room && "userA" in room && room.roomType === "circle") return true;
+  return false;
 }
 
 /**

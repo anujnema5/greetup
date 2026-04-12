@@ -1,7 +1,15 @@
 'use client';
 
 import { useSelector } from 'react-redux';
+import { useSession } from '@/lib/auth-client';
+import { cn } from '@/lib/utils';
 import { useListConversationsQuery } from '../api/chat-api';
+import {
+  conversationDisplayTitle,
+  conversationSubtitle,
+  conversationListAvatar,
+  formatConversationUpdatedAt,
+} from '../lib/conversation-display';
 import type { RootState } from '@/lib/redux/store';
 import type { Conversation } from '../types/chat.types';
 
@@ -10,23 +18,19 @@ interface ConversationListProps {
   onSelect: (conv: Conversation) => void;
 }
 
-const TYPE_LABELS: Record<string, string> = {
-  room_direct:  'Direct',
-  room_circle:  'Circle',
-  connection:   'DM',
-};
-
 export function ConversationList({ activeId, onSelect }: ConversationListProps) {
+  const { data: session } = useSession();
+  const currentUserId = session?.user?.id ?? '';
+
   const { data: conversations = [], isLoading } = useListConversationsQuery();
-  console.log('Conversations:', conversations); // Debug log
-  
+
   const unreadCounts = useSelector((s: RootState) => s.chat.unreadCounts);
 
   if (isLoading) {
     return (
-      <div className="flex flex-col gap-2 p-3">
+      <div className="flex flex-col gap-2 p-2 md:p-3">
         {Array.from({ length: 5 }).map((_, i) => (
-          <div key={i} className="h-14 rounded-xl bg-muted animate-pulse" />
+          <div key={i} className="h-13 rounded-xl bg-muted/80 animate-pulse" />
         ))}
       </div>
     );
@@ -34,48 +38,57 @@ export function ConversationList({ activeId, onSelect }: ConversationListProps) 
 
   if (!conversations.length) {
     return (
-      <div className="flex flex-col items-center justify-center h-40 text-sm text-muted-foreground">
+      <div className="flex h-40 flex-col items-center justify-center px-4 text-center text-sm text-muted-foreground">
         No conversations yet
       </div>
     );
   }
 
   return (
-    <div className="flex flex-col overflow-y-auto">
+    <div className="flex flex-col gap-1 overflow-y-auto p-2 md:p-3">
       {conversations.map((conv) => {
         const unread = unreadCounts[conv.id] ?? 0;
         const isActive = conv.id === activeId;
+        const title = conversationDisplayTitle(conv, currentUserId);
+        const subtitle = conversationSubtitle(conv);
+        const { image, label } = conversationListAvatar(conv, currentUserId);
 
         return (
           <button
             key={conv.id}
+            type="button"
             onClick={() => onSelect(conv)}
-            className={`
-              flex items-center gap-3 px-4 py-3 text-left transition-colors cursor-pointer
-              hover:bg-muted/60
-              ${isActive ? 'bg-muted' : ''}
-            `}
+            className={cn(
+              'flex cursor-pointer items-center gap-3 rounded-xl px-3 py-2.5 text-left transition-all duration-200',
+              'hover:bg-muted/70',
+              isActive && 'bg-primary/10 text-foreground ring-1 ring-primary/25 shadow-sm',
+            )}
           >
-            {/* Avatar placeholder */}
-            <div className="shrink-0 w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center text-sm font-medium text-primary">
-              {TYPE_LABELS[conv.type]?.charAt(0) ?? '?'}
+            <div
+              className={cn(
+                'flex size-10 shrink-0 items-center justify-center overflow-hidden rounded-full',
+                'bg-linear-to-br from-primary/70 to-primary text-xs font-bold text-primary-foreground',
+              )}
+            >
+              {image ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={image} alt="" className="size-full object-cover" />
+              ) : (
+                label
+              )}
             </div>
 
-            <div className="flex-1 min-w-0">
+            <div className="min-w-0 flex-1">
               <div className="flex items-center justify-between gap-2">
-                <span className="text-sm font-medium truncate">
-                  {TYPE_LABELS[conv.type] ?? conv.type}
-                </span>
-                <span className="text-[10px] text-muted-foreground shrink-0">
-                  {new Date(conv.updatedAt).toLocaleDateString()}
+                <span className="truncate text-sm font-medium text-foreground">{title}</span>
+                <span className="shrink-0 text-[10px] text-muted-foreground tabular-nums">
+                  {formatConversationUpdatedAt(conv.updatedAt)}
                 </span>
               </div>
-              <div className="flex items-center justify-between gap-2">
-                <span className="text-xs text-muted-foreground truncate">
-                  {conv.participants.length} participant{conv.participants.length !== 1 ? 's' : ''}
-                </span>
+              <div className="mt-0.5 flex items-center justify-between gap-2">
+                <span className="truncate text-xs text-muted-foreground">{subtitle}</span>
                 {unread > 0 && (
-                  <span className="shrink-0 min-w-[18px] h-[18px] rounded-full bg-primary text-primary-foreground text-[10px] font-bold flex items-center justify-center px-1">
+                  <span className="flex h-[18px] min-w-[18px] shrink-0 items-center justify-center rounded-full bg-primary px-1 text-[10px] font-bold text-primary-foreground">
                     {unread > 99 ? '99+' : unread}
                   </span>
                 )}

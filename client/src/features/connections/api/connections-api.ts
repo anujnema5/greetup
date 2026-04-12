@@ -1,10 +1,13 @@
 import { API_ENDPOINTS, baseApi } from "@/lib/api";
+import { CONNECTIONS_PEERS_CALL_STATUS_TAG } from "@/lib/api/rtk-cache-tags";
 import { publicProfileRtkCacheId } from "@/lib/api/public-profile-rtk-cache";
 
 import type {
   ConnectionListFilter,
   ListConnectionsApiResponse,
   ListConnectionsData,
+  PeerCallStatusEntry,
+  PeersCallStatusApiResponse,
   PendingIncomingCountResponse,
   RequestConnectionMutationArg,
   RequestConnectionResult,
@@ -30,6 +33,22 @@ export const connectionsApi = baseApi.injectEndpoints({
     getPendingIncomingConnectionCount: build.query<PendingIncomingCountResponse, void>({
       query: () => CONNECTIONS.PENDING_INCOMING_COUNT,
       providesTags: [pendingIncomingCountTag],
+    }),
+
+    /** POST batch — `key` is sorted `userId` joined by `|` for stable cache identity. */
+    peersCallStatus: build.query<Record<string, PeerCallStatusEntry>, string>({
+      query: (key) => ({
+        url: CONNECTIONS.PEERS_CALL_STATUS,
+        method: "POST",
+        body: { userIds: key ? key.split("|").filter(Boolean) : [] },
+      }),
+      transformResponse: (response: PeersCallStatusApiResponse): Record<string, PeerCallStatusEntry> => {
+        if (!response.success || !response.data?.statuses) {
+          throw new Error(response.message ?? "Could not load peer status");
+        }
+        return response.data.statuses;
+      },
+      providesTags: [CONNECTIONS_PEERS_CALL_STATUS_TAG],
     }),
 
     getMyConnections: build.query<
@@ -134,6 +153,7 @@ export const {
   useGetPendingIncomingConnectionCountQuery,
   useGetMyConnectionsQuery,
   useLazyGetMyConnectionsQuery,
+  usePeersCallStatusQuery,
   useAcceptedConnectionsInfiniteQuery,
   useRequestConnectionMutation,
   useAcceptConnectionMutation,

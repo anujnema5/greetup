@@ -46,7 +46,7 @@ export function NewConversationSearch({ onConversationOpen }: NewConversationSea
   }
 
   return (
-    <div ref={containerRef} className="relative px-3 py-2">
+    <div ref={containerRef} className="relative border-b border-border/60 px-3 py-2.5 md:py-2">
       <div className="relative">
         <svg
           className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground pointer-events-none"
@@ -64,7 +64,7 @@ export function NewConversationSearch({ onConversationOpen }: NewConversationSea
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           onFocus={() => setOpen(true)}
-          className="w-full pl-8 pr-3 py-1.5 text-xs rounded-lg bg-muted border-0 outline-none focus:ring-1 focus:ring-primary/40 placeholder:text-muted-foreground"
+          className="w-full rounded-xl border border-border/60 bg-muted/80 py-2 pl-8 pr-3 text-xs outline-none transition-shadow placeholder:text-muted-foreground focus:border-primary/30 focus:ring-2 focus:ring-primary/20"
         />
         {query && (
           <button

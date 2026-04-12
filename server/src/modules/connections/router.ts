@@ -4,6 +4,7 @@ import {
   handleDisconnectConnection,
   handleAcceptIncomingConnection,
   handleListMyConnections,
+  handlePeersCallStatus,
   handlePendingIncomingCount,
   handleRejectIncomingConnection,
   handleRequestConnection,
@@ -14,6 +15,7 @@ export const connectionsRoute = new Hono();
 
 connectionsRoute.get("/", handleListMyConnections);
 connectionsRoute.get("/pending-incoming-count", handlePendingIncomingCount);
+connectionsRoute.post("/peers-call-status", handlePeersCallStatus);
 connectionsRoute.post("/request", handleRequestConnection);
 connectionsRoute.post("/:connectionId/accept", handleAcceptIncomingConnection);
 connectionsRoute.post("/:connectionId/reject", handleRejectIncomingConnection);
