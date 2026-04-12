@@ -15,5 +15,7 @@ export const baseApi = createApi({
     'PublicProfile',
     'Notifications',
     'MatchPrepPrompt',
+    'Conversations',
+    'Messages',
   ],
 })

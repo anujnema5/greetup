@@ -40,4 +40,6 @@ export type RoomVideoViewProps = {
   remotePeers?: Record<string, RemotePeer>;
   /** When false, hides matchmaking “Skip” (e.g. circles). */
   showSkip?: boolean;
+  /** Chat conversation linked to this room — renders in-call chat panel when provided. */
+  conversationId?: string | null;
 };

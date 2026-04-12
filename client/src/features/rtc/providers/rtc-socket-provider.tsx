@@ -20,6 +20,8 @@ import type { UseRtcSocketReturn } from "../hooks/use-rtc-socket";
 export type RtcSocketContextValue = RoomRtcState &
   UseRtcSocketReturn & {
     rtcRoomId: string | null;
+    /** Chat conversation auto-created for this room (null until token query resolves). */
+    roomConversationId: string | null;
     mediasoupStatus: MediasoupRoomStatus;
     mediasoupError: string | null;
     localMediaStream: MediaStream | null;
@@ -86,6 +88,7 @@ export function RtcSocketProvider({ children }: { children: React.ReactNode }) {
     rtcSocketState === "connected";
 
   const rtcRoomType = rtcQuery.data?.roomType ?? null;
+  const roomConversationId = rtcQuery.data?.conversationId ?? null;
 
   const mediasoup = useMediasoupRoom({
     enabled: mediasoupEnabled,
@@ -112,6 +115,7 @@ export function RtcSocketProvider({ children }: { children: React.ReactNode }) {
       rtcSocket,
       rtcSocketState,
       rtcRoomId: activeRoomId,
+      roomConversationId,
       rtcRoomType,
       mediasoupStatus: mediasoup.status,
       mediasoupError: mediasoup.error,
@@ -139,6 +143,7 @@ export function RtcSocketProvider({ children }: { children: React.ReactNode }) {
       rtcSocket,
       rtcSocketState,
       activeRoomId,
+      roomConversationId,
       rtcRoomType,
       mediasoup.status,
       mediasoup.error,

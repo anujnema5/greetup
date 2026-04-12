@@ -9,6 +9,7 @@ export type MatchPeerPreview = {
   initials: string;
   interestTags: string[];
   moreInterestsCount: number;
+  image?: string;
   isOnline: boolean;
   insight: string | null;
 };
@@ -52,6 +53,7 @@ type ParsedSnapshot = {
   displayName: string;
   bio: string;
   age?: number;
+  image?: string;
   interests: string[];
   goals: string[];
   professions: string[];
@@ -76,6 +78,7 @@ function parseSnapshotData(data: unknown): ParsedSnapshot {
     "Someone";
 
   const age = typeof user?.age === "number" ? user.age : undefined;
+  const image = typeof user?.image === "string" && user.image.trim() ? user.image.trim() : undefined;
   const bio = typeof o.bio === "string" ? o.bio.trim().split("\n")[0]?.trim() ?? "" : "";
   const professions = Array.isArray(o.professions) ? (o.professions as SnapshotProfession[]) : [];
   const goals = Array.isArray(o.goals) ? (o.goals as SnapshotGoal[]) : [];
@@ -141,6 +144,7 @@ function parseSnapshotData(data: unknown): ParsedSnapshot {
     professions: professionLabels,
     moods: moodLabels,
     lookingFor: lookingForLabels,
+    image,
     preview: { headline, initials: initialsFromName(displayNameRaw), interestTags: visible, moreInterestsCount },
   };
 }
@@ -200,7 +204,7 @@ export async function getMatchPeerPreview(
     lookingFor: peerData.lookingFor,
   };
 
-  const insight = await generateMatchInsight(meForInsight, peerForInsight);
+  // const insight = await generateMatchInsight(meForInsight, peerForInsight);
 
   return {
     displayName: peerData.displayName,
@@ -209,6 +213,7 @@ export async function getMatchPeerPreview(
     interestTags: peerData.preview.interestTags,
     moreInterestsCount: peerData.preview.moreInterestsCount,
     isOnline,
-    insight,
+    insight: '',
+    image: peerData.image,
   };
 }

@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import {
   Mic,
   MicOff,
@@ -11,7 +12,10 @@ import {
   Zap,
   Video,
   VideoOff,
+  MessageCircle,
+  X,
 } from "lucide-react";
+import { ChatPanel } from "@/features/chat/components/chat-panel";
 import { cn } from "@/lib/utils";
 import { MOCK_MATCH } from "@/features/room/constants/mock-match";
 import { useRoomVideoViewModel } from "@/features/room/hooks/use-room-video-view-model";
@@ -49,7 +53,9 @@ export function RoomVideoView({
   remoteParticipants = [],
   remotePeers = {},
   showSkip = true,
+  conversationId = null,
 }: RoomVideoViewProps) {
+  const [chatOpen, setChatOpen] = useState(false);
   const vm = useRoomVideoViewModel({
     remoteStream,
     remotePeerCameraOff,
@@ -270,7 +276,7 @@ export function RoomVideoView({
                       />
                     ) : (
                       <div
-                        className="flex h-full min-h-[5rem] w-full items-center justify-center md:min-h-0"
+                        className="flex h-full min-h-20 w-full items-center justify-center md:min-h-0"
                         style={{
                           background:
                             "linear-gradient(135deg, oklch(30% 0.04 105), oklch(20% 0.02 110))",
@@ -290,7 +296,7 @@ export function RoomVideoView({
               </p>
               <p className="mt-0.5 truncate text-[10px] text-muted-foreground/80">{myName}</p>
             </div>
-            <div className="flex flex-1 items-center justify-center p-3 md:min-h-[9rem]">
+            <div className="flex flex-1 items-center justify-center p-3 md:min-h-36">
               <div
                 className="relative w-full max-w-md overflow-hidden rounded-xl md:max-w-none"
                 style={{
@@ -310,7 +316,7 @@ export function RoomVideoView({
                   />
                 ) : (
                   <div
-                    className="flex h-full min-h-[7.5rem] w-full items-center justify-center md:min-h-0"
+                    className="flex h-full min-h-30 w-full items-center justify-center md:min-h-0"
                     style={{
                       background:
                         "linear-gradient(135deg, oklch(30% 0.04 105), oklch(20% 0.02 110))",
@@ -331,6 +337,28 @@ export function RoomVideoView({
               </div>
             </div>
           </aside>
+
+          {/* In-room chat overlay — slides in from right on md+, bottom sheet on mobile */}
+          {conversationId && chatOpen && (
+            <div className={cn(
+              "absolute inset-y-0 right-0 z-20 flex flex-col",
+              "w-full md:w-80 bg-card/95 backdrop-blur-md border-l border-border",
+            )}>
+              <div className="flex items-center justify-between px-3 py-2 border-b border-border shrink-0">
+                <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Chat</span>
+                <button
+                  type="button"
+                  onClick={() => setChatOpen(false)}
+                  className="text-muted-foreground hover:text-foreground cursor-pointer"
+                >
+                  <X size={16} />
+                </button>
+              </div>
+              <div className="flex-1 min-h-0">
+                <ChatPanel conversationId={conversationId} />
+              </div>
+            </div>
+          )}
         </div>
       </div>
 
@@ -373,6 +401,15 @@ export function RoomVideoView({
               />
             ) : null}
           </>
+        )}
+        {conversationId && (
+          <ToolbarActionButton
+            label="Chat"
+            onClick={() => setChatOpen((o) => !o)}
+            icon={<MessageCircle size={20} className={chatOpen ? "text-primary" : "text-foreground/75 dark:text-white/80"} />}
+            variant="secondary"
+            size={56}
+          />
         )}
         {showSkip ? (
           <ToolbarActionButton

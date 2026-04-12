@@ -37,6 +37,10 @@ const config = {
     doSpacesPublicBaseUrl: process.env.DO_SPACES_PUBLIC_BASE_URL,
 
     geminiApiKey: process.env.GEMINI_API_KEY!,
+
+    /** AES-256-GCM message encryption key (32 bytes / 64 hex chars). Loaded from Doppler. */
+    messageEncryptionKey: process.env.MESSAGE_ENCRYPTION_KEY,
+    messageEncryptionKeyPrevious: process.env.MESSAGE_ENCRYPTION_KEY_PREVIOUS,
 };
 
 export default config;

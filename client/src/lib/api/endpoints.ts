@@ -51,6 +51,16 @@ export const API_ENDPOINTS = {
     CREATE: "/circles",
     ACTIVE: "/circles/active",
   },
+  CHAT: {
+    CONVERSATIONS:        '/chat/conversations',
+    CONVERSATIONS_CONNECTION: '/chat/conversations/connection',
+    conversation: (id: string) => `/chat/conversations/${encodeURIComponent(id)}` as const,
+    messages:     (id: string) => `/chat/conversations/${encodeURIComponent(id)}/messages` as const,
+    persistence:  (id: string) => `/chat/conversations/${encodeURIComponent(id)}/persistence` as const,
+    deleteMessage: (id: string) => `/chat/messages/${encodeURIComponent(id)}` as const,
+    pinMessage:   (id: string) => `/chat/messages/${encodeURIComponent(id)}/pin` as const,
+    REPORT:       '/chat/report',
+  },
   ROOM: {
     start: (roomId: string) => `/room/${roomId}/start` as const,
     get: (roomId: string) => `/room/${roomId}` as const,

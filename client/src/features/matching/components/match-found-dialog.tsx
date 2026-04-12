@@ -49,12 +49,13 @@ export function MatchFoundDialog({
   const moreCount = peer?.moreInterestsCount ?? 0;
   const online = peer?.isOnline ?? true;
   const insight = peer?.insight ?? null;
+  const image = peer?.image ?? null;
 
   const [showInsight, setShowInsight] = useState(false);
 
   useEffect(() => {
     if (!open) {
-      setShowInsight(false);  
+      setShowInsight(false);
       return;
     }
     if (!insight) return;
@@ -93,14 +94,20 @@ export function MatchFoundDialog({
 
           <div className="relative mb-3">
             <div
-              className="flex size-22 items-center justify-center rounded-full text-xl font-bold text-white shadow-lg"
-              style={{
-                background: `radial-gradient(circle at 35% 30%, oklch(58% 0.22 285), ${PURPLE_AVATAR})`,
-                boxShadow: `0 0 40px ${PURPLE_AVATAR}55, inset 0 1px 0 oklch(100% 0 0 / 0.12)`,
-              }}
+              className="flex size-22 items-center justify-center overflow-hidden rounded-full text-xl font-bold text-white shadow-lg"
+              style={
+                image
+                  ? { boxShadow: `0 0 40px ${PURPLE_AVATAR}55, inset 0 1px 0 oklch(100% 0 0 / 0.12)` }
+                  : {
+                    background: `radial-gradient(circle at 35% 30%, oklch(58% 0.22 285), ${PURPLE_AVATAR})`,
+                    boxShadow: `0 0 40px ${PURPLE_AVATAR}55, inset 0 1px 0 oklch(100% 0 0 / 0.12)`,
+                  }
+              }
             >
               {isFetching ? (
                 <span className="size-6 animate-pulse rounded-md bg-white/20" />
+              ) : image ? (
+                <img src={image} alt={displayName} className="size-full object-cover" />
               ) : (
                 initials
               )}

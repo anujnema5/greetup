@@ -4,6 +4,8 @@ export type RtcTokenPayload = {
   expiresInSec: number;
   roomId: string;
   roomType: "direct" | "circle";
+  /** Chat conversation linked to this room — always present after issue-rtc-token. */
+  conversationId: string;
 };
 
 /** Raw JSON envelope from the API before `transformResponse`. */

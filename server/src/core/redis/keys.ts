@@ -1,11 +1,11 @@
 export const USER_PRESENCE_KEYS = {
-    ONLINE_USER_IPS: "online_users:",
-    ONLINE_USERS_SET: "all_online_users",
-    USER_LAST_SEEN: "user:last_seen:",
+  ONLINE_USER_IPS: "online_users:",
+  ONLINE_USERS_SET: "all_online_users",
+  USER_LAST_SEEN: "user:last_seen:",
 } as const;
 
 export const USER_CACHE_KEYS = {
-    PROFILE_SNAPSHOT: "user:profile:snapshot:",
+  PROFILE_SNAPSHOT: "user:profile:snapshot:",
 } as const;
 
 // MATCHING ENGINE KEYS
@@ -28,11 +28,31 @@ export const ROOM_KEYS = {
 
 export const ROOM_TTL = 7200; // 2 HOURS
 
+export const CHAT_KEYS = {
+  unreadCounts: (userId: string) =>
+    `chat:unread:${userId}`,               // HASH { convId → count }
+
+  typingMember: (conversationId: string, userId: string) =>
+    `chat:typing:${conversationId}:${userId}`, // STRING, EX 3
+
+  messageRate: (userId: string) =>
+    `chat:rate:${userId}`,                 // STRING, INCR + EX 60
+
+  onlineUsers: () =>
+    `chat:online`,                         // SET of userId
+
+  socketCount: (userId: string) =>
+    `chat:socket-count:${userId}`,         // STRING, INCR/DECR
+} as const;
+
+export const CHAT_TYPING_TTL = 3;     // seconds
+export const CHAT_RATE_WINDOW = 60;   // seconds
+export const CHAT_RATE_LIMIT = 60;   // messages per window
+
 // CACHE TTL VALUES (IN SECONDS)
 export const CACHE_TTL = {
-    SHORT: 300,        // 5 MINUTES
-    MEDIUM: 1800,      // 30 MINUTES
-    LONG: 3600,        // 1 HOUR
-    VERY_LONG: 86400,  // 24 HOURS
-    EXTRA_LONG: 86400,
+  SHORT: 300,        // 5 MINUTES
+  MEDIUM: 1800,      // 30 MINUTES
+  LONG: 3600,        // 1 HOUR
+  VERY_LONG: 86400,  // 24 HOURS
 } as const;

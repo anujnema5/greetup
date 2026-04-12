@@ -1,5 +1,9 @@
 import { signRtcJwtForRoom } from "@/core/rtc/rtc-jwt";
 import { roomsRepository } from "@/modules/rooms/repositories/rooms.repository";
+import {
+  getOrCreateRoomConversation,
+  ensureRoomConversationParticipant,
+} from "@/modules/chat/services/room-conversation.service";
 
 export class IssueRtcTokenError extends Error {
   constructor(
@@ -59,10 +63,15 @@ export async function issueRtcTokenService(userId: string, roomId: string) {
     roomType,
   });
 
+  // Auto-create room conversation and ensure this user is a participant
+  const conversationId = await getOrCreateRoomConversation(roomId, roomType, room.hostUserId);
+  await ensureRoomConversationParticipant(roomId, userId);
+
   return {
     token,
     expiresInSec,
     roomId,
     roomType,
+    conversationId,
   };
 }

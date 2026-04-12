@@ -43,6 +43,7 @@ export function RoomVideoLayer({
     toggleScreenShare,
     localMediaDeviceError,
     clearLocalMediaDeviceError,
+    roomConversationId,
   } = useRtcSocketContext();
 
   const { peerLabel, remotePeerCameraOff } = useRoomPeerChrome({
@@ -81,6 +82,7 @@ export function RoomVideoLayer({
         scoreLabel={scoreLabel}
         myName={myName}
         remotePeerCameraOff={remotePeerCameraOff}
+        conversationId={roomConversationId}
       />
     </div>
   );
