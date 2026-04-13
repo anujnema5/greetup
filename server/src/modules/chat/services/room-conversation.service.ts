@@ -50,7 +50,8 @@ async function createDirectRoomConversation(roomId: string, hostUserId: string):
 
   const otherUserId = participants.find((p) => p.userId !== hostUserId)?.userId;
 
-  // If both users are connections, check for an existing connection DM
+  // Accepted connection: always use a single `connection` DM (create + link room if needed).
+  // Serialized on the user_connections row so RTC + chat API cannot create duplicates in parallel.
   if (otherUserId) {
     const conn = await db.query.userConnections.findFirst({
       where: and(
@@ -64,22 +65,47 @@ async function createDirectRoomConversation(roomId: string, hostUserId: string):
     });
 
     if (conn) {
-      // Check if a connection conversation exists — link it to this room
-      const connConv = await db.query.conversations.findFirst({
-        where: and(
-          eq(conversations.type, 'connection'),
-          eq(conversations.connectionId, conn.id),
-        ),
-        columns: { id: true },
-      });
+      return db.transaction(async (tx) => {
+        await tx
+          .select({ id: userConnections.id })
+          .from(userConnections)
+          .where(eq(userConnections.id, conn.id))
+          .for('update');
 
-      if (connConv) {
-        // Link existing DM history to this room
-        await db.update(conversations)
-          .set({ roomId })
-          .where(eq(conversations.id, connConv.id));
-        return connConv.id;
-      }
+        const connConv = await tx.query.conversations.findFirst({
+          where: and(
+            eq(conversations.type, 'connection'),
+            eq(conversations.connectionId, conn.id),
+          ),
+          columns: { id: true },
+        });
+
+        if (connConv) {
+          await tx
+            .update(conversations)
+            .set({ roomId })
+            .where(eq(conversations.id, connConv.id));
+          return connConv.id;
+        }
+
+        const [created] = await tx.insert(conversations).values({
+          type:         'connection',
+          connectionId: conn.id,
+          roomId,
+          isPersisted:  true,
+        }).returning({ id: conversations.id });
+
+        const userIds = participants.map((p) => p.userId);
+        if (userIds.length > 0) {
+          await tx.insert(conversationParticipants).values(
+            userIds.map((userId) => ({ conversationId: created.id, userId })),
+          ).onConflictDoNothing({
+            target: [conversationParticipants.conversationId, conversationParticipants.userId],
+          });
+        }
+
+        return created.id;
+      });
     }
   }
 

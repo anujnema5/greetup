@@ -11,11 +11,15 @@ import { registerSignalingHandlers } from "@/signaling/signaling.handler";
 import { registerChessHandlers } from "@/games/chess/chess.handler";
 import { registerLudoHandlers } from "@/games/ludo/ludo.handler";
 import { healthHandler } from "@/controllers/health.controller";
-import { createInternalRoomTypeRouter } from "@/routes/internal-room-type.route";
+import { handleRoomRoomType } from "@/controllers/internal.controller";
+import { registerInternalPeers } from "@/internal/internal-peers.registry";
+import { internalApiGuard } from "@/middleware/internal-api.middleware";
 
 const app = new Hono();
 
 app.get("/health", healthHandler);
+app.use("/internal/*", internalApiGuard);
+app.post("/internal/webhook/room-room-type", handleRoomRoomType);
 
 const setupShutdownHooks = (io: Server): void => {
   const shutdown = async () => {
@@ -44,7 +48,7 @@ const bootstrap = async (): Promise<void> => {
 
   registerRtcSocketAuth(io);
   const peers = registerSignalingHandlers(io);
-  app.route("/internal", createInternalRoomTypeRouter(peers));
+  registerInternalPeers(peers);
   registerChessHandlers(io);
   registerLudoHandlers(io);
 

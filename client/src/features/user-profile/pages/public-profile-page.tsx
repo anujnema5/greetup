@@ -28,7 +28,7 @@ import { getRtkQueryErrorMessage } from "@/lib/api/rtk-query-error";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 
-import { publicProfileRtkCacheId } from "@/lib/api/public-profile-rtk-cache";
+import { publicProfileRtkCacheId } from "@/features/user-profile/api/public-profile-rtk-cache";
 import { useGetPublicProfileQuery } from "../api/public-profile-api";
 import { PublicProfileAvatar } from "../components/public-profile-avatar";
 import { PublicProfileConnectionActions } from "../components/public-profile-connection-actions";

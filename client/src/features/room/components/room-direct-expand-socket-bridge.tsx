@@ -28,7 +28,7 @@ import {
 import {
   invalidateRoomAndPeersCallStatusTags,
   patchCachedRtcRoomType,
-} from "@/lib/api/rtk-cache-tags";
+} from "@/features/room/lib/room-rtk-cache";
 import { getRtkMutationErrorMessage } from "@/lib/api/rtk-mutation-error";
 import { useAppDispatch } from "@/lib/redux/hooks";
 import { useSocket } from "@/lib/socket";

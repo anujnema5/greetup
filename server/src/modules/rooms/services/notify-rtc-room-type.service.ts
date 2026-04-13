@@ -12,12 +12,12 @@ export async function notifyRtcServiceRoomType(
     logger.warn("notifyRtcServiceRoomType: RTC_SERVICE_URL empty");
     return;
   }
-  const url = `${base}/internal/room-room-type`;
+  const url = `${base}/internal/webhook/room-room-type`;
   try {
-    const headers: Record<string, string> = { "Content-Type": "application/json" };
-    if (config.internalApiKey) {
-      headers["x-internal-key"] = config.internalApiKey;
-    }
+    const headers: Record<string, string> = {
+      "Content-Type": "application/json",
+      "x-internal-api-key": config.internalApiKey ?? "",
+    };
     const res = await fetch(url, {
       method: "POST",
       headers,
