@@ -1,10 +1,6 @@
 import type { RoomSessionType } from "@/shared/types/room-session";
 
-/** RTK Query tag: batch peer “online / in call” query (`peersCallStatus`). */
-export const CONNECTIONS_PEERS_CALL_STATUS_TAG = {
-  type: "Connections" as const,
-  id: "PEERS_CALL_STATUS" as const,
-};
+import { CONNECTIONS_PEERS_CALL_STATUS_TAG } from "@/features/connections/api/connections-rtk-cache-tags";
 
 export function roomEntityTag(roomId: string) {
   return { type: "Room" as const, id: roomId };

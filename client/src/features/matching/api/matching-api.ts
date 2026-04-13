@@ -1,5 +1,15 @@
+/**
+ * Matching & rooms — RTK Query endpoints.
+ *
+ * 1. `leaveRoomKeepalive` — browser unload helper (not RTK)
+ * 2. Shared API envelope types + room response parsers
+ * 3. Endpoints: matchmaking mutations → peer preview → room GET → expand direct → join room
+ *
+ * `joinRoom` deliberately does **not** invalidate `RtcToken` (see endpoint comment).
+ */
+
 import { API_ENDPOINTS, baseApi } from "@/lib/api";
-import { invalidateRoomAndPeersCallStatusTags, roomEntityTag } from "@/lib/api/rtk-cache-tags";
+import { invalidateRoomAndPeersCallStatusTags, roomEntityTag } from "@/features/room/lib/room-rtk-cache";
 import { API_BASE_URL } from "@/shared/constants/environments";
 
 import type {
@@ -15,17 +25,7 @@ import { parseRoomData, type RoomData } from "../types/room.types";
 
 const { MATCHING, ROOM } = API_ENDPOINTS;
 
-type RoomGetApiResponse = {
-  success: boolean;
-  data?: unknown;
-  message?: string;
-};
-
-type JoinRoomApiResponse = {
-  success: boolean;
-  data?: unknown;
-  message?: string;
-};
+// ── Browser unload: leave room without waiting for RTK ────────────────────────
 
 /** Fire-and-forget for tab close / refresh; session cookie identifies the user. */
 export function leaveRoomKeepalive(): void {
@@ -39,53 +39,116 @@ export function leaveRoomKeepalive(): void {
   });
 }
 
+// ── Generic server envelopes (room + matching share this shape) ─────────────
+
+type RoomGetApiResponse = {
+  success: boolean;
+  data?: unknown;
+  message?: string;
+};
+
+type JoinRoomApiResponse = {
+  success: boolean;
+  data?: unknown;
+  message?: string;
+};
+
+// ── Response transforms ───────────────────────────────────────────────────────
+
+function toMatchPeerPreview(response: RoomGetApiResponse): MatchPeerPreview {
+  if (!response.success || response.data == null) {
+    throw new Error(response.message ?? "Could not load peer");
+  }
+  return response.data as MatchPeerPreview;
+}
+
+function toRoomData(response: RoomGetApiResponse): RoomData {
+  if (!response.success || response.data == null) {
+    throw new Error(response.message ?? "Room not found");
+  }
+  return parseRoomData(response.data);
+}
+
+function toExpandInviteResult(
+  response: MatchingApiEnvelope<{ inviteId: string }>,
+): ExpandDirectInviteMutationResult {
+  if (!response.success || !response.data?.inviteId) {
+    throw new Error(response.message ?? "Could not send invite");
+  }
+  return { inviteId: response.data.inviteId };
+}
+
+function toExpandRespondResult(
+  response: MatchingApiEnvelope<{ roomId: string; expanded: boolean }>,
+): ExpandDirectRespondMutationResult {
+  if (!response.success || response.data == null) {
+    throw new Error(response.message ?? "Could not respond");
+  }
+  return response.data;
+}
+
+function assertJoinRoomOk(response: JoinRoomApiResponse): void {
+  if (!response.success) {
+    throw new Error(response.message ?? "Could not join room");
+  }
+}
+
+// ── API slice ─────────────────────────────────────────────────────────────────
+
 export const matchingApi = baseApi.injectEndpoints({
   endpoints: (build) => ({
+    // --- Matchmaking (search / cancel / respond) ------------------------------
+
     findMatch: build.mutation<FindMatchResponse, void>({
       query: () => ({
         url: MATCHING.FIND,
         method: "POST",
       }),
     }),
+
     cancelMatch: build.mutation<void, void>({
       query: () => ({
         url: MATCHING.CANCEL,
         method: "POST",
       }),
     }),
-    respondMatchProposal: build.mutation<void, { attemptId: string; decision: "connect" | "skip" }>({
+
+    respondMatchProposal: build.mutation<
+      void,
+      { attemptId: string; decision: "connect" | "skip" }
+    >({
       query: (body) => ({
         url: MATCHING.RESPOND,
         method: "POST",
         body,
       }),
     }),
+
     leaveRoom: build.mutation<void, void>({
       query: () => ({
         url: MATCHING.LEAVE_ROOM,
         method: "POST",
       }),
     }),
+
+    // --- Room metadata & peer preview ----------------------------------------
+
     getMatchPeerPreview: build.query<MatchPeerPreview, string>({
       query: (peerUserId) => ({ url: MATCHING.peerPreview(peerUserId) }),
-      transformResponse: (response: RoomGetApiResponse): MatchPeerPreview => {
-        if (!response.success || response.data == null) {
-          throw new Error(response.message ?? "Could not load peer");
-        }
-        return response.data as MatchPeerPreview;
-      },
+      transformResponse: toMatchPeerPreview,
     }),
-    /** GET `/room/:roomId` — Redis match pair or DB room metadata. */
+
+    /**
+     * GET `/room/:roomId` — Redis match pair or DB room metadata.
+     */
     getRoom: build.query<RoomData, string>({
       query: (roomId) => ({ url: ROOM.get(roomId) }),
       providesTags: (_result, _error, roomId) => [roomEntityTag(roomId)],
-      transformResponse: (response: RoomGetApiResponse): RoomData => {
-        if (!response.success || response.data == null) {
-          throw new Error(response.message ?? "Room not found");
-        }
-        return parseRoomData(response.data);
-      },
+      transformResponse: toRoomData,
     }),
+
+    // --- Expand direct (invite + accept/decline) ------------------------------
+
     expandDirectInvite: build.mutation<
       ExpandDirectInviteMutationResult,
       ExpandDirectInviteMutationArg
@@ -95,16 +158,10 @@ export const matchingApi = baseApi.injectEndpoints({
         method: "POST",
         body: { inviteeUserId },
       }),
-      transformResponse: (
-        response: MatchingApiEnvelope<{ inviteId: string }>,
-      ): ExpandDirectInviteMutationResult => {
-        if (!response.success || !response.data?.inviteId) {
-          throw new Error(response.message ?? "Could not send invite");
-        }
-        return { inviteId: response.data.inviteId };
-      },
-      invalidatesTags: (_r, _e, arg) => [...invalidateRoomAndPeersCallStatusTags(arg.roomId)],
+      transformResponse: toExpandInviteResult,
+      invalidatesTags: (_result, _error, arg) => [...invalidateRoomAndPeersCallStatusTags(arg.roomId)],
     }),
+
     expandDirectRespond: build.mutation<
       ExpandDirectRespondMutationResult,
       ExpandDirectRespondMutationArg
@@ -114,16 +171,10 @@ export const matchingApi = baseApi.injectEndpoints({
         method: "POST",
         body: { inviteId, accept },
       }),
-      transformResponse: (
-        response: MatchingApiEnvelope<{ roomId: string; expanded: boolean }>,
-      ): ExpandDirectRespondMutationResult => {
-        if (!response.success || response.data == null) {
-          throw new Error(response.message ?? "Could not respond");
-        }
-        return response.data;
-      },
-      invalidatesTags: (_r, _e, arg) => [...invalidateRoomAndPeersCallStatusTags(arg.roomId)],
+      transformResponse: toExpandRespondResult,
+      invalidatesTags: (_result, _error, arg) => [...invalidateRoomAndPeersCallStatusTags(arg.roomId)],
     }),
+
     /**
      * POST `/room/:roomId/join` — ensure `room_participants` row so RTC token can be issued
      * (direct match + circles).
@@ -137,11 +188,7 @@ export const matchingApi = baseApi.injectEndpoints({
         url: ROOM.join(roomId),
         method: "POST",
       }),
-      transformResponse: (response: JoinRoomApiResponse): void => {
-        if (!response.success) {
-          throw new Error(response.message ?? "Could not join room");
-        }
-      },
+      transformResponse: assertJoinRoomOk,
     }),
   }),
 });

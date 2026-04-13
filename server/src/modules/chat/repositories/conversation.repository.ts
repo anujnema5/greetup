@@ -50,35 +50,52 @@ export const conversationRepository = {
   },
 
   async findOrCreateConnectionConversation(userA: string, userB: string) {
-    const existing = await this.findConnectionConversation(userA, userB);
-    if (existing) return existing;
-
-    const conn = await db.query.userConnections.findFirst({
-      where: and(
-        eq(userConnections.status, 'accepted'),
-        or(
-          and(eq(userConnections.requesterId, userA), eq(userConnections.addresseeId, userB)),
-          and(eq(userConnections.requesterId, userB), eq(userConnections.addresseeId, userA)),
+    return db.transaction(async (tx) => {
+      const conn = await tx.query.userConnections.findFirst({
+        where: and(
+          eq(userConnections.status, 'accepted'),
+          or(
+            and(eq(userConnections.requesterId, userA), eq(userConnections.addresseeId, userB)),
+            and(eq(userConnections.requesterId, userB), eq(userConnections.addresseeId, userA)),
+          ),
         ),
-      ),
-    });
+      });
 
-    if (!conn) throw new Error('NOT_CONNECTIONS');
+      if (!conn) throw new Error('NOT_CONNECTIONS');
 
-    const [conv] = await db.insert(conversations).values({
-      type:         'connection',
-      connectionId: conn.id,
-      isPersisted:  true,
-    }).returning();
+      await tx
+        .select({ id: userConnections.id })
+        .from(userConnections)
+        .where(eq(userConnections.id, conn.id))
+        .for('update');
 
-    await db.insert(conversationParticipants).values([
-      { conversationId: conv.id, userId: userA },
-      { conversationId: conv.id, userId: userB },
-    ]);
+      const existing = await tx.query.conversations.findFirst({
+        where: and(
+          eq(conversations.type, 'connection'),
+          eq(conversations.connectionId, conn.id),
+        ),
+        with: conversationWithDisplay,
+      });
 
-    return db.query.conversations.findFirst({
-      where: eq(conversations.id, conv.id),
-      with: conversationWithDisplay,
+      if (existing) return existing;
+
+      const [conv] = await tx.insert(conversations).values({
+        type:         'connection',
+        connectionId: conn.id,
+        isPersisted:  true,
+      }).returning();
+
+      await tx.insert(conversationParticipants).values([
+        { conversationId: conv.id, userId: userA },
+        { conversationId: conv.id, userId: userB },
+      ]).onConflictDoNothing({
+        target: [conversationParticipants.conversationId, conversationParticipants.userId],
+      });
+
+      return tx.query.conversations.findFirst({
+        where: eq(conversations.id, conv.id),
+        with: conversationWithDisplay,
+      });
     });
   },
 

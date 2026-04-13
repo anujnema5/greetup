@@ -14,6 +14,8 @@ import type {
   ReadPayload,
 } from '../types/chat.types';
 
+const EMPTY_TYPING_USERS: Record<string, boolean> = {};
+
 export function useConversation(
   conversationId: string,
   opts?: { conversationType?: ConversationType },
@@ -30,7 +32,7 @@ export function useConversation(
   const { data, isLoading, isFetching } = useGetMessagesQuery({ conversationId, cursor });
 
   const typingUsers = useSelector(
-    (s: RootState) => s.chat.typingState[conversationId] ?? {},
+    (s: RootState) => s.chat.typingState[conversationId] ?? EMPTY_TYPING_USERS,
   );
 
   const allMessages = useMemo(() => {
