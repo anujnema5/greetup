@@ -11,3 +11,19 @@ Message functionality E2E - Not Done
 Keeping room history and previous connection history - Not Done
 Circles call short snapshots - Not Done
 Scheduling circles call - Not Done
+
+* Remove mark as read
+* when clicking on the notification read all
+* chat notifications UI design
+* redesign circle invite
+* send circle invite as message 
+* chat re-arrangements UI and bug fixes and functionality
+* Direct call and circles UI with messages
+* Room design with scenarios and game 
+* circles people add on if host permission. 
+* host permissions and functionality + UI + cases in room and UI for host
+* Explore page UI & functionality revamp
+* Location also location when onboarding
+* Timer UI in start a circle modal.
+* Give less preference to connected people in matching service.
+* If two people got connected with a connection already established their conversation should not be created again.

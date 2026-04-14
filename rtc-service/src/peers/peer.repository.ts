@@ -24,6 +24,16 @@ export async function deletePeer(peerId: string, roomId: string): Promise<void> 
   await redis.srem(Keys.roomPeers(roomId), peerId);
 }
 
+/** Clears main-API “in a call” hint only when it still matches this room (avoids wiping a newer session). */
+export async function clearUserActiveRtcRoomIfMatches(userId: string, roomId: string): Promise<void> {
+  const redis = getRedis();
+  const key = Keys.userActiveRtcRoom(userId);
+  const current = await redis.get(key);
+  if (current === roomId) {
+    await redis.del(key);
+  }
+}
+
 export async function getPeer(peerId: string): Promise<PeerRecord | null> {
   const redis = getRedis();
   const h = await redis.hgetall(Keys.peer(peerId));

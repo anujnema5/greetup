@@ -5,6 +5,8 @@ import { emitToUser } from "@/core/socket/socket";
 import logger from "@/core/logging";
 import { getRedis } from "@/core/redis";
 import { ROOM_KEYS, ROOM_TTL } from "@/core/redis/keys";
+import { clearUserActiveRtcRoom } from "@/modules/rooms/services/user-active-rtc-room-redis.service";
+import { ensureProfileSnapshotCached } from "@/modules/user/services/profile-snapshot-cache.service";
 import {
   createRoomBodySchema,
   ensureProfileSnapshotBodySchema,
@@ -15,20 +17,19 @@ import {
   matchProposalCancelledBodySchema,
   matchProposedBodySchema,
 } from "../schemas/room.schema";
-import { ensureProfileSnapshotCached } from "@/modules/user/services/profile-snapshot-cache.service";
 import { zodBodyValidationError } from "../lib/http-responses";
-import {
-  startRoomSessionService,
-  StartRoomSessionError,
-} from "../services/start-room-session.service";
 import { roomsRepository } from "../repositories/rooms.repository";
-import { issueRtcTokenService, IssueRtcTokenError } from "../services/issue-rtc-token.service";
-import { joinRoomService, JoinRoomError } from "../services/join-room.service";
 import {
   createExpandDirectInviteService,
   respondExpandDirectInviteService,
   ExpandDirectRoomError,
 } from "../services/expand-direct-room.service";
+import { issueRtcTokenService, IssueRtcTokenError } from "../services/issue-rtc-token.service";
+import { joinRoomService, JoinRoomError } from "../services/join-room.service";
+import {
+  startRoomSessionService,
+  StartRoomSessionError,
+} from "../services/start-room-session.service";
 
 /**
  * GET /api/room/:roomId/rtc-token
@@ -435,6 +436,8 @@ export const handleMatchProposalCancelled = async (c: Context) => {
 
     logger.info("[handleMatchProposalCancelled] emitting to user", { userId, attemptId, reason });
 
+    await clearUserActiveRtcRoom(userId);
+
     emitToUser(userId, "match:proposal_cancelled", { attemptId, reason });
 
     return c.json(ApiResponse.success(null, "Notified"), 200);
@@ -456,6 +459,8 @@ export const handleMatchFailed = async (c: Context) => {
     const { attemptId, userId, reason } = parsed.data;
 
     logger.info("[handleMatchFailed] webhook received — emitting match:no_match to user", { attemptId, userId, reason });
+
+    await clearUserActiveRtcRoom(userId);
 
     emitToUser(userId, "match:no_match", { attemptId, reason });
 
