@@ -11,41 +11,42 @@ const engineHeaders = () => ({
   "x-internal-api-key": config.internalApiKey,
 });
 
-export const findMatchService = async (userId: string, requestId: string) => {
-  const res = await fetch(`${MATCH_ENGINE_URL}/match/find`, {
+async function matchEnginePost(path: string, body: Record<string, unknown>): Promise<Response> {
+  return fetch(`${MATCH_ENGINE_URL}${path}`, {
     method: "POST",
     headers: engineHeaders(),
-    body: JSON.stringify({ userId, requestId }),
+    body: JSON.stringify(body),
   });
+}
 
-  if (!res.ok) {
-    const text = await res.text();
-    logger.error("Match engine /match/find failed", { status: res.status, body: text });
-    throw new Error("Match engine error");
+async function matchEngineGet(path: string): Promise<Response> {
+  return fetch(`${MATCH_ENGINE_URL}${path}`, { headers: engineHeaders() });
+}
+
+async function assertMatchEngineOk(res: Response, label: string): Promise<void> {
+  if (res.ok) {
+    return;
   }
+  const text = await res.text();
+  logger.error(`${label} failed`, { status: res.status, body: text });
+  throw new Error("Match engine error");
+}
 
+export const findMatchService = async (userId: string, requestId: string) => {
+  const res = await matchEnginePost("/match/find", { userId, requestId });
+  await assertMatchEngineOk(res, "Match engine /match/find");
   return res.json();
 };
 
 export const getMatchResultService = async (requestId: string) => {
-  const res = await fetch(`${MATCH_ENGINE_URL}/match/result/${encodeURIComponent(requestId)}`, {
-    headers: engineHeaders(),
-  });
-
-  if (!res.ok) {
-    const text = await res.text();
-    logger.error("Match engine /match/result failed", { status: res.status, body: text });
-    throw new Error("Match engine error");
-  }
-
+  const res = await matchEngineGet(`/match/result/${encodeURIComponent(requestId)}`);
+  await assertMatchEngineOk(res, "Match engine /match/result");
   return res.json();
 };
 
 export const getUserMatchStateService = async (userId: string): Promise<UserMatchState> => {
   try {
-    const res = await fetch(`${MATCH_ENGINE_URL}/match/state/user/${encodeURIComponent(userId)}`, {
-      headers: engineHeaders(),
-    });
+    const res = await matchEngineGet(`/match/state/user/${encodeURIComponent(userId)}`);
 
     if (!res.ok) {
       logger.warn("Match engine /match/state/user failed", { status: res.status, userId });
@@ -61,33 +62,18 @@ export const getUserMatchStateService = async (userId: string): Promise<UserMatc
 };
 
 export const cancelMatchService = async (userId: string): Promise<void> => {
-  const res = await fetch(`${MATCH_ENGINE_URL}/match/cancel`, {
-    method: "POST",
-    headers: engineHeaders(),
-    body: JSON.stringify({ userId }),
-  });
-
-  if (!res.ok) {
-    const text = await res.text();
-    logger.error("Match engine /match/cancel failed", { status: res.status, body: text });
-    throw new Error("Match engine error");
-  }
+  const res = await matchEnginePost("/match/cancel", { userId });
+  await assertMatchEngineOk(res, "Match engine /match/cancel");
+  await clearUserActiveRtcRoom(userId);
 };
 
 export const leaveRoomService = async (userId: string): Promise<void> => {
-  const res = await fetch(`${MATCH_ENGINE_URL}/match/leave-room`, {
-    method: "POST",
-    headers: engineHeaders(),
-    body: JSON.stringify({ userId }),
-  });
-
-  if (!res.ok) {
-    const text = await res.text();
-    logger.error("Match engine /match/leave-room failed", { status: res.status, body: text });
-    throw new Error("Match engine error");
+  try {
+    const res = await matchEnginePost("/match/leave-room", { userId });
+    await assertMatchEngineOk(res, "Match engine /match/leave-room");
+  } finally {
+    await clearUserActiveRtcRoom(userId);
   }
-
-  await clearUserActiveRtcRoom(userId);
 };
 
 export const respondMatchProposalService = async (
@@ -95,15 +81,7 @@ export const respondMatchProposalService = async (
   attemptId: string,
   decision: "connect" | "skip",
 ): Promise<void> => {
-  const res = await fetch(`${MATCH_ENGINE_URL}/match/respond`, {
-    method: "POST",
-    headers: engineHeaders(),
-    body: JSON.stringify({ userId, attemptId, decision }),
-  });
-
-  if (!res.ok) {
-    const text = await res.text();
-    logger.error("Match engine /match/respond failed", { status: res.status, body: text });
-    throw new Error("Match engine error");
-  }
+  const res = await matchEnginePost("/match/respond", { userId, attemptId, decision });
+  await assertMatchEngineOk(res, "Match engine /match/respond");
+  await clearUserActiveRtcRoom(userId);
 };

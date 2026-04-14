@@ -23,7 +23,7 @@ export const START_CIRCLE_COPY = {
   scheduleDateLabel: "Date",
   schedulePickDate: "Pick a date",
   scheduleTimeLabel: "Time",
-  inviteFriendsTitle: "Invite friends",
+  inviteFriendsTitle: "Invite peoples",
   inviteSubtitleLoading: "Loading connections…",
   inviteSubtitleNoConnections: "Add connections first so you can notify them",
   inviteSubtitleChoose: "Choose who should get an invite",

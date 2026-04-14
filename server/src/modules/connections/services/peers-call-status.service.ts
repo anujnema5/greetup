@@ -11,10 +11,8 @@ export type PeerCallStatusDto = {
 };
 
 /**
- * Batch: which peers are socket-online and who is **currently in a call** (active RTC token / SFU session).
- *
- * We do **not** use `room_participants` + `rooms.status = live` alone — match rows often stay `live` with
- * `left_at` unset after people leave, which falsely marked everyone as “in a call”.
+ * Batch: socket presence plus who is **actually in an SFU call** (see `getUsersActiveRtcRooms` — not
+ * `room_participants` / `rooms.status`, which stay “live” and leave `left_at` unset too often).
  */
 export async function peersCallStatusForUser(
   _viewerUserId: string,
@@ -37,11 +35,10 @@ export async function peersCallStatusForUser(
   for (const id of unique) {
     pipe.sismember(USER_PRESENCE_KEYS.ONLINE_USERS_SET, id);
   }
-  const presenceRaw = await pipe.exec();
+  const presenceRows = await pipe.exec();
   unique.forEach((id, i) => {
-    const tuple = presenceRaw?.[i];
-    const n = Array.isArray(tuple) ? tuple[1] : tuple;
-    out[id]!.isOnline = n === 1 || n === true || n === "1";
+    const n = pipelineValue(presenceRows, i);
+    out[id]!.isOnline = redisSismemberTrue(n);
   });
 
   const activeRoomByUser = await getUsersActiveRtcRooms(unique);
@@ -59,4 +56,13 @@ export async function peersCallStatusForUser(
   }
 
   return out;
+}
+
+function pipelineValue(rows: unknown[][] | null | undefined, index: number): unknown {
+  const row = rows?.[index];
+  return Array.isArray(row) ? row[1] : undefined;
+}
+
+function redisSismemberTrue(val: unknown): boolean {
+  return val === 1 || val === true || val === "1";
 }

@@ -543,6 +543,7 @@ export class PeerSessionService {
 
     if (!opts.skipRedis) {
       await peerRepository.deletePeer(userId, roomId);
+      await peerRepository.clearUserActiveRtcRoomIfMatches(userId, roomId);
     }
 
     if (!opts.skipSocketLeave) {

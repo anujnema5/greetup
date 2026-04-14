@@ -88,7 +88,7 @@ export function InviteFriendsDialog({
       >
         <DialogHeader className="shrink-0 space-y-1 border-b border-border/40 px-5 pt-5 pb-4 text-left">
           <DialogTitle className="text-lg font-semibold tracking-tight">
-            Invite friends
+            Invite peoples
           </DialogTitle>
           <DialogDescription className="text-sm text-muted-foreground">
             Pick who should get a heads-up—search below and confirm with Invite.
