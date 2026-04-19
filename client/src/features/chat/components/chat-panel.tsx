@@ -11,9 +11,16 @@ import type { ConversationType, Message } from '../types/chat.types';
 interface ChatPanelProps {
   conversationId: string;
   conversationType?: ConversationType;
+  showQuickReactions?: boolean;
 }
 
-export function ChatPanel({ conversationId, conversationType }: ChatPanelProps) {
+const QUICK_REACTION_EMOJIS = ["👏", "🔥", "😂", "🎉", "❤️"];
+
+export function ChatPanel({
+  conversationId,
+  conversationType,
+  showQuickReactions = false,
+}: ChatPanelProps) {
   const { data: session, isPending: sessionPending } = useSession();
   const sessionUserId = session?.user?.id ?? '';
 
@@ -43,6 +50,10 @@ export function ChatPanel({ conversationId, conversationType }: ChatPanelProps) 
 
   const handleSend = (content: string, replyToId?: string) => {
     sendMessage({ content, replyToId });
+  };
+
+  const handleQuickReaction = (emoji: string) => {
+    sendMessage({ content: emoji });
   };
 
   const handleToggleReaction = (messageId: string, emoji: string) => {
@@ -78,6 +89,21 @@ export function ChatPanel({ conversationId, conversationType }: ChatPanelProps) 
 
   return (
     <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
+      {showQuickReactions ? (
+        <div className="flex items-center gap-1.5 border-b border-border/70 px-3 py-2">
+          {QUICK_REACTION_EMOJIS.map((emoji) => (
+            <button
+              key={emoji}
+              type="button"
+              onClick={() => handleQuickReaction(emoji)}
+              className="rounded-md border border-border bg-muted/50 px-2 py-0.5 text-sm transition-colors hover:bg-muted"
+              aria-label={`Send ${emoji} reaction`}
+            >
+              {emoji}
+            </button>
+          ))}
+        </div>
+      ) : null}
       <MessageList
         messages={messages}
         currentUserId={currentUserId}

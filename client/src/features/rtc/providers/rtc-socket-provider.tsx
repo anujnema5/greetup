@@ -3,6 +3,7 @@
 import { createContext, useContext, useEffect, useMemo } from "react";
 import { useSession } from "@/lib/auth-client";
 import { useAppDispatch, useAppSelector } from "@/lib/redux/hooks";
+import { useGetMyProfileQuery } from "@/features/profile-setup/components/profile-setup-api";
 import {
   selectActiveRoomId,
   selectIsVideoSessionActive,
@@ -73,8 +74,13 @@ export function RtcSocketProvider({ children }: { children: React.ReactNode }) {
   const sessionActive = useAppSelector(selectIsVideoSessionActive);
   const rtcPrimaryRemoteUserId = useAppSelector(selectRtcPrimaryRemoteUserId);
   const { data: session, isPending: sessionPending } = useSession();
+  const { data: myProfileData } = useGetMyProfileQuery(undefined, { skip: sessionPending });
+  const sessionUser = session?.user as
+    | { id?: string | null; displayName?: string | null; name?: string | null }
+    | undefined;
+  const profileDisplayName = myProfileData?.data?.displayName ?? null;
 
-  const skipRtcToken = !activeRoomId || sessionPending || !session?.user?.id;
+  const skipRtcToken = !activeRoomId || sessionPending || !sessionUser?.id;
 
   const rtcQuery = useGetRtcTokenQuery(activeRoomId ?? "", {
     skip: skipRtcToken,
@@ -97,8 +103,8 @@ export function RtcSocketProvider({ children }: { children: React.ReactNode }) {
     rtcSocketState,
     rtcRoomId: activeRoomId,
     rtcRoomType,
-    localUserId: session?.user?.id ?? null,
-    localDisplayName: session?.user?.name ?? null,
+    localUserId: sessionUser?.id ?? null,
+    localDisplayName: profileDisplayName ?? sessionUser?.displayName ?? sessionUser?.name ?? null,
     preferredRemotePeerId: rtcPrimaryRemoteUserId,
   });
 

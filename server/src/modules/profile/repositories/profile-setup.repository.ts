@@ -43,7 +43,8 @@ export const profileSetupRepository = {
   },
 
   async updateUserDisplayName(userId: string, displayName: string) {
-    return db.update(users).set({ displayName }).where(eq(users.id, userId));
+    // Keep `name` in sync so auth session payloads show the same label everywhere.
+    return db.update(users).set({ displayName, name: displayName }).where(eq(users.id, userId));
   },
 
   async setUsername(userId: string, username: string) {

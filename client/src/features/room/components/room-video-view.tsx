@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import {
+  Radio,
   Mic,
   MicOff,
   Minimize2,
@@ -13,19 +14,25 @@ import {
   Video,
   VideoOff,
   MessageCircle,
+  LayoutGrid,
   UserPlus,
-  X,
 } from "lucide-react";
 import { ChatPanel } from "@/features/chat/components/chat-panel";
 import { cn } from "@/lib/utils";
 import { MOCK_MATCH } from "@/features/room/constants/mock-match";
+import { DIRECT_ROOM_ACTIVITIES } from "@/features/room/constants/direct-room-activities";
 import { useRoomVideoViewModel } from "@/features/room/hooks/use-room-video-view-model";
 import type { RoomVideoViewProps } from "@/features/room/types/room-video-view.types";
 import { MediaToggleButton } from "@/features/room/components/room-video/media-toggle-button";
 import { RemoteParticipantTile } from "@/features/room/components/room-video/remote-participant-tile";
 import { ToolbarActionButton } from "@/features/room/components/room-video/toolbar-action-button";
+import type { RoomActivityId } from "@/features/room/types/room-activity.types";
+import { ActivityStage } from "@/features/room/components/room-activity/activity-stage";
 
 export type { RoomVideoViewProps } from "@/features/room/types/room-video-view.types";
+
+type RightPanelTab = "chat" | "activities";
+type StageRatio = "16:9" | "1:1";
 
 export function RoomVideoView({
   onEnd,
@@ -58,8 +65,27 @@ export function RoomVideoView({
   showAddToCircle = false,
   onOpenAddToCircle,
 }: RoomVideoViewProps) {
-  const [chatOpen, setChatOpen] = useState(false);
-  const vm = useRoomVideoViewModel({
+  const [rightPanelTab, setRightPanelTab] = useState<RightPanelTab>("chat");
+  const [activeActivity, setActiveActivity] = useState<RoomActivityId | null>(null);
+  const [stageRatio, setStageRatio] = useState<StageRatio>("16:9");
+  const [isLive, setIsLive] = useState(false);
+  const {
+    remoteVideoRef,
+    peerCameraInsetRef,
+    localVideoRef,
+    remoteVideoLive,
+    remoteMediaLive,
+    localVideoLive,
+    peerCameraInsetStream,
+    peerCameraInsetLive,
+    peerInitials,
+    groupGalleryParticipants,
+    mediaTogglesReady,
+    showScreenShare,
+    mediaBusy,
+    elapsed,
+    formatDuration,
+  } = useRoomVideoViewModel({
     remoteStream,
     remotePeerCameraOff,
     localStream,
@@ -75,6 +101,8 @@ export function RoomVideoView({
     onToggleCamera,
     onToggleScreenShare,
   });
+  const activeActivityMeta =
+    DIRECT_ROOM_ACTIVITIES.find((activity) => activity.id === activeActivity) ?? null;
 
   return (
     <div className={cn("flex h-full min-h-0 w-full min-w-0 flex-col overflow-hidden bg-background")}>
@@ -82,68 +110,93 @@ export function RoomVideoView({
         <div
           className="absolute inset-0"
           style={{
-            background: `linear-gradient(135deg, ${MOCK_MATCH.gradFrom}33, var(--card) 60%, ${MOCK_MATCH.gradTo}22)`,
+            background: `linear-gradient(135deg, ${MOCK_MATCH.gradFrom}14, var(--background) 40%, ${MOCK_MATCH.gradTo}10)`,
           }}
         />
 
-        <div className="flex min-h-0 flex-1 flex-col md:flex-row">
-          <div className="relative flex min-h-[48dvh] flex-1 flex-col overflow-hidden md:min-h-0">
+        <div className="flex min-h-0 flex-1 flex-col gap-2 p-2 pt-3 md:flex-row md:gap-3 md:p-3">
+          <div className="relative flex min-h-[48dvh] flex-1 flex-col overflow-hidden rounded-2xl border border-border/60 bg-card/50 shadow-xl backdrop-blur-sm md:min-h-0">
             {isGroupRoom ? (
-              vm.groupGalleryParticipants.length > 0 ? (
+              groupGalleryParticipants.length > 0 ? (
                 <div className="absolute inset-0 overflow-y-auto p-2 md:p-3">
                   <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3 sm:gap-3">
-                    {vm.groupGalleryParticipants.map((p) => (
+                    {groupGalleryParticipants.map((p) => (
                       <RemoteParticipantTile key={p.peer.peerId} participant={p} />
                     ))}
                   </div>
                 </div>
               ) : (
-                <div className="absolute inset-0 flex items-center justify-center px-4 text-center text-sm font-medium text-white/80">
+                <div className="absolute inset-0 flex items-center justify-center px-4 text-center text-sm font-medium text-muted-foreground">
                   Waiting for others to join…
                 </div>
               )
             ) : (
-              <>
-                {vm.remoteMediaLive ? (
-                  <video
-                    ref={vm.remoteVideoRef}
-                    playsInline
-                    autoPlay
-                    className={cn(
-                      vm.remoteVideoLive
-                        ? "absolute inset-0 h-full w-full"
-                        : "pointer-events-none absolute h-px w-px overflow-hidden opacity-0",
-                      vm.remoteVideoLive &&
-                        (mainStageShowsScreen ? "bg-black object-contain" : "object-cover"),
-                    )}
-                  />
-                ) : null}
-                {!vm.remoteVideoLive && (
-                  <div className="absolute inset-0 flex items-center justify-center">
-                    <div className="relative">
-                      <div
-                        className="flex h-32 w-32 items-center justify-center rounded-full text-3xl font-bold text-white transition-all duration-300 md:h-36 md:w-36 md:text-4xl"
-                        style={{
-                          background: `linear-gradient(135deg, ${MOCK_MATCH.gradFrom}, ${MOCK_MATCH.gradTo})`,
-                          boxShadow: `0 0 60px ${MOCK_MATCH.gradFrom}55, 0 0 120px ${MOCK_MATCH.gradFrom}22`,
-                        }}
-                      >
-                        {vm.peerInitials}
-                      </div>
-                      <div
-                        className="absolute -inset-3 animate-pulse rounded-full"
-                        style={{
-                          background: `radial-gradient(circle, ${MOCK_MATCH.gradFrom}30, transparent 70%)`,
-                          animationDuration: "2.5s",
-                        }}
+              <div className="relative flex min-h-0 flex-1 items-center justify-center p-3 md:p-4">
+                <div
+                  className={cn(
+                    "relative w-full max-w-[1200px] overflow-hidden rounded-[1.2rem] border border-border/60 bg-black/45 shadow-[0_10px_28px_rgba(0,0,0,0.26)]",
+                    stageRatio === "1:1" ? "aspect-square max-h-full" : "aspect-video max-h-full",
+                  )}
+                >
+                  {activeActivity ? (
+                    activeActivityMeta ? (
+                      <ActivityStage
+                        activity={activeActivityMeta}
+                        onExit={() => setActiveActivity(null)}
+                        peerLabel={peerLabel}
+                        myName={myName}
+                        peerInitials={peerInitials}
+                        remoteVideoLive={remoteVideoLive}
+                        localVideoLive={localVideoLive}
+                        remoteVideoRef={remoteVideoRef}
+                        localVideoRef={localVideoRef}
                       />
-                    </div>
-                  </div>
-                )}
-              </>
+                    ) : null
+                  ) : (
+                    <>
+                      {remoteMediaLive ? (
+                        <video
+                          ref={remoteVideoRef}
+                          playsInline
+                          autoPlay
+                          className={cn(
+                            remoteVideoLive
+                              ? "absolute inset-0 h-full w-full"
+                              : "pointer-events-none absolute h-px w-px overflow-hidden opacity-0",
+                            remoteVideoLive &&
+                              (mainStageShowsScreen ? "bg-black object-contain" : "object-cover"),
+                          )}
+                        />
+                      ) : null}
+                      {!remoteVideoLive && (
+                        <div className="absolute inset-0 flex items-center justify-center">
+                          <div className="relative">
+                            <div
+                              className="flex h-32 w-32 items-center justify-center rounded-full text-3xl font-bold text-white transition-all duration-300 md:h-36 md:w-36 md:text-4xl"
+                              style={{
+                                background: `linear-gradient(135deg, ${MOCK_MATCH.gradFrom}, ${MOCK_MATCH.gradTo})`,
+                                boxShadow: `0 0 60px ${MOCK_MATCH.gradFrom}55, 0 0 120px ${MOCK_MATCH.gradFrom}22`,
+                              }}
+                            >
+                              {peerInitials}
+                            </div>
+                            <div
+                              className="absolute -inset-3 animate-pulse rounded-full"
+                              style={{
+                                background: `radial-gradient(circle, ${MOCK_MATCH.gradFrom}30, transparent 70%)`,
+                                animationDuration: "2.5s",
+                              }}
+                            />
+                          </div>
+                        </div>
+                      )}
+                    </>
+                  )}
+                </div>
+              </div>
             )}
 
-            {vm.mediaBusy && (
+            {mediaBusy && (
               <div className="absolute inset-0 z-20 flex items-center justify-center bg-black/35 backdrop-blur-[2px]">
                 <p className="rounded-full bg-black/50 px-4 py-2 text-sm font-medium text-white">
                   Connecting media…
@@ -179,7 +232,7 @@ export function RoomVideoView({
             )}
 
             <div
-              className="pointer-events-none absolute inset-x-0 top-0 z-10 flex flex-wrap items-start justify-between gap-x-2 gap-y-2 px-3 pb-6 pt-3 sm:items-center sm:gap-x-3 md:px-4 md:pt-4"
+              className="pointer-events-none absolute inset-x-0 top-0 z-10 flex flex-wrap items-start justify-between gap-x-2 gap-y-2 px-4 pb-7 pt-4 sm:items-center sm:gap-x-3 md:px-5 md:pt-5"
               style={{
                 background: "linear-gradient(to bottom, rgba(0,0,0,0.75), transparent)",
                 userSelect: "none",
@@ -188,17 +241,45 @@ export function RoomVideoView({
               <div className="flex min-w-0 flex-1 items-center gap-2 sm:flex-initial">
                 <div className="min-w-0">
                   <p className="truncate text-xs font-semibold leading-none text-white md:text-sm">
-                    {mainStageShowsScreen ? "Screen share" : peerLabel}
+                    {activeActivity
+                      ? `${DIRECT_ROOM_ACTIVITIES.find((activity) => activity.id === activeActivity)?.label} activity`
+                      : mainStageShowsScreen
+                        ? "Screen share"
+                        : peerLabel}
                   </p>
-                  {mainStageShowsScreen && (
-                    <p className="mt-0.5 truncate text-[10px] text-white/50 md:text-[11px]">
-                      {peerLabel}
+                  {(mainStageShowsScreen || activeActivity) && (
+                    <p className="mt-0.5 truncate text-[11px] text-white/60">
+                      {activeActivity ? peerLabel : peerLabel}
                     </p>
                   )}
                 </div>
               </div>
 
               <div className="pointer-events-auto ml-auto flex shrink-0 items-center gap-1.5 sm:gap-2">
+                {!isGroupRoom ? (
+                  <div className="flex items-center overflow-hidden rounded-full border border-white/20 bg-black/50 shadow-sm">
+                    <button
+                      type="button"
+                      onClick={() => setStageRatio("16:9")}
+                      className={cn(
+                        "cursor-pointer px-2.5 py-1 text-[11px] font-semibold text-white/70 transition-colors",
+                        stageRatio === "16:9" && "bg-white/15 text-white",
+                      )}
+                    >
+                      16:9
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setStageRatio("1:1")}
+                      className={cn(
+                        "cursor-pointer px-2.5 py-1 text-[11px] font-semibold text-white/70 transition-colors",
+                        stageRatio === "1:1" && "bg-white/15 text-white",
+                      )}
+                    >
+                      1:1
+                    </button>
+                  </div>
+                ) : null}
                 {onMinimize && (
                   <button
                     type="button"
@@ -222,10 +303,48 @@ export function RoomVideoView({
                     backdropFilter: "blur(8px)",
                   }}
                 >
-                  {vm.formatDuration(vm.elapsed)}
+                  {formatDuration(elapsed)}
                 </div>
               </div>
             </div>
+
+            {!isGroupRoom && !activeActivity ? (
+              <div className="pointer-events-none absolute bottom-4 left-4 z-20 w-34 overflow-hidden rounded-lg border border-white/20 bg-black/60 shadow-lg md:w-40">
+                {localVideoLive ? (
+                  <video
+                    ref={localVideoRef}
+                    playsInline
+                    autoPlay
+                    muted
+                    className="h-24 w-full object-cover"
+                    style={{ transform: "scaleX(-1)" }}
+                  />
+                ) : (
+                  <div className="flex h-24 items-center justify-center text-xs font-semibold text-white/85">
+                    {myName.charAt(0).toUpperCase()}
+                  </div>
+                )}
+                <p className="truncate px-2 py-1 text-[10px] text-white/80">You</p>
+              </div>
+            ) : null}
+
+            {!isGroupRoom && mainStageShowsScreen && peerCameraInsetStream && !activeActivity ? (
+              <div className="pointer-events-none absolute bottom-4 left-42 z-20 w-34 overflow-hidden rounded-lg border border-white/20 bg-black/60 shadow-lg md:left-44 md:w-40">
+                {peerCameraInsetLive ? (
+                  <video
+                    ref={peerCameraInsetRef}
+                    playsInline
+                    autoPlay
+                    className="h-24 w-full object-cover"
+                  />
+                ) : (
+                  <div className="flex h-24 items-center justify-center text-xs font-semibold text-white/85">
+                    {peerInitials}
+                  </div>
+                )}
+                <p className="truncate px-2 py-1 text-[10px] text-white/80">{peerLabel}</p>
+              </div>
+            ) : null}
 
             {scoreLabel != null ? (
               <div
@@ -249,128 +368,87 @@ export function RoomVideoView({
 
           <aside
             className={cn(
-              "flex w-full shrink-0 flex-col border-border bg-card/90 backdrop-blur-md md:w-56 md:border-l",
-              "border-t md:border-t-0",
+              "flex w-full shrink-0 flex-col overflow-hidden rounded-2xl border border-border/70 bg-card/92 backdrop-blur-md md:w-88",
             )}
           >
-            {vm.peerCameraInsetStream ? (
-              <>
-                <div className="border-b border-border/60 px-3 py-2.5 md:py-2">
-                  <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
-                    Peer
-                  </p>
-                  <p className="mt-0.5 truncate text-[10px] text-muted-foreground/80">{peerLabel}</p>
-                </div>
-                <div className="flex items-center justify-center p-3 pb-2 md:min-h-0">
-                  <div
-                    className="relative w-full max-w-md overflow-hidden rounded-xl md:max-w-none"
-                    style={{
-                      border: "2px solid rgba(255,255,255,0.12)",
-                      boxShadow: "0 8px 24px rgba(0,0,0,0.35)",
-                      aspectRatio: "16 / 10",
-                    }}
-                  >
-                    {vm.peerCameraInsetLive ? (
-                      <video
-                        ref={vm.peerCameraInsetRef}
-                        playsInline
-                        autoPlay
-                        className="h-full w-full object-cover"
-                      />
-                    ) : (
-                      <div
-                        className="flex h-full min-h-20 w-full items-center justify-center md:min-h-0"
-                        style={{
-                          background:
-                            "linear-gradient(135deg, oklch(30% 0.04 105), oklch(20% 0.02 110))",
-                        }}
-                      >
-                        <span className="text-[10px] text-muted-foreground">No video</span>
-                      </div>
+            <div className="flex items-center justify-between border-b border-border/70 px-3 py-2.5">
+              <div className="flex items-center gap-1">
+                <button
+                  type="button"
+                  onClick={() => setRightPanelTab("chat")}
+                  className={cn(
+                    "rounded-md px-2.5 py-1 text-[12px] font-semibold transition-colors",
+                    rightPanelTab === "chat"
+                      ? "bg-primary text-primary-foreground"
+                      : "text-muted-foreground hover:text-foreground",
+                  )}
+                >
+                  chat
+                </button>
+                {!isGroupRoom ? (
+                  <button
+                    type="button"
+                    onClick={() => setRightPanelTab("activities")}
+                    className={cn(
+                      "rounded-md px-2.5 py-1 text-[12px] font-semibold transition-colors",
+                      rightPanelTab === "activities"
+                        ? "bg-primary text-primary-foreground"
+                        : "text-muted-foreground hover:text-foreground",
                     )}
-                  </div>
-                </div>
-                <div className="mx-3 border-t border-border/60 md:mx-0" />
-              </>
-            ) : null}
-            <div className="border-b border-border/60 px-3 py-2.5 md:border-t-0 md:py-2">
-              <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
-                You
-              </p>
-              <p className="mt-0.5 truncate text-[10px] text-muted-foreground/80">{myName}</p>
+                  >
+                    activities
+                  </button>
+                ) : null}
+              </div>
+              {isLive ? (
+                <span className="rounded-full bg-red-500/90 px-2 py-0.5 text-[10px] font-semibold text-white">
+                  LIVE
+                </span>
+              ) : null}
             </div>
-            <div className="flex flex-1 items-center justify-center p-3 md:min-h-36">
-              <div
-                className="relative w-full max-w-md overflow-hidden rounded-xl md:max-w-none"
-                style={{
-                  border: "2px solid rgba(255,255,255,0.12)",
-                  boxShadow: "0 8px 24px rgba(0,0,0,0.35)",
-                  aspectRatio: "16 / 10",
-                }}
-              >
-                {vm.localVideoLive ? (
-                  <video
-                    ref={vm.localVideoRef}
-                    playsInline
-                    autoPlay
-                    muted
-                    className="h-full w-full object-cover"
-                    style={{ transform: "scaleX(-1)" }}
+
+            {rightPanelTab === "activities" && !isGroupRoom ? (
+              <div className="grid grid-cols-2 gap-2.5 p-3">
+                {DIRECT_ROOM_ACTIVITIES.map((activity) => (
+                  <button
+                    key={activity.id}
+                    type="button"
+                    onClick={() => {
+                      setActiveActivity(activity.id);
+                      setRightPanelTab("chat");
+                    }}
+                    className={cn(
+                      "flex aspect-[1.3/1] flex-col items-center justify-center gap-1.5 rounded-xl border border-border bg-muted/35 p-2.5 text-center transition-all hover:bg-muted/60",
+                      activeActivity === activity.id && "border-primary/60 bg-primary/10",
+                    )}
+                  >
+                    <span className="text-[22px]">{activity.emoji}</span>
+                    <span className="text-[12px] font-medium text-foreground">{activity.label}</span>
+                  </button>
+                ))}
+              </div>
+            ) : (
+              <div className="flex min-h-0 flex-1 flex-col">
+                {conversationId ? (
+                  <ChatPanel
+                    conversationId={conversationId}
+                    conversationType={isGroupRoom ? "room_circle" : "room_direct"}
+                    showQuickReactions
                   />
                 ) : (
-                  <div
-                    className="flex h-full min-h-30 w-full items-center justify-center md:min-h-0"
-                    style={{
-                      background:
-                        "linear-gradient(135deg, oklch(30% 0.04 105), oklch(20% 0.02 110))",
-                    }}
-                  >
-                    <div
-                      className="flex h-12 w-12 items-center justify-center rounded-full text-sm font-bold"
-                      style={{
-                        background:
-                          "radial-gradient(circle at 40% 35%, oklch(90% 0.11 105), oklch(78% 0.10 105))",
-                        color: "oklch(20% 0.03 110)",
-                      }}
-                    >
-                      {myName.charAt(0).toUpperCase()}
-                    </div>
+                  <div className="flex min-h-0 flex-1 items-center justify-center px-4 text-center text-sm text-muted-foreground">
+                    Chat will appear once this room conversation is available.
                   </div>
                 )}
               </div>
-            </div>
+            )}
           </aside>
-
-          {/* In-room chat overlay — slides in from right on md+, bottom sheet on mobile */}
-          {conversationId && chatOpen && (
-            <div className={cn(
-              "absolute inset-y-0 right-0 z-20 flex flex-col",
-              "w-full md:w-80 bg-card/95 backdrop-blur-md border-l border-border",
-            )}>
-              <div className="flex items-center justify-between px-3 py-2 border-b border-border shrink-0">
-                <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Chat</span>
-                <button
-                  type="button"
-                  onClick={() => setChatOpen(false)}
-                  className="text-muted-foreground hover:text-foreground cursor-pointer"
-                >
-                  <X size={16} />
-                </button>
-              </div>
-              <div className="flex-1 min-h-0">
-                <ChatPanel
-                  conversationId={conversationId}
-                  conversationType={isGroupRoom ? "room_circle" : "room_direct"}
-                />
-              </div>
-            </div>
-          )}
         </div>
       </div>
 
       <div
         className={cn(
-          "flex shrink-0 flex-wrap items-center justify-center gap-4 border-t border-border px-3 py-3 sm:gap-5 sm:px-6 sm:py-4 md:gap-6",
+          "flex shrink-0 flex-wrap items-center justify-center gap-4 border-t border-border/70 px-3 py-3 sm:gap-5 sm:px-6 sm:py-4 md:gap-5",
           "bg-muted/50 pb-[max(0.75rem,env(safe-area-inset-bottom))] dark:bg-[oklch(11%_0.012_110)] sm:pb-4",
         )}
         style={{ userSelect: "none" }}
@@ -382,7 +460,7 @@ export function RoomVideoView({
               labelActive="Mute"
               labelInactive="Unmute"
               onClick={onToggleMic}
-              disabled={!vm.mediaTogglesReady}
+              disabled={!mediaTogglesReady}
               iconActive={<Mic size={20} className="text-foreground/85 dark:text-white/90" />}
               iconInactive={<MicOff size={20} className="text-amber-200/95" />}
             />
@@ -391,17 +469,17 @@ export function RoomVideoView({
               labelActive="Stop video"
               labelInactive="Start video"
               onClick={onToggleCamera}
-              disabled={!vm.mediaTogglesReady}
+              disabled={!mediaTogglesReady}
               iconActive={<Video size={20} className="text-foreground/85 dark:text-white/90" />}
               iconInactive={<VideoOff size={20} className="text-amber-200/95" />}
             />
-            {vm.showScreenShare ? (
+            {showScreenShare ? (
               <MediaToggleButton
                 active={screenSharing}
                 labelActive="Stop sharing"
                 labelInactive="Share screen"
                 onClick={onToggleScreenShare!}
-                disabled={!vm.mediaTogglesReady}
+                disabled={!mediaTogglesReady}
                 iconActive={<Monitor size={20} className="text-foreground/85 dark:text-white/90" />}
                 iconInactive={<MonitorOff size={20} className="text-amber-200/95" />}
               />
@@ -411,12 +489,46 @@ export function RoomVideoView({
         {conversationId && (
           <ToolbarActionButton
             label="Chat"
-            onClick={() => setChatOpen((o) => !o)}
-            icon={<MessageCircle size={20} className={chatOpen ? "text-primary" : "text-foreground/75 dark:text-white/80"} />}
+            onClick={() => setRightPanelTab("chat")}
+            icon={
+              <MessageCircle
+                size={20}
+                className={
+                  rightPanelTab === "chat" ? "text-primary" : "text-foreground/75 dark:text-white/80"
+                }
+              />
+            }
             variant="secondary"
             size={56}
           />
         )}
+        {!isGroupRoom ? (
+          <ToolbarActionButton
+            label="Activities"
+            onClick={() => setRightPanelTab("activities")}
+            icon={
+              <LayoutGrid
+                size={20}
+                className={
+                  rightPanelTab === "activities"
+                    ? "text-primary"
+                    : "text-foreground/75 dark:text-white/80"
+                }
+              />
+            }
+            variant="secondary"
+            size={56}
+          />
+        ) : null}
+        {!isGroupRoom ? (
+          <ToolbarActionButton
+            label={isLive ? "End Live" : "Go Live"}
+            onClick={() => setIsLive((prev) => !prev)}
+            icon={<Radio size={20} className={isLive ? "text-red-300" : "text-foreground/75 dark:text-white/80"} />}
+            variant="secondary"
+            size={56}
+          />
+        ) : null}
         {showAddToCircle && onOpenAddToCircle ? (
           <ToolbarActionButton
             label="Add"
