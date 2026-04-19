@@ -33,10 +33,13 @@ export const authMiddleware = async (c: Context, next: Next) => {
             throw new UnauthorizedError();
         }
 
+        const sessionUser = session.user as { displayName?: string | null; name?: string | null };
+        const resolvedName = sessionUser.displayName?.trim() || sessionUser.name?.trim() || "";
+
         c.set("user", {
             id: session.user.id,
             email: session.user.email,
-            name: session.user.name,
+            name: resolvedName,
             emailVerified: session.user.emailVerified,
             image: session.user.image,
         })

@@ -10,6 +10,7 @@ import { clearRoomStorage } from "@/features/room/lib/room-sync";
 import { useGetRoomQuery, useLeaveRoomMutation, leaveRoomKeepalive } from "../api/matching-api";
 import { useRtcSocketContext } from "@/features/rtc";
 import { isCircleRoomData, type RoomData } from "../types/room.types";
+import { useGetMyProfileQuery } from "@/features/profile-setup/components/profile-setup-api";
 
 export type { RoomData };
 
@@ -23,6 +24,7 @@ export function useRoom() {
   const params = useParams();
   const searchParams = useSearchParams();
   const { data: session, isPending: sessionPending } = useSession();
+  const { data: myProfileData } = useGetMyProfileQuery(undefined, { skip: sessionPending });
   const [leaveRoom] = useLeaveRoomMutation();
 
   const roomId = params.roomId as string;
@@ -102,6 +104,9 @@ export function useRoom() {
   }, []);
 
   const currentUserId = session?.user?.id;
+  const sessionUser = session?.user as
+    | { displayName?: string | null; name?: string | null }
+    | undefined;
 
   const peerId = useMemo(() => {
     if (!room) return peerIdFromUrl ?? null;
@@ -109,7 +114,8 @@ export function useRoom() {
     return room.userA === currentUserId ? room.userB : room.userA;
   }, [room, currentUserId, peerIdFromUrl]);
 
-  const currentUserName = session?.user?.name ?? null;
+  const currentUserName =
+    myProfileData?.data?.displayName ?? sessionUser?.displayName ?? sessionUser?.name ?? null;
 
   const score = useMemo(() => {
     if (room && isCircleRoomData(room)) return null;

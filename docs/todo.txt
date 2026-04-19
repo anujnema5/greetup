@@ -13,7 +13,6 @@ Circles call short snapshots - Not Done
 Scheduling circles call - Not Done
 
 * Remove mark as read
-* when clicking on the notification read all
 * chat notifications UI design
 * redesign circle invite
 * send circle invite as message 

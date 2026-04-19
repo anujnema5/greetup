@@ -24,6 +24,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { getProfileImageUrl } from "@/lib/ui/profile-image";
+import { useGetMyProfileQuery } from "@/features/profile-setup/components/profile-setup-api";
 
 function timeGreeting(): string {
   const h = new Date().getHours();
@@ -35,6 +36,7 @@ function timeGreeting(): string {
 function DashboardHeaderInner() {
   const router = useRouter();
   const { data: session } = useSession();
+  const { data: myProfileData } = useGetMyProfileQuery();
   const [mounted, setMounted] = useState(false);
   const [isSigningOut, setIsSigningOut] = useState(false);
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
@@ -56,13 +58,18 @@ function DashboardHeaderInner() {
     setMounted(true);
   }, []);
 
-  const displayName = session?.user?.name?.trim() ?? "";
+  const sessionUser = session?.user as
+    | { displayName?: string | null; name?: string | null; email?: string | null; image?: string | null }
+    | undefined;
+  const profileDisplayName = myProfileData?.data?.displayName?.trim() || "";
+  const displayName =
+    profileDisplayName || sessionUser?.displayName?.trim() || sessionUser?.name?.trim() || "";
   const firstName = displayName.split(/\s+/).filter(Boolean)[0] ?? "";
   const g = timeGreeting();
 
   const headline = mounted && firstName ? `${g}, ${firstName}` : g;
-  const avatarSrc = getProfileImageUrl(mounted ? (session?.user?.image ?? null) : null);
-  const email = session?.user?.email?.trim() ?? "";
+  const avatarSrc = getProfileImageUrl(mounted ? (sessionUser?.image ?? null) : null);
+  const email = sessionUser?.email?.trim() ?? "";
   const unreadCount = unreadData?.data?.unreadCount ?? 0;
   const unreadBadgeLabel = unreadCount > 99 ? "99+" : String(unreadCount);
   const notifications = notificationsData?.data?.items ?? [];

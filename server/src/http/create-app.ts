@@ -5,6 +5,7 @@ import { auth } from "@/core/auth/auth";
 import { setupRedis } from "@/core/redis";
 import { errorHandler, internalMiddleware } from "@/middleware";
 import { apiRouter, internalRoomsRoute } from "@/modules";
+import { authRoute } from "@/modules/auth/router";
 import { REDIS_URL } from "@/shared/constants";
 
 import { corsOptions } from "./cors";
@@ -19,6 +20,9 @@ const createApp = async () => {
   const app = new Hono();
 
   app.use(cors(corsOptions));
+
+  // Keep session identity normalization as a module route (repo → service → controller).
+  app.route("/api/auth", authRoute);
 
   app.all(HTTP_PATHS.authGlob, (c) => auth.handler(c.req.raw));
 
