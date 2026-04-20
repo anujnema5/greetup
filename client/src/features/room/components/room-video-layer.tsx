@@ -1,14 +1,17 @@
 "use client";
 
 import { useState } from "react";
+import { toast } from "sonner";
 import { useSession } from "@/lib/auth-client";
 import { useAppSelector } from "@/lib/redux/hooks";
-import { selectRoomPhase } from "@/lib/redux/selectors/room-selectors";
+import { selectRoomActiveActivity, selectRoomPhase } from "@/lib/redux/selectors/room-selectors";
+import { useRoomChessEndMutation, useRoomChessInviteMutation } from "@/features/activity";
 import { useRtcSocketContext } from "@/features/rtc";
 import { AddToCircleDialog } from "@/features/room/components/add-to-circle-dialog";
 import { RoomVideoView } from "@/features/room/components/room-video-view";
 import { useRoomPeerChrome } from "@/features/room/hooks/use-room-peer-chrome";
 import { useRoomVideo } from "@/features/room/hooks/use-room-video";
+import { getRtkMutationErrorMessage } from "@/lib/api/rtk-mutation-error";
 
 export type RoomVideoLayerProps = {
   roomId: string;
@@ -29,7 +32,10 @@ export function RoomVideoLayer({
 }: RoomVideoLayerProps) {
   const { data: session } = useSession();
   const roomPhase = useAppSelector(selectRoomPhase);
+  const activeRealtimeActivity = useAppSelector(selectRoomActiveActivity);
   const [addCircleOpen, setAddCircleOpen] = useState(false);
+  const [inviteToChess, { isLoading: requestingChess }] = useRoomChessInviteMutation();
+  const [endChess, { isLoading: endingChess }] = useRoomChessEndMutation();
   const video = useRoomVideo(roomId);
   const {
     mediasoupStatus,
@@ -57,6 +63,27 @@ export function RoomVideoLayer({
 
   const searchingForNextCandidate =
     !isGroupRoom && roomPhase === "searching";
+
+  const handleRequestChessInvite = async () => {
+    if (isGroupRoom) return;
+    if (!window.confirm("Send a chess invite to your peer?")) return;
+    try {
+      await inviteToChess({ roomId }).unwrap();
+      toast.success("Chess invite sent");
+    } catch (e: unknown) {
+      toast.error(getRtkMutationErrorMessage(e, "Could not send chess invite"));
+    }
+  };
+
+  const handleEndActiveGame = async () => {
+    if (!activeRealtimeActivity || activeRealtimeActivity.kind !== "chess") return;
+    if (!window.confirm("End this chess game for both players?")) return;
+    try {
+      await endChess({ roomId, gameId: activeRealtimeActivity.gameId }).unwrap();
+    } catch (e: unknown) {
+      toast.error(getRtkMutationErrorMessage(e, "Could not end chess game"));
+    }
+  };
 
   const { peerLabel, remotePeerCameraOff, peerAvatarUrl } = useRoomPeerChrome({
     peerId,
@@ -99,6 +126,7 @@ export function RoomVideoLayer({
         peerLabel={peerLabel}
         scoreLabel={scoreLabel}
         myName={myName}
+        currentUserId={session?.user?.id ?? null}
         myAvatarUrl={session?.user?.image ?? null}
         peerAvatarUrl={peerAvatarUrl}
         remotePeerCameraOff={remotePeerCameraOff}
@@ -106,6 +134,10 @@ export function RoomVideoLayer({
         showAddToCircle={showAddToCircle}
         onOpenAddToCircle={() => setAddCircleOpen(true)}
         searchingForNextCandidate={searchingForNextCandidate}
+        activeRealtimeActivity={activeRealtimeActivity}
+        onRequestChessInvite={() => void handleRequestChessInvite()}
+        requestChessBusy={requestingChess}
+        onEndActiveGame={() => void handleEndActiveGame()}
       />
     </div>
   );

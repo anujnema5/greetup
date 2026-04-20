@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import type { AppDispatch } from "@/lib/redux/store";
 import { startVideoSession } from "@/lib/redux/slices/roomSlice";
-import { useJoinRoomMutation } from "@/features/matching";
+import { useJoinRoomMutation } from "@/features/room/api/room-api";
 import { getRtkQueryErrorMessage } from "@/lib/api/rtk-query-error";
 import { markRoomActive } from "@/features/room/lib/room-sync";
 

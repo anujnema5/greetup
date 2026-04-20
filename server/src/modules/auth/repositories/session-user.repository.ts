@@ -10,9 +10,10 @@ export type SessionUserIdentityRow = {
 
 export const sessionUserRepository = {
   async findIdentityByUserId(userId: string): Promise<SessionUserIdentityRow | null> {
-    return db.query.users.findFirst({
+    const identity = await db.query.users.findFirst({
       where: eq(users.id, userId),
       columns: { name: true, displayName: true },
     });
+    return identity ?? null;
   },
 };

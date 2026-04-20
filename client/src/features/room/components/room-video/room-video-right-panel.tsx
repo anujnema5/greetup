@@ -6,6 +6,7 @@ import { cn } from "@/lib/utils";
 import { ChatPanel } from "@/features/chat/components/chat-panel";
 import { DIRECT_ROOM_ACTIVITIES } from "@/features/room/constants/direct-room-activities";
 import type { RoomActivityId } from "@/features/room/types/room-activity.types";
+import type { RoomActiveActivity } from "@/lib/redux/types/room-slice.types";
 
 type RightPanelTab = "chat" | "activities";
 
@@ -17,6 +18,9 @@ export function RoomVideoRightPanel({
   conversationId,
   activeActivity,
   setActiveActivity,
+  activeRealtimeActivity,
+  onRequestChessInvite,
+  requestChessBusy,
 }: {
   rightPanelTab: RightPanelTab;
   setRightPanelTab: (tab: RightPanelTab) => void;
@@ -25,7 +29,12 @@ export function RoomVideoRightPanel({
   conversationId: string | null;
   activeActivity: RoomActivityId | null;
   setActiveActivity: (activity: RoomActivityId) => void;
+  activeRealtimeActivity: RoomActiveActivity | null;
+  onRequestChessInvite?: () => void;
+  requestChessBusy?: boolean;
 }) {
+  const chessActive = activeRealtimeActivity?.kind === "chess";
+
   return (
     <aside className="flex h-[36vh] min-h-0 min-w-0 w-full shrink-0 flex-col overflow-hidden rounded-2xl border border-border/70 bg-card/92 backdrop-blur-md sm:h-[40vh] lg:h-auto lg:w-88">
       <Tabs
@@ -79,12 +88,19 @@ export function RoomVideoRightPanel({
                   variant="ghost"
                   size="sm"
                   onClick={() => {
+                    if (activity.id === "chess") {
+                      onRequestChessInvite?.();
+                      return;
+                    }
                     setActiveActivity(activity.id);
                     setRightPanelTab("chat");
                   }}
+                  disabled={(activity.id === "chess" && requestChessBusy) || chessActive}
                   className={cn(
                     "flex h-auto aspect-[1.3/1] flex-col items-center justify-center gap-1.5 rounded-xl border border-border bg-muted/35 p-2.5 text-center transition-all hover:bg-muted/60",
-                    activeActivity === activity.id && "border-primary/60 bg-primary/10",
+                    (activeActivity === activity.id || (activity.id === "chess" && chessActive)) &&
+                      "border-primary/60 bg-primary/10",
+                    activity.id === "chess" && requestChessBusy && "opacity-70",
                   )}
                 >
                   <span className="text-[22px]">{activity.emoji}</span>

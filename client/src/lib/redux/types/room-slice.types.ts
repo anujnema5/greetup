@@ -1,6 +1,6 @@
 /**
  * Global room / realtime session model (client-only).
- * Server truth stays in RTK Query; this slice holds UI + future WebRTC / games / chat.
+ * Server truth stays in RTK Query; this slice holds UI + future WebRTC / activities / chat.
  */
 
 export type RoomSessionPhase = "idle" | "lobby" | "in_call" | "searching";
@@ -15,7 +15,19 @@ export type RoomPeerEntry = {
  */
 export type RoomMediaStatus = "idle" | "connecting" | "connected" | "error";
 
-/** Future: chess, truth-or-dare — `active` null when not playing. */
-export type RoomGamesState = {
-  active: null | { kind: string };
+export type RoomChessActivityState = {
+  kind: "chess";
+  gameId: string;
+  roomId: string;
+  whiteUserId: string;
+  blackUserId: string;
+  startedByUserId: string;
+  startedAt: number;
+};
+
+export type RoomActiveActivity = RoomChessActivityState;
+
+/** In-call activities that must stay synchronized between peers. */
+export type RoomActivityState = {
+  active: RoomActiveActivity | null;
 };

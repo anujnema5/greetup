@@ -1,27 +1,16 @@
 import { Hono } from "hono";
 import {
-  handleCreateRoom,
-  handleEnsureProfileSnapshot,
   handleExpandDirectInvite,
   handleExpandDirectRespond,
   handleGetRoom,
   handleIssueRtcToken,
   handleJoinRoom,
-  handleMatchCompleted,
-  handleMatchFailed,
-  handleMatchProposed,
-  handleMatchProposalCancelled,
   handleStartRoomSession,
 } from "./controllers/room.controller";
+import { internalRoomsRoute } from "./routes/internal-rooms.route";
+import { roomActivityRoute } from "./routes/room-activity.route";
 
-export const internalRoomsRoute = new Hono();
-
-internalRoomsRoute.post("/rooms/match", handleCreateRoom);
-internalRoomsRoute.post("/webhook/ensure-profile-snapshot", handleEnsureProfileSnapshot);
-internalRoomsRoute.post("/webhook/match-completed", handleMatchCompleted);
-internalRoomsRoute.post("/webhook/match-failed", handleMatchFailed);
-internalRoomsRoute.post("/webhook/match-proposed", handleMatchProposed);
-internalRoomsRoute.post("/webhook/match-proposal-cancelled", handleMatchProposalCancelled);
+export { internalRoomsRoute };
 
 // Public authenticated route (registered under /api)
 export const roomRoute = new Hono();
@@ -31,3 +20,4 @@ roomRoute.post("/:roomId/start", handleStartRoomSession);
 roomRoute.post("/:roomId/expand-direct/invite", handleExpandDirectInvite);
 roomRoute.post("/:roomId/expand-direct/respond", handleExpandDirectRespond);
 roomRoute.get("/:roomId", handleGetRoom);
+roomRoute.route("/", roomActivityRoute);

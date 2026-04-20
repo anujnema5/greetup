@@ -1,5 +1,5 @@
 /**
- * Matching API (find / cancel / leave room, GET room) and `/circle/[roomId]` room hook.
+ * Matching API (find / cancel / respond / peer preview) and `/circle/[roomId]` room hook.
  *
  * - Types: `types/` (`matching-api.types`, `room.types` — includes `isCircleRoomData` / `isDirectMatchRoom`)
  * - RTC derivation: `utils/derive-room-rtc-state.ts`
@@ -17,12 +17,7 @@ export {
   matchingApi,
   useFindMatchMutation,
   useCancelMatchMutation,
-  useLeaveRoomMutation,
-  useGetRoomQuery,
-  useJoinRoomMutation,
-  useExpandDirectInviteMutation,
-  useExpandDirectRespondMutation,
-  leaveRoomKeepalive,
+  useGetMatchPeerPreviewQuery,
 } from "./api/matching-api";
 export type * from "./types";
 export { isCircleRoomData, isDirectMatchRoom, isRoomGroupLayout } from "./types/room.types";

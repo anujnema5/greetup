@@ -26,7 +26,7 @@ export {
   upsertRoomPeer,
   removeRoomPeer,
   setChatDraft,
-  setActiveGame,
+  setActiveActivity,
 } from "@/lib/redux/slices/roomSlice";
 export { MOCK_MATCH } from "./constants/mock-match";
 export { MATCHMAKING_HUB_PATH } from "./constants/call-flow";
@@ -43,3 +43,12 @@ export { MinimizedRoomDock } from "./components/minimized-room-dock";
 export { RoomMinimizedHydration } from "./components/room-minimized-hydration";
 export { DirectCallPartnerDisconnectHandler } from "./components/direct-call-partner-disconnect-handler";
 export { RoomDirectExpandSocketBridge } from "./components/room-direct-expand-socket-bridge";
+export {
+  roomApi,
+  leaveRoomKeepalive,
+  useLeaveRoomMutation,
+  useGetRoomQuery,
+  useJoinRoomMutation,
+  useExpandDirectInviteMutation,
+  useExpandDirectRespondMutation,
+} from "./api/room-api";

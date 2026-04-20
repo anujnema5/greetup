@@ -41,7 +41,10 @@ export function resolveConnectionForPublicProfile(
 
   const stale = rows.find((r) => r.status === "rejected" || r.status === "cancelled");
   if (stale) {
-    return { connectionState: stale.status, connectionId: stale.id };
+    return {
+      connectionState: stale.status === "rejected" ? "rejected" : "cancelled",
+      connectionId: stale.id,
+    };
   }
 
   return { connectionState: "none", connectionId: rows[0]?.id ?? null };

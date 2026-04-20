@@ -5,6 +5,7 @@ import { cn } from "@/lib/utils";
 import type { RoomActivityId } from "@/features/room/types/room-activity.types";
 import type { RoomActivityMeta } from "@/features/room/types/room-activity.types";
 import { ActivityStage } from "@/features/room/components/room-activity/activity-stage";
+import type { RoomActiveActivity } from "@/lib/redux/types/room-slice.types";
 import { RemoteParticipantTile } from "@/features/room/components/room-video/remote-participant-tile";
 import {
   CameraOffAvatar,
@@ -26,12 +27,17 @@ export function RoomVideoStage({
   activeActivity,
   activeActivityMeta,
   setActiveActivity,
+  activeRealtimeActivity,
+  onEndActiveGame,
   remoteVideoLive,
   localVideoLive,
+  remoteStream,
+  localStream,
   mainStageShowsScreen,
   peerLabel,
   peerInitials,
   myName,
+  currentUserId,
   myInitial,
   peerAvatarUrl,
   myAvatarUrl,
@@ -45,16 +51,23 @@ export function RoomVideoStage({
   activeActivity: RoomActivityId | null;
   activeActivityMeta: RoomActivityMeta | null;
   setActiveActivity: (activity: RoomActivityId | null) => void;
+  activeRealtimeActivity: RoomActiveActivity | null;
+  onEndActiveGame?: () => void;
   remoteVideoLive: boolean;
   localVideoLive: boolean;
+  remoteStream: MediaStream | null;
+  localStream: MediaStream | null;
   mainStageShowsScreen: boolean;
   peerLabel: string;
   peerInitials: string;
   myName: string;
+  currentUserId?: string | null;
   myInitial: string;
   peerAvatarUrl?: string | null;
   myAvatarUrl?: string | null;
 }) {
+  const stageActivity = activeRealtimeActivity?.kind === "chess" ? "chess" : activeActivity;
+
   if (isGroupRoom) {
     return groupGalleryParticipants.length > 0 ? (
       <div className="absolute inset-0 overflow-y-auto p-2 md:p-3">
@@ -96,7 +109,7 @@ export function RoomVideoStage({
         <>
           <div
             className="absolute inset-0 flex gap-2 p-3 pb-20"
-            style={{ display: stageRatio === "1:1" && !activeActivity ? "flex" : "none" }}
+            style={{ display: stageRatio === "1:1" && !stageActivity ? "flex" : "none" }}
           >
             <div className="relative flex-1 overflow-hidden rounded-2xl bg-black">
               <VideoMirror
@@ -150,21 +163,26 @@ export function RoomVideoStage({
 
           <div
             className="absolute inset-0 pb-20"
-            style={{ display: stageRatio === "1:1" && !activeActivity ? "none" : "block" }}
+            style={{ display: stageRatio === "1:1" && !stageActivity ? "none" : "block" }}
           >
             <div className="relative h-full w-full overflow-hidden rounded-[1.2rem]">
-              {activeActivity ? (
+              {stageActivity ? (
                 activeActivityMeta ? (
                   <ActivityStage
                     activity={activeActivityMeta}
-                    onExit={() => setActiveActivity(null)}
+                    onExit={() =>
+                      activeRealtimeActivity?.kind === "chess" ? onEndActiveGame?.() : setActiveActivity(null)
+                    }
                     peerLabel={peerLabel}
                     myName={myName}
+                    currentUserId={currentUserId ?? null}
                     peerInitials={peerInitials}
                     remoteVideoLive={remoteVideoLive}
                     localVideoLive={localVideoLive}
-                    remoteVideoRef={remoteVideoRef}
-                    localVideoRef={localVideoRef}
+                    remoteStream={remoteStream}
+                    localStream={localStream}
+                    activeRealtimeActivity={activeRealtimeActivity}
+                    onEndActiveGame={onEndActiveGame}
                   />
                 ) : null
               ) : (

@@ -8,7 +8,8 @@ import {
 } from "@/lib/redux/selectors/room-selectors";
 import { beginSearchingNextCall, setRoomPhase } from "@/lib/redux/slices/roomSlice";
 import { useRtcSocketContext, remotePeerIdsStableKey, remotePeerCountFromStableKey } from "@/features/rtc";
-import { useLeaveRoomMutation, useMatchmaking } from "@/features/matching";
+import { useMatchmaking } from "@/features/matching";
+import { useLeaveRoomMutation } from "@/features/room/api/room-api";
 import { DIRECT_CALL_RECOVERY } from "@/features/room/constants/direct-call-recovery";
 
 /**

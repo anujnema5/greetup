@@ -3,6 +3,7 @@ import type {
   RemoteParticipant,
   RemotePeer,
 } from "@/features/rtc";
+import type { RoomActiveActivity } from "@/lib/redux/types/room-slice.types";
 import type { RoomSessionType } from "@/shared/types/room-session";
 
 export type RoomVideoViewProps = {
@@ -32,6 +33,7 @@ export type RoomVideoViewProps = {
   onDismissLocalMediaDeviceError?: () => void;
   /** Current user's display name shown in the local video panel. */
   myName?: string;
+  currentUserId?: string | null;
   /** Current user's profile image URL used in camera-off fallback tiles. */
   myAvatarUrl?: string | null;
   /** Primary remote peer profile image URL used in direct-room camera-off tiles. */
@@ -52,4 +54,8 @@ export type RoomVideoViewProps = {
   onOpenAddToCircle?: () => void;
   /** Direct call only: remote peer left; show searching state instead of stale remote tile. */
   searchingForNextCandidate?: boolean;
+  activeRealtimeActivity?: RoomActiveActivity | null;
+  onRequestChessInvite?: () => void;
+  requestChessBusy?: boolean;
+  onEndActiveGame?: () => void;
 };

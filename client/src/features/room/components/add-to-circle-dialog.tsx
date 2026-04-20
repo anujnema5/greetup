@@ -14,7 +14,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import { useExpandDirectInviteMutation } from "@/features/matching/api/matching-api";
+import { useExpandDirectInviteMutation } from "@/features/room/api/room-api";
 import { getRtkMutationErrorMessage } from "@/lib/api/rtk-mutation-error";
 import {
   useGetMyConnectionsQuery,

@@ -1,20 +1,23 @@
 "use client";
 
-import type { RefObject } from "react";
-import { ChessActivityStage } from "@/features/room/components/room-activity/chess-activity-stage";
+import { ChessActivityStage } from "@/features/activity";
 import { GenericActivityStage } from "@/features/room/components/room-activity/generic-activity-stage";
 import type { RoomActivityMeta } from "@/features/room/types/room-activity.types";
+import type { RoomActiveActivity } from "@/lib/redux/types/room-slice.types";
 
 export type ActivityStageProps = {
   activity: RoomActivityMeta;
   onExit: () => void;
   peerLabel: string;
   myName: string;
+  currentUserId: string | null;
   peerInitials: string;
   remoteVideoLive: boolean;
   localVideoLive: boolean;
-  remoteVideoRef: RefObject<HTMLVideoElement | null>;
-  localVideoRef: RefObject<HTMLVideoElement | null>;
+  remoteStream: MediaStream | null;
+  localStream: MediaStream | null;
+  activeRealtimeActivity: RoomActiveActivity | null;
+  onEndActiveGame?: () => void;
 };
 
 export function ActivityStage({
@@ -22,25 +25,43 @@ export function ActivityStage({
   onExit,
   peerLabel,
   myName,
+  currentUserId,
   peerInitials,
   remoteVideoLive,
   localVideoLive,
-  remoteVideoRef,
-  localVideoRef,
+  remoteStream,
+  localStream,
+  activeRealtimeActivity,
+  onEndActiveGame,
 }: ActivityStageProps) {
   if (activity.id === "chess") {
     return (
       <ChessActivityStage
         peerLabel={peerLabel}
         myName={myName}
+        currentUserId={currentUserId}
         peerInitials={peerInitials}
         remoteVideoLive={remoteVideoLive}
         localVideoLive={localVideoLive}
-        remoteVideoRef={remoteVideoRef}
-        localVideoRef={localVideoRef}
+        remoteStream={remoteStream}
+        localStream={localStream}
+        chessActivity={activeRealtimeActivity?.kind === "chess" ? activeRealtimeActivity : null}
+        onEndGame={onEndActiveGame}
       />
     );
   }
 
-  return <GenericActivityStage label={activity.label} onExit={onExit} />;
+  return (
+    <GenericActivityStage
+      label={activity.label}
+      onExit={onExit}
+      peerLabel={peerLabel}
+      myName={myName}
+      peerInitials={peerInitials}
+      remoteVideoLive={remoteVideoLive}
+      localVideoLive={localVideoLive}
+      remoteStream={remoteStream}
+      localStream={localStream}
+    />
+  );
 }

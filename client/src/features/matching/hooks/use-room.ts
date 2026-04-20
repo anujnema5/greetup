@@ -7,7 +7,7 @@ import { getRtkQueryErrorMessage } from "@/lib/api/rtk-query-error";
 import { useAppDispatch } from "@/lib/redux/hooks";
 import { enterRoomPage, resetRoomState } from "@/lib/redux/slices/roomSlice";
 import { clearRoomStorage } from "@/features/room/lib/room-sync";
-import { useGetRoomQuery, useLeaveRoomMutation, leaveRoomKeepalive } from "../api/matching-api";
+import { useGetRoomQuery, useLeaveRoomMutation, leaveRoomKeepalive } from "@/features/room/api/room-api";
 import { useRtcSocketContext } from "@/features/rtc";
 import { isCircleRoomData, type RoomData } from "../types/room.types";
 import { useGetMyProfileQuery } from "@/features/profile-setup/components/profile-setup-api";

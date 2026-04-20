@@ -19,7 +19,8 @@ import {
   subscribeRoomChannel,
   broadcastRoomMessage,
 } from "@/features/room/lib/room-sync";
-import { useLeaveRoomMutation, useMatchmaking } from "@/features/matching";
+import { useMatchmaking } from "@/features/matching";
+import { useLeaveRoomMutation } from "@/features/room/api/room-api";
 
 /**
  * Full-screen room video: active markers, BroadcastChannel, end / skip / minimize.

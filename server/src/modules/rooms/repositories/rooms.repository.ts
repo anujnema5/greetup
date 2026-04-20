@@ -13,6 +13,17 @@ import {
 } from "@/core/database/schema";
 
 export const roomsRepository = {
+  async findUserDisplayLabel(userId: string): Promise<string> {
+    const row = await db.query.users.findFirst({
+      where: eq(users.id, userId),
+      columns: { displayName: true, name: true },
+    });
+    const displayName = row?.displayName?.trim();
+    if (displayName) return displayName;
+    const name = row?.name?.trim();
+    return name || "Member";
+  },
+
   async findRoomById(roomId: string) {
     return db.query.rooms.findFirst({
       where: eq(rooms.id, roomId),

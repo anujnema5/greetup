@@ -39,6 +39,7 @@ export function RoomVideoView({
   localMediaDeviceError = null,
   onDismissLocalMediaDeviceError,
   myName = "You",
+  currentUserId = null,
   myAvatarUrl = null,
   peerAvatarUrl = null,
   remotePeerCameraOff = false,
@@ -50,6 +51,10 @@ export function RoomVideoView({
   showAddToCircle = false,
   onOpenAddToCircle,
   searchingForNextCandidate = false,
+  activeRealtimeActivity = null,
+  onRequestChessInvite,
+  requestChessBusy = false,
+  onEndActiveGame,
 }: RoomVideoViewProps) {
   const [rightPanelTab, setRightPanelTab] = useState<RightPanelTab>("chat");
   const [activeActivity, setActiveActivity] = useState<RoomActivityId | null>(null);
@@ -89,10 +94,12 @@ export function RoomVideoView({
     onToggleCamera,
     onToggleScreenShare,
   });
+  const activeChess = activeRealtimeActivity?.kind === "chess";
+  const stageActivity = activeChess ? "chess" : activeActivity;
   const activeActivityMeta =
-    DIRECT_ROOM_ACTIVITIES.find((activity) => activity.id === activeActivity) ?? null;
+    DIRECT_ROOM_ACTIVITIES.find((activity) => activity.id === stageActivity) ?? null;
   const myInitial = myName.charAt(0).toUpperCase();
-  const isOneToOneStage = !isGroupRoom && !activeActivity && stageRatio === "1:1";
+  const isOneToOneStage = !isGroupRoom && !stageActivity && stageRatio === "1:1";
   const showSearchingState = !isGroupRoom && searchingForNextCandidate;
   const activeActivityLabel = activeActivityMeta ? `${activeActivityMeta.label} activity` : null;
 
@@ -117,12 +124,17 @@ export function RoomVideoView({
             activeActivity={activeActivity}
             activeActivityMeta={activeActivityMeta}
             setActiveActivity={setActiveActivity}
+            activeRealtimeActivity={activeRealtimeActivity}
+            onEndActiveGame={onEndActiveGame}
             remoteVideoLive={remoteVideoLive}
             localVideoLive={localVideoLive}
+            remoteStream={remoteStream}
+            localStream={localStream}
             mainStageShowsScreen={mainStageShowsScreen}
             peerLabel={peerLabel}
             peerInitials={peerInitials}
             myName={myName}
+            currentUserId={currentUserId}
             myInitial={myInitial}
             peerAvatarUrl={peerAvatarUrl}
             myAvatarUrl={myAvatarUrl}
@@ -135,7 +147,7 @@ export function RoomVideoView({
             localMediaDeviceError={localMediaDeviceError}
             onDismissLocalMediaDeviceError={onDismissLocalMediaDeviceError}
             isGroupRoom={isGroupRoom}
-            activeActivity={Boolean(activeActivity)}
+            activeActivity={Boolean(stageActivity)}
             stageRatio={stageRatio}
             localVideoLive={localVideoLive}
             localVideoRef={localVideoRef}
@@ -156,7 +168,7 @@ export function RoomVideoView({
             isOneToOneStage={isOneToOneStage}
             isGroupRoom={isGroupRoom}
             activeActivityLabel={activeActivityLabel}
-            activeActivity={Boolean(activeActivity)}
+            activeActivity={Boolean(stageActivity)}
             mainStageShowsScreen={mainStageShowsScreen}
             peerLabel={peerLabel}
             stageRatio={stageRatio}
@@ -197,6 +209,9 @@ export function RoomVideoView({
           conversationId={conversationId}
           activeActivity={activeActivity}
           setActiveActivity={setActiveActivity}
+          activeRealtimeActivity={activeRealtimeActivity}
+          onRequestChessInvite={onRequestChessInvite}
+          requestChessBusy={requestChessBusy}
         />
       </div>
     </div>
