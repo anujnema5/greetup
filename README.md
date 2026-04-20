@@ -25,7 +25,7 @@ Monorepo for Circlo application services.
              ▼                                    ▼
 ┌────────────────────────┐           ┌────────────────────────────┐
 │   SERVER (Hono/Bun)    │           │  RTC-SERVICE (mediasoup)   │
-│   http://localhost:5050│           │  http://localhost:3001      │
+│   http://localhost:5300│           │  http://localhost:5370    │
 │                        │           │                            │
 │  - Auth (JWT/sessions) │           │  - SFU via mediasoup       │
 │  - User/room APIs      │◄─────────►│  - WebRTC transport mgmt   │
@@ -183,7 +183,7 @@ All request bodies are parsed with **Zod** schemas before reaching handlers. Val
 
 | Service | Allowed origins |
 |---|---|
-| `server` | `http://localhost:3000`, `http://localhost:5050` |
+| `server` | `http://localhost:3000`, `http://localhost:5300` |
 | `rtc-service` | `*` (to be tightened before production) |
 
 ### Environment secrets
@@ -249,7 +249,7 @@ cp env/.env.example env/.env.development   # set DATABASE_URL and secrets
 bun install
 bun run db:migrate      # apply Drizzle migrations (required for a fresh DB)
 bun run dev
-# → http://localhost:5050
+# → http://localhost:5300
 ```
 
 See **`server/README.md`** for layout, repositories, and shared messages.
@@ -279,7 +279,7 @@ Config comes from `matching-service/env/.env.*` (see `matching-service/README.md
 cd rtc-service
 npm install
 npm run dev
-# → http://localhost:3001
+# → http://localhost:5370
 ```
 
 ---

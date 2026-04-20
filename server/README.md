@@ -11,7 +11,7 @@ Requires [Bun](https://bun.sh) (see `packageManager` in `package.json`).
 ```bash
 bun install
 bun run dev
-# http://localhost:5050
+# http://localhost:5300
 ```
 
 ## Database

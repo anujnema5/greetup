@@ -2,7 +2,7 @@ const nodeEnv = process.env.NODE_ENV || "development";
 
 const config = {
     env: nodeEnv,
-    port: parseInt(process.env.PORT || "5050"),
+    port: parseInt(process.env.PORT || "5300"),
     listenHost:
         process.env.LISTEN_HOST ??
         (nodeEnv === "production" ? "0.0.0.0" : "localhost"),
@@ -19,7 +19,7 @@ const config = {
     devNotificationEmail: process.env.DEV_NOTIFICATION_EMAIL!,
     internalApiKey: process.env.INTERNAL_API_KEY!,
     /** Base URL for rtc-service (mediasoup) — used to sync `roomType` on sockets after 1:1 → circle. */
-    rtcServiceBaseUrl: (process.env.RTC_SERVICE_URL ?? "http://localhost:5070").replace(/\/$/, ""),
+    rtcServiceBaseUrl: (process.env.RTC_SERVICE_URL ?? "http://localhost:5370").replace(/\/$/, ""),
     rtcJwtSecret: process.env.RTC_JWT_SECRET!,
     matchEngineUrl: process.env.MATCH_ENGINE_URL ?? "http://localhost:5060",
     logLevel: process.env.LOG_LEVEL,

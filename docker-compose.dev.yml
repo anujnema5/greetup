@@ -30,7 +30,7 @@ services:
       dockerfile: Dockerfile.dev
     container_name: circlo_server
     ports:
-      - "5050:5050"
+      - "5300:5300"
     volumes:
       - ./server:/app
       - /app/node_modules  # keep container-installed deps (Bun), use host source

@@ -99,7 +99,7 @@ const auth = betterAuth({
     },
   },
 
-  trustedOrigins: ["http://localhost:5050", "http://localhost:3000"],
+  trustedOrigins: [SERVER_URL, config.webClientHost],
 
   emailVerification: {
     autoSignInAfterVerification: true,
