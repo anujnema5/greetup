@@ -26,10 +26,10 @@ gcloud services enable \
 Create artifact registry (Docker):
 
 ```bash
-gcloud artifacts repositories create circlo \
+gcloud artifacts repositories create greetup \
   --repository-format=docker \
   --location=us-central1 \
-  --description="Circlo service images"
+  --description="Greetup service images"
 ```
 
 ## 2) Provision managed dependencies
@@ -103,7 +103,7 @@ docker run -d --name rtc-service \
   -e REDIS_URL=YOUR_REDIS_URL \
   -e INTERNAL_API_KEY=YOUR_INTERNAL_KEY \
   -e RTC_JWT_SECRET=YOUR_RTC_JWT_SECRET \
-  us-central1-docker.pkg.dev/YOUR_PROJECT_ID/circlo/rtc-service:TAG
+  us-central1-docker.pkg.dev/YOUR_PROJECT_ID/greetup/rtc-service:TAG
 ```
 
 Open firewall rules for your mediasoup UDP/TCP ranges from `rtc-service` env config.

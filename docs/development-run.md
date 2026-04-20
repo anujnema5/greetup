@@ -44,8 +44,8 @@ curl -fsSL https://bun.sh/install | bash
 ### 2. Clone and enter the repo
 
 ```bash
-git clone <repo-url> circlo
-cd circlo
+git clone <repo-url> greetup
+cd greetup
 ```
 
 ---
@@ -60,8 +60,8 @@ Verify they are up:
 
 ```bash
 docker ps
-# circlo_postgres   0.0.0.0:25432->5432/tcp
-# circlo_redis      0.0.0.0:16379->6379/tcp
+# greetup_postgres   0.0.0.0:25432->5432/tcp
+# greetup_redis      0.0.0.0:16379->6379/tcp
 ```
 
 ---
@@ -77,7 +77,7 @@ Open `server/env/.env.development` and fill in the required values:
 
 ```env
 PORT=5300
-DATABASE_URL=postgresql://postgres:postgres@localhost:25432/circlo_db
+DATABASE_URL=postgresql://postgres:postgres@localhost:25432/greetup_db
 REDIS_URL=redis://localhost:16379
 BETTER_AUTH_URL=http://localhost:5300
 BETTER_AUTH_SECRET=change_me_to_a_random_32_char_string
@@ -203,7 +203,7 @@ Terminal 5 (rtc)       cd rtc-service && npm run dev
 
 ## Overview
 
-Circlo is a monorepo with four services:
+Greetup is a monorepo with four services:
 
 | Service | Runtime | Port | Role |
 |---|---|---|---|
@@ -236,7 +236,7 @@ curl -fsSL https://bun.sh/install | bash
 ## Repository Structure
 
 ```
-circlo/
+greetup/
   client/                     # Next.js app
     src/
       app/                    # App Router routes and layouts
@@ -281,7 +281,7 @@ docker compose -f docker-compose.dev.yml up -d postgres redis
 
 | Service | Local address | Credentials |
 |---|---|---|
-| PostgreSQL | `localhost:25432` | `postgres` / `postgres` / DB: `circlo_db` |
+| PostgreSQL | `localhost:25432` | `postgres` / `postgres` / DB: `greetup_db` |
 | Redis | `localhost:16379` | none |
 
 ### Step 2 — Server
@@ -346,7 +346,7 @@ npm run dev
 |---|---|---|
 | `PORT` | `5300` | HTTP listen port |
 | `LISTEN_HOST` | `0.0.0.0` | Bind address (`localhost` by default in dev) |
-| `DATABASE_URL` | `postgresql://postgres:postgres@localhost:25432/circlo_db` | PostgreSQL connection string |
+| `DATABASE_URL` | `postgresql://postgres:postgres@localhost:25432/greetup_db` | PostgreSQL connection string |
 | `REDIS_URL` | `redis://localhost:16379` | Redis connection string |
 | `BETTER_AUTH_URL` | `http://localhost:5300` | Canonical server URL used by Better Auth |
 | `BETTER_AUTH_SECRET` | _(random 32+ char string)_ | Session token signing key |
@@ -490,10 +490,10 @@ docker compose -f docker-compose.dev.yml up -d postgres redis
 
 | Container | Port mapping |
 |---|---|
-| `circlo_postgres` | `25432:5432` |
-| `circlo_redis` | `16379:6379` |
-| `circlo_server` | `5300:5300` |
-| `circlo_client` | `3000:3000` |
+| `greetup_postgres` | `25432:5432` |
+| `greetup_redis` | `16379:6379` |
+| `greetup_server` | `5300:5300` |
+| `greetup_client` | `3000:3000` |
 
 > On Windows with volume mounts, `WATCHPACK_POLLING=true` is set in the compose file to enable file watching.
 

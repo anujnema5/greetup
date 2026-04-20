@@ -306,7 +306,7 @@ export function ProfilePage() {
             />
             <ProfileSectionRow
               icon={<Target className="h-4 w-4" />}
-              label="Goals on Circlo"
+              label="Goals on Greetup"
               summary={
                 labelsFromIds(profile.goalIds, catalog.goals) || "Add what you’re here for"
               }

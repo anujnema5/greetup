@@ -148,7 +148,7 @@ function buildSteps(profile: ProfileForSteps | undefined, options: StepOptions):
         {
           key: "goals",
           name: "goals",
-          label: "What do you want from Circlo?",
+          label: "What do you want from Greetup?",
           placeholder: "Select your goals",
           type: "multi-select",
           required: true,

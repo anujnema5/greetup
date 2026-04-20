@@ -1,6 +1,6 @@
-# circlo
+# greetup
 
-Monorepo for Circlo application services.
+Monorepo for Greetup application services.
 
 ## Services
 
@@ -201,7 +201,7 @@ All request bodies are parsed with **Zod** schemas before reaching handlers. Val
 ## Repository structure
 
 ```
-circlo/
+greetup/
   client/               # Next.js app
   server/               # Hono/Bun backend
   matching-service/     # Bun matchmaking microservice

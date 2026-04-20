@@ -2,9 +2,9 @@
 
 import { clearRoomReturnPath } from "./room-return-path";
 
-export const ROOM_ACTIVE_KEY = "circlo-call-active";
-export const ROOM_MINIMIZED_KEY = "circlo-call-minimized";
-export const ROOM_CHANNEL_NAME = "circlo-call";
+export const ROOM_ACTIVE_KEY = "greetup-call-active";
+export const ROOM_MINIMIZED_KEY = "greetup-call-minimized";
+export const ROOM_CHANNEL_NAME = "greetup-call";
 
 export type RoomChannelMessage =
   | { type: "END_CALL" }

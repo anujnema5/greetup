@@ -207,7 +207,7 @@ export function ProfileEditModals({
       <ProfileEditShell
         open={open && section === "goals"}
         onOpenChange={(o) => !o && onClose()}
-        title="Goals on Circlo"
+        title="Goals on Greetup"
         description="What you want here — helps us match you with the right people."
         footer={section === "goals" ? footer : undefined}
       >

@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 
-const STORAGE_KEY = "circlo_match_prep_client_session_id";
+const STORAGE_KEY = "greetup_match_prep_client_session_id";
 
 /**
  * Stable id for this browser tab session (`sessionStorage`). Used so match prep is shown once per tab

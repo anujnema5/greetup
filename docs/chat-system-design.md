@@ -1,4 +1,4 @@
-# Circlo — Chat System Architecture
+# Greetup — Chat System Architecture
 > Final decided architecture. Single AEK encryption. KMS for key storage.
 
 ---
@@ -265,7 +265,7 @@ let OLD_AEK: Buffer | null = null;
 
 export async function loadAEKs(): Promise<void> {
   const current = await client.send(new GetSecretValueCommand({
-    SecretId: 'circlo/production/MESSAGE_ENCRYPTION_KEY',
+    SecretId: 'greetup/production/MESSAGE_ENCRYPTION_KEY',
   }));
   AEK = Buffer.from(current.SecretString!, 'hex');
 
@@ -273,7 +273,7 @@ export async function loadAEKs(): Promise<void> {
 
   try {
     const previous = await client.send(new GetSecretValueCommand({
-      SecretId: 'circlo/production/MESSAGE_ENCRYPTION_KEY_PREVIOUS',
+      SecretId: 'greetup/production/MESSAGE_ENCRYPTION_KEY_PREVIOUS',
     }));
     OLD_AEK = Buffer.from(previous.SecretString!, 'hex');
   } catch {
@@ -1118,7 +1118,7 @@ Same country:   ~60-70ms    feels real time
 Cross country:  ~200ms+     slight delay
 
 WhatsApp / Telegram:  ~50-100ms
-Circlo:               ~50-90ms  ✓ same ballpark
+Greetup:              ~50-90ms  ✓ same ballpark
 ```
 
 ### Optimistic UI
@@ -1555,4 +1555,4 @@ export function useChat(conversationId: string) {
 
 ---
 
-*Circlo Chat System Architecture — Single AEK + KMS. Production ready. Same security model as Instagram, Discord, Slack.*
+*Greetup Chat System Architecture — Single AEK + KMS. Production ready. Same security model as Instagram, Discord, Slack.*

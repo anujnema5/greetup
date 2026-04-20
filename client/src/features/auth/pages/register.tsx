@@ -72,7 +72,7 @@ export default function RegisterPage() {
     return (
         <AuthPageLayout
             title="Create your account"
-            subtitle="Join Circlo and start connecting"
+            subtitle="Join Greetup and start connecting"
             footerText="Already have an account?"
             footerLinkText="Log in"
             onFooterLinkClick={handleLogin}

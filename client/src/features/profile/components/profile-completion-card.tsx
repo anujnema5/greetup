@@ -38,7 +38,7 @@ export function getProfileCompletionCopy(
     return {
       headline: "Nice progress",
       supporting:
-        "Keep filling in your profile — richer profiles lead to better conversations on Circlo.",
+        "Keep filling in your profile — richer profiles lead to better conversations on Greetup.",
       variant: "mid",
     };
   }

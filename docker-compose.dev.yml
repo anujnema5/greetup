@@ -3,12 +3,12 @@ version: "3.9"
 services:
   postgres:
     image: postgis/postgis:16-3.4 
-    container_name: circlo_postgres
+    container_name: greetup_postgres
     restart: unless-stopped
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
-      POSTGRES_DB: circlo_db
+      POSTGRES_DB: greetup_db
     ports:
       - "25432:5432"
     volumes:
@@ -16,7 +16,7 @@ services:
 
   redis:
     image: redis:7
-    container_name: circlo_redis
+    container_name: greetup_redis
     restart: unless-stopped
     ports:
       - "16379:6379"
@@ -28,7 +28,7 @@ services:
     build:
       context: ./server
       dockerfile: Dockerfile.dev
-    container_name: circlo_server
+    container_name: greetup_server
     ports:
       - "5300:5300"
     volumes:
@@ -48,7 +48,7 @@ services:
     build:
       context: ./client
       dockerfile: Dockerfile.dev
-    container_name: circlo_client
+    container_name: greetup_client
     ports:
       - "3000:3000"
     volumes:

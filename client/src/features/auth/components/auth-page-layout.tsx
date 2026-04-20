@@ -76,11 +76,13 @@ export default function AuthPageLayout({
                         <div className="relative z-10 flex flex-col items-center justify-center h-full text-center px-12 space-y-8">
                             <div className="space-y-4">
                                 <div className="inline-flex h-20 w-20 items-center justify-center rounded-2xl bg-primary text-primary-foreground shadow-lg">
-                                    <span className="text-3xl font-bold">VR</span>
+                                    <span className="text-3xl font-black leading-none tracking-[-0.03em]" aria-hidden>
+                                        G
+                                    </span>
                                 </div>
 
                                 <h2 className="text-4xl font-bold tracking-tight">
-                                    Circlo
+                                    Greetup
                                 </h2>
                                 <p className="text-lg text-muted-foreground max-w-md mx-auto leading-relaxed">
                                     Connect, talk and share vibes in real time with your people.

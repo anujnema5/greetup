@@ -1,6 +1,6 @@
 substitutions:
   _REGION: us-central1
-  _ARTIFACT_REPO: circlo
+  _ARTIFACT_REPO: greetup
   _IMAGE: server
   _SERVICE: server
   _PORT: "5300"

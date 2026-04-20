@@ -14,7 +14,7 @@ async function sendEmail({
     text: string
 }) {
     const { data, error } = await resend.emails.send({
-        from: 'Circlo <onboarding@resend.dev>',
+        from: 'Greetup <onboarding@resend.dev>',
         to: to,
         subject,
         text

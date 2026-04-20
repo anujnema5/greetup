@@ -8,7 +8,7 @@ import {
   type RefObject,
 } from "react";
 
-export const MINIMIZED_DOCK_OFFSET_STORAGE_KEY = "circlo-minimized-dock-drag";
+export const MINIMIZED_DOCK_OFFSET_STORAGE_KEY = "greetup-minimized-dock-drag";
 
 function clampDragToViewport(
   el: HTMLElement,

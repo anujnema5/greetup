@@ -54,10 +54,12 @@ const Logo = ({ className }: { className?: string }) => {
       className={`flex items-center gap-3 font-bold tracking-tight ${className}`}
     >
       <div className="relative flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-primary to-primary/80 text-primary-foreground shadow-lg shadow-primary/20">
-        <span className="text-lg font-extrabold">VR</span>
+        <span className="text-lg font-black leading-none tracking-[-0.03em]" aria-hidden>
+          G
+        </span>
       </div>
       <span className="text-2xl font-bold bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text">
-        Circlo
+        Greetup
       </span>
     </div>
   )
