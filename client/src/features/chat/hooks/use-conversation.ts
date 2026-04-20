@@ -52,12 +52,31 @@ export function useConversation(
   }, [conversationId, dispatch]);
 
   useEffect(() => {
-    if (!socket || hasJoined.current) return;
-    socket.emit('chat:room:join', conversationId);
-    hasJoined.current = true;
+    if (!socket) return;
+
+    const joinRoom = () => {
+      if (hasJoined.current) return;
+      socket.emit('chat:room:join', conversationId);
+      hasJoined.current = true;
+    };
+
+    const markLeft = () => {
+      hasJoined.current = false;
+    };
+
+    // Join immediately when connected, and also after every reconnect.
+    if (socket.connected) {
+      joinRoom();
+    }
+    socket.on('connect', joinRoom);
+    socket.on('disconnect', markLeft);
 
     return () => {
-      socket.emit('chat:room:leave', conversationId);
+      socket.off('connect', joinRoom);
+      socket.off('disconnect', markLeft);
+      if (hasJoined.current) {
+        socket.emit('chat:room:leave', conversationId);
+      }
       hasJoined.current = false;
     };
   }, [socket, conversationId]);

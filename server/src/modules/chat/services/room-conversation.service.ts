@@ -48,7 +48,7 @@ export async function getOrCreateRoomConversation(
   });
 }
 
-type DbLike = typeof db;
+type DbLike = Parameters<Parameters<typeof db.transaction>[0]>[0];
 
 async function insertConversationParticipants(
   tx: DbLike,

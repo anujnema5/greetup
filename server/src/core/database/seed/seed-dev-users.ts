@@ -5,7 +5,7 @@
  * Usage: bun run db:seed:dev-users
  */
 
-import { generateId } from "@better-auth/core/utils";
+import { randomUUID } from "node:crypto";
 import { hashPassword } from "better-auth/crypto";
 import { inArray } from "drizzle-orm";
 import { db } from "@/core/database";
@@ -112,10 +112,10 @@ async function seed() {
   }[] = [];
 
   for (const u of SEED_USERS) {
-    const userId = generateId();
+    const userId = randomUUID();
     rows.push({
       userId,
-      accountId: generateId(),
+      accountId: randomUUID(),
       email: u.email,
       name: u.name,
       displayName: u.displayName,

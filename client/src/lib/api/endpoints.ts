@@ -69,5 +69,8 @@ export const API_ENDPOINTS = {
     rtcToken: (roomId: string) => `/room/${roomId}/rtc-token` as const,
     expandDirectInvite: (roomId: string) => `/room/${roomId}/expand-direct/invite` as const,
     expandDirectRespond: (roomId: string) => `/room/${roomId}/expand-direct/respond` as const,
+    chessInvite: (roomId: string) => `/room/${roomId}/activity/chess/invite` as const,
+    chessRespond: (roomId: string) => `/room/${roomId}/activity/chess/respond` as const,
+    chessEnd: (roomId: string) => `/room/${roomId}/activity/chess/end` as const,
   },
 }

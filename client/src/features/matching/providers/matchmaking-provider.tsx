@@ -18,6 +18,7 @@ export type MatchmakingContextValue = Pick<
   | "error"
   | "handleFindMatch"
   | "handleCancel"
+  | "restartSearch"
   | "respondToProposal"
   | "respondBusy"
   | "waitingForPeerConnect"
@@ -47,6 +48,7 @@ export function MatchmakingProvider({ children }: { children: ReactNode }) {
       error: matchFlow.error,
       handleFindMatch: matchFlow.handleFindMatch,
       handleCancel: matchFlow.handleCancel,
+      restartSearch: matchFlow.restartSearch,
       respondToProposal: matchFlow.respondToProposal,
       respondBusy: matchFlow.respondBusy,
       waitingForPeerConnect: matchFlow.waitingForPeerConnect,
@@ -57,6 +59,7 @@ export function MatchmakingProvider({ children }: { children: ReactNode }) {
       matchFlow.error,
       matchFlow.handleFindMatch,
       matchFlow.handleCancel,
+      matchFlow.restartSearch,
       matchFlow.respondToProposal,
       matchFlow.respondBusy,
       matchFlow.waitingForPeerConnect,

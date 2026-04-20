@@ -11,7 +11,7 @@ export const env = {
   rtcInstanceId: process.env.RTC_INSTANCE_ID ?? `rtc-${process.pid}`,
   nodeEnv: process.env.NODE_ENV ?? "development",
   host: process.env.RTC_HOST ?? "0.0.0.0",
-  port: getNum(process.env.RTC_PORT, 5070),
+  port: getNum(process.env.RTC_PORT, 5370),
   rtcMinPort: getNum(process.env.RTC_MIN_PORT, 40000),
   rtcMaxPort: getNum(process.env.RTC_MAX_PORT, 49999),
   webrtcListenIp: process.env.WEBRTC_LISTEN_IP ?? "0.0.0.0",

@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import type { AppDispatch } from "@/lib/redux/store";
 import { startVideoSession } from "@/lib/redux/slices/roomSlice";
-import { useJoinRoomMutation } from "@/features/matching";
+import { useJoinRoomMutation } from "@/features/room/api/room-api";
 import { getRtkQueryErrorMessage } from "@/lib/api/rtk-query-error";
 import { markRoomActive } from "@/features/room/lib/room-sync";
 
@@ -23,12 +23,11 @@ export function useRoomJoinAndStartVideo({
   peerId: string | null;
   dispatch: AppDispatch;
 }) {
-  const [joinRoomError, setJoinRoomError] = useState<string | null>(null);
+  const [joinRoomErrorState, setJoinRoomErrorState] = useState<{
+    roomId: string;
+    message: string;
+  } | null>(null);
   const [joinRoom, { isLoading: joinRoomLoading }] = useJoinRoomMutation();
-
-  useEffect(() => {
-    setJoinRoomError(null);
-  }, [roomId]);
 
   useEffect(() => {
     if (!shouldStartVideo || sessionActive) return;
@@ -41,12 +40,19 @@ export function useRoomJoinAndStartVideo({
         dispatch(startVideoSession({ roomId, primaryRemoteUserId: peerId ?? null }));
       })
       .catch((err: unknown) => {
-        if (!cancelled) setJoinRoomError(getRtkQueryErrorMessage(err));
+        if (!cancelled) {
+          setJoinRoomErrorState({
+            roomId,
+            message: getRtkQueryErrorMessage(err),
+          });
+        }
       });
     return () => {
       cancelled = true;
     };
   }, [shouldStartVideo, sessionActive, roomId, peerId, dispatch, joinRoom]);
+
+  const joinRoomError = joinRoomErrorState?.roomId === roomId ? joinRoomErrorState.message : null;
 
   return { joinRoomError, joinRoomLoading };
 }

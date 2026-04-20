@@ -6,6 +6,7 @@ import "./globals.css";
 import { SocketProvider } from "@/lib/socket";
 import { ReduxProvider } from "@/lib/redux/provider";
 import { RtcSocketProvider } from "@/features/rtc";
+import { ChessSocketBridge } from "@/features/activity";
 import { ThemeProvider } from "@/components/theme-provider";
 import { Toaster } from "@/components/ui/sonner";
 import {
@@ -42,17 +43,18 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <ReduxProvider>
             <RoomMinimizedHydration />
             <RtcSocketProvider>
-              <DirectCallPartnerDisconnectHandler />
               <SocketProvider>
                 <RoomDirectExpandSocketBridge />
+                <ChessSocketBridge />
                 <NotificationsRealtimeBridge />
                 <ChatInboxSocketBridge />
                 <ChatMessagesCacheBridge />
                 <Suspense fallback={null}>
-                  <MinimizedRoomDock />
-                </Suspense>
-                <Suspense fallback={null}>
-                  <MatchmakingProvider>{children}</MatchmakingProvider>
+                  <MatchmakingProvider>
+                    <DirectCallPartnerDisconnectHandler />
+                    <MinimizedRoomDock />
+                    {children}
+                  </MatchmakingProvider>
                 </Suspense>
               </SocketProvider>
             </RtcSocketProvider>

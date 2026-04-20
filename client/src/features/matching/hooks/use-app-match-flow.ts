@@ -74,12 +74,18 @@ export function useAppMatchFlow() {
     cancelSearch();
   }, [cancelSearch]);
 
+  const restartSearch = useCallback(async () => {
+    await cancelSearch();
+    await findAMatch();
+  }, [cancelSearch, findAMatch]);
+
   return {
     status,
     result,
     error,
     handleFindMatch,
     handleCancel,
+    restartSearch,
     respondToProposal,
     respondBusy,
     waitingForPeerConnect,

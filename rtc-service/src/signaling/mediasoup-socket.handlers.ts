@@ -10,6 +10,7 @@ import {
   parseCreateWebRtcTransportPayload,
   parsePauseResumeProducerPayload,
   parseProducePayload,
+  parseRestartIcePayload,
   parseResumeConsumerPayload,
 } from "@/signaling/mediasoup-payloads";
 
@@ -23,8 +24,11 @@ export function registerMediasoupSocketHandlers(socket: Socket, peers: PeerSessi
     const displayName = typeof (payload as { displayName?: unknown })?.displayName === "string"
       ? ((payload as { displayName: string }).displayName || undefined)
       : undefined;
+    const image = typeof (payload as { image?: unknown })?.image === "string"
+      ? ((payload as { image: string }).image || undefined)
+      : undefined;
     try {
-      const result = await peers.join(socket, displayName);
+      const result = await peers.join(socket, displayName, image);
       if (!result.ok) {
         if ("ownerInstanceId" in result) {
           reply({
@@ -41,6 +45,7 @@ export function registerMediasoupSocketHandlers(socket: Socket, peers: PeerSessi
         rtpCapabilities: result.rtpCapabilities,
         peerIds: result.peerIds,
         peerNames: result.peerNames,
+        peerImages: result.peerImages,
         existingProducers: result.existingProducers,
         rtcInstanceId: env.rtcInstanceId,
       });
@@ -100,6 +105,31 @@ export function registerMediasoupSocketHandlers(socket: Socket, peers: PeerSessi
     } catch (err) {
       logger.error("connectTransport failed", { socketId: socket.id, err: String(err) });
       reply({ ok: false, error: { code: "connect_transport_failed", message: String(err) } });
+    }
+  });
+
+  socket.on("restartIce", async (payload: unknown, ack) => {
+    const reply = asSocketAck(ack);
+    const userId = socket.data.userId;
+    if (!userId) {
+      reply({ ok: false, error: { code: "unauthorized" } });
+      return;
+    }
+    const parsed = parseRestartIcePayload(payload);
+    if (!parsed) {
+      reply({ ok: false, error: { code: "invalid_payload" } });
+      return;
+    }
+    try {
+      const result = await peers.restartIce(userId, parsed.transportId);
+      if (!result.ok) {
+        reply({ ok: false, error: { code: result.code } });
+        return;
+      }
+      reply({ ok: true, iceParameters: result.iceParameters });
+    } catch (err) {
+      logger.error("restartIce failed", { socketId: socket.id, err: String(err) });
+      reply({ ok: false, error: { code: "restart_ice_failed", message: String(err) } });
     }
   });
 

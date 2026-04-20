@@ -10,7 +10,8 @@ import {
 } from "@/lib/redux/selectors/room-selectors";
 import { expandVideoSession } from "@/lib/redux/slices/roomSlice";
 import { clearRoomMinimized } from "@/features/room/lib/room-sync";
-import { useGetRoomQuery, isCircleRoomData } from "@/features/matching";
+import { isCircleRoomData } from "@/features/matching";
+import { useGetRoomQuery } from "@/features/room/api/room-api";
 import { useRoomVideo } from "@/features/room/hooks/use-room-video";
 import { MOCK_MATCH } from "@/features/room/constants/mock-match";
 import {

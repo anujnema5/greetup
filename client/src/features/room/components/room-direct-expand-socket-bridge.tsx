@@ -14,10 +14,10 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import {
-  matchingApi,
   useExpandDirectRespondMutation,
   useJoinRoomMutation,
-} from "@/features/matching/api/matching-api";
+  roomApi,
+} from "@/features/room/api/room-api";
 import { rtcApi } from "@/features/rtc/api/rtc-api";
 import {
   DIRECT_EXPAND_SOCKET_EVENTS,
@@ -54,7 +54,7 @@ export function RoomDirectExpandSocketBridge() {
       dispatch(
         rtcApi.util.updateQueryData("getRtcToken", roomId, patchCachedRtcRoomType("circle")),
       );
-      dispatch(matchingApi.util.invalidateTags([...invalidateRoomAndPeersCallStatusTags(roomId)]));
+      dispatch(roomApi.util.invalidateTags([...invalidateRoomAndPeersCallStatusTags(roomId)]));
     },
     [dispatch],
   );

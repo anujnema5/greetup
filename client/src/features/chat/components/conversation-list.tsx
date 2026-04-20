@@ -1,7 +1,9 @@
 'use client';
 
 import { useSelector } from 'react-redux';
+import Image from 'next/image';
 import { useSession } from '@/lib/auth-client';
+import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { useListConversationsQuery } from '../api/chat-api';
 import {
@@ -54,25 +56,26 @@ export function ConversationList({ activeId, onSelect }: ConversationListProps) 
         const { image, label } = conversationListAvatar(conv, currentUserId);
 
         return (
-          <button
+          <Button
             key={conv.id}
             type="button"
+            variant="ghost"
+            size="sm"
             onClick={() => onSelect(conv)}
             className={cn(
-              'flex cursor-pointer items-center gap-3 rounded-xl px-3 py-2.5 text-left transition-all duration-200',
+              'h-auto w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left transition-all duration-200',
               'hover:bg-muted/70',
               isActive && 'bg-primary/10 text-foreground ring-1 ring-primary/25 shadow-sm',
             )}
           >
             <div
               className={cn(
-                'flex size-10 shrink-0 items-center justify-center overflow-hidden rounded-full',
+                'relative flex size-10 shrink-0 items-center justify-center overflow-hidden rounded-full',
                 'bg-linear-to-br from-primary/70 to-primary text-xs font-bold text-primary-foreground',
               )}
             >
               {image ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={image} alt="" className="size-full object-cover" />
+                <Image src={image} alt="" fill sizes="40px" className="object-cover" unoptimized />
               ) : (
                 label
               )}
@@ -94,7 +97,7 @@ export function ConversationList({ activeId, onSelect }: ConversationListProps) 
                 )}
               </div>
             </div>
-          </button>
+          </Button>
         );
       })}
     </div>

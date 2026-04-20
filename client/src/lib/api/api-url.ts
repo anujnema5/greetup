@@ -1,6 +1,6 @@
 import { API_BASE_URL } from "@/shared/constants/environments";
 
-const DEFAULT_ORIGIN = "http://localhost:5050";
+const DEFAULT_ORIGIN = "http://localhost:5300";
 
 /**
  * Full URL to a route mounted under Hono's `/api` prefix.

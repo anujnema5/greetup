@@ -23,6 +23,8 @@ export type MediasoupRoomStatus =
 export type RemotePeer = {
   peerId: string;
   displayName?: string | null;
+  /** Optional profile image URL for avatar fallbacks in camera-off states. */
+  image?: string | null;
   /** true = camera producer active, false = paused (camera off). undefined = unknown (peer hasn't produced video yet). */
   cameraActive?: boolean;
   /** true = mic producer active, false = paused (muted). undefined = unknown (peer hasn't produced audio yet). */
@@ -46,6 +48,8 @@ export type UseMediasoupRoomArgs = {
   localUserId?: string | null;
   /** Current user's display name — sent to peers via the join socket event. */
   localDisplayName?: string | null;
+  /** Current user's profile image URL — shared to peers for camera-off avatar fallbacks. */
+  localProfileImageUrl?: string | null;
   /** Redux / product: who gets the main remote tile (1:1 match peer, or pinned circle member). */
   preferredRemotePeerId?: string | null;
 };
@@ -82,6 +86,8 @@ export type JoinAck =
       peerIds: string[];
       /** userId → display name for peers already in the room at join time. */
       peerNames: Record<string, string>;
+      /** userId → profile image URL for peers already in the room at join time. */
+      peerImages?: Record<string, string>;
       existingProducers: {
         peerId: string;
         producerId: string;
@@ -99,6 +105,13 @@ export type TransportCreateAck =
       iceCandidates: IceCandidate[];
       dtlsParameters: DtlsParameters;
       sctpParameters?: SctpParameters | null;
+    }
+  | { ok: false; error?: { code?: string } };
+
+export type RestartIceAck =
+  | {
+      ok: true;
+      iceParameters: IceParameters;
     }
   | { ok: false; error?: { code?: string } };
 

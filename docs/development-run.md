@@ -76,13 +76,13 @@ cp env/.env.example env/.env.development
 Open `server/env/.env.development` and fill in the required values:
 
 ```env
-PORT=5050
+PORT=5300
 DATABASE_URL=postgresql://postgres:postgres@localhost:25432/circlo_db
 REDIS_URL=redis://localhost:16379
-BETTER_AUTH_URL=http://localhost:5050
+BETTER_AUTH_URL=http://localhost:5300
 BETTER_AUTH_SECRET=change_me_to_a_random_32_char_string
 WEB_CLIENT_HOST=http://localhost:3000
-SERVER_URL=http://localhost:5050
+SERVER_URL=http://localhost:5300
 INTERNAL_API_KEY=change_me_to_a_shared_secret
 MATCH_ENGINE_URL=http://localhost:4020
 RTC_JWT_SECRET=change_me_min_16_chars
@@ -95,7 +95,7 @@ bun install
 bun run db:migrate     # creates tables on first run
 bun run db:seed        # optional: seed sample data
 bun run dev
-# → http://localhost:5050
+# → http://localhost:5300
 ```
 
 Leave this terminal running.
@@ -132,7 +132,7 @@ Open `matching-service/env/.env.development` and set:
 MATCHING_PORT=4020
 REDIS_URL=redis://localhost:16379
 INTERNAL_API_KEY=change_me_to_a_shared_secret   # same value as server
-MATCH_WEBHOOK_URL=http://localhost:5050/internal/webhook/match-completed
+MATCH_WEBHOOK_URL=http://localhost:5300/internal/webhook/match-completed
 MATCHING_ROOM_MODE=mock
 ```
 
@@ -159,7 +159,7 @@ cd rtc-service
 Create `rtc-service/.env` (or `rtc-service/env/.env.development` if that path is used) with:
 
 ```env
-RTC_PORT=5070
+RTC_PORT=5370
 WEBRTC_LISTEN_IP=0.0.0.0
 WEBRTC_ANNOUNCED_IP=127.0.0.1
 INTERNAL_API_KEY=change_me_to_a_shared_secret   # same value as server
@@ -171,7 +171,7 @@ Then:
 ```bash
 npm install    # uses npm — mediasoup requires native compilation
 npm run dev
-# → http://localhost:5070
+# → http://localhost:5370
 ```
 
 ---
@@ -181,9 +181,9 @@ npm run dev
 | Service | URL | Quick check |
 |---|---|---|
 | client | `http://localhost:3000` | Should load the app UI |
-| server | `http://localhost:5050` | `curl http://localhost:5050/health` → `200` |
+| server | `http://localhost:5300` | `curl http://localhost:5300/health` → `200` |
 | matching-service | `http://localhost:4020` | `curl http://localhost:4020/health` → `200` |
-| rtc-service | `http://localhost:5070` | `curl http://localhost:5070/health` → `200` |
+| rtc-service | `http://localhost:5370` | `curl http://localhost:5370/health` → `200` |
 
 You now have the full stack running. Keep all four terminals open while developing.
 
@@ -208,9 +208,9 @@ Circlo is a monorepo with four services:
 | Service | Runtime | Port | Role |
 |---|---|---|---|
 | `client` | Bun / Next.js | 3000 | Frontend |
-| `server` | Bun / Hono | 5050 | Main API, auth, WebSocket |
+| `server` | Bun / Hono | 5300 | Main API, auth, WebSocket |
 | `matching-service` | Bun / Hono | 4020 | Async matchmaking |
-| `rtc-service` | Node.js + mediasoup | 5070 | WebRTC SFU |
+| `rtc-service` | Node.js + mediasoup | 5370 | WebRTC SFU |
 
 Infrastructure: **PostgreSQL** on `localhost:25432`, **Redis** on `localhost:16379`.
 
@@ -293,7 +293,7 @@ cp env/.env.example env/.env.development   # first time only
 bun install
 bun run db:migrate     # apply schema migrations (required on first run and after pulls)
 bun run dev
-# → http://localhost:5050
+# → http://localhost:5300
 ```
 
 Optional: seed the database after migrating:
@@ -331,7 +331,7 @@ cd rtc-service
 cp env/.env.example env/.env.development   # if it exists
 npm install     # uses npm, not bun (mediasoup native build)
 npm run dev
-# → http://localhost:5070
+# → http://localhost:5370
 ```
 
 > **Note:** mediasoup requires Python and C++ build tools at `npm install` time. On Windows, install the "Desktop development with C++" workload from Visual Studio Build Tools and ensure Python is on PATH.
@@ -344,14 +344,14 @@ npm run dev
 
 | Variable | Example value | Purpose |
 |---|---|---|
-| `PORT` | `5050` | HTTP listen port |
+| `PORT` | `5300` | HTTP listen port |
 | `LISTEN_HOST` | `0.0.0.0` | Bind address (`localhost` by default in dev) |
 | `DATABASE_URL` | `postgresql://postgres:postgres@localhost:25432/circlo_db` | PostgreSQL connection string |
 | `REDIS_URL` | `redis://localhost:16379` | Redis connection string |
-| `BETTER_AUTH_URL` | `http://localhost:5050` | Canonical server URL used by Better Auth |
+| `BETTER_AUTH_URL` | `http://localhost:5300` | Canonical server URL used by Better Auth |
 | `BETTER_AUTH_SECRET` | _(random 32+ char string)_ | Session token signing key |
 | `WEB_CLIENT_HOST` | `http://localhost:3000` | Frontend origin (CORS) |
-| `SERVER_URL` | `http://localhost:5050` | Own URL for inter-service references |
+| `SERVER_URL` | `http://localhost:5300` | Own URL for inter-service references |
 | `INTERNAL_API_KEY` | _(shared secret)_ | Service-to-service auth header value |
 | `MATCH_ENGINE_URL` | `http://localhost:4020` | Matching service base URL |
 | `RTC_JWT_SECRET` | _(min 16 chars, shared with rtc-service)_ | JWT for Socket.IO auth with RTC |
@@ -370,8 +370,8 @@ npm run dev
 | `REDIS_URL` | `redis://127.0.0.1:6379` | Redis (use `localhost:16379` locally) |
 | `INTERNAL_API_KEY` | _(shared secret)_ | Must match server's `INTERNAL_API_KEY` |
 | `MATCHING_ROOM_MODE` | `mock` | `mock` (dev) or `http` (calls room service) |
-| `ROOM_SERVICE_URL` | `http://localhost:5050` | Only used when `MATCHING_ROOM_MODE=http` |
-| `MATCH_WEBHOOK_URL` | `http://localhost:5050/internal/webhook/match-completed` | Webhook target on server |
+| `ROOM_SERVICE_URL` | `http://localhost:5300` | Only used when `MATCHING_ROOM_MODE=http` |
+| `MATCH_WEBHOOK_URL` | `http://localhost:5300/internal/webhook/match-completed` | Webhook target on server |
 
 ### rtc-service — `rtc-service/env/.env.development`
 
@@ -379,7 +379,7 @@ npm run dev
 |---|---|---|
 | `NODE_ENV` | `development` | |
 | `RTC_HOST` | `0.0.0.0` | Bind address |
-| `RTC_PORT` | `5070` | HTTP/WebSocket listen port |
+| `RTC_PORT` | `5370` | HTTP/WebSocket listen port |
 | `RTC_MIN_PORT` | `40000` | UDP/TCP port range start (mediasoup) |
 | `RTC_MAX_PORT` | `49999` | UDP/TCP port range end (mediasoup) |
 | `WEBRTC_LISTEN_IP` | `0.0.0.0` | mediasoup listen IP |
@@ -492,7 +492,7 @@ docker compose -f docker-compose.dev.yml up -d postgres redis
 |---|---|
 | `circlo_postgres` | `25432:5432` |
 | `circlo_redis` | `16379:6379` |
-| `circlo_server` | `5050:5050` |
+| `circlo_server` | `5300:5300` |
 | `circlo_client` | `3000:3000` |
 
 > On Windows with volume mounts, `WATCHPACK_POLLING=true` is set in the compose file to enable file watching.
@@ -629,5 +629,5 @@ All request bodies validated with **Zod** before reaching handlers.
 
 | Service | Allowed origins |
 |---|---|
-| `server` | `http://localhost:3000`, `http://localhost:5050` |
+| `server` | `http://localhost:3000`, `http://localhost:5300` |
 | `rtc-service` | `*` (to be tightened before production) |

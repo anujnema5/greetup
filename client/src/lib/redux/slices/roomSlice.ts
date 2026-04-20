@@ -1,7 +1,7 @@
 import { createSlice, type PayloadAction } from "@reduxjs/toolkit";
 
 import type {
-  RoomGamesState,
+  RoomActivityState,
   RoomMediaStatus,
   RoomPeerEntry,
   RoomSessionPhase,
@@ -27,7 +27,7 @@ export interface RoomSliceState {
   chat: {
     draft: string;
   };
-  games: RoomGamesState;
+  activity: RoomActivityState;
 }
 
 const initialState = (): RoomSliceState => ({
@@ -36,7 +36,7 @@ const initialState = (): RoomSliceState => ({
   media: { status: "idle" },
   peers: { byUserId: {} },
   chat: { draft: "" },
-  games: { active: null },
+  activity: { active: null },
 });
 
 export const roomSlice = createSlice({
@@ -102,7 +102,7 @@ export const roomSlice = createSlice({
       state.media.status = "idle";
       state.peers.byUserId = {};
       state.chat.draft = "";
-      state.games.active = null;
+      state.activity.active = null;
     },
 
     minimizeVideoSession: (state) => {
@@ -115,6 +115,23 @@ export const roomSlice = createSlice({
 
     setRoomPhase: (state, action: PayloadAction<RoomSessionPhase>) => {
       state.session.phase = action.payload;
+    },
+
+    /**
+     * Stay in the room UI while searching a new direct-call partner, but detach
+     * from the current RTC room so the previous peer gets an immediate `peerLeft`.
+     */
+    beginSearchingNextCall: (state) => {
+      state.ui.sessionActive = true;
+      state.ui.isMinimized = false;
+      state.session.activeRoomId = null;
+      state.session.phase = "searching";
+      state.session.rtcPrimaryRemoteUserId = null;
+      state.session.conversationId = null;
+      state.media.status = "idle";
+      state.peers.byUserId = {};
+      state.chat.draft = "";
+      state.activity.active = null;
     },
 
     setMediaStatus: (state, action: PayloadAction<RoomMediaStatus>) => {
@@ -137,8 +154,8 @@ export const roomSlice = createSlice({
       state.chat.draft = action.payload;
     },
 
-    setActiveGame: (state, action: PayloadAction<RoomGamesState["active"]>) => {
-      state.games.active = action.payload;
+    setActiveActivity: (state, action: PayloadAction<RoomActivityState["active"]>) => {
+      state.activity.active = action.payload;
     },
   },
 });
@@ -152,12 +169,13 @@ export const {
   minimizeVideoSession,
   expandVideoSession,
   setRoomPhase,
+  beginSearchingNextCall,
   setMediaStatus,
   setRtcPrimaryRemoteUserId,
   upsertRoomPeer,
   removeRoomPeer,
   setChatDraft,
-  setActiveGame,
+  setActiveActivity,
 } = roomSlice.actions;
 
 export default roomSlice.reducer;

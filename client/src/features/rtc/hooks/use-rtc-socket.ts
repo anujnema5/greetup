@@ -27,12 +27,8 @@ export function useRtcSocket(token: string | null): UseRtcSocketReturn {
 
   useEffect(() => {
     if (!token) {
-      setRtcSocketState("idle");
-      setRtcSocket(null);
       return;
     }
-
-    setRtcSocketState("connecting");
 
     const socket = io(RTC_SOCKET_URL, {
       auth: { token },
@@ -44,15 +40,15 @@ export function useRtcSocket(token: string | null): UseRtcSocketReturn {
       timeout: 10000,
     });
 
-    setRtcSocket(socket);
-
     socket.on("connect", () => {
       console.log("[RTC] Connected to rtc-service:", socket.id);
+      setRtcSocket(socket);
       setRtcSocketState("connected");
     });
 
     socket.on("disconnect", (reason) => {
       console.log("[RTC] Disconnected:", reason);
+      setRtcSocket(null);
       setRtcSocketState("disconnected");
     });
 
@@ -72,5 +68,12 @@ export function useRtcSocket(token: string | null): UseRtcSocketReturn {
     };
   }, [token]);
 
-  return { rtcSocket, rtcSocketState };
+  const effectiveRtcSocketState: RtcSocketState =
+    token == null
+      ? "idle"
+      : rtcSocketState === "idle"
+      ? "connecting"
+      : rtcSocketState;
+
+  return { rtcSocket, rtcSocketState: effectiveRtcSocketState };
 }
