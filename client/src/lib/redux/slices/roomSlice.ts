@@ -117,6 +117,23 @@ export const roomSlice = createSlice({
       state.session.phase = action.payload;
     },
 
+    /**
+     * Stay in the room UI while searching a new direct-call partner, but detach
+     * from the current RTC room so the previous peer gets an immediate `peerLeft`.
+     */
+    beginSearchingNextCall: (state) => {
+      state.ui.sessionActive = true;
+      state.ui.isMinimized = false;
+      state.session.activeRoomId = null;
+      state.session.phase = "searching";
+      state.session.rtcPrimaryRemoteUserId = null;
+      state.session.conversationId = null;
+      state.media.status = "idle";
+      state.peers.byUserId = {};
+      state.chat.draft = "";
+      state.games.active = null;
+    },
+
     setMediaStatus: (state, action: PayloadAction<RoomMediaStatus>) => {
       state.media.status = action.payload;
     },
@@ -152,6 +169,7 @@ export const {
   minimizeVideoSession,
   expandVideoSession,
   setRoomPhase,
+  beginSearchingNextCall,
   setMediaStatus,
   setRtcPrimaryRemoteUserId,
   upsertRoomPeer,

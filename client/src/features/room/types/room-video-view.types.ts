@@ -50,4 +50,6 @@ export type RoomVideoViewProps = {
   /** Direct call only: show “Add to circle” in the toolbar. */
   showAddToCircle?: boolean;
   onOpenAddToCircle?: () => void;
+  /** Direct call only: remote peer left; show searching state instead of stale remote tile. */
+  searchingForNextCandidate?: boolean;
 };

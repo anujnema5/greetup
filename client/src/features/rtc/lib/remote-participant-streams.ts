@@ -70,9 +70,9 @@ export function mergeGroupGalleryParticipants(
   withStreams: RemoteParticipant[],
 ): RemoteParticipant[] {
   const streamByPeerId = new Map(withStreams.map((p) => [p.peer.peerId, p.stream]));
-  const ids = sortPeerIds([
-    ...new Set([...Object.keys(peers), ...withStreams.map((p) => p.peer.peerId)]),
-  ]);
+  // Render exactly the signaling roster for group rooms. This prevents stale
+  // "ghost tiles" if a stream lingers briefly after `peerLeft`.
+  const ids = sortPeerIds(Object.keys(peers));
   return ids.map((peerId) => ({
     peer: peers[peerId] ?? { peerId },
     stream: streamByPeerId.get(peerId) ?? new MediaStream(),

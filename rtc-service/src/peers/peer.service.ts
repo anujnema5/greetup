@@ -195,6 +195,19 @@ export class PeerSessionService {
     return { ok: true };
   }
 
+  async restartIce(
+    userId: string,
+    transportId: string,
+  ): Promise<{ ok: true; iceParameters: MediasoupTypes.IceParameters } | { ok: false; code: string }> {
+    const session = this.sessions.get(userId);
+    if (!session) return { ok: false, code: "not_joined" };
+    const transport = session.transports.get(transportId);
+    if (!transport) return { ok: false, code: "transport_not_found" };
+
+    const iceParameters = await transport.restartIce();
+    return { ok: true, iceParameters };
+  }
+
   async produce(
     userId: string,
     payload: {

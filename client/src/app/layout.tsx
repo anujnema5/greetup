@@ -42,17 +42,17 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <ReduxProvider>
             <RoomMinimizedHydration />
             <RtcSocketProvider>
-              <DirectCallPartnerDisconnectHandler />
               <SocketProvider>
                 <RoomDirectExpandSocketBridge />
                 <NotificationsRealtimeBridge />
                 <ChatInboxSocketBridge />
                 <ChatMessagesCacheBridge />
                 <Suspense fallback={null}>
-                  <MinimizedRoomDock />
-                </Suspense>
-                <Suspense fallback={null}>
-                  <MatchmakingProvider>{children}</MatchmakingProvider>
+                  <MatchmakingProvider>
+                    <DirectCallPartnerDisconnectHandler />
+                    <MinimizedRoomDock />
+                    {children}
+                  </MatchmakingProvider>
                 </Suspense>
               </SocketProvider>
             </RtcSocketProvider>

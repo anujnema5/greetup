@@ -18,6 +18,12 @@ export function parseConnectTransportPayload(
   };
 }
 
+export function parseRestartIcePayload(payload: unknown): { transportId: string } | null {
+  const body = payload as { transportId?: unknown } | undefined;
+  if (!body || typeof body.transportId !== "string") return null;
+  return { transportId: body.transportId };
+}
+
 export type ProduceClientPayload = {
   transportId: string;
   kind: MediasoupTypes.MediaKind;

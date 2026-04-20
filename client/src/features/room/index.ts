@@ -1,7 +1,7 @@
 /**
  * Video call UI: `/circle/[roomId]`, minimized dock, cross-tab sync.
  *
- * - Constants: `constants/call-flow.ts`, `constants/mock-match.ts`
+ * - Constants: `constants/call-flow.ts`, `constants/direct-call-recovery.ts`, `constants/mock-match.ts`
  * - Partner drop (direct match): `components/direct-call-partner-disconnect-handler.tsx`
  * - Redux: import actions/selectors from here or `@/lib/redux/slices/roomSlice`
  */
@@ -29,7 +29,12 @@ export {
   setActiveGame,
 } from "@/lib/redux/slices/roomSlice";
 export { MOCK_MATCH } from "./constants/mock-match";
-export { MATCHMAKING_HUB_PATH, DIRECT_CALL_PEER_LEFT_DEBOUNCE_MS } from "./constants/call-flow";
+export { MATCHMAKING_HUB_PATH } from "./constants/call-flow";
+export {
+  DIRECT_CALL_RECOVERY,
+  DIRECT_CALL_PEER_LEFT_DEBOUNCE_MS,
+  DIRECT_CALL_NETWORK_RECOVERY_TIMEOUT_MS,
+} from "./constants/direct-call-recovery";
 export { RoomVideoView } from "./components/room-video-view";
 export type { RoomVideoViewProps } from "./types/room-video-view.types";
 export type { DirectExpandInvitePayload } from "./types/direct-expand-socket.types";

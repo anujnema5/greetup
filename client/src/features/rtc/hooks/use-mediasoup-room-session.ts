@@ -6,6 +6,10 @@ import type { Consumer, MediaKind, Transport } from "mediasoup-client/types";
 import type { Socket } from "socket.io-client";
 import { resolveInboundVideoMediaSource } from "@/features/rtc/lib/mediasoup-stream-helpers";
 import {
+  ICE_RESTART_MIN_GAP_MS,
+  isRecoverableTransportState,
+} from "@/features/rtc/constants/connection-recovery";
+import {
   addRemoteTrackForPeer,
   removeRemoteTrackFromPeers,
   sortPeerIds,
@@ -19,6 +23,7 @@ import type {
   ConsumeAck,
   JoinAck,
   ProducerMediaSource,
+  RestartIceAck,
   RemotePeer,
   SimpleAck,
   TransportCreateAck,
@@ -85,6 +90,10 @@ export function useMediasoupRoomSession(options: MediasoupRoomSessionOptions): v
     refs.localScreenTrackRef.current = null;
 
     const consumers = new Map<string, Consumer>();
+    const iceRecoveryRuntime = {
+      restartInFlightByTransportId: new Set<string>(),
+      lastRestartAtByTransportId: new Map<string, number>(),
+    };
 
     const onPeerJoined = (data: {
       peerId?: string;
@@ -148,6 +157,67 @@ export function useMediasoupRoomSession(options: MediasoupRoomSessionOptions): v
       }
       refs.localStreamRef.current?.getTracks().forEach((t) => t.stop());
       refs.localStreamRef.current = null;
+      iceRecoveryRuntime.restartInFlightByTransportId.clear();
+      iceRecoveryRuntime.lastRestartAtByTransportId.clear();
+    };
+
+    const maybeRestartTransportIce = async (transport: Transport): Promise<boolean> => {
+      if (cancelled) return false;
+
+      const transportId = transport.id;
+      if (iceRecoveryRuntime.restartInFlightByTransportId.has(transportId)) {
+        return false;
+      }
+      const lastRestartAt = iceRecoveryRuntime.lastRestartAtByTransportId.get(transportId) ?? 0;
+      if (Date.now() - lastRestartAt < ICE_RESTART_MIN_GAP_MS) {
+        return false;
+      }
+      if (!socket.connected) {
+        return false;
+      }
+
+      iceRecoveryRuntime.restartInFlightByTransportId.add(transportId);
+      try {
+        const ack = await emitRtcAck<RestartIceAck>(socket, "restartIce", { transportId });
+        if (!isAckOk(ack) || !("iceParameters" in ack)) {
+          return false;
+        }
+        await transport.restartIce({ iceParameters: ack.iceParameters });
+        iceRecoveryRuntime.lastRestartAtByTransportId.set(transportId, Date.now());
+        return true;
+      } catch (err) {
+        console.warn("[RTC] restartIce failed", transportId, err);
+        return false;
+      } finally {
+        iceRecoveryRuntime.restartInFlightByTransportId.delete(transportId);
+      }
+    };
+
+    const attachIceRecovery = (transport: Transport, label: "send" | "recv") => {
+      transport.on("connectionstatechange", (state) => {
+        if (cancelled) return;
+
+        if (state === "connected") {
+          set.setStatus("ready");
+          set.setError(null);
+          return;
+        }
+
+        if (!isRecoverableTransportState(state)) {
+          return;
+        }
+
+        // Temporary network drops are handled by attempting ICE restart in-place.
+        set.setStatus("negotiating");
+        void maybeRestartTransportIce(transport).then((restarted) => {
+          if (cancelled) return;
+          if (restarted) {
+            set.setError(null);
+            return;
+          }
+          console.warn(`[RTC] ${label} transport remained unstable`, transport.id);
+        });
+      });
     };
 
     let sendTransport: Transport | null = null;
@@ -435,6 +505,7 @@ export function useMediasoupRoomSession(options: MediasoupRoomSessionOptions): v
           sctpParameters: recvParams.sctpParameters ?? undefined,
         });
         wireTransportConnect(socket, recvTransport);
+        attachIceRecovery(recvTransport, "recv");
 
         sendTransport = device.createSendTransport({
           id: sendParams.id,
@@ -445,6 +516,7 @@ export function useMediasoupRoomSession(options: MediasoupRoomSessionOptions): v
         });
         wireTransportConnect(socket, sendTransport);
         wireSendTransportProduce(socket, sendTransport);
+        attachIceRecovery(sendTransport, "send");
         refs.sendTransportRef.current = sendTransport;
 
         socket.on("newProducer", onNewProducer);

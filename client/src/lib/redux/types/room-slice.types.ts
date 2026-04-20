@@ -3,7 +3,7 @@
  * Server truth stays in RTK Query; this slice holds UI + future WebRTC / games / chat.
  */
 
-export type RoomSessionPhase = "idle" | "lobby" | "in_call";
+export type RoomSessionPhase = "idle" | "lobby" | "in_call" | "searching";
 
 /** Per-peer metadata — extend for streams, screenshare, connection quality, etc. */
 export type RoomPeerEntry = {

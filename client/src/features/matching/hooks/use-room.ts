@@ -60,15 +60,15 @@ export function useRoom() {
     clearLocalMediaDeviceError,
   } = useRtcSocketContext();
 
-  const fallbackRoom = useMemo((): RoomData | null => {
-    if (!roomQuery.isError || !peerIdFromUrl || !session?.user?.id) return null;
-    return {
-      roomId,
-      userA: session.user.id,
-      userB: peerIdFromUrl,
-      matchScore: scoreFromUrl,
-    };
-  }, [roomQuery.isError, peerIdFromUrl, session?.user?.id, roomId, scoreFromUrl]);
+  const fallbackRoom: RoomData | null =
+    roomQuery.isError && peerIdFromUrl && session?.user?.id
+      ? {
+          roomId,
+          userA: session.user.id,
+          userB: peerIdFromUrl,
+          matchScore: scoreFromUrl,
+        }
+      : null;
 
   const room = roomQuery.data ?? fallbackRoom;
 

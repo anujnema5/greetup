@@ -1,6 +1,5 @@
 "use client";
 
-import { useCallback } from "react";
 import { useAppDispatch, useAppSelector } from "@/lib/redux/hooks";
 import {
   selectIsRoomMinimized,
@@ -10,7 +9,6 @@ import { useRoom } from "@/features/matching";
 import { isRoomGroupLayout } from "@/features/matching/types/room.types";
 import { RoomVideoLayer } from "@/features/room/components/room-video-layer";
 import { useRoomJoinAndStartVideo } from "@/features/room/hooks/use-room-join-and-start-video";
-import { broadcastRoomMessage } from "@/features/room/lib/room-sync";
 
 /**
  * `/circle/[roomId]`: loading → join room → start video session → full UI or minimized dock.
@@ -28,7 +26,6 @@ export function RoomPage() {
     score,
     currentUserName,
     goHome,
-    leaveAndGoHome,
     room,
     rtcRoomType,
   } = useRoom();
@@ -45,11 +42,6 @@ export function RoomPage() {
     peerId,
     dispatch,
   });
-
-  const handleEnd = useCallback(() => {
-    broadcastRoomMessage({ type: "END_CALL" });
-    leaveAndGoHome();
-  }, [leaveAndGoHome]);
 
   if (loading || joinRoomLoading || (shouldStartVideo && !sessionActive && !joinRoomError)) {
     return (
@@ -93,7 +85,6 @@ export function RoomPage() {
     return (
       <RoomVideoLayer
         roomId={roomId}
-        onEnd={handleEnd}
         peerId={peerId}
         scoreLabel={scoreLabel}
         myName={myName}

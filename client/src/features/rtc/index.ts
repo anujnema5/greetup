@@ -38,3 +38,8 @@ export {
   remotePeerCountFromStableKey,
 } from "./lib/remote-participant-streams";
 export { hasLiveEnabledVideo, hasLiveMedia, hasLiveVideo } from "./lib/media-stream-utils";
+export {
+  RTC_CONNECTION_RECOVERY,
+  ICE_RESTART_MIN_GAP_MS,
+  isRecoverableTransportState,
+} from "./constants/connection-recovery";

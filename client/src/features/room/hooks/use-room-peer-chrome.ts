@@ -16,10 +16,12 @@ export function useRoomPeerChrome({
   groupRoomTitle: string | null;
 }) {
   return useMemo(() => {
-    const primaryId = peerId ?? Object.keys(peers)[0] ?? null;
+    const primaryId =
+      (peerId && peers[peerId] ? peerId : null) ?? Object.keys(peers)[0] ?? null;
     const primaryPeer = primaryId ? peers[primaryId] : null;
     const directPeerLabel =
-      primaryPeer?.displayName ?? (primaryId ? `Peer ${primaryId.slice(0, 8)}…` : "Peer");
+      primaryPeer?.displayName ??
+      (primaryId ? `Peer ${primaryId.slice(0, 8)}…` : "Searching for next match...");
     const peerLabel =
       isGroupRoom && groupRoomTitle?.trim()
         ? groupRoomTitle.trim()

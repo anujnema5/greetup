@@ -108,6 +108,13 @@ export type TransportCreateAck =
     }
   | { ok: false; error?: { code?: string } };
 
+export type RestartIceAck =
+  | {
+      ok: true;
+      iceParameters: IceParameters;
+    }
+  | { ok: false; error?: { code?: string } };
+
 export type ProduceAck = { ok: true; id: string } | { ok: false; error?: { code?: string } };
 
 export type ConsumeAck =

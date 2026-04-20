@@ -74,16 +74,16 @@ export function useMediasoupRoom(options: UseMediasoupRoomArgs): UseMediasoupRoo
   const localUserIdRef = useRef<string | null>(localUserId ?? null);
   const rtcRoomTypeRef = useRef<RtcRoomType>(rtcRoomType ?? "direct");
   const statusRef = useRef(status);
-  statusRef.current = status;
 
   // Async handlers read latest values via refs (avoids stale closures).
   useEffect(() => {
     localUserIdRef.current = localUserId ?? null;
     rtcRoomTypeRef.current = rtcRoomType ?? "direct";
+    statusRef.current = status;
     localStreamRef.current = localStream;
     micEnabledRef.current = micEnabled;
     cameraEnabledRef.current = cameraEnabled;
-  }, [localUserId, rtcRoomType, localStream, micEnabled, cameraEnabled]);
+  }, [localUserId, rtcRoomType, status, localStream, micEnabled, cameraEnabled]);
 
   const remoteParticipants = useMemo(
     () => remoteParticipantsFromRecord(remoteStreamsByPeerId, peers),
@@ -185,7 +185,9 @@ export function useMediasoupRoom(options: UseMediasoupRoomArgs): UseMediasoupRoo
   );
 
   const cleanupLocalScreenShareRef = useRef(cleanupLocalScreenShare);
-  cleanupLocalScreenShareRef.current = cleanupLocalScreenShare;
+  useEffect(() => {
+    cleanupLocalScreenShareRef.current = cleanupLocalScreenShare;
+  }, [cleanupLocalScreenShare]);
 
   const sessionRefs = useMemo<MediasoupRoomSessionRefs>(
     () => ({

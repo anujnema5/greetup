@@ -1,9 +1,15 @@
 "use client";
 
-import { useEffect, useCallback } from "react";
+import { useEffect, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { useAppDispatch } from "@/lib/redux/hooks";
-import { endVideoSession, expandVideoSession, minimizeVideoSession } from "@/lib/redux/slices/roomSlice";
+import {
+  beginSearchingNextCall,
+  endVideoSession,
+  expandVideoSession,
+  minimizeVideoSession,
+} from "@/lib/redux/slices/roomSlice";
+import { MATCHMAKING_HUB_PATH } from "@/features/room/constants/call-flow";
 import { getRoomReturnPath } from "@/features/room/lib/room-return-path";
 import {
   clearRoomStorage,
@@ -13,7 +19,7 @@ import {
   subscribeRoomChannel,
   broadcastRoomMessage,
 } from "@/features/room/lib/room-sync";
-import { MATCHMAKING_HUB_PATH } from "@/features/room/constants/call-flow";
+import { useLeaveRoomMutation, useMatchmaking } from "@/features/matching";
 
 /**
  * Full-screen room video: active markers, BroadcastChannel, end / skip / minimize.
@@ -27,6 +33,10 @@ export function useRoomVideo(roomId: string, options?: { skipSetup?: boolean }) 
   const skipSetup = options?.skipSetup ?? false;
   const router = useRouter();
   const dispatch = useAppDispatch();
+  const matchmaking = useMatchmaking();
+  const [leaveRoom] = useLeaveRoomMutation();
+  const skipHandledRef = useRef(false);
+  const endHandledRef = useRef(false);
 
   useEffect(() => {
     if (skipSetup) return;
@@ -35,11 +45,17 @@ export function useRoomVideo(roomId: string, options?: { skipSetup?: boolean }) 
     dispatch(expandVideoSession());
   }, [dispatch, skipSetup]);
 
-  const applySkip = useCallback(() => {
-    clearRoomStorage();
-    dispatch(endVideoSession());
-    router.replace(MATCHMAKING_HUB_PATH);
-  }, [dispatch, router]);
+  const beginSearchAfterSkip = useCallback(() => {
+    if (skipHandledRef.current) return;
+    skipHandledRef.current = true;
+    dispatch(beginSearchingNextCall());
+    void leaveRoom()
+      .unwrap()
+      .catch(() => {})
+      .finally(() => {
+        void matchmaking.restartSearch();
+      });
+  }, [dispatch, leaveRoom, matchmaking]);
 
   useEffect(() => {
     if (skipSetup) return;
@@ -47,26 +63,39 @@ export function useRoomVideo(roomId: string, options?: { skipSetup?: boolean }) 
       if (msg.type === "END_CALL") {
         clearRoomStorage();
         dispatch(endVideoSession());
-        router.replace("/");
+        router.replace(MATCHMAKING_HUB_PATH);
       }
       if (msg.type === "SKIP_CALL") {
-        applySkip();
+        beginSearchAfterSkip();
       }
     });
     return unsub;
-  }, [dispatch, router, applySkip, skipSetup]);
+  }, [beginSearchAfterSkip, dispatch, router, skipSetup]);
+
+  useEffect(() => {
+    if (!skipHandledRef.current) return;
+    if (matchmaking.status !== "searching" && matchmaking.status !== "proposed") return;
+    skipHandledRef.current = false;
+  }, [matchmaking.status]);
 
   const handleEnd = useCallback(() => {
+    if (endHandledRef.current) return;
+    endHandledRef.current = true;
     clearRoomStorage();
     dispatch(endVideoSession());
     broadcastRoomMessage({ type: "END_CALL" });
-    router.replace("/");
-  }, [dispatch, router]);
+    void leaveRoom()
+      .unwrap()
+      .catch(() => {})
+      .finally(() => {
+        router.replace(MATCHMAKING_HUB_PATH);
+      });
+  }, [dispatch, leaveRoom, router]);
 
   const handleSkip = useCallback(() => {
     broadcastRoomMessage({ type: "SKIP_CALL" });
-    applySkip();
-  }, [applySkip]);
+    beginSearchAfterSkip();
+  }, [beginSearchAfterSkip]);
 
   const handleMinimize = useCallback(() => {
     markRoomMinimized();

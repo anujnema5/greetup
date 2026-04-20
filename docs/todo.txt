@@ -12,6 +12,9 @@ Keeping room history and previous connection history - Not Done
 Circles call short snapshots - Not Done
 Scheduling circles call - Not Done
 
+* In circle when some peer lefts, his user tile is not going.
+* In direct call when the call is being dropped r skip  via one person the remote peer state should be transferred in there is network connection error then we need to handle that via restart-ice and other things so it gets connected again like before we will give a timeout and if in that timeout he gets back to his connection then it's fine otherwise for the remote peer it will skip the session and will fine other person. 
+* 
 * Remove mark as read
 * chat notifications UI design
 * redesign circle invite
