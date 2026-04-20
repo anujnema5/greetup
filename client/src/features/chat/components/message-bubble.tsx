@@ -1,6 +1,7 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
+import Image from 'next/image';
 import { MoreVertical } from 'lucide-react';
 import { nameInitials } from '@/lib/utils/name-initials';
 import { cn } from '@/lib/utils';
@@ -80,14 +81,13 @@ function SenderAvatar({ message }: { message: Message }) {
   return (
     <div
       className={cn(
-        'flex items-center justify-center overflow-hidden rounded-full',
+        'relative flex items-center justify-center overflow-hidden rounded-full',
         AVATAR_CLASS,
         'bg-linear-to-br from-primary/50 to-primary text-xs font-semibold text-primary-foreground',
       )}
     >
       {message.sender?.image ? (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img src={message.sender.image} alt="" className="size-full object-cover" />
+        <Image src={message.sender.image} alt="" fill sizes="36px" className="size-full object-cover" unoptimized />
       ) : (
         nameInitials(senderLabel(message))
       )}
@@ -112,10 +112,6 @@ export function MessageBubble({
   const [draft, setDraft] = useState(message.content);
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [deleteForAll, setDeleteForAll] = useState(false);
-
-  useEffect(() => {
-    if (!editing) setDraft(message.content);
-  }, [message.content, message.editedAt, editing]);
 
   const reactionGroups = useMemo(
     () => groupReactions(message.reactions, currentUserId),
@@ -160,7 +156,7 @@ export function MessageBubble({
 
       <div
         className={cn(
-          'block w-fit max-w-full rounded-2xl px-3.5 py-2.5 text-sm leading-relaxed wrap-break-word shadow-sm',
+          'block w-fit max-w-full rounded-2xl px-3.5 py-2.5 text-sm leading-relaxed wrap-anywhere shadow-sm',
           isOwn
             ? 'bg-primary text-primary-foreground rounded-tr-md'
             : 'bg-muted text-foreground rounded-tl-md',
@@ -168,11 +164,11 @@ export function MessageBubble({
         )}
       >
         {editing ? (
-          <div className="space-y-2 min-w-[12rem]">
+          <div className="min-w-48 space-y-2">
             <textarea
               value={draft}
               onChange={(e) => setDraft(e.target.value.slice(0, MAX_MESSAGE_CONTENT_LENGTH))}
-              className="w-full min-h-[4rem] rounded-lg bg-background/15 text-sm text-foreground p-2 outline-none ring-1 ring-primary-foreground/30"
+              className="min-h-16 w-full rounded-lg bg-background/15 p-2 text-sm text-foreground outline-none ring-1 ring-primary-foreground/30"
               autoFocus
             />
             <div className="flex justify-end gap-2">
@@ -205,13 +201,15 @@ export function MessageBubble({
 
       {isOwn && message.status === 'failed' && onRetryFailed && (
         <div className="mt-1 flex justify-end">
-          <button
+          <Button
             type="button"
-            className="text-xs text-destructive underline-offset-2 hover:underline cursor-pointer"
+            variant="ghost"
+            size="sm"
+            className="h-auto px-0 text-xs text-destructive underline-offset-2 hover:underline"
             onClick={() => onRetryFailed(message)}
           >
             Retry send
-          </button>
+          </Button>
         </div>
       )}
 
@@ -223,40 +221,46 @@ export function MessageBubble({
           )}
         >
           {onReply && (
-            <button
+            <Button
               type="button"
-              className="text-xs bg-muted rounded-full p-1 hover:bg-muted/80 cursor-pointer"
+              variant="ghost"
+              size="icon-sm"
+              className="h-6 w-6 rounded-full bg-muted p-1 text-xs hover:bg-muted/80"
               onClick={() => onReply(message)}
               title="Reply"
             >
               ↩
-            </button>
+            </Button>
           )}
           {onToggleReaction && (
             <span className="flex gap-0.5">
               {(['👍', '❤️', '😂'] as const).map((emoji) => (
-                <button
+                <Button
                   key={emoji}
                   type="button"
-                  className="text-xs bg-muted rounded-full px-1.5 py-0.5 hover:bg-muted/80 cursor-pointer"
+                  variant="ghost"
+                  size="sm"
+                  className="h-auto rounded-full bg-muted px-1.5 py-0.5 text-xs hover:bg-muted/80"
                   title={`React ${emoji}`}
                   onClick={() => onToggleReaction(message.id, emoji)}
                 >
                   {emoji}
-                </button>
+                </Button>
               ))}
             </span>
           )}
           {canEditOrDelete && (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <button
+                <Button
                   type="button"
-                  className="text-xs bg-muted rounded-full p-1 hover:bg-muted/80 cursor-pointer"
+                  variant="ghost"
+                  size="icon-sm"
+                  className="h-6 w-6 rounded-full bg-muted p-1 text-xs hover:bg-muted/80"
                   title="More"
                 >
                   <MoreVertical className="size-3.5" strokeWidth={2} />
-                </button>
+                </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align={isOwn ? 'end' : 'start'}>
                 <DropdownMenuItem
@@ -295,12 +299,14 @@ export function MessageBubble({
       {reactionGroups.length > 0 && onToggleReaction && (
         <div className="mt-1 flex flex-wrap gap-1">
           {reactionGroups.map((g) => (
-            <button
+            <Button
               key={g.emoji}
               type="button"
+              variant="ghost"
+              size="sm"
               onClick={() => onToggleReaction(message.id, g.emoji)}
               className={cn(
-                'inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] cursor-pointer transition-colors',
+                'inline-flex h-auto items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] transition-colors',
                 g.iReacted
                   ? 'border-primary bg-primary/15'
                   : 'border-border bg-background/80 hover:bg-muted',
@@ -308,7 +314,7 @@ export function MessageBubble({
             >
               <span>{g.emoji}</span>
               <span className="tabular-nums text-muted-foreground">{g.count}</span>
-            </button>
+            </Button>
           ))}
         </div>
       )}

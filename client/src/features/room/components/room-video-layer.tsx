@@ -55,7 +55,7 @@ export function RoomVideoLayer({
   /** `null` while the RTC token query resolves — treat like direct; hide only when API says `circle`. */
   const showAddToCircle = !isGroupRoom && rtcRoomType !== "circle";
 
-  const { peerLabel, remotePeerCameraOff } = useRoomPeerChrome({
+  const { peerLabel, remotePeerCameraOff, peerAvatarUrl } = useRoomPeerChrome({
     peerId,
     peers,
     isGroupRoom,
@@ -96,6 +96,8 @@ export function RoomVideoLayer({
         peerLabel={peerLabel}
         scoreLabel={scoreLabel}
         myName={myName}
+        myAvatarUrl={session?.user?.image ?? null}
+        peerAvatarUrl={peerAvatarUrl}
         remotePeerCameraOff={remotePeerCameraOff}
         conversationId={roomConversationId}
         showAddToCircle={showAddToCircle}

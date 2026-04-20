@@ -121,13 +121,15 @@ export function MessageInput({
           <span className="truncate flex-1">
             Replying: {replyTo.content.slice(0, 60)}
           </span>
-          <button
+          <Button
             type="button"
-            className="hover:text-foreground cursor-pointer"
+            variant="ghost"
+            size="sm"
+            className="h-auto px-1 py-0 text-muted-foreground hover:text-foreground"
             onClick={onCancelReply}
           >
             ✕
-          </button>
+          </Button>
         </div>
       )}
 
@@ -146,17 +148,18 @@ export function MessageInput({
             maxHeight: MESSAGE_INPUT_MAX_HEIGHT_PX,
           }}
         />
-        <button
+        <Button
           type="button"
+          size="icon"
           onClick={handleSend}
           disabled={!text.trim() || disabled}
-          className="shrink-0 h-10 w-10 rounded-full bg-primary text-primary-foreground flex items-center justify-center disabled:opacity-40 hover:bg-primary/90 cursor-pointer transition-colors"
+          className="shrink-0 h-10 w-10 rounded-full bg-primary text-primary-foreground hover:bg-primary/90"
         >
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
             <path d="M22 2L11 13" />
             <path d="M22 2L15 22l-4-9-9-4 20-7z" />
           </svg>
-        </button>
+        </Button>
       </div>
     </div>
   );

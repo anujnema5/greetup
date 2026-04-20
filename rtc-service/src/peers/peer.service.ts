@@ -42,9 +42,18 @@ export class PeerSessionService {
   private readonly roomMembers = new Map<string, Set<string>>();
   /** userId → display name, set on join, cleared on leave. */
   private readonly displayNames = new Map<string, string>();
+  /** userId → profile image URL, set on join, cleared on leave. */
+  private readonly profileImages = new Map<string, string>();
 
-  async join(socket: Socket, displayName?: string): Promise<
-    | { ok: true; rtpCapabilities: MediasoupTypes.RtpCapabilities; peerIds: string[]; peerNames: Record<string, string>; existingProducers: ExistingProducerInfo[] }
+  async join(socket: Socket, displayName?: string, profileImageUrl?: string): Promise<
+    | {
+        ok: true;
+        rtpCapabilities: MediasoupTypes.RtpCapabilities;
+        peerIds: string[];
+        peerNames: Record<string, string>;
+        peerImages: Record<string, string>;
+        existingProducers: ExistingProducerInfo[];
+      }
     | { ok: false; code: "WRONG_INSTANCE"; ownerInstanceId: string }
     | { ok: false; code: string }
   > {
@@ -93,14 +102,22 @@ export class PeerSessionService {
     members.add(userId);
 
     if (displayName) this.displayNames.set(userId, displayName);
+    if (profileImageUrl) this.profileImages.set(userId, profileImageUrl);
 
-    socket.to(roomId).emit("peerJoined", { peerId: userId, displayName: displayName ?? null });
+    socket.to(roomId).emit("peerJoined", {
+      peerId: userId,
+      displayName: displayName ?? null,
+      image: profileImageUrl ?? null,
+    });
 
     const peerIds = Array.from(members);
     const peerNames: Record<string, string> = {};
+    const peerImages: Record<string, string> = {};
     for (const pid of peerIds) {
       const name = this.displayNames.get(pid);
       if (name) peerNames[pid] = name;
+      const image = this.profileImages.get(pid);
+      if (image) peerImages[pid] = image;
     }
     const existingProducers = this.collectProducersInRoom(roomId, userId);
 
@@ -111,6 +128,7 @@ export class PeerSessionService {
       rtpCapabilities: roomResult.room.router.rtpCapabilities,
       peerIds,
       peerNames,
+      peerImages,
       existingProducers,
     };
   }
@@ -529,6 +547,7 @@ export class PeerSessionService {
 
     this.sessions.delete(userId);
     this.displayNames.delete(userId);
+    this.profileImages.delete(userId);
 
     const members = this.roomMembers.get(roomId);
     if (members) {

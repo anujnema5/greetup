@@ -76,7 +76,7 @@ export function RtcSocketProvider({ children }: { children: React.ReactNode }) {
   const { data: session, isPending: sessionPending } = useSession();
   const { data: myProfileData } = useGetMyProfileQuery(undefined, { skip: sessionPending });
   const sessionUser = session?.user as
-    | { id?: string | null; displayName?: string | null; name?: string | null }
+    | { id?: string | null; displayName?: string | null; name?: string | null; image?: string | null }
     | undefined;
   const profileDisplayName = myProfileData?.data?.displayName ?? null;
 
@@ -105,6 +105,7 @@ export function RtcSocketProvider({ children }: { children: React.ReactNode }) {
     rtcRoomType,
     localUserId: sessionUser?.id ?? null,
     localDisplayName: profileDisplayName ?? sessionUser?.displayName ?? sessionUser?.name ?? null,
+    localProfileImageUrl: sessionUser?.image ?? null,
     preferredRemotePeerId: rtcPrimaryRemoteUserId,
   });
 

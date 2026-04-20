@@ -32,6 +32,10 @@ export type RoomVideoViewProps = {
   onDismissLocalMediaDeviceError?: () => void;
   /** Current user's display name shown in the local video panel. */
   myName?: string;
+  /** Current user's profile image URL used in camera-off fallback tiles. */
+  myAvatarUrl?: string | null;
+  /** Primary remote peer profile image URL used in direct-room camera-off tiles. */
+  peerAvatarUrl?: string | null;
   /** True when the primary remote peer has explicitly paused their camera — show initials instead of black screen. */
   remotePeerCameraOff?: boolean;
   /** DB-backed circle / group — grid of remotes; still uses the same mediasoup streams. */

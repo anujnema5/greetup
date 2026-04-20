@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useSession } from '@/lib/auth-client';
+import { Button } from '@/components/ui/button';
 import { useChat } from '../hooks/use-chat';
 import { useConversation } from '../hooks/use-conversation';
 import { MessageList } from './message-list';
@@ -90,17 +91,19 @@ export function ChatPanel({
   return (
     <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
       {showQuickReactions ? (
-        <div className="flex items-center gap-1.5 border-b border-border/70 px-3 py-2">
+        <div className="flex min-w-0 flex-wrap items-center gap-1.5 border-b border-border/70 px-3 py-2">
           {QUICK_REACTION_EMOJIS.map((emoji) => (
-            <button
+            <Button
               key={emoji}
               type="button"
+              variant="outline"
+              size="sm"
               onClick={() => handleQuickReaction(emoji)}
-              className="rounded-md border border-border bg-muted/50 px-2 py-0.5 text-sm transition-colors hover:bg-muted"
+              className="h-auto px-2 py-0.5 text-sm"
               aria-label={`Send ${emoji} reaction`}
             >
               {emoji}
-            </button>
+            </Button>
           ))}
         </div>
       ) : null}

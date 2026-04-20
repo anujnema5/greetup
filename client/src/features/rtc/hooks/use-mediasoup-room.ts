@@ -39,6 +39,7 @@ export function useMediasoupRoom(options: UseMediasoupRoomArgs): UseMediasoupRoo
     rtcRoomType,
     localUserId,
     localDisplayName,
+    localProfileImageUrl,
     preferredRemotePeerId
   } = options;
 
@@ -239,6 +240,7 @@ export function useMediasoupRoom(options: UseMediasoupRoomArgs): UseMediasoupRoo
     rtcSocketState,
     rtcRoomId,
     localDisplayName,
+    localProfileImageUrl,
     cleanupLocalScreenShareRef,
     refs: sessionRefs,
     set: sessionSet,

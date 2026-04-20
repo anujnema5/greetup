@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useRef } from 'react';
+import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { MessageBubble } from './message-bubble';
 import { TypingIndicator } from './typing-indicator';
@@ -55,16 +56,19 @@ export function MessageList({
   return (
     <div
       ref={containerRef}
-      className="flex-1 overflow-y-auto px-5 py-3 md:px-5 md:py-4"
+      className="min-w-0 flex-1 overflow-x-hidden overflow-y-auto px-3 py-3 sm:px-4 md:px-5 md:py-4"
       onScroll={handleScroll}
     >
       {hasMore && (
-        <button
-          className="w-full text-xs text-muted-foreground py-2 hover:text-foreground cursor-pointer"
-          onClick={onLoadMore}
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          className="h-auto w-full py-2 text-xs text-muted-foreground hover:text-foreground"
+          onClick={() => onLoadMore()}
         >
           Load older messages
-        </button>
+        </Button>
       )}
 
       {messages.map((msg, i) => {
@@ -92,7 +96,7 @@ export function MessageList({
           !isOwn && !isGroup && msg.messageType !== 'system' && !prevSamePeer;
 
         return (
-          <div key={msg.id} className={cn(spacingClass, 'px-5 sm:px-0')}>
+          <div key={msg.id} className={cn(spacingClass, 'min-w-0')}>
             <MessageBubble
               message={msg}
               isOwn={isOwn}

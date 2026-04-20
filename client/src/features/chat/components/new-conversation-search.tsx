@@ -1,6 +1,9 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
+import Image from 'next/image';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { useGetMyConnectionsQuery } from '@/features/connections/api/connections-api';
 import { useCreateConnectionConversationMutation } from '../api/chat-api';
 import type { Conversation } from '../types/chat.types';
@@ -58,23 +61,26 @@ export function NewConversationSearch({ onConversationOpen }: NewConversationSea
           <circle cx="11" cy="11" r="8" />
           <path d="m21 21-4.35-4.35" />
         </svg>
-        <input
+        <Input
           type="text"
           placeholder="Search connections…"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           onFocus={() => setOpen(true)}
-          className="w-full rounded-xl border border-border/60 bg-muted/80 py-2 pl-8 pr-3 text-xs outline-none transition-shadow placeholder:text-muted-foreground focus:border-primary/30 focus:ring-2 focus:ring-primary/20"
+          className="h-auto w-full rounded-xl border-border/60 bg-muted/80 py-2 pl-8 pr-3 text-xs focus-visible:border-primary/30 focus-visible:ring-2 focus-visible:ring-primary/20"
         />
         {query && (
-          <button
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon-sm"
             onClick={() => { setQuery(''); setOpen(false); }}
-            className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+            className="absolute right-2.5 top-1/2 h-5 w-5 -translate-y-1/2 p-0 text-muted-foreground hover:text-foreground"
           >
             <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
               <path d="M18 6 6 18M6 6l12 12" />
             </svg>
-          </button>
+          </Button>
         )}
       </div>
 
@@ -110,16 +116,22 @@ export function NewConversationSearch({ onConversationOpen }: NewConversationSea
 
                 return (
                   <li key={item.connectionId}>
-                    <button
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
                       disabled={isCreating}
                       onClick={() => handleSelect(item.peer.userId)}
-                      className="w-full flex items-center gap-2.5 px-3 py-2 text-left text-sm hover:bg-muted/60 transition-colors disabled:opacity-50"
+                      className="h-auto w-full justify-start gap-2.5 rounded-none px-3 py-2 text-left text-sm hover:bg-muted/60"
                     >
                       {item.peer.image ? (
-                        <img
+                        <Image
                           src={item.peer.image}
                           alt={display}
-                          className="w-7 h-7 rounded-full object-cover shrink-0"
+                          width={28}
+                          height={28}
+                          className="h-7 w-7 shrink-0 rounded-full object-cover"
+                          unoptimized
                         />
                       ) : (
                         <div className="w-7 h-7 rounded-full bg-primary/20 text-primary flex items-center justify-center text-[10px] font-semibold shrink-0">
@@ -132,7 +144,7 @@ export function NewConversationSearch({ onConversationOpen }: NewConversationSea
                           <p className="text-[10px] text-muted-foreground truncate">@{item.peer.username}</p>
                         )}
                       </div>
-                    </button>
+                    </Button>
                   </li>
                 );
               })}

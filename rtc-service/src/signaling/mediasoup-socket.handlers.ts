@@ -23,8 +23,11 @@ export function registerMediasoupSocketHandlers(socket: Socket, peers: PeerSessi
     const displayName = typeof (payload as { displayName?: unknown })?.displayName === "string"
       ? ((payload as { displayName: string }).displayName || undefined)
       : undefined;
+    const image = typeof (payload as { image?: unknown })?.image === "string"
+      ? ((payload as { image: string }).image || undefined)
+      : undefined;
     try {
-      const result = await peers.join(socket, displayName);
+      const result = await peers.join(socket, displayName, image);
       if (!result.ok) {
         if ("ownerInstanceId" in result) {
           reply({
@@ -41,6 +44,7 @@ export function registerMediasoupSocketHandlers(socket: Socket, peers: PeerSessi
         rtpCapabilities: result.rtpCapabilities,
         peerIds: result.peerIds,
         peerNames: result.peerNames,
+        peerImages: result.peerImages,
         existingProducers: result.existingProducers,
         rtcInstanceId: env.rtcInstanceId,
       });

@@ -40,6 +40,7 @@ export function useMediasoupRoomSession(options: MediasoupRoomSessionOptions): v
     rtcSocketState,
     rtcRoomId,
     localDisplayName,
+    localProfileImageUrl,
     cleanupLocalScreenShareRef,
     refs,
     set
@@ -85,13 +86,21 @@ export function useMediasoupRoomSession(options: MediasoupRoomSessionOptions): v
 
     const consumers = new Map<string, Consumer>();
 
-    const onPeerJoined = (data: { peerId?: string; displayName?: string | null }) => {
+    const onPeerJoined = (data: {
+      peerId?: string;
+      displayName?: string | null;
+      image?: string | null;
+    }) => {
       if (cancelled || !data?.peerId) return;
       if (data.peerId === refs.localUserIdRef.current) return;
       const pid = data.peerId;
       set.setPeers((prev) => ({
         ...prev,
-        [pid]: { peerId: pid, displayName: data.displayName ?? null },
+        [pid]: {
+          ...(prev[pid] ?? { peerId: pid }),
+          displayName: data.displayName ?? prev[pid]?.displayName ?? null,
+          image: data.image ?? prev[pid]?.image ?? null,
+        },
       }));
     };
 
@@ -361,7 +370,10 @@ export function useMediasoupRoomSession(options: MediasoupRoomSessionOptions): v
 
     void (async () => {
       try {
-        const joinRes = await emitRtcAck<JoinAck>(socket, "join", { displayName: localDisplayName ?? undefined });
+        const joinRes = await emitRtcAck<JoinAck>(socket, "join", {
+          displayName: localDisplayName ?? undefined,
+          image: localProfileImageUrl ?? undefined,
+        });
         if (cancelled) return;
 
         if (!joinRes || typeof joinRes !== "object" || !("ok" in joinRes) || !joinRes.ok) {
@@ -383,7 +395,11 @@ export function useMediasoupRoomSession(options: MediasoupRoomSessionOptions): v
         const initialPeers: Record<string, RemotePeer> = Object.fromEntries(
           sortPeerIds(others).map((id) => [
             id,
-            { peerId: id, displayName: joinRes.peerNames?.[id] ?? null },
+            {
+              peerId: id,
+              displayName: joinRes.peerNames?.[id] ?? null,
+              image: joinRes.peerImages?.[id] ?? null,
+            },
           ]),
         );
         set.setPeers(initialPeers);
@@ -471,6 +487,8 @@ export function useMediasoupRoomSession(options: MediasoupRoomSessionOptions): v
     };
   }, [
     enabled,
+    localDisplayName,
+    localProfileImageUrl,
     rtcSocket,
     rtcSocketState,
     rtcRoomId,

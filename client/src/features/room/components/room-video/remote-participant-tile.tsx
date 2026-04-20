@@ -1,9 +1,10 @@
 "use client";
 
 import { useMemo, useRef } from "react";
+import Image from "next/image";
 import { hasLiveVideo, type RemoteParticipant } from "@/features/rtc";
-import { MOCK_MATCH } from "@/features/room/constants/mock-match";
 import { useAttachMediaStream } from "@/features/room/hooks/use-attach-media-stream";
+import { getProfileImageUrl } from "@/lib/ui/profile-image";
 
 export function RemoteParticipantTile({ participant }: { participant: RemoteParticipant }) {
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -26,30 +27,26 @@ export function RemoteParticipantTile({ participant }: { participant: RemotePart
   useAttachMediaStream(videoRef, stream, live);
 
   return (
-    <div
-      className="relative flex min-h-[5.5rem] min-w-0 flex-col overflow-hidden rounded-xl"
-      style={{
-        border: "2px solid rgba(255,255,255,0.12)",
-        boxShadow: "0 8px 24px rgba(0,0,0,0.3)",
-        aspectRatio: "16 / 10",
-      }}
-    >
+    <div className="relative flex min-h-22 min-w-0 flex-col overflow-hidden rounded-xl border border-border/50 shadow-sm aspect-16/10">
       {live ? (
         <video ref={videoRef} playsInline autoPlay className="h-full w-full object-cover" />
       ) : (
-        <div
-          className="flex h-full w-full flex-1 items-center justify-center"
-          style={{
-            background: "linear-gradient(135deg, oklch(30% 0.04 105), oklch(20% 0.02 110))",
-          }}
-        >
-          <div
-            className="flex h-14 w-14 items-center justify-center rounded-full text-lg font-bold text-white"
-            style={{
-              background: `linear-gradient(135deg, ${MOCK_MATCH.gradFrom}, ${MOCK_MATCH.gradTo})`,
-            }}
-          >
-            {initials || "?"}
+        <div className="flex h-full w-full flex-1 items-center justify-center bg-muted/20">
+          <div className="relative h-14 w-14 overflow-hidden rounded-full border border-border bg-muted text-foreground shadow-sm">
+            {peer.image?.trim() ? (
+              <Image
+                src={getProfileImageUrl(peer.image)}
+                alt={`${label} profile`}
+                fill
+                sizes="56px"
+                className="object-cover"
+                unoptimized
+              />
+            ) : (
+              <span className="flex h-full w-full items-center justify-center text-lg font-bold">
+                {initials || "?"}
+              </span>
+            )}
           </div>
         </div>
       )}
