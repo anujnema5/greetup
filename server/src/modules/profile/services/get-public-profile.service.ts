@@ -22,7 +22,7 @@ export type PublicProfileResult = {
   bio: string | null;
   age: number | null;
   gender: string | null;
-  /** Why they’re on Circlo (onboarding “purpose”). */
+  /** Why they’re on Greetup (onboarding “purpose”). */
   purpose: string | null;
   educationLevel: string | null;
   /** Legacy single profession text on `user_profiles`, if set. */

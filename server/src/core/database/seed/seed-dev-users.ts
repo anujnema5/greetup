@@ -24,8 +24,8 @@ import {
   userConnections,
 } from "@/core/database/schema";
 
-const DEV_EMAIL_DOMAIN = "circlo.local";
-const DEV_PASSWORD = "CircloSeed2026!";
+const DEV_EMAIL_DOMAIN = "greetup.local";
+const DEV_PASSWORD = "GreetupSeed2026!";
 
 /** Row order matches dev-users.credentials.csv */
 const SEED_USERS = [

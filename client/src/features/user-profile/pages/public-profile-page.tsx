@@ -288,7 +288,7 @@ export function PublicProfilePage({ username }: Props) {
               ) : null}
 
               {data.purpose?.trim() && (
-                <ProfileDetailSection title="On Circlo" icon={<Target className="h-4 w-4" />}>
+                <ProfileDetailSection title="On Greetup" icon={<Target className="h-4 w-4" />}>
                   <p className="text-[13px] text-foreground leading-relaxed whitespace-pre-wrap">
                     {data.purpose.trim()}
                   </p>

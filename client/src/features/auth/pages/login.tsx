@@ -60,7 +60,7 @@ export default function LoginPage() {
     <AuthPageLayout
       title="Welcome back"
       subtitle="Log in to continue to your vibe space"
-      footerText="New to Circlo?"
+      footerText="New to Greetup?"
       footerLinkText="Create account"
       onFooterLinkClick={handleCreateAccount}
     >

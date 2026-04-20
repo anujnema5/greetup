@@ -1,6 +1,6 @@
 /** Remember which in-app route to return to when minimizing full-screen room video. */
 
-const RETURN_KEY = "circlo-call-return-path";
+const RETURN_KEY = "greetup-call-return-path";
 
 export function setRoomReturnPath(path: string): void {
   try {

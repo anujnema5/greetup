@@ -98,7 +98,7 @@ export function RoomInviteSettingsModal({
 
   const friendlySummary = useMemo(() => {
     if (policy === "all_connections") {
-      return "Your friends on Circlo can add you when they start a circle and send invites.";
+      return "Your friends on Greetup can add you when they start a circle and send invites.";
     }
     if (selectedIds.length === 0) {
       return "You haven’t picked anyone yet — people you don’t choose won’t be able to add you this way.";

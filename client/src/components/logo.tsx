@@ -13,11 +13,13 @@ export const Logo = ({
       )}
     >
       <div className="relative flex h-11 w-11 items-center justify-center rounded-xl bg-linear-to-br from-primary to-primary/80 text-primary-foreground shadow-lg shadow-primary/25">
-        <span className="text-lg font-extrabold">VR</span>
+        <span className="text-lg font-black leading-none tracking-[-0.03em]" aria-hidden>
+          G
+        </span>
       </div>
 
       <span className="text-2xl font-bold bg-linear-to-r from-foreground to-foreground/70 bg-clip-text">
-        Circlo
+        Greetup
       </span>
     </div>
   );

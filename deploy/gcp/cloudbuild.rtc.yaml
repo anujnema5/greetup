@@ -1,6 +1,6 @@
 substitutions:
   _REGION: us-central1
-  _ARTIFACT_REPO: circlo
+  _ARTIFACT_REPO: greetup
   _IMAGE: rtc-service
 
 steps:

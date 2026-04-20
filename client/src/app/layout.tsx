@@ -26,7 +26,7 @@ const plusJakartaSans = Plus_Jakarta_Sans({
 });
 
 export const metadata: Metadata = {
-  title: "Circlo",
+  title: "Greetup",
   description: "Your vibe finds your tribe.",
 };
 
