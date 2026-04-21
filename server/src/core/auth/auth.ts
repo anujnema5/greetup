@@ -6,7 +6,7 @@ import { sendEmail } from "@/services/email";
 import logger from "../logging";
 import config from "@/shared/config/config";
 import { BETTER_AUTH_URL, DEV_NOTIFICATION_EMAIL, SERVER_URL } from "@/shared/constants";
-import * as schema from "@/core/database/schema"
+import * as schema from "@/core/database/schema";
 
 // npx @better-auth/cli generate --config ./src/core/auth/index.ts
 
@@ -44,11 +44,8 @@ const auth = betterAuth({
     useSecureCookies: config.env === "production",
     crossSubDomainCookies,
   },
-
-
   plugins: [
     openAPI(),
-
     phoneNumber({
       sendOTP: async ({ phoneNumber, code }) => {
         logger.info("OTP generated", {
@@ -142,9 +139,7 @@ const auth = betterAuth({
         logger.info("Verification email sent", {
           userId: user.id,
         });
-      } 
-      
-      catch (error) {
+      } catch (error) {
         logger.error("Failed to send verification email", {
           error,
           userEmail: user.email,
@@ -159,7 +154,7 @@ const auth = betterAuth({
       prompt: "select_account",
       clientId: config.googleClientId,
       clientSecret: config.googleClientSecret,
-      redirectURI: `${publicAuthBaseUrl}/api/auth/callback/google`
+      redirectURI: `${publicAuthBaseUrl}/api/auth/callback/google`,
     },
   },
 });
