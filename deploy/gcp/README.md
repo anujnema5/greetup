@@ -91,7 +91,18 @@ gcloud run services add-iam-policy-binding matching-service \
 gcloud builds submit --config deploy/gcp/cloudbuild.rtc.yaml .
 ```
 
-Use the pushed image on a Compute Engine VM:
+The rtc Cloud Build config also supports automatic VM sync during the trigger:
+- copies `deploy/gcp/vm/docker-compose.yml` to `~/${_VM_APP_DIR}/docker-compose.yml` on the VM
+- updates `RTC_IMAGE` in `~/${_VM_APP_DIR}/.env` to the new `:latest` image
+- runs `docker compose --env-file .env pull && docker compose --env-file .env up -d --remove-orphans`
+
+Default substitutions in `deploy/gcp/cloudbuild.rtc.yaml`:
+- `_VM_NAME=greetup-vm`
+- `_VM_ZONE=us-central1-a`
+- `_VM_USER=greetup_club`
+- `_VM_APP_DIR=greetup`
+
+Use the pushed image manually on a Compute Engine VM (fallback):
 
 ```bash
 docker run -d --name rtc-service \
