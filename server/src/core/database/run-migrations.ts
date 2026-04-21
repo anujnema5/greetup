@@ -153,6 +153,7 @@ export async function runMigrations(): Promise<void> {
   const client = await pool.connect();
 
   try {
+    await client.query("CREATE EXTENSION IF NOT EXISTS postgis");
     await ensureTrackingTable(client);
     await seedLedgerFromDrizzleIfNeeded(client, files);
 
