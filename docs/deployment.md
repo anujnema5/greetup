@@ -8,7 +8,7 @@
 | server | Cloud Run | Main API server |
 | matching-service | Cloud Run | Private, authenticated only |
 | rtc-service | GCE VM | WebRTC/mediasoup — cannot use Cloud Run (needs UDP) |
-| postgres | GCE VM (Docker) | Same VM as rtc-service |
+| postgres | GCE VM (Docker + PostGIS) | Same VM as rtc-service |
 | redis | GCE VM (Docker) | Same VM as rtc-service |
 
 ## GCP Project

@@ -137,6 +137,42 @@ async function applySqlFile(client: pg.PoolClient, filename: string): Promise<vo
   }
 }
 
+function isMissingPostgisExtension(error: unknown): boolean {
+  if (!error || typeof error !== "object") {
+    return false;
+  }
+
+  const pgError = error as {
+    code?: string;
+    message?: string;
+    detail?: string;
+    routine?: string;
+  };
+
+  return (
+    pgError.code === "58P01" &&
+    (pgError.message?.includes(`extension "postgis" is not available`) ||
+      pgError.detail?.includes("postgis.control") ||
+      pgError.routine === "parse_extension_control_file")
+  );
+}
+
+async function ensurePostgisExtensionInstalled(client: pg.PoolClient): Promise<void> {
+  try {
+    await client.query("CREATE EXTENSION IF NOT EXISTS postgis");
+  } catch (error) {
+    if (isMissingPostgisExtension(error)) {
+      throw new Error(
+        "PostGIS is required by migrations but is not installed on the database host. " +
+          "If Postgres runs in Docker on a VM, use a PostGIS image (for example `postgis/postgis:16-3.4`) " +
+          "instead of plain `postgres`, then rerun migrations.",
+        { cause: error },
+      );
+    }
+    throw error;
+  }
+}
+
 export async function runMigrations(): Promise<void> {
   const databaseUrl = process.env.DATABASE_URL;
   if (!databaseUrl?.trim()) {
@@ -153,7 +189,7 @@ export async function runMigrations(): Promise<void> {
   const client = await pool.connect();
 
   try {
-    await client.query("CREATE EXTENSION IF NOT EXISTS postgis");
+    await ensurePostgisExtensionInstalled(client);
     await ensureTrackingTable(client);
     await seedLedgerFromDrizzleIfNeeded(client, files);
 
