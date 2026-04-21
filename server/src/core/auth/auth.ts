@@ -10,6 +10,16 @@ import * as schema from "@/core/database/schema"
 
 // npx @better-auth/cli generate --config ./src/core/auth/index.ts
 
+const normalizedBetterAuthUrl = BETTER_AUTH_URL?.replace(/\/$/, "");
+const normalizedServerUrl = SERVER_URL?.replace(/\/$/, "");
+const publicAuthBaseUrl = normalizedServerUrl || normalizedBetterAuthUrl;
+
+if (!publicAuthBaseUrl) {
+  throw new Error(
+    "Auth base URL is missing. Set SERVER_URL or BETTER_AUTH_URL to a valid absolute URL.",
+  );
+}
+
 const auth = betterAuth({
   database: drizzleAdapter(db, {
     provider: "pg",
@@ -62,7 +72,7 @@ const auth = betterAuth({
       try {
         const resetUrl = url.replace(
           BETTER_AUTH_URL,
-          SERVER_URL
+          publicAuthBaseUrl
         );
 
         logger.info("Password reset requested", {
@@ -99,7 +109,7 @@ const auth = betterAuth({
     },
   },
 
-  trustedOrigins: [SERVER_URL, config.webClientHost],
+  trustedOrigins: [publicAuthBaseUrl, config.webClientHost].filter(Boolean),
 
   emailVerification: {
     autoSignInAfterVerification: true,
@@ -108,7 +118,7 @@ const auth = betterAuth({
       try {
         const verificationUrl = url.replace(
           BETTER_AUTH_URL,
-          SERVER_URL
+          publicAuthBaseUrl
         );
 
         logger.info("Email verification requested", {
@@ -145,7 +155,7 @@ const auth = betterAuth({
       prompt: "select_account",
       clientId: config.googleClientId,
       clientSecret: config.googleClientSecret,
-      redirectURI: `${SERVER_URL}/api/auth/callback/google`
+      redirectURI: `${publicAuthBaseUrl}/api/auth/callback/google`
     },
   },
 });
