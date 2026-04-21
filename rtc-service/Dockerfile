@@ -1,6 +1,8 @@
-FROM oven/bun:1.3.11-alpine
+FROM oven/bun:1.3.11-debian
 
 WORKDIR /app
+
+RUN apt-get update && apt-get install -y python3 python3-pip build-essential && rm -rf /var/lib/apt/lists/*
 
 COPY package.json bun.lock ./
 RUN bun install --frozen-lockfile
