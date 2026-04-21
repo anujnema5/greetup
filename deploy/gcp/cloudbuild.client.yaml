@@ -8,6 +8,13 @@ substitutions:
   _MEMORY: 512Mi
   _MIN_INSTANCES: "0"
   _MAX_INSTANCES: "10"
+  _NEXT_PUBLIC_API_BASE_URL: https://api-dev.greetup.club/api
+  _NEXT_PUBLIC_SOCKET_SERVER_URL: https://api-dev.greetup.club
+  _NEXT_PUBLIC_RTC_SOCKET_URL: http://35.188.152.185:5370
+  _NEXT_PUBLIC_APP_URL: https://dev.greetup.club
+
+options:
+  logging: CLOUD_LOGGING_ONLY
 
 steps:
   - name: gcr.io/cloud-builders/docker
@@ -18,6 +25,14 @@ steps:
       - Dockerfile
       - -t
       - ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_ARTIFACT_REPO}/${_IMAGE}:$SHORT_SHA
+      - --build-arg
+      - NEXT_PUBLIC_API_BASE_URL=${_NEXT_PUBLIC_API_BASE_URL}
+      - --build-arg
+      - NEXT_PUBLIC_SOCKET_SERVER_URL=${_NEXT_PUBLIC_SOCKET_SERVER_URL}
+      - --build-arg
+      - NEXT_PUBLIC_RTC_SOCKET_URL=${_NEXT_PUBLIC_RTC_SOCKET_URL}
+      - --build-arg
+      - NEXT_PUBLIC_APP_URL=${_NEXT_PUBLIC_APP_URL}
       - .
 
   - name: gcr.io/cloud-builders/docker

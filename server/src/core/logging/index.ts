@@ -1,4 +1,3 @@
-import path from "path";
 import pino, { type Logger, type LoggerOptions } from "pino";
 import config from "@/shared/config/config";
 
@@ -14,7 +13,7 @@ const baseOptions: LoggerOptions = {
 
 const buildLogger = (): Logger => {
     if (config.env === "production") {
-        return pino(baseOptions, pino.destination(path.resolve(process.cwd(), "../logs/combined.log")));
+        return pino(baseOptions);
     }
 
     return pino({

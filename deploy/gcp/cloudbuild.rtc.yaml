@@ -3,6 +3,9 @@ substitutions:
   _ARTIFACT_REPO: greetup
   _IMAGE: rtc-service
 
+options:
+  logging: CLOUD_LOGGING_ONLY
+
 steps:
   - name: gcr.io/cloud-builders/docker
     dir: rtc-service
@@ -12,12 +15,16 @@ steps:
       - Dockerfile
       - -t
       - ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_ARTIFACT_REPO}/${_IMAGE}:$SHORT_SHA
+      - -t
+      - ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_ARTIFACT_REPO}/${_IMAGE}:latest
       - .
 
   - name: gcr.io/cloud-builders/docker
     args:
       - push
-      - ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_ARTIFACT_REPO}/${_IMAGE}:$SHORT_SHA
+      - --all-tags
+      - ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_ARTIFACT_REPO}/${_IMAGE}
 
 images:
+  - ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_ARTIFACT_REPO}/${_IMAGE}:latest
   - ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_ARTIFACT_REPO}/${_IMAGE}:$SHORT_SHA

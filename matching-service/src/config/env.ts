@@ -24,7 +24,7 @@ const normalizeHost = (value: string | undefined, fallback: string): string => {
 export const env = {
   nodeEnv: process.env.NODE_ENV ?? "development",
   host: normalizeHost(process.env.MATCHING_HOST, "0.0.0.0"),
-  port: getNumberEnv(process.env.MATCHING_PORT, 5060),
+  port: getNumberEnv(process.env.PORT ?? process.env.MATCHING_PORT, 5060),
   redisUrl: process.env.REDIS_URL ?? "redis://127.0.0.1:16379",
   redisPingTimeoutMs: getNumberEnv(process.env.REDIS_PING_TIMEOUT_MS, 800),
   roomServiceUrl: process.env.ROOM_SERVICE_URL,
