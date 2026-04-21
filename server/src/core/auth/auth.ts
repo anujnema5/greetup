@@ -14,18 +14,21 @@ const normalizedBetterAuthUrl = BETTER_AUTH_URL?.replace(/\/$/, "");
 const normalizedServerUrl = SERVER_URL?.replace(/\/$/, "");
 const publicAuthBaseUrl = normalizedServerUrl || normalizedBetterAuthUrl;
 const crossSubDomainCookies = config.authCookieDomain
-  ? {
-      enabled: true,
-      domain: config.authCookieDomain,
-    }
-  : {
-      enabled: false,
-    };
+  ? { enabled: true, domain: config.authCookieDomain }
+  : { enabled: false };
 
 if (!publicAuthBaseUrl) {
   throw new Error(
     "Auth base URL is missing. Set SERVER_URL or BETTER_AUTH_URL to a valid absolute URL.",
   );
+}
+
+function mapAuthUrlToPublicHost(url: string): string {
+  return url.replace(BETTER_AUTH_URL, publicAuthBaseUrl);
+}
+
+function resolveAuthEmailRecipient(email: string): string {
+  return config.env === "development" ? DEV_NOTIFICATION_EMAIL : email;
 }
 
 const auth = betterAuth({
@@ -83,10 +86,7 @@ const auth = betterAuth({
 
     sendResetPassword: async ({ user, url, token }, request) => {
       try {
-        const resetUrl = url.replace(
-          BETTER_AUTH_URL,
-          publicAuthBaseUrl
-        );
+        const resetUrl = mapAuthUrlToPublicHost(url);
 
         logger.info("Password reset requested", {
           userId: user.id,
@@ -94,10 +94,7 @@ const auth = betterAuth({
         });
 
         await sendEmail({
-          to:
-            config.env === "development"
-              ? DEV_NOTIFICATION_EMAIL
-              : user.email,
+          to: resolveAuthEmailRecipient(user.email),
           subject: "Reset your password",
           text: `Click the link to reset your password:\n${resetUrl}`,
         });
@@ -129,10 +126,7 @@ const auth = betterAuth({
 
     sendVerificationEmail: async ({ url, user }) => {
       try {
-        const verificationUrl = url.replace(
-          BETTER_AUTH_URL,
-          publicAuthBaseUrl
-        );
+        const verificationUrl = mapAuthUrlToPublicHost(url);
 
         logger.info("Email verification requested", {
           userId: user.id,
@@ -140,10 +134,7 @@ const auth = betterAuth({
         });
 
         await sendEmail({
-          to:
-            config.env === "development"
-              ? DEV_NOTIFICATION_EMAIL
-              : user.email,
+          to: resolveAuthEmailRecipient(user.email),
           subject: "Verify your email address",
           text: `Click the link to verify your account:\n${verificationUrl}`,
         });
