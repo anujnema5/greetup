@@ -11,6 +11,7 @@
     "db:studio": "drizzle-kit studio",
     "db:drop": "drizzle-kit drop",
     "db:seed": "bun src/core/database/seed/index.ts",
+    "db:seed:onboarding": "bun src/core/database/seed/seed-onboarding-lookups.ts",
     "db:seed:room-categories": "bun src/core/database/seed/seed-room-categories.ts",
     "db:seed:dev-users": "bun src/core/database/seed/seed-dev-users.ts",
     "build": "tsc",
