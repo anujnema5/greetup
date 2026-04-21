@@ -2,15 +2,15 @@ substitutions:
   _REGION: us-central1
   _ARTIFACT_REPO: greetup
   _IMAGE: matching-service
-
-options:
-  logging: CLOUD_LOGGING_ONLY
   _SERVICE: matching-service
   _PORT: "5060"
   _CPU: "1"
   _MEMORY: 512Mi
   _MIN_INSTANCES: "0"
   _MAX_INSTANCES: "10"
+
+options:
+  logging: CLOUD_LOGGING_ONLY
 
 steps:
   - name: gcr.io/cloud-builders/docker
