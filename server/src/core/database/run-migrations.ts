@@ -9,11 +9,10 @@
 import { config as loadEnv } from "dotenv";
 import { existsSync } from "node:fs";
 import { readdir, readFile } from "node:fs/promises";
-import { dirname, join, resolve } from "node:path";
-import { fileURLToPath } from "node:url";
+import { join, resolve } from "node:path";
 import pg from "pg";
 
-const __dirname = dirname(fileURLToPath(import.meta.url));
+const __dirname = import.meta.dir;
 const SERVER_ROOT = resolve(__dirname, "../../..");
 const MIGRATION_DIR = join(__dirname, "migration");
 
