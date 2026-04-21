@@ -1,10 +1,11 @@
+import { db } from "@/core/database";
 import { upsertRoomCategories } from "./upsert-room-categories";
 import { upsertOnboardingLookups } from "./upsert-onboarding-lookups";
 
 async function seed() {
   console.log("🌱 Seeding database (idempotent upserts)...");
 
-  await upsertOnboardingLookups();
+  await upsertOnboardingLookups(db);
   console.log("✅ Upserted onboarding lookups: goals, interests, professions, moods, lookingForOptions");
 
   await upsertRoomCategories();

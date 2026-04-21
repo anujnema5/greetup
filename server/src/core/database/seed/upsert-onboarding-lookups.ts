@@ -1,6 +1,4 @@
 import { eq, sql } from "drizzle-orm";
-
-import { db } from "@/core/database";
 import {
   goals,
   interests,
@@ -16,12 +14,13 @@ import {
   MOOD_SEED,
   PROFESSION_SEED,
 } from "./onboarding-lookups.data";
+import type { SeedDb } from "./seed-db";
 
 /**
  * Upserts rows by name for onboarding lookup tables.
  * Safe to re-run in production without deleting user-selected relations.
  */
-export async function upsertOnboardingLookups(): Promise<void> {
+export async function upsertOnboardingLookups(db: SeedDb): Promise<void> {
   // Tables with unique(name): use conflict upsert.
   await db
     .insert(goals)

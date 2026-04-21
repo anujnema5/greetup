@@ -3,7 +3,6 @@ substitutions:
   _ARTIFACT_REPO: greetup
   _IMAGE: server
   _SERVICE: server
-  _ONBOARDING_SEED_JOB: server-onboarding-seed
   _PORT: "5300"
   _CPU: "1"
   _MEMORY: 1Gi
@@ -52,17 +51,6 @@ steps:
       - ${_MIN_INSTANCES}
       - --max-instances
       - ${_MAX_INSTANCES}
-
-  - name: gcr.io/google.com/cloudsdktool/cloud-sdk:slim
-    entrypoint: gcloud
-    args:
-      - run
-      - jobs
-      - execute
-      - ${_ONBOARDING_SEED_JOB}
-      - --region
-      - ${_REGION}
-      - --wait
 
 images:
   - ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_ARTIFACT_REPO}/${_IMAGE}:$SHORT_SHA

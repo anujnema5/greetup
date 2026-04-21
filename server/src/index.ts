@@ -7,10 +7,14 @@ import { isSocketIoRequestPath, wireBunSocketIo } from "@/core/socket";
 import createApp from "@/http/create-app";
 import config from "@/shared/config/config";
 import { runMigrations } from "@/core/database/run-migrations";
+import { db } from "@/core/database";
+import { upsertOnboardingLookups } from "@/core/database/seed/upsert-onboarding-lookups";
 
 // AEK must be loaded before anything that touches crypto
 await loadAEKs();
 await runMigrations();
+await upsertOnboardingLookups(db);
+logger.info("[seed] Onboarding lookups upserted.");
 
 const app = await createApp();
 const engine = wireBunSocketIo();

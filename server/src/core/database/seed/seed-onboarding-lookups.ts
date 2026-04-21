@@ -1,9 +1,15 @@
+import { createSeedDb } from "./seed-db";
 import { upsertOnboardingLookups } from "./upsert-onboarding-lookups";
 
 async function main() {
-  console.log("🌱 Upserting onboarding lookups (idempotent)...");
-  await upsertOnboardingLookups();
-  console.log("✅ Onboarding lookups upsert complete.");
+  const { db, pool } = createSeedDb();
+  try {
+    console.log("🌱 Upserting onboarding lookups (idempotent)...");
+    await upsertOnboardingLookups(db);
+    console.log("✅ Onboarding lookups upsert complete.");
+  } finally {
+    await pool.end();
+  }
 }
 
 main()
