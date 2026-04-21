@@ -95,12 +95,19 @@ The rtc Cloud Build config also supports automatic VM sync during the trigger:
 - copies `deploy/gcp/vm/docker-compose.yml` to `~/${_VM_APP_DIR}/docker-compose.yml` on the VM
 - updates `RTC_IMAGE` in `~/${_VM_APP_DIR}/.env` to the new `:latest` image
 - runs `docker compose --env-file .env pull && docker compose --env-file .env up -d --remove-orphans`
+- verifies VM state after deploy (`postgres` container running, PostGIS image/version available)
 
 Default substitutions in `deploy/gcp/cloudbuild.rtc.yaml`:
 - `_VM_NAME=greetup-vm`
 - `_VM_ZONE=us-central1-a`
 - `_VM_USER=greetup_club`
 - `_VM_APP_DIR=greetup`
+- `_POSTGIS_IMAGE=postgis/postgis:16-3.4`
+
+Required IAM for the Cloud Build service account used by the rtc trigger:
+- `roles/compute.instanceAdmin.v1`
+- `roles/iam.serviceAccountUser`
+- `roles/compute.osAdminLogin` (if OS Login is enabled)
 
 Use the pushed image manually on a Compute Engine VM (fallback):
 

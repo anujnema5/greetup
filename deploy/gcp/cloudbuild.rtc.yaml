@@ -6,6 +6,7 @@ substitutions:
   _VM_ZONE: us-central1-a
   _VM_USER: greetup_club
   _VM_APP_DIR: greetup
+  _POSTGIS_IMAGE: postgis/postgis:16-3.4
 
 options:
   logging: CLOUD_LOGGING_ONLY
@@ -55,6 +56,36 @@ steps:
             sed -i 's|^RTC_IMAGE=.*|RTC_IMAGE=${_REGION}-docker.pkg.dev/$PROJECT_ID/${_ARTIFACT_REPO}/${_IMAGE}:latest|' .env; \
             docker compose --env-file .env pull; \
             docker compose --env-file .env up -d --remove-orphans"
+
+  - name: gcr.io/google.com/cloudsdktool/cloud-sdk:slim
+    entrypoint: bash
+    args:
+      - -c
+      - |
+        set -euo pipefail
+        gcloud compute ssh ${_VM_USER}@${_VM_NAME} \
+          --zone=${_VM_ZONE} \
+          --quiet \
+          --command="set -euo pipefail; \
+            cd ~/${_VM_APP_DIR}; \
+            postgres_cid=\$(docker compose --env-file .env ps -q postgres); \
+            if [ -z \"\${postgres_cid}\" ]; then \
+              echo '[verify] postgres container not running'; \
+              exit 1; \
+            fi; \
+            postgres_image=\$(docker inspect \"\${postgres_cid}\" --format '{{.Config.Image}}'); \
+            if [ \"\${postgres_image}\" != \"${_POSTGIS_IMAGE}\" ]; then \
+              echo \"[verify] expected postgres image ${_POSTGIS_IMAGE}, got \${postgres_image}\"; \
+              exit 1; \
+            fi; \
+            db_user=\$(awk -F= '/^POSTGRES_USER=/{print \$2}' .env | tail -n1); \
+            db_name=\$(awk -F= '/^POSTGRES_DB=/{print \$2}' .env | tail -n1); \
+            if [ -z \"\${db_user}\" ] || [ -z \"\${db_name}\" ]; then \
+              echo '[verify] POSTGRES_USER or POSTGRES_DB missing in .env'; \
+              exit 1; \
+            fi; \
+            docker exec \"\${postgres_cid}\" psql -U \"\${db_user}\" -d \"\${db_name}\" -c 'CREATE EXTENSION IF NOT EXISTS postgis;'; \
+            docker exec \"\${postgres_cid}\" psql -U \"\${db_user}\" -d \"\${db_name}\" -c 'SELECT PostGIS_Version();'"
 
 images:
   - ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_ARTIFACT_REPO}/${_IMAGE}:latest
