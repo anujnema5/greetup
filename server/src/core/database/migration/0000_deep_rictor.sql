@@ -1,3 +1,4 @@
+CREATE EXTENSION IF NOT EXISTS postgis;--> statement-breakpoint
 CREATE TYPE "public"."availability" AS ENUM('available', 'busy', 'offline');--> statement-breakpoint
 CREATE TYPE "public"."is_active" AS ENUM('yes', 'no');--> statement-breakpoint
 CREATE TYPE "public"."user_banned" AS ENUM('yes', 'no', 'temporarily');--> statement-breakpoint
