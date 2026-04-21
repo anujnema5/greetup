@@ -5,7 +5,7 @@
   "private": true,
   "scripts": {
     "dev": "tsx watch src/app.ts",
-    "start": "tsx src/app.ts",
+    "start": "bun src/app.ts",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
