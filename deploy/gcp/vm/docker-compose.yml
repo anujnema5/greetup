@@ -33,7 +33,7 @@ services:
       WEBRTC_ANNOUNCED_IP: ${VM_PUBLIC_IP}
       INTERNAL_API_KEY: ${INTERNAL_API_KEY}
       RTC_JWT_SECRET: ${RTC_JWT_SECRET}
-      REDIS_URL: redis://:${REDIS_PASSWORD}@redis:6379
+      REDIS_URL: redis://:${REDIS_PASSWORD}@localhost:6379
     network_mode: host
     depends_on:
       - redis
