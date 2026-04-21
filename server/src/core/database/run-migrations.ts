@@ -139,8 +139,7 @@ async function applySqlFile(client: pg.PoolClient, filename: string): Promise<vo
   }
 }
 
-async function main(): Promise<void> {
-  loadDatabaseEnv();
+export async function runMigrations(): Promise<void> {
   const databaseUrl = process.env.DATABASE_URL;
   if (!databaseUrl?.trim()) {
     throw new Error("DATABASE_URL is not set (check env/.env.development or .env under server/).");
@@ -175,7 +174,11 @@ async function main(): Promise<void> {
   }
 }
 
-main().catch((err) => {
-  console.error("[migrate] Failed:", err);
-  process.exit(1);
-});
+// CLI entrypoint
+if (import.meta.main) {
+  loadDatabaseEnv();
+  runMigrations().catch((err) => {
+    console.error("[migrate] Failed:", err);
+    process.exit(1);
+  });
+}

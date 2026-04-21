@@ -6,9 +6,11 @@ import logger from "@/core/logging";
 import { isSocketIoRequestPath, wireBunSocketIo } from "@/core/socket";
 import createApp from "@/http/create-app";
 import config from "@/shared/config/config";
+import { runMigrations } from "@/core/database/run-migrations";
 
 // AEK must be loaded before anything that touches crypto
 await loadAEKs();
+await runMigrations();
 
 const app = await createApp();
 const engine = wireBunSocketIo();
