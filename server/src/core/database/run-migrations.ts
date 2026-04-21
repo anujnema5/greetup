@@ -12,9 +12,8 @@ import { readdir, readFile } from "node:fs/promises";
 import { join, resolve } from "node:path";
 import pg from "pg";
 
-const __dirname = import.meta.dir;
-const SERVER_ROOT = resolve(__dirname, "../../..");
-const MIGRATION_DIR = join(__dirname, "migration");
+const SERVER_ROOT = process.cwd();
+const MIGRATION_DIR = join(SERVER_ROOT, "src/core/database/migration");
 
 const STATEMENT_BREAKPOINT = "--> statement-breakpoint";
 
