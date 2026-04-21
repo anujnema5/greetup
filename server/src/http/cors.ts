@@ -13,3 +13,4 @@ export const corsOptions = {
   maxAge: 600,
   credentials: true,
 };
+ 
