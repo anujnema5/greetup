@@ -1,5 +1,13 @@
 const nodeEnv = process.env.NODE_ENV || "development";
 
+function optionalEnv(name: string): string | undefined {
+    const value = process.env[name]?.trim();
+    if (!value || value.toLowerCase() === "undefined" || value.toLowerCase() === "null") {
+        return undefined;
+    }
+    return value;
+}
+
 const config = {
     env: nodeEnv,
     port: parseInt(process.env.PORT || "5300"),
@@ -16,6 +24,7 @@ const config = {
     googleClientSecret: process.env.GOOGLE_CLIENT_SECRET!,
     redisUrl: process.env.REDIS_URL!,
     serverUrl: process.env.SERVER_URL!,
+    authCookieDomain: optionalEnv("AUTH_COOKIE_DOMAIN")?.replace(/^\./, ""),
     devNotificationEmail: process.env.DEV_NOTIFICATION_EMAIL!,
     internalApiKey: process.env.INTERNAL_API_KEY!,
     /** Base URL for rtc-service (mediasoup) — used to sync `roomType` on sockets after 1:1 → circle. */

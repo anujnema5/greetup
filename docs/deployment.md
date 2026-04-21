@@ -91,7 +91,10 @@ PORT=5300
 DATABASE_URL=
 BETTER_AUTH_SECRET=
 BETTER_AUTH_URL=https://<server-cloud-run-url>
+SERVER_URL=https://<server-cloud-run-url>
 WEB_CLIENT_HOST=https://<client-cloud-run-url>
+# For client at dev.greetup.club + API at dev-api.greetup.club, set greetup.club
+AUTH_COOKIE_DOMAIN=
 REDIS_URL=
 INTERNAL_API_KEY=
 MATCH_ENGINE_URL=https://<matching-service-url>

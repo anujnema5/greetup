@@ -13,6 +13,14 @@ import * as schema from "@/core/database/schema"
 const normalizedBetterAuthUrl = BETTER_AUTH_URL?.replace(/\/$/, "");
 const normalizedServerUrl = SERVER_URL?.replace(/\/$/, "");
 const publicAuthBaseUrl = normalizedServerUrl || normalizedBetterAuthUrl;
+const crossSubDomainCookies = config.authCookieDomain
+  ? {
+      enabled: true,
+      domain: config.authCookieDomain,
+    }
+  : {
+      enabled: false,
+    };
 
 if (!publicAuthBaseUrl) {
   throw new Error(
@@ -28,6 +36,11 @@ const auth = betterAuth({
       user: schema.users,
     },
   }),
+
+  advanced: {
+    useSecureCookies: config.env === "production",
+    crossSubDomainCookies,
+  },
 
 
   plugins: [
