@@ -1,4 +1,3 @@
-import path from "path";
 import pino, { type Logger, type LoggerOptions } from "pino";
 import config from "@/shared/config/config";
 
