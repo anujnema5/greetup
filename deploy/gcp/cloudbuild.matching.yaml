@@ -2,6 +2,9 @@ substitutions:
   _REGION: us-central1
   _ARTIFACT_REPO: greetup
   _IMAGE: matching-service
+
+options:
+  logging: CLOUD_LOGGING_ONLY
   _SERVICE: matching-service
   _PORT: "5060"
   _CPU: "1"

@@ -3,6 +3,9 @@ substitutions:
   _ARTIFACT_REPO: greetup
   _IMAGE: rtc-service
 
+options:
+  logging: CLOUD_LOGGING_ONLY
+
 steps:
   - name: gcr.io/cloud-builders/docker
     dir: rtc-service

@@ -1,0 +1,43 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: always
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+
+  redis:
+    image: redis:7-alpine
+    restart: always
+    command: redis-server --requirepass ${REDIS_PASSWORD}
+    volumes:
+      - redis_data:/data
+    ports:
+      - "6379:6379"
+
+  rtc-service:
+    image: ${RTC_IMAGE}
+    restart: always
+    environment:
+      NODE_ENV: production
+      RTC_HOST: 0.0.0.0
+      RTC_PORT: 5370
+      RTC_MIN_PORT: 40000
+      RTC_MAX_PORT: 49999
+      WEBRTC_LISTEN_IP: 0.0.0.0
+      WEBRTC_ANNOUNCED_IP: ${VM_PUBLIC_IP}
+      INTERNAL_API_KEY: ${INTERNAL_API_KEY}
+      RTC_JWT_SECRET: ${RTC_JWT_SECRET}
+      REDIS_URL: redis://:${REDIS_PASSWORD}@redis:6379
+    network_mode: host
+    depends_on:
+      - redis
+
+volumes:
+  postgres_data:
+  redis_data:
