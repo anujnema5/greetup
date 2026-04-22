@@ -87,7 +87,7 @@ const FEATURES = [
   {
     icon: Gamepad2,
     label: "Activities Together",
-    desc: "Do 1:1 or group activities like YouTube together, chess, truth or dare, and study sessions.",
+    desc: "Do activities together like chess, Watch Together (YouTube), draw together, study together, debate, truth or dare, music rooms, and live polls.",
     tint: "from-emerald-400/15 to-transparent",
     iconClass: "text-emerald-400 bg-emerald-400/10 border-emerald-400/20",
   },
@@ -290,8 +290,9 @@ function HeroOrb() {
         ))}
       </svg>
       <FloatingChip name="Aarav" sub="Software Engineer · Backend" color="from-violet-500 to-purple-600" letter="A" x="14%" y="20%" delay={0.6} />
-      <FloatingChip name="Mei" sub="Art · Illustration"      color="from-amber-500 to-yellow-600"  letter="M" x="86%" y="78%" delay={0.9} />
-      <FloatingChip name="Priya" sub="Philosophy · Ideas"    color="from-emerald-500 to-green-600" letter="P" x="14%" y="60%" delay={1.2} />
+      <FloatingChip name="Noah" sub="Software Engineer · Frontend" color="from-indigo-500 to-blue-600" letter="N" x="82%" y="22%" delay={0.75} />
+      <FloatingChip name="Sofia" sub="Product Designer · UX" color="from-amber-500 to-yellow-600" letter="S" x="86%" y="78%" delay={0.9} />
+      <FloatingChip name="Priya" sub="Music · Indie + Jazz" color="from-emerald-500 to-green-600" letter="P" x="14%" y="60%" delay={1.05} />
     </div>
   );
 }
@@ -324,7 +325,7 @@ function ChatMockup() {
           <div>
             <p className="text-[10px] font-semibold text-[oklch(88%_0.11_105)] uppercase tracking-wide">Conversation cue</p>
             <p className="text-[10px] text-white/70 leading-relaxed">
-              Your new match is into tech and creators. Ask what they are building or what they are learning this week.
+              Your new match likes chess and music. Use an icebreaker suggestion, then invite them to Watch Together.
             </p>
           </div>
         </div>
@@ -785,7 +786,19 @@ export function LandingPageView() {
                     <p className="text-[10px] text-[oklch(88%_0.11_105/0.7)] font-semibold tracking-wide uppercase">Group room examples</p>
                   </div>
                   <div className="flex flex-wrap gap-1.5">
-                    {["Startup Founder Night Talk", "Jam Session for Musicians", "Art Critique Room", "Philosophy Night Circle"].map((chip, i) => (
+                    {[
+                      "Startup Founder Night Talk",
+                      "Jam Session for Musicians",
+                      "Chess Blitz Room",
+                      "Watch Together (YouTube)",
+                      "Icebreaker Suggestions",
+                      "Draw Together",
+                      "Study Together",
+                      "Debate Room",
+                      "Truth or Dare",
+                      "Music Room",
+                      "Live Polls",
+                    ].map((chip, i) => (
                       <motion.button key={chip} initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.5 + i * 0.12, duration: 0.35, ease: EASE }}
                         className="text-[10px] font-medium px-2.5 py-1 rounded-full border border-[oklch(88%_0.11_105/0.25)] bg-[oklch(88%_0.11_105/0.07)] text-white/70 hover:border-[oklch(88%_0.11_105/0.5)] hover:text-white transition-all cursor-default"
                       >
@@ -816,7 +829,8 @@ export function LandingPageView() {
             </motion.h2>
             <motion.p variants={fadeUp} className="text-white/55 leading-relaxed max-w-md mb-8">
               Circles are group rooms built around shared interests. Join rooms like Startup Founder Night Talk,
-              Jam Session for Musicians, art critique rooms, and philosophy circles, then move to 1:1 when you click.
+              Jam Session for Musicians, chess rooms, Watch Together, draw together, study together, debate rooms,
+              truth or dare, music rooms, and live polls, then move to 1:1 when you click.
             </motion.p>
             <motion.div variants={stagger} className="flex flex-col gap-4">
               {[
