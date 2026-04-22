@@ -43,7 +43,7 @@ export function useEmailLogin() {
                 }
 
                 if (res.data) {
-                    router.push('/profile-setup');
+                    router.push('/home');
                 }
             } catch {
                 return { success: false };

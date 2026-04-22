@@ -8,9 +8,10 @@ import {
   useMemo,
   useRef,
 } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import type { Resolver, FieldValues } from 'react-hook-form'
 import type { ProfileSetupProvider as TProfileSetupProvider } from '../types'
+import type { ProfileSetupField, ProfileSetupStep } from '../types/profile-setup-api.types'
 import {
   useGetProfileSetupStepsQuery,
   useSaveProfileSetupMutation,
@@ -36,15 +37,49 @@ function getStoredStep(): number | null {
   return Number.isNaN(n) ? null : n
 }
 
-function getStoredFormData(): Record<string, any> | null {
+function getStoredFormData(): Record<string, unknown> | null {
   if (typeof window === 'undefined') return null
   const raw = localStorage.getItem(PROFILE_SETUP_DATA_KEY)
   if (!raw) return null
   try {
-    return JSON.parse(raw) as Record<string, any>
+    return JSON.parse(raw) as Record<string, unknown>
   } catch {
     return null
   }
+}
+
+function hasMeaningfulValue(value: unknown): boolean {
+  if (value === null || value === undefined) return false
+  if (typeof value === 'string') return value.trim().length > 0
+  if (Array.isArray(value)) return value.length > 0
+  if (typeof value === 'object') return Object.keys(value as Record<string, unknown>).length > 0
+  return true
+}
+
+function isFieldCompleted(field: ProfileSetupField): boolean {
+  const value = field?.value
+
+  if (field?.type === 'country-select') {
+    if (!value || typeof value !== 'object') return false
+    const country = value as { code?: string; name?: string }
+    return !!country.code && !!country.name
+  }
+
+  return hasMeaningfulValue(value)
+}
+
+function getFirstIncompleteRequiredStep(steps: ProfileSetupStep[]): number | null {
+  for (const step of steps) {
+    const requiredFields = (step.fields ?? []).filter((field) => field?.required)
+    if (requiredFields.length === 0) continue
+
+    const allRequiredCompleted = requiredFields.every(isFieldCompleted)
+    if (!allRequiredCompleted) {
+      return step.step
+    }
+  }
+
+  return null
 }
 
 export function clearProfileSetupProgress(): void {
@@ -62,12 +97,13 @@ const ProfileSetupContext = createContext<TProfileSetupProvider | null>(null)
 export const ProfileSetupProvider: React.FC<ProfileSetupProviderProps> = ({
   children,
 }) => {
+  const searchParams = useSearchParams()
   const { data, isLoading } = useGetProfileSetupStepsQuery()
   const [saveProfileSetup, { isLoading: isSaving }] = useSaveProfileSetupMutation()
 
   const [currentStep, setCurrentStep] = useState(1)
-  const [steps, setSteps] = useState<any[]>([])
-  const [allFormData, setAllFormData] = useState<Record<string, any>>({})
+  const [steps, setSteps] = useState<ProfileSetupStep[]>([])
+  const [allFormData, setAllFormData] = useState<Record<string, unknown>>({})
   const [isInitialized, setIsInitialized] = useState(false)
   const router = useRouter()
   const persistRef = useRef<() => void>(() => {})
@@ -110,8 +146,8 @@ export const ProfileSetupProvider: React.FC<ProfileSetupProviderProps> = ({
       setSteps(fetchedSteps)
 
       // Build initial form data from API defaults
-      const initialData: Record<string, any> = {}
-      fetchedSteps.forEach((step: any) => {
+      const initialData: Record<string, unknown> = {}
+      fetchedSteps.forEach((step: ProfileSetupStep) => {
         const stepDefaults = getStepDefaultValues(step.fields)
         Object.assign(initialData, stepDefaults)
       })
@@ -120,6 +156,16 @@ export const ProfileSetupProvider: React.FC<ProfileSetupProviderProps> = ({
       const storedStep = getStoredStep()
       const storedData = getStoredFormData()
       const totalSteps = fetchedSteps.length
+      const stepFromQuery = Number(searchParams.get('step'))
+      const hasQueryStep =
+        Number.isInteger(stepFromQuery) &&
+        stepFromQuery >= 1 &&
+        stepFromQuery <= totalSteps
+      const inferredStepFromServer = getFirstIncompleteRequiredStep(fetchedSteps)
+      const preferredStep =
+        hasQueryStep
+          ? stepFromQuery
+          : inferredStepFromServer ?? 1
       const validStep =
         storedStep != null &&
         Number.isInteger(storedStep) &&
@@ -127,14 +173,16 @@ export const ProfileSetupProvider: React.FC<ProfileSetupProviderProps> = ({
         storedStep <= totalSteps
 
       if (validStep && storedData && typeof storedData === 'object') {
-        setCurrentStep(storedStep)
+        // Keep users on the furthest valid step we've seen locally/server-side.
+        setCurrentStep(Math.max(storedStep, preferredStep))
         setAllFormData({ ...initialData, ...storedData })
       } else {
+        setCurrentStep(preferredStep)
         setAllFormData(initialData)
       }
       setIsInitialized(true)
     }
-  }, [data, isInitialized])
+  }, [data, isInitialized, searchParams])
 
   // Update form when step changes
   useEffect(() => {
@@ -193,12 +241,12 @@ export const ProfileSetupProvider: React.FC<ProfileSetupProviderProps> = ({
     setAllFormData(updatedData)
 
     try {
-      const payload = transformStepToApiPayload(currentStep, updatedData)
+      const payload = transformStepToApiPayload(currentStep, updatedData, currentStepData.fields)
       await saveProfileSetup(payload).unwrap()
 
       if (currentStep === steps.length) {
         clearProfileSetupProgress()
-        router.push('/')
+        router.push('/home')
       } else {
         setCurrentStep((prev) => prev + 1)
       }

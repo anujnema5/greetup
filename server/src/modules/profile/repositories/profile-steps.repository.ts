@@ -10,6 +10,7 @@ import {
   goals,
   moods,
   lookingForOptions,
+  promptQuestions,
 } from "@/core/database/schema";
 
 export const profileStepsRepository = {
@@ -102,16 +103,28 @@ export const profileStepsRepository = {
             maxAge: true,
           },
         },
+        socials: {
+          columns: {
+            instagram: true,
+            twitter: true,
+          },
+        },
+        promptAnswers: {
+          columns: {
+            questionId: true,
+            answer: true,
+          },
+        },
       },
     });
     return result as ProfileForSteps | undefined;
   },
 
   /**
-   * Fetch all lookup options for profile steps (goals, interests, professions, moods, lookingFor).
+   * Fetch all lookup options for profile steps.
    */
   async fetchStepOptions() {
-    const [goalsList, interestsList, professionsList, moodsList, lookingForList] =
+    const [goalsList, interestsList, professionsList, moodsList, lookingForList, promptQuestionsList] =
       await Promise.all([
         db.query.goals.findMany({
           where: eq(goals.isActive, "yes"),
@@ -136,6 +149,11 @@ export const profileStepsRepository = {
           columns: { id: true, name: true, displayName: true, description: true },
           orderBy: (l, { asc }) => [asc(l.displayName)],
         }),
+        db.query.promptQuestions.findMany({
+          where: eq(promptQuestions.isActive, true),
+          columns: { id: true, key: true, question: true, order: true },
+          orderBy: (q, { asc }) => [asc(q.order)],
+        }),
       ]);
 
     return {
@@ -144,6 +162,7 @@ export const profileStepsRepository = {
       professions: professionsList,
       moods: moodsList,
       lookingForOptions: lookingForList,
+      promptQuestions: promptQuestionsList,
     };
   },
 };
@@ -211,6 +230,14 @@ export interface ProfileForSteps {
     minAge: number | null;
     maxAge: number | null;
   } | null;
+  socials?: {
+    instagram: string | null;
+    twitter: string | null;
+  } | null;
+  promptAnswers?: Array<{
+    questionId: string;
+    answer: string;
+  }>;
 }
 
 export type StepOptions = Awaited<

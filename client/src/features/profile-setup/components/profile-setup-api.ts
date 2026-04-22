@@ -104,7 +104,7 @@ export const profileSetupApi = baseApi.injectEndpoints({
     }),
 
     getProfileSetupSteps: build.query<ProfileSetupApiResponse, void>({
-      query: () => PROFILE.SETUP_STEPS,
+      query: () => ({ url: PROFILE.SETUP_STEPS, params: { limit: 10 } }),
       providesTags: [CACHE_PROFILE_SETUP_STEPS],
     }),
 

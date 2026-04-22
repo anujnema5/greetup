@@ -29,6 +29,7 @@ const ONBOARDING_REQUIRED_ROUTES = [
   "/connections",
   "/u",
 ];
+const ONBOARDING_ROUTE = "/profile-setup";
 
 const COMMON_ROUTES = [
   "/about",
@@ -90,10 +91,17 @@ export async function proxy(req: NextRequest) {
     return response;
   }
 
+  // Redirect authenticated users away from root
+  if (isLoggedIn && pathname === "/") {
+    const isOnboarded = await checkOnboardingWithCache(req, pathname);
+    const redirectUrl = isOnboarded ? "/home" : ONBOARDING_ROUTE;
+    return NextResponse.redirect(new URL(redirectUrl, req.url));
+  }
+
   // Redirect logged-in users away from public routes
   if (isLoggedIn && PUBLIC_ROUTES.includes(pathname)) {
     const isOnboarded = await checkOnboardingWithCache(req, pathname);
-    const redirectUrl = isOnboarded ? "/home" : "/profile-setup";
+    const redirectUrl = isOnboarded ? "/home" : ONBOARDING_ROUTE;
     return NextResponse.redirect(new URL(redirectUrl, req.url));
   }
 
@@ -105,7 +113,7 @@ export async function proxy(req: NextRequest) {
   }
 
   // Redirect onboarded users away from profile-setup (they're done)
-  if (isLoggedIn && pathname === "/profile-setup") {
+  if (isLoggedIn && isOnboardingRoute(pathname)) {
     const isOnboarded = await checkOnboardingWithCache(req, pathname);
     if (isOnboarded) {
       return NextResponse.redirect(new URL("/home", req.url));
@@ -116,11 +124,11 @@ export async function proxy(req: NextRequest) {
   if (
     isLoggedIn &&
     isOnboardingRequiredRoute(pathname) &&
-    pathname !== "/profile-setup"
+    !isOnboardingRoute(pathname)
   ) {
     const isOnboarded = await checkOnboardingWithCache(req, pathname);
     if (!isOnboarded) {
-      return NextResponse.redirect(new URL("/profile-setup", req.url));
+      return NextResponse.redirect(new URL(ONBOARDING_ROUTE, req.url));
     }
   }
 
@@ -153,6 +161,10 @@ function isOnboardingRequiredRoute(pathname: string): boolean {
   return ONBOARDING_REQUIRED_ROUTES.some((route) =>
     route === "/" ? pathname === "/" : pathname.startsWith(route)
   );
+}
+
+function isOnboardingRoute(pathname: string): boolean {
+  return pathname === ONBOARDING_ROUTE;
 }
 
 function isCommonRoute(pathname: string): boolean {

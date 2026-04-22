@@ -7,6 +7,8 @@ import {
   users,
   userProfiles,
   userLocations,
+  userSocials,
+  userPromptAnswers,
   profileGoals,
   profileInterests,
   profileProfessions,
@@ -92,16 +94,31 @@ export const profileSetupRepository = {
 
   async upsertLocation(
     profileId: string,
-    data: { country: string; countryCode: string }
+    data: {
+      country: string;
+      countryCode: string;
+      city?: string;
+      latitude?: number;
+      longitude?: number;
+    }
   ) {
     const existing = await db.query.userLocations.findFirst({
       where: (loc, { eq }) => eq(loc.profileId, profileId),
     });
 
+    const payload: Record<string, unknown> = {
+      country: data.country,
+      countryCode: data.countryCode,
+      updatedAt: new Date(),
+    };
+    if (data.city !== undefined) payload.city = data.city;
+    if (data.latitude !== undefined) payload.latitude = data.latitude;
+    if (data.longitude !== undefined) payload.longitude = data.longitude;
+
     if (existing) {
       return db
         .update(userLocations)
-        .set({ ...data, updatedAt: new Date() })
+        .set(payload)
         .where(eq(userLocations.profileId, profileId));
     }
 
@@ -109,6 +126,35 @@ export const profileSetupRepository = {
       profileId,
       country: data.country,
       countryCode: data.countryCode,
+      city: data.city,
+      latitude: data.latitude,
+      longitude: data.longitude,
+    });
+  },
+
+  async upsertSocials(
+    profileId: string,
+    data: { instagram?: string; twitter?: string }
+  ) {
+    const existing = await db.query.userSocials.findFirst({
+      where: (s, { eq }) => eq(s.profileId, profileId),
+    });
+
+    const payload: Record<string, unknown> = { updatedAt: new Date() };
+    if (data.instagram !== undefined) payload.instagram = data.instagram || null;
+    if (data.twitter !== undefined) payload.twitter = data.twitter || null;
+
+    if (existing) {
+      return db
+        .update(userSocials)
+        .set(payload)
+        .where(eq(userSocials.profileId, profileId));
+    }
+
+    return db.insert(userSocials).values({
+      profileId,
+      instagram: data.instagram || null,
+      twitter: data.twitter || null,
     });
   },
 
@@ -189,6 +235,27 @@ export const profileSetupRepository = {
           order: p.order ?? i,
         }))
       );
+    }
+  },
+
+  /**
+   * Upserts free-text answers for prompt questions.
+   * Only provided answers are written — unanswered questions are left untouched.
+   */
+  async replacePromptAnswers(
+    profileId: string,
+    answers: Array<{ questionId: string; answer: string }>,
+  ) {
+    if (answers.length === 0) return;
+
+    for (const { questionId, answer } of answers) {
+      await db
+        .insert(userPromptAnswers)
+        .values({ profileId, questionId, answer })
+        .onConflictDoUpdate({
+          target: [userPromptAnswers.profileId, userPromptAnswers.questionId],
+          set: { answer, updatedAt: new Date() },
+        });
     }
   },
 

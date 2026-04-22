@@ -92,10 +92,7 @@ const ProfileSetupStep = () => {
 
   if (isLoading || !currentStepData) {
     return (
-      <div className="relative flex min-h-screen items-center justify-center bg-gradient-to-b from-background to-muted/20">
-        <div className="absolute right-4 top-4 sm:right-6 sm:top-6 z-10">
-          <ThemeToggle />
-        </div>
+      <div className="flex min-h-screen items-center justify-center bg-linear-to-b from-background to-muted/20">
         <div className="flex flex-col items-center gap-4">
           <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent"></div>
           <div className="text-muted-foreground">Loading...</div>
@@ -399,31 +396,44 @@ const ProfileSetupStep = () => {
           <FormField
             control={form.control}
             name={field.key}
-            render={({ field: formField }) => (
-              <FormItem>
-                <FormLabel className="text-sm font-semibold text-foreground">
-                  {field.label}
-                  {field.required && (
-                    <span className="text-destructive">*</span>
+            render={({ field: formField }) => {
+              const autoResize = (el: HTMLTextAreaElement | null) => {
+                if (!el) return
+                el.style.height = 'auto'
+                el.style.height = `${el.scrollHeight}px`
+              }
+
+              return (
+                <FormItem>
+                  <FormLabel className="text-sm font-semibold text-foreground">
+                    {field.label}
+                    {field.required && (
+                      <span className="text-destructive">*</span>
+                    )}
+                  </FormLabel>
+                  <FormControl>
+                    <Textarea
+                      placeholder={field.placeholder}
+                      {...formField}
+                      ref={(el) => {
+                        formField.ref(el)
+                        autoResize(el)
+                      }}
+                      value={formField.value || ''}
+                      maxLength={field.maxLength}
+                      onInput={(e) => autoResize(e.currentTarget)}
+                      className="min-h-13 resize-none overflow-hidden border-input bg-background transition-all hover:border-primary/50 focus-visible:border-primary focus-visible:ring-primary/20"
+                    />
+                  </FormControl>
+                  {field.maxLength && (
+                    <FormDescription className="text-xs text-muted-foreground text-right">
+                      {formField.value?.length || 0}/{field.maxLength} characters
+                    </FormDescription>
                   )}
-                </FormLabel>
-                <FormControl>
-                  <Textarea
-                    placeholder={field.placeholder}
-                    {...formField}
-                    value={formField.value || ''}
-                    maxLength={field.maxLength}
-                    className="min-h-[120px] resize-none border-input bg-background transition-all hover:border-primary/50 focus-visible:border-primary focus-visible:ring-primary/20"
-                  />
-                </FormControl>
-                {field.maxLength && (
-                  <FormDescription className="text-xs text-muted-foreground text-right">
-                    {formField.value?.length || 0}/{field.maxLength} characters
-                  </FormDescription>
-                )}
-                <FormMessage className="text-xs" />
-              </FormItem>
-            )}
+                  <FormMessage className="text-xs" />
+                </FormItem>
+              )
+            }}
           />
         )
 
@@ -559,11 +569,7 @@ const ProfileSetupStep = () => {
   const progressPercent = totalSteps ? Math.round((currentStep / totalSteps) * 100) : 0
 
   return (
-    <div className="min-h-screen relative flex items-center justify-center bg-muted/30 px-4 py-6 sm:py-8">
-      {/* Theme toggle - top right */}
-      <div className="absolute right-4 top-4 sm:right-6 sm:top-6 z-10">
-        <ThemeToggle />
-      </div>
+    <div className="min-h-screen flex items-center justify-center bg-muted/30 px-4 py-6 sm:py-8">
       <div className="w-full max-w-2xl">
         {/* Card container */}
         <div className="rounded-2xl border border-border bg-card shadow-sm overflow-hidden">
@@ -576,9 +582,13 @@ const ProfileSetupStep = () => {
           </div>
 
           <div className="p-6 sm:p-8 lg:p-10 space-y-6 sm:space-y-8">
-            {/* Logo */}
-            <div className="flex justify-center">
+            {/* Logo row with theme toggle */}
+            <div className="flex items-center justify-between">
+              <div className="flex-1" />
               <Logo className="scale-90 sm:scale-100" />
+              <div className="flex-1 flex justify-end">
+                <ThemeToggle />
+              </div>
             </div>
 
             {/* Step label */}

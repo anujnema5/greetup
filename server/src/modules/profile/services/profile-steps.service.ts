@@ -22,6 +22,7 @@ export const PROFILE_COMPLETE_THRESHOLD = 80;
 function buildSteps(profile: ProfileForSteps | undefined, options: StepOptions): FormStep[] {
   const displayName = profile?.user?.displayName ?? profile?.user?.name ?? null;
   const usernameValue = profile?.user?.username ?? null;
+
   const countryValue =
     profile?.location?.countryCode && profile?.location?.country
       ? { code: profile.location.countryCode, name: profile.location.country }
@@ -58,18 +59,15 @@ function buildSteps(profile: ProfileForSteps | undefined, options: StepOptions):
     name: p.displayName,
     category: p.category,
   }));
-  const selectedProfessionIds = profile?.professions?.map((pp) => pp.profession.id) ?? [];
   const professionValue =
-    profile?.profession ?? // legacy text on userProfiles
+    profile?.profession ??
     (profile?.professions?.[0]
       ? {
-        id: profile.professions[0].profession.id,
-        name: profile.professions[0].profession.displayName,
-        category: profile.professions[0].profession.category,
-      }
+          id: profile.professions[0].profession.id,
+          name: profile.professions[0].profession.displayName,
+          category: profile.professions[0].profession.category,
+        }
       : null);
-
-  const pref = profile?.preferences;
 
   const photosValue =
     profile?.photos
@@ -80,6 +78,11 @@ function buildSteps(profile: ProfileForSteps | undefined, options: StepOptions):
         order: p.order,
         isVerified: p.isVerified,
       })) ?? [];
+
+  // Build a map of questionId → existing answer for quick lookup
+  const answerByQuestionId = new Map(
+    (profile?.promptAnswers ?? []).map((a) => [a.questionId, a.answer]),
+  );
 
   const steps: FormStep[] = [
     {
@@ -130,6 +133,12 @@ function buildSteps(profile: ProfileForSteps | undefined, options: StepOptions):
           options: ["male", "female", "other"],
           value: profile?.gender ?? null,
         },
+      ],
+    },
+    {
+      step: 2,
+      title: "Where are you from?",
+      fields: [
         {
           key: "country",
           name: "country",
@@ -139,10 +148,20 @@ function buildSteps(profile: ProfileForSteps | undefined, options: StepOptions):
           required: true,
           value: countryValue,
         },
+        {
+          key: "city",
+          name: "city",
+          label: "City",
+          placeholder: "Enter your city",
+          type: "text",
+          required: true,
+          maxLength: 100,
+          value: profile?.location?.city ?? null,
+        },
       ],
     },
     {
-      step: 2,
+      step: 3,
       title: "Your goals",
       fields: [
         {
@@ -158,7 +177,7 @@ function buildSteps(profile: ProfileForSteps | undefined, options: StepOptions):
       ],
     },
     {
-      step: 3,
+      step: 4,
       title: "Your interests",
       fields: [
         {
@@ -175,7 +194,7 @@ function buildSteps(profile: ProfileForSteps | undefined, options: StepOptions):
       ],
     },
     {
-      step: 4,
+      step: 5,
       title: "Profession",
       fields: [
         {
@@ -187,45 +206,6 @@ function buildSteps(profile: ProfileForSteps | undefined, options: StepOptions):
           required: false,
           options: professionsOptions,
           value: professionValue,
-        },
-      ],
-    },
-    {
-      step: 5,
-      title: "Preferences",
-      optional: true,
-      fields: [
-        {
-          key: "preferredGender",
-          name: "preferredGender",
-          label: "Preferred gender",
-          placeholder: "Select preference",
-          type: "select",
-          required: false,
-          options: ["any", "male", "female", "others", "same"],
-          value: pref?.preferredGender ?? null,
-        },
-        {
-          key: "distancePreference",
-          name: "distancePreference",
-          label: "Distance preference",
-          placeholder: "Select preference",
-          type: "select",
-          required: false,
-          options: ["nearby", "same city", "same country", "random", "global"],
-          value: pref?.distancePreference ?? null,
-        },
-        {
-          key: "ageRange",
-          name: "ageRange",
-          label: "Age preference",
-          type: "range",
-          min: 18,
-          max: 99,
-          value: {
-            min: pref?.minAge ?? 18,
-            max: pref?.maxAge ?? 99,
-          },
         },
       ],
     },
@@ -250,7 +230,45 @@ function buildSteps(profile: ProfileForSteps | undefined, options: StepOptions):
           max: 6,
           value: photosValue,
         },
+        {
+          key: "instagram",
+          name: "instagram",
+          label: "Instagram",
+          placeholder: "your_handle",
+          type: "text",
+          required: false,
+          maxLength: 30,
+          description: "Your Instagram username (without @)",
+          value: profile?.socials?.instagram ?? null,
+        },
+        {
+          key: "twitter",
+          name: "twitter",
+          label: "X / Twitter",
+          placeholder: "your_handle",
+          type: "text",
+          required: false,
+          maxLength: 15,
+          description: "Your X (Twitter) username (without @)",
+          value: profile?.socials?.twitter ?? null,
+        },
       ],
+    },
+    {
+      step: 7,
+      title: "A little more about you",
+      description: "All optional — answer as many or as few as you like.",
+      optional: true,
+      fields: options.promptQuestions.map((q) => ({
+        key: q.key,
+        id: q.id,
+        name: q.key,
+        label: q.question,
+        type: "textarea" as const,
+        required: false,
+        maxLength: 300,
+        value: answerByQuestionId.get(q.id) ?? null,
+      })),
     },
   ];
 

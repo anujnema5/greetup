@@ -36,6 +36,8 @@ export type FieldType =
 // 💡 This unlocks perfect switch-case rendering later.
 export interface ProfileSetupFieldBase {
   key: string
+  /** UUID of the backing entity — present on prompt question fields, used to build save payloads. */
+  id?: string
   name: string
   label: string
   type: FieldType
@@ -136,21 +138,13 @@ export type PresignProfilePhotoData = {
 
 /** Payload for POST /profile-setup - discriminated by step */
 export type SaveProfileSetupPayload =
-  | {
-      step: 1;
-      data: {
-        displayName: string;
-        username: string;
-        age: number;
-        gender: string;
-        country: { code: string; name: string };
-      };
-    }
-  | { step: 2; data: { goals: Array<{ id: string }> } }
-  | { step: 3; data: { interests: Array<{ id: string }> } }
-  | { step: 4; data: { profession: { id: string; name?: string; category?: string } | null } }
-  | { step: 5; data: { preferredGender?: string; distancePreference?: string; ageRange?: { min: number; max: number } } }
-  | { step: 6; data: { bio?: string; photos?: Array<{ url: string; order?: number }> } }
+  | { step: 1; data: { displayName: string; username: string; age: number; gender: string } }
+  | { step: 2; data: { country: { code: string; name: string }; city: string; latitude?: number; longitude?: number } }
+  | { step: 3; data: { goals: Array<{ id: string }> } }
+  | { step: 4; data: { interests: Array<{ id: string }> } }
+  | { step: 5; data: { profession: { id: string; name?: string; category?: string } | null } }
+  | { step: 6; data: { bio?: string; photos?: Array<{ url: string; order?: number }>; instagram?: string; twitter?: string } }
+  | { step: 7; data: { answers: Array<{ questionId: string; answer: string }> } }
 
 /** GET /profile/match-prep/options */
 export interface MatchPrepOptionRow {

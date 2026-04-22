@@ -120,6 +120,18 @@ export const userLocations = pgTable("user_locations", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
+export const userSocials = pgTable("user_socials", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  profileId: uuid("profile_id")
+    .notNull()
+    .unique()
+    .references(() => userProfiles.id, { onDelete: "cascade" }),
+  instagram: text("instagram"),
+  twitter: text("twitter"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
 export const userPhotos = pgTable("user_photos", {
   id: uuid("id").defaultRandom().primaryKey(),
   profileId: uuid("profile_id")
@@ -149,7 +161,18 @@ export const userProfilesRelations = relations(userProfiles, ({ one, many }) => 
     fields: [userProfiles.id],
     references: [userLocations.profileId],
   }),
+  socials: one(userSocials, {
+    fields: [userProfiles.id],
+    references: [userSocials.profileId],
+  }),
   photos: many(userPhotos),
+}));
+
+export const userSocialsRelations = relations(userSocials, ({ one }) => ({
+  profile: one(userProfiles, {
+    fields: [userSocials.profileId],
+    references: [userProfiles.id],
+  }),
 }));
 
 // User Location relations
