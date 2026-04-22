@@ -25,7 +25,7 @@ async function countRows(
   return Number(rows[0]?.count ?? 0);
 }
 
-export async function runOnboardingStartupSeed(): Promise<void> {
+export async function runStartupSeed(): Promise<void> {
   logger.info("[seed] Starting onboarding lookups upsert...");
   console.log("[seed] Starting onboarding lookups upsert...");
 
