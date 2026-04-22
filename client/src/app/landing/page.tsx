@@ -137,9 +137,9 @@ const STEPS = [
 ];
 
 const TESTIMONIALS = [
-  { quote: "I found one of my closest friends on Greetup. We matched on shared interests and the conversation clicked from day one.", name: "Priya K.", tag: "Interest Circle", avatar: "P", color: "from-violet-500 to-purple-600" },
-  { quote: "I've tried every social app. Greetup is the first one where I felt like the people I met actually got me. The matching is genuinely uncanny.",           name: "Rajan M.", tag: "Chess enthusiast",  avatar: "R", color: "from-amber-500 to-yellow-600"  },
-  { quote: "The Circles feature is incredible. I joined a creator community and now we host weekly sessions. Real community, not just followers.",               name: "Aisha T.", tag: "Creator Circle", avatar: "A", color: "from-emerald-500 to-green-600" },
+  { quote: "I found one of my closest friends on Greetup. We matched on shared interests and the conversation clicked from day one.", name: "Priya K.", tag: "Music Circle", avatar: "P", color: "from-violet-500 to-purple-600" },
+  { quote: "I've tried every social app. Greetup is the first one where I felt like the people I met actually got me. The matching is genuinely uncanny.",           name: "Mateo R.", tag: "Philosophy Talks",  avatar: "M", color: "from-amber-500 to-yellow-600"  },
+  { quote: "The Circles feature is incredible. I joined a creator community and now we host weekly sessions. Real community, not just followers.",               name: "Mei C.", tag: "Art Circle", avatar: "M", color: "from-emerald-500 to-green-600" },
 ];
 
 const STATS = [
@@ -155,6 +155,41 @@ const TRUST = [
   { icon: Zap,         label: "Real-time matching"  },
   { icon: Users,       label: "Verified members"    },
   { icon: ShieldCheck, label: "Safe & inclusive"    },
+];
+
+const LIVE_STREAMS = [
+  {
+    title: "Live Music Listening Room",
+    host: "Liam O.",
+    topic: "Share tracks and break down lyrics together",
+    viewers: 12,
+    category: "Music",
+    platforms: ["YouTube", "Twitch"],
+  },
+  {
+    title: "Open Sketch Studio",
+    host: "Mei C.",
+    topic: "Collaborative drawing and visual critiques",
+    viewers: 14,
+    category: "Art",
+    platforms: ["YouTube", "Kick"],
+  },
+  {
+    title: "Late Night Philosophy Room",
+    host: "Diego P.",
+    topic: "Meaning, ethics, and modern life discussions",
+    viewers: 10,
+    category: "Philosophy",
+    platforms: ["YouTube", "X Live"],
+  },
+  {
+    title: "Creative Writing Circle",
+    host: "Sofia L.",
+    topic: "Poetry prompts and short reading sessions",
+    viewers: 15,
+    category: "Writing",
+    platforms: ["YouTube", "Twitch"],
+  },
 ];
 
 /* ─── Navbar ─────────────────────────────────────────────────────────────────── */
@@ -254,9 +289,9 @@ function HeroOrb() {
           <motion.line key={i} x1={l.x1} y1={l.y1} x2={l.x2} y2={l.y2} stroke="oklch(88% 0.11 105)" strokeWidth="0.4" strokeDasharray="3 2" initial={{ pathLength: 0, opacity: 0 }} animate={{ pathLength: 1, opacity: 0.3 }} transition={{ duration: 1.2, delay: 0.4 + i * 0.2, ease: "easeOut" }} />
         ))}
       </svg>
-      <FloatingChip name="Rajan" sub="Tech · Startups" color="from-violet-500 to-purple-600" letter="R" x="14%" y="20%" delay={0.6} />
-      <FloatingChip name="Aisha" sub="Design · Content"      color="from-amber-500 to-yellow-600"  letter="A" x="86%" y="78%" delay={0.9} />
-      <FloatingChip name="Priya" sub="Learning · Music"    color="from-emerald-500 to-green-600" letter="P" x="14%" y="60%" delay={1.2} />
+      <FloatingChip name="Aarav" sub="Software Engineer · Backend" color="from-violet-500 to-purple-600" letter="A" x="14%" y="20%" delay={0.6} />
+      <FloatingChip name="Mei" sub="Art · Illustration"      color="from-amber-500 to-yellow-600"  letter="M" x="86%" y="78%" delay={0.9} />
+      <FloatingChip name="Priya" sub="Philosophy · Ideas"    color="from-emerald-500 to-green-600" letter="P" x="14%" y="60%" delay={1.2} />
     </div>
   );
 }
@@ -333,8 +368,8 @@ function VideoMockup() {
       <div className="relative rounded-2xl bg-[oklch(20%_0.015_110)] border border-white/8 overflow-hidden aspect-video flex items-center justify-center">
         <div className="absolute inset-0 bg-linear-to-br from-violet-900/30 to-slate-900/60" />
         <div className="relative flex flex-col items-center gap-2">
-          <div className="size-12 rounded-full bg-linear-to-br from-violet-500 to-purple-600 flex items-center justify-center text-base font-bold text-white">R</div>
-          <p className="text-xs text-white/60">Rajan M. · connected</p>
+          <div className="size-12 rounded-full bg-linear-to-br from-violet-500 to-purple-600 flex items-center justify-center text-base font-bold text-white">M</div>
+          <p className="text-xs text-white/60">Maya L. · connected</p>
         </div>
         {/* local pip */}
         <div className="absolute bottom-2 right-2 w-16 h-20 rounded-xl bg-linear-to-br from-amber-800/40 to-slate-800/60 border border-white/10 flex items-center justify-center">
@@ -371,11 +406,11 @@ function VoiceMockup() {
           <motion.div key={i} className="absolute inset-0 rounded-full border border-[oklch(88%_0.11_105/0.3)]" animate={{ scale: [1, 1.6 + i * 0.2], opacity: [0.5, 0] }} transition={{ duration: 2, repeat: Infinity, ease: "easeOut", delay: d }} />
         ))}
         <div className="relative size-20 rounded-full bg-linear-to-br from-amber-500 to-yellow-600 flex items-center justify-center text-2xl font-bold text-white shadow-xl shadow-amber-500/20">
-          R
+          N
         </div>
       </div>
       <div className="text-center">
-        <p className="text-sm font-semibold text-white">Rajan M.</p>
+        <p className="text-sm font-semibold text-white">Noah K.</p>
         <div className="flex items-center gap-1.5 justify-center mt-1">
           <motion.div className="size-1.5 rounded-full bg-emerald-400" animate={{ opacity: [1, 0.4, 1] }} transition={{ duration: 1.2, repeat: Infinity }} />
           <p className="text-[11px] text-emerald-400">Voice call · 2:34</p>
@@ -494,7 +529,7 @@ export function LandingPageView() {
               <div className="flex -space-x-2">
                 {(["#7c3aed","#d97706","#059669","#2563eb","#db2777"] as const).map((c, i) => (
                   <motion.div key={i} className="size-8 rounded-full border-2 border-[oklch(12%_0.012_110)] flex items-center justify-center text-[10px] font-bold text-white" style={{ background: c }} initial={{ opacity: 0, x: -8 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.5 + i * 0.07, duration: 0.4 }}>
-                    {["R","A","P","M","S"][i]}
+                    {["N","M","L","S","D"][i]}
                   </motion.div>
                 ))}
               </div>
@@ -669,10 +704,10 @@ export function LandingPageView() {
               <Card className="border-white/10 bg-[oklch(17%_0.015_110)] overflow-hidden shadow-2xl shadow-black/50 p-0 gap-0">
                 {/* header */}
                 <div className="flex items-center gap-3 px-4 py-3.5 border-b border-white/6">
-                  <div className="size-8 rounded-full bg-linear-to-br from-violet-500 to-purple-600 flex items-center justify-center text-xs font-bold text-white">R</div>
+                  <div className="size-8 rounded-full bg-linear-to-br from-violet-500 to-purple-600 flex items-center justify-center text-xs font-bold text-white">S</div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-xs font-semibold text-white leading-none">Rajan M.</p>
-                    <p className="text-[10px] text-white/40 mt-0.5">Just matched · Tech · Startups</p>
+                    <p className="text-xs font-semibold text-white leading-none">Sofia L.</p>
+                    <p className="text-[10px] text-white/40 mt-0.5">Just matched · Software Engineering · Music</p>
                   </div>
                   <div className="size-2 rounded-full bg-emerald-400" />
                 </div>
@@ -730,10 +765,10 @@ export function LandingPageView() {
             <motion.div variants={fadeUp} className="relative w-full max-w-xs sm:max-w-sm">
               <Card className="border-white/10 bg-[oklch(17%_0.015_110)] overflow-hidden shadow-2xl shadow-black/40 p-0 gap-0">
                 <div className="flex items-center gap-3 px-4 py-3.5 border-b border-white/6">
-                  <div className="size-8 rounded-full bg-linear-to-br from-violet-500 to-purple-600 flex items-center justify-center text-xs font-bold text-white">R</div>
+                  <div className="size-8 rounded-full bg-linear-to-br from-violet-500 to-purple-600 flex items-center justify-center text-xs font-bold text-white">L</div>
                   <div>
-                    <p className="text-xs font-semibold text-white leading-none">Rajan M.</p>
-                    <p className="text-[10px] text-white/40 mt-0.5">Circles · Tech + Creators</p>
+                    <p className="text-xs font-semibold text-white leading-none">Leo B.</p>
+                    <p className="text-[10px] text-white/40 mt-0.5">Circles · Art + Philosophy</p>
                   </div>
                   <div className="ml-auto size-2 rounded-full bg-emerald-400" />
                 </div>
@@ -750,7 +785,7 @@ export function LandingPageView() {
                     <p className="text-[10px] text-[oklch(88%_0.11_105/0.7)] font-semibold tracking-wide uppercase">Circle activities</p>
                   </div>
                   <div className="flex flex-wrap gap-1.5">
-                    {["YouTube together", "Chess", "Truth or dare", "Study together"].map((chip, i) => (
+                    {["Music listening", "Art jam", "Philosophy talk", "Study together"].map((chip, i) => (
                       <motion.button key={chip} initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.5 + i * 0.12, duration: 0.35, ease: EASE }}
                         className="text-[10px] font-medium px-2.5 py-1 rounded-full border border-[oklch(88%_0.11_105/0.25)] bg-[oklch(88%_0.11_105/0.07)] text-white/70 hover:border-[oklch(88%_0.11_105/0.5)] hover:text-white transition-all cursor-default"
                       >
@@ -801,6 +836,95 @@ export function LandingPageView() {
             </motion.div>
           </RevealSection>
         </div>
+      </section>
+
+      {/* ══════════════════ LIVE STREAMS ══════════════════ */}
+      <section className="relative py-20 sm:py-24 px-4 sm:px-6 bg-[oklch(13%_0.013_110)]">
+        <RevealSection className="mx-auto max-w-7xl">
+          <motion.div variants={fadeUp} className="text-center mb-12">
+            <Badge variant="outline" className="border-[oklch(88%_0.11_105/0.3)] bg-[oklch(88%_0.11_105/0.08)] text-[oklch(88%_0.11_105/0.85)] rounded-full mb-5 tracking-widest uppercase text-[10px]">
+              Live with your connections
+            </Badge>
+            <h2 className="text-4xl sm:text-5xl font-black tracking-tight">Start live sessions after you match</h2>
+            <p className="mt-4 text-white/50 max-w-2xl mx-auto">
+              Turn any active match or circle conversation into a live session in one tap, then stream out to platforms like YouTube from the same flow.
+            </p>
+          </motion.div>
+
+          <motion.div variants={fadeUp} className="flex flex-wrap justify-center gap-3 mb-8">
+            <Button
+              size="sm"
+              className="rounded-full bg-[oklch(88%_0.11_105)] text-[oklch(15%_0.02_110)] hover:brightness-110 font-semibold px-5"
+              asChild
+            >
+              <Link href={isLoggedIn ? "/home" : "/login"}>
+                Start live session <Video className="size-3.5" />
+              </Link>
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              className="rounded-full border-white/12 bg-white/6 text-white/80 hover:bg-white/10 hover:text-white px-5"
+              asChild
+            >
+              <Link href={isLoggedIn ? "/home" : "/login"}>Open your connections</Link>
+            </Button>
+          </motion.div>
+          <motion.p variants={fadeUp} className="text-center text-xs text-white/45 mb-6">
+            Live room size stays intimate: up to 15 people per room, with multi-platform streaming to YouTube and more.
+          </motion.p>
+
+          <div className="grid md:grid-cols-2 xl:grid-cols-4 gap-5">
+            {LIVE_STREAMS.map((stream) => (
+              <motion.div key={stream.title} variants={cardIn}>
+                <Card className="border-white/8 bg-[oklch(16%_0.013_110)] shadow-xl p-0 gap-0">
+                  <CardContent className="p-6 flex flex-col gap-5">
+                    <div className="flex items-start justify-between gap-2">
+                      <div>
+                        <p className="text-base font-bold text-white leading-tight">{stream.title}</p>
+                        <p className="text-xs text-white/55 mt-1">{stream.topic}</p>
+                      </div>
+                      <div className="inline-flex items-center gap-1 rounded-full border border-red-500/25 bg-red-500/12 px-2 py-1 text-[10px] font-semibold text-red-300">
+                        <motion.span
+                          className="size-1.5 rounded-full bg-red-400"
+                          animate={{ opacity: [1, 0.35, 1] }}
+                          transition={{ duration: 1.3, repeat: Infinity }}
+                        />
+                        LIVE
+                      </div>
+                    </div>
+
+                    <div className="flex items-center justify-between gap-3">
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        <div className="size-8 rounded-full bg-[oklch(88%_0.11_105/0.18)] border border-[oklch(88%_0.11_105/0.26)] flex items-center justify-center text-xs font-bold text-[oklch(88%_0.11_105)] shrink-0">
+                          {stream.host.slice(0, 1)}
+                        </div>
+                        <div className="min-w-0">
+                          <p className="text-xs text-white/80 truncate">{stream.host}</p>
+                          <p className="text-[11px] text-white/45 truncate">{stream.category}</p>
+                        </div>
+                      </div>
+                      <p className="text-[11px] text-white/45 shrink-0">{stream.viewers} in room</p>
+                    </div>
+
+                    <div className="flex items-center justify-between">
+                      <div className="inline-flex items-center gap-1.5 rounded-full border border-white/8 bg-white/4 px-2.5 py-1 text-[10px] text-white/55">
+                        <Users className="size-3" />
+                        Connected room
+                      </div>
+                      <Button size="sm" className="rounded-full bg-[oklch(88%_0.11_105)] text-[oklch(15%_0.02_110)] hover:brightness-110 font-semibold px-4" asChild>
+                        <Link href={isLoggedIn ? "/home" : "/login"}>Go live</Link>
+                      </Button>
+                    </div>
+                    <p className="text-[10px] text-white/45">
+                      Stream to: {stream.platforms.join(" · ")}
+                    </p>
+                  </CardContent>
+                </Card>
+              </motion.div>
+            ))}
+          </div>
+        </RevealSection>
       </section>
 
       {/* ══════════════════ HOW IT WORKS ══════════════════ */}
