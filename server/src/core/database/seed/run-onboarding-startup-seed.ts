@@ -11,6 +11,7 @@ import {
 import logger from "@/core/logging";
 
 import { upsertOnboardingLookups } from "./upsert-onboarding-lookups";
+import { upsertRoomCategories } from "./upsert-room-categories";
 
 async function countRows(
   table:
@@ -29,6 +30,7 @@ export async function runOnboardingStartupSeed(): Promise<void> {
   console.log("[seed] Starting onboarding lookups upsert...");
 
   await upsertOnboardingLookups(db);
+  await upsertRoomCategories();
 
   const [goalCount, interestCount, professionCount, moodCount, lookingForCount] =
     await Promise.all([
