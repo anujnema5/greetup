@@ -101,7 +101,7 @@ export function useRoomVideo(roomId: string, options?: { skipSetup?: boolean }) 
   const handleMinimize = useCallback(() => {
     markRoomMinimized();
     dispatch(minimizeVideoSession());
-    const dest = getRoomReturnPath() ?? "/";
+    const dest = getRoomReturnPath() ?? "/home";
     router.replace(dest);
   }, [dispatch, router]);
 

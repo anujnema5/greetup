@@ -113,7 +113,7 @@ export function MinimizedRoomDock() {
     if (activeRoomId) {
       router.push(`/circle/${activeRoomId}`);
     } else {
-      router.push("/");
+      router.push("/home");
     }
   }, [dispatch, router, activeRoomId]);
 

@@ -11,7 +11,7 @@ const PUBLIC_ROUTES = [
 ];
 
 const PROTECTED_ROUTES = [
-  "/",
+  "/home",
   "/profile",
   "/settings",
   "/profile-setup",
@@ -22,7 +22,7 @@ const PROTECTED_ROUTES = [
 
 /** Routes that require onboarding to be complete */
 const ONBOARDING_REQUIRED_ROUTES = [
-  "/",
+  "/home",
   "/profile",
   "/settings",
   "/explore",
@@ -69,6 +69,11 @@ export async function proxy(req: NextRequest) {
     return NextResponse.next();
   }
 
+  // Legacy landing path is retired; keep a hard redirect.
+  if (pathname === "/landing") {
+    return NextResponse.redirect(new URL("/", req.url));
+  }
+
   // Check authentication with proper error handling
   let isLoggedIn = false;
   try {
@@ -88,7 +93,7 @@ export async function proxy(req: NextRequest) {
   // Redirect logged-in users away from public routes
   if (isLoggedIn && PUBLIC_ROUTES.includes(pathname)) {
     const isOnboarded = await checkOnboardingWithCache(req, pathname);
-    const redirectUrl = isOnboarded ? "/" : "/profile-setup";
+    const redirectUrl = isOnboarded ? "/home" : "/profile-setup";
     return NextResponse.redirect(new URL(redirectUrl, req.url));
   }
 
@@ -103,7 +108,7 @@ export async function proxy(req: NextRequest) {
   if (isLoggedIn && pathname === "/profile-setup") {
     const isOnboarded = await checkOnboardingWithCache(req, pathname);
     if (isOnboarded) {
-      return NextResponse.redirect(new URL("/", req.url));
+      return NextResponse.redirect(new URL("/home", req.url));
     }
   }
 
@@ -358,7 +363,7 @@ async function checkOnboardingWithCache(
   const now = Date.now();
   // Skip cache when navigating to dashboard with cached false – user may have just completed onboarding
   const skipCacheForFreshCheck =
-    pathname === "/" && cached?.isOnboarded === false;
+    pathname === "/home" && cached?.isOnboarded === false;
   if (
     !skipCacheForFreshCheck &&
     cached?.isOnboarded !== undefined &&
