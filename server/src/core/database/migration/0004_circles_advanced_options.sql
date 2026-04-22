@@ -1,0 +1,1 @@
+ALTER TABLE "circles" ADD COLUMN "advanced_options" jsonb DEFAULT '{}'::jsonb NOT NULL;

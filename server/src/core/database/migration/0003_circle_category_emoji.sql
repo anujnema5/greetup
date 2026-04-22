@@ -1,0 +1,1 @@
+ALTER TABLE "circle_categories" ADD COLUMN "emoji" varchar(32);

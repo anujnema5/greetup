@@ -18,7 +18,6 @@ env/.env.development
 env/.env.production
 
 bruno/
-migration/
 .todos.mdx
 
 

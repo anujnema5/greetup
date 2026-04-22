@@ -8,7 +8,7 @@
 | server | Cloud Run | Main API server |
 | matching-service | Cloud Run | Private, authenticated only |
 | rtc-service | GCE VM | WebRTC/mediasoup — cannot use Cloud Run (needs UDP) |
-| postgres | GCE VM (Docker) | Same VM as rtc-service |
+| postgres | GCE VM (Docker + PostGIS) | Same VM as rtc-service |
 | redis | GCE VM (Docker) | Same VM as rtc-service |
 
 ## GCP Project
@@ -91,7 +91,10 @@ PORT=5300
 DATABASE_URL=
 BETTER_AUTH_SECRET=
 BETTER_AUTH_URL=https://<server-cloud-run-url>
+SERVER_URL=https://<server-cloud-run-url>
 WEB_CLIENT_HOST=https://<client-cloud-run-url>
+# For client at dev.greetup.club + API at dev-api.greetup.club, set greetup.club
+AUTH_COOKIE_DOMAIN=
 REDIS_URL=
 INTERNAL_API_KEY=
 MATCH_ENGINE_URL=https://<matching-service-url>
@@ -134,7 +137,25 @@ NEXT_PUBLIC_APP_URL=https://<client-cloud-run-url>
 ### rtc-service (VM)
 1. Push code to `development` branch
 2. Run `greetup-rtc-service` Cloud Build trigger — builds and pushes image to Artifact Registry
-3. SSH into VM → `docker compose --env-file ~/greetup/.env pull && docker compose --env-file ~/greetup/.env up -d`
+3. The same trigger syncs `deploy/gcp/vm/docker-compose.yml` to `~/greetup/docker-compose.yml` on the VM, updates `RTC_IMAGE` in `~/greetup/.env` to `:latest`, and runs `docker compose up -d`
+4. Trigger verification step fails the build if:
+   - postgres is not running
+   - postgres image is not `postgis/postgis:16-3.4`
+   - `POSTGRES_USER` / `POSTGRES_DB` are missing in VM `.env`
+   - PostGIS extension cannot be created
+
+### Cloud Build substitutions for VM sync (rtc trigger)
+- `_VM_NAME`: VM instance name (default `greetup-vm`)
+- `_VM_ZONE`: VM zone (default `us-central1-a`)
+- `_VM_USER`: SSH username on VM (default `greetup_club`)
+- `_VM_APP_DIR`: App directory under user home (default `greetup`)
+- `_POSTGIS_IMAGE`: expected postgres image for verification (default `postgis/postgis:16-3.4`)
+
+### One-time IAM setup for rtc trigger VM sync
+Grant these roles to your Cloud Build service account (for example `cloud-build-sa@<project-id>.iam.gserviceaccount.com`):
+- `roles/compute.instanceAdmin.v1`
+- `roles/iam.serviceAccountUser`
+- `roles/compute.osAdminLogin` (if OS Login is enabled)
 
 ## Errors Encountered & Fixes
 

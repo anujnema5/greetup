@@ -53,6 +53,11 @@ interface CacheEntry {
 const sessionCache = new Map<string, CacheEntry>();
 const CACHE_TTL = 10 * 1000; // 10 seconds
 const MAX_CACHE_SIZE = 500; // Prevent cache poisoning
+const AUTH_REQUEST_TIMEOUT_MS = 3000;
+const SESSION_COOKIE_KEYS = [
+  "__Secure-better-auth.session_token",
+  "better-auth.session_token",
+];
 
 // ==================== MAIN PROXY FUNCTION ====================
 // ⭐ Changed from 'middleware' to 'proxy'
@@ -231,7 +236,7 @@ function cleanExpiredCache(): void {
 async function checkAuthWithCache(req: NextRequest): Promise<boolean> {
   cleanExpiredCache();
 
-  const sessionToken = req.cookies.get("better-auth.session_token")?.value;
+  const sessionToken = getSessionToken(req);
 
   if (!sessionToken) {
     return false;
@@ -256,7 +261,7 @@ async function checkAuthWithCache(req: NextRequest): Promise<boolean> {
     return cached.isLoggedIn;
   }
 
-  const authCheckPromise = performAuthCheck(req, sessionToken);
+  const authCheckPromise = performAuthCheck(req);
 
   if (cached) {
     cached.inProgress = authCheckPromise;
@@ -284,10 +289,7 @@ async function checkAuthWithCache(req: NextRequest): Promise<boolean> {
   }
 }
 
-async function performAuthCheck(
-  req: NextRequest,
-  sessionToken: string
-): Promise<boolean> {
+async function performAuthCheck(req: NextRequest): Promise<boolean> {
   const apiBaseUrl = API_BASE_URL;
 
   if (!apiBaseUrl) {
@@ -296,7 +298,7 @@ async function performAuthCheck(
   }
 
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 3000);
+  const timeoutId = setTimeout(() => controller.abort(), AUTH_REQUEST_TIMEOUT_MS);
 
   try {
     const res = await fetch(`${apiBaseUrl}/auth/get-session`, {
@@ -333,7 +335,7 @@ async function performAuthCheck(
 
     if (error instanceof Error) {
       if (error.name === "AbortError") {
-        console.error("[Auth] Check timeout after 3 seconds");
+        console.error(`[Auth] Check timeout after ${AUTH_REQUEST_TIMEOUT_MS}ms`);
       } else {
         console.error("[Auth] Check error:", error.message);
       }
@@ -349,7 +351,7 @@ async function checkOnboardingWithCache(
   req: NextRequest,
   pathname?: string
 ): Promise<boolean> {
-  const sessionToken = req.cookies.get("better-auth.session_token")?.value;
+  const sessionToken = getSessionToken(req);
   if (!sessionToken) return false;
 
   const cached = sessionCache.get(sessionToken);
@@ -390,6 +392,14 @@ async function checkOnboardingWithCache(
   } catch {
     return false;
   }
+}
+
+function getSessionToken(req: NextRequest): string | undefined {
+  for (const key of SESSION_COOKIE_KEYS) {
+    const value = req.cookies.get(key)?.value;
+    if (value) return value;
+  }
+  return undefined;
 }
 
 // ==================== PROXY CONFIG ====================

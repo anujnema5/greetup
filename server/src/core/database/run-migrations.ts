@@ -9,13 +9,11 @@
 import { config as loadEnv } from "dotenv";
 import { existsSync } from "node:fs";
 import { readdir, readFile } from "node:fs/promises";
-import { dirname, join, resolve } from "node:path";
-import { fileURLToPath } from "node:url";
+import { join, resolve } from "node:path";
 import pg from "pg";
 
-const __dirname = dirname(fileURLToPath(import.meta.url));
-const SERVER_ROOT = resolve(__dirname, "../../..");
-const MIGRATION_DIR = join(__dirname, "migration");
+const SERVER_ROOT = process.cwd();
+const MIGRATION_DIR = join(SERVER_ROOT, "src/core/database/migration");
 
 const STATEMENT_BREAKPOINT = "--> statement-breakpoint";
 
@@ -139,8 +137,43 @@ async function applySqlFile(client: pg.PoolClient, filename: string): Promise<vo
   }
 }
 
-async function main(): Promise<void> {
-  loadDatabaseEnv();
+function isMissingPostgisExtension(error: unknown): boolean {
+  if (!error || typeof error !== "object") {
+    return false;
+  }
+
+  const pgError = error as {
+    code?: string;
+    message?: string;
+    detail?: string;
+    routine?: string;
+  };
+
+  return (
+    pgError.code === "58P01" &&
+    (pgError.message?.includes(`extension "postgis" is not available`) ||
+      pgError.detail?.includes("postgis.control") ||
+      pgError.routine === "parse_extension_control_file")
+  );
+}
+
+async function ensurePostgisExtensionInstalled(client: pg.PoolClient): Promise<void> {
+  try {
+    await client.query("CREATE EXTENSION IF NOT EXISTS postgis");
+  } catch (error) {
+    if (isMissingPostgisExtension(error)) {
+      throw new Error(
+        "PostGIS is required by migrations but is not installed on the database host. " +
+          "If Postgres runs in Docker on a VM, use a PostGIS image (for example `postgis/postgis:16-3.4`) " +
+          "instead of plain `postgres`, then rerun migrations.",
+        { cause: error },
+      );
+    }
+    throw error;
+  }
+}
+
+export async function runMigrations(): Promise<void> {
   const databaseUrl = process.env.DATABASE_URL;
   if (!databaseUrl?.trim()) {
     throw new Error("DATABASE_URL is not set (check env/.env.development or .env under server/).");
@@ -156,6 +189,7 @@ async function main(): Promise<void> {
   const client = await pool.connect();
 
   try {
+    await ensurePostgisExtensionInstalled(client);
     await ensureTrackingTable(client);
     await seedLedgerFromDrizzleIfNeeded(client, files);
 
@@ -175,7 +209,11 @@ async function main(): Promise<void> {
   }
 }
 
-main().catch((err) => {
-  console.error("[migrate] Failed:", err);
-  process.exit(1);
-});
+// CLI entrypoint
+if (import.meta.main) {
+  loadDatabaseEnv();
+  runMigrations().catch((err) => {
+    console.error("[migrate] Failed:", err);
+    process.exit(1);
+  });
+}

@@ -6,9 +6,30 @@ import { sendEmail } from "@/services/email";
 import logger from "../logging";
 import config from "@/shared/config/config";
 import { BETTER_AUTH_URL, DEV_NOTIFICATION_EMAIL, SERVER_URL } from "@/shared/constants";
-import * as schema from "@/core/database/schema"
+import * as schema from "@/core/database/schema";
 
 // npx @better-auth/cli generate --config ./src/core/auth/index.ts
+
+const normalizedBetterAuthUrl = BETTER_AUTH_URL?.replace(/\/$/, "");
+const normalizedServerUrl = SERVER_URL?.replace(/\/$/, "");
+const publicAuthBaseUrl = normalizedServerUrl || normalizedBetterAuthUrl;
+const crossSubDomainCookies = config.authCookieDomain
+  ? { enabled: true, domain: config.authCookieDomain }
+  : { enabled: false };
+
+if (!publicAuthBaseUrl) {
+  throw new Error(
+    "Auth base URL is missing. Set SERVER_URL or BETTER_AUTH_URL to a valid absolute URL.",
+  );
+}
+
+function mapAuthUrlToPublicHost(url: string): string {
+  return url.replace(BETTER_AUTH_URL, publicAuthBaseUrl);
+}
+
+function resolveAuthEmailRecipient(email: string): string {
+  return config.env === "development" ? DEV_NOTIFICATION_EMAIL : email;
+}
 
 const auth = betterAuth({
   database: drizzleAdapter(db, {
@@ -19,10 +40,12 @@ const auth = betterAuth({
     },
   }),
 
-
+  advanced: {
+    useSecureCookies: config.env === "production",
+    crossSubDomainCookies,
+  },
   plugins: [
     openAPI(),
-
     phoneNumber({
       sendOTP: async ({ phoneNumber, code }) => {
         logger.info("OTP generated", {
@@ -60,10 +83,7 @@ const auth = betterAuth({
 
     sendResetPassword: async ({ user, url, token }, request) => {
       try {
-        const resetUrl = url.replace(
-          BETTER_AUTH_URL,
-          SERVER_URL
-        );
+        const resetUrl = mapAuthUrlToPublicHost(url);
 
         logger.info("Password reset requested", {
           userId: user.id,
@@ -71,10 +91,7 @@ const auth = betterAuth({
         });
 
         await sendEmail({
-          to:
-            config.env === "development"
-              ? DEV_NOTIFICATION_EMAIL
-              : user.email,
+          to: resolveAuthEmailRecipient(user.email),
           subject: "Reset your password",
           text: `Click the link to reset your password:\n${resetUrl}`,
         });
@@ -99,17 +116,14 @@ const auth = betterAuth({
     },
   },
 
-  trustedOrigins: [SERVER_URL, config.webClientHost],
+  trustedOrigins: [publicAuthBaseUrl, config.webClientHost].filter(Boolean),
 
   emailVerification: {
     autoSignInAfterVerification: true,
 
     sendVerificationEmail: async ({ url, user }) => {
       try {
-        const verificationUrl = url.replace(
-          BETTER_AUTH_URL,
-          SERVER_URL
-        );
+        const verificationUrl = mapAuthUrlToPublicHost(url);
 
         logger.info("Email verification requested", {
           userId: user.id,
@@ -117,10 +131,7 @@ const auth = betterAuth({
         });
 
         await sendEmail({
-          to:
-            config.env === "development"
-              ? DEV_NOTIFICATION_EMAIL
-              : user.email,
+          to: resolveAuthEmailRecipient(user.email),
           subject: "Verify your email address",
           text: `Click the link to verify your account:\n${verificationUrl}`,
         });
@@ -128,9 +139,7 @@ const auth = betterAuth({
         logger.info("Verification email sent", {
           userId: user.id,
         });
-      } 
-      
-      catch (error) {
+      } catch (error) {
         logger.error("Failed to send verification email", {
           error,
           userEmail: user.email,
@@ -145,7 +154,7 @@ const auth = betterAuth({
       prompt: "select_account",
       clientId: config.googleClientId,
       clientSecret: config.googleClientSecret,
-      redirectURI: `${SERVER_URL}/api/auth/callback/google`
+      redirectURI: `${publicAuthBaseUrl}/api/auth/callback/google`,
     },
   },
 });
