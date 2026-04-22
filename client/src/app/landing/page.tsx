@@ -80,7 +80,7 @@ const FEATURES = [
   {
     icon: Users,
     label: "Circles",
-    desc: "Join interest-based circles to learn, collaborate, and build meaningful connections in real time.",
+    desc: "Circles are group rooms where people meet around shared interests and talk live.",
     tint: "from-violet-400/15 to-transparent",
     iconClass: "text-violet-400 bg-violet-400/10 border-violet-400/20",
   },
@@ -768,7 +768,7 @@ export function LandingPageView() {
                   <div className="size-8 rounded-full bg-linear-to-br from-violet-500 to-purple-600 flex items-center justify-center text-xs font-bold text-white">L</div>
                   <div>
                     <p className="text-xs font-semibold text-white leading-none">Leo B.</p>
-                    <p className="text-[10px] text-white/40 mt-0.5">Circles · Art + Philosophy</p>
+                    <p className="text-[10px] text-white/40 mt-0.5">Group room · Startup Founder Night Talk</p>
                   </div>
                   <div className="ml-auto size-2 rounded-full bg-emerald-400" />
                 </div>
@@ -782,10 +782,10 @@ export function LandingPageView() {
                     <div className="size-4 rounded-md bg-[oklch(88%_0.11_105/0.12)] flex items-center justify-center">
                       <Lightbulb className="size-2.5 text-[oklch(88%_0.11_105)]" />
                     </div>
-                    <p className="text-[10px] text-[oklch(88%_0.11_105/0.7)] font-semibold tracking-wide uppercase">Circle activities</p>
+                    <p className="text-[10px] text-[oklch(88%_0.11_105/0.7)] font-semibold tracking-wide uppercase">Group room examples</p>
                   </div>
                   <div className="flex flex-wrap gap-1.5">
-                    {["Music listening", "Art jam", "Philosophy talk", "Study together"].map((chip, i) => (
+                    {["Startup Founder Night Talk", "Jam Session for Musicians", "Art Critique Room", "Philosophy Night Circle"].map((chip, i) => (
                       <motion.button key={chip} initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.5 + i * 0.12, duration: 0.35, ease: EASE }}
                         className="text-[10px] font-medium px-2.5 py-1 rounded-full border border-[oklch(88%_0.11_105/0.25)] bg-[oklch(88%_0.11_105/0.07)] text-white/70 hover:border-[oklch(88%_0.11_105/0.5)] hover:text-white transition-all cursor-default"
                       >
@@ -815,9 +815,8 @@ export function LandingPageView() {
               <span className="bg-linear-to-r from-[oklch(88%_0.11_105)] via-[oklch(95%_0.08_90)] to-[oklch(80%_0.14_110)] bg-clip-text text-transparent">Build your network in circles.</span>
             </motion.h2>
             <motion.p variants={fadeUp} className="text-white/55 leading-relaxed max-w-md mb-8">
-              Explore circles across careers, learning, creativity, and shared interests. Learn, share experience,
-              host group activities, or switch to 1:1 conversations with conversation cues that guide what to talk
-              about with each new match.
+              Circles are group rooms built around shared interests. Join rooms like Startup Founder Night Talk,
+              Jam Session for Musicians, art critique rooms, and philosophy circles, then move to 1:1 when you click.
             </motion.p>
             <motion.div variants={stagger} className="flex flex-col gap-4">
               {[
@@ -845,7 +844,7 @@ export function LandingPageView() {
             <Badge variant="outline" className="border-[oklch(88%_0.11_105/0.3)] bg-[oklch(88%_0.11_105/0.08)] text-[oklch(88%_0.11_105/0.85)] rounded-full mb-5 tracking-widest uppercase text-[10px]">
               Live with your connections
             </Badge>
-            <h2 className="text-4xl sm:text-5xl font-black tracking-tight">Start live sessions after you match</h2>
+            <h2 className="text-4xl sm:text-5xl font-black tracking-tight">Go live from your matches and circles</h2>
             <p className="mt-4 text-white/50 max-w-2xl mx-auto">
               Turn any active match or circle conversation into a live session in one tap, then stream out to platforms like YouTube from the same flow.
             </p>
