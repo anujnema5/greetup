@@ -7,7 +7,7 @@ substitutions:
   _CPU: "1"
   _MEMORY: 1Gi
   _MIN_INSTANCES: "1"
-  _MAX_INSTANCES: "20"
+  _MAX_INSTANCES: "5"
 
 options:
   logging: CLOUD_LOGGING_ONLY

@@ -7,7 +7,7 @@ substitutions:
   _CPU: "1"
   _MEMORY: 512Mi
   _MIN_INSTANCES: "0"
-  _MAX_INSTANCES: "10"
+  _MAX_INSTANCES: "5"
   _NEXT_PUBLIC_API_BASE_URL: https://dev-api.greetup.club/api
   _NEXT_PUBLIC_SOCKET_SERVER_URL: https://dev-api.greetup.club
   _NEXT_PUBLIC_RTC_SOCKET_URL: https://rtc.dev.greetup.club
