@@ -39,6 +39,7 @@ import {
   Wind,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useSession } from "@/lib/auth-client";
 
 /* ─── easing ────────────────────────────────────────────────────────────────── */
 const EASE: [number, number, number, number] = [0.22, 1, 0.36, 1];
@@ -157,7 +158,13 @@ const TRUST = [
 ];
 
 /* ─── Navbar ─────────────────────────────────────────────────────────────────── */
-function Navbar() {
+function Navbar({
+  isLoggedIn,
+  firstName,
+}: {
+  isLoggedIn: boolean;
+  firstName: string;
+}) {
   const { scrollY } = useScroll();
   const bg     = useTransform(scrollY, [0, 60], ["rgba(0,0,0,0)", "rgba(18,18,20,0.88)"]);
   const shadow = useTransform(scrollY, [0, 60], ["0 0 0 rgba(0,0,0,0)", "0 8px 32px rgba(0,0,0,0.28)"]);
@@ -176,17 +183,23 @@ function Navbar() {
           initial={{ opacity: 0, x: 12 }} animate={{ opacity: 1, x: 0 }}
           transition={{ duration: 0.5, ease: EASE, delay: 0.1 }}
         >
-          <Button variant="ghost" size="sm" className="hidden sm:inline-flex text-white/65 hover:text-white hover:bg-white/6 rounded-full" asChild>
-            <Link href="/login">Log in</Link>
-          </Button>
+          {isLoggedIn ? (
+            <span className="hidden sm:inline-flex rounded-full border border-white/15 bg-white/8 px-3 py-1 text-xs font-medium text-white/80">
+              Hi, {firstName || "there"}
+            </span>
+          ) : (
+            <Button variant="ghost" size="sm" className="hidden sm:inline-flex text-white/65 hover:text-white hover:bg-white/6 rounded-full" asChild>
+              <Link href="/login">Log in</Link>
+            </Button>
+          )}
           <motion.div whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.96 }}>
             <Button
               size="sm"
               className="rounded-full bg-[oklch(88%_0.11_105)] text-[oklch(15%_0.02_110)] hover:brightness-110 shadow-lg shadow-[oklch(88%_0.11_105/0.3)] font-semibold"
               asChild
             >
-              <Link href="/register">
-                Get started <ChevronRight className="size-3.5" />
+              <Link href={isLoggedIn ? "/home" : "/register"}>
+                {isLoggedIn ? "Go to home" : "Get started"} <ChevronRight className="size-3.5" />
               </Link>
             </Button>
           </motion.div>
@@ -393,6 +406,19 @@ function VoiceMockup() {
 /* ─── Page ───────────────────────────────────────────────────────────────────── */
 export function LandingPageView() {
   const [activeTab, setActiveTab] = useState<CommTab>("chat");
+  const { data: session } = useSession();
+
+  const sessionUser = session?.user as
+    | { displayName?: string | null; name?: string | null; email?: string | null }
+    | undefined;
+  const displayName =
+    sessionUser?.displayName?.trim() ||
+    sessionUser?.name?.trim() ||
+    "";
+  const firstNameFromDisplay = displayName.split(/\s+/).filter(Boolean)[0] ?? "";
+  const firstNameFromEmail = sessionUser?.email?.split("@")[0]?.trim() ?? "";
+  const firstName = firstNameFromDisplay || firstNameFromEmail;
+  const isLoggedIn = Boolean(session?.user);
 
   return (
     <div className="relative min-h-screen bg-[oklch(12%_0.012_110)] text-white overflow-x-hidden">
@@ -404,7 +430,7 @@ export function LandingPageView() {
         <motion.div className="absolute -bottom-40 left-1/3 w-[400px] h-[400px] rounded-full bg-[oklch(88%_0.11_105/0.04)] blur-[100px]" animate={{ scale: [1, 1.2, 1] }} transition={{ duration: 12, repeat: Infinity, ease: "easeInOut", delay: 4 }} />
       </div>
 
-      <Navbar />
+      <Navbar isLoggedIn={isLoggedIn} firstName={firstName} />
 
       {/* ══════════════════ HERO ══════════════════ */}
       <section className="relative pt-28 sm:pt-32 pb-20 sm:pb-24 px-4 sm:px-6">
@@ -446,8 +472,8 @@ export function LandingPageView() {
                   className="rounded-full bg-[oklch(88%_0.11_105)] text-[oklch(12%_0.012_110)] hover:brightness-110 shadow-xl shadow-[oklch(88%_0.11_105/0.3)] font-bold px-7"
                   asChild
                 >
-                  <Link href="/register">
-                    Find your people <ArrowRight className="size-4" />
+                  <Link href={isLoggedIn ? "/home" : "/register"}>
+                    {isLoggedIn ? `Welcome${firstName ? `, ${firstName}` : ""}` : "Find your people"} <ArrowRight className="size-4" />
                   </Link>
                 </Button>
               </motion.div>
@@ -890,8 +916,8 @@ export function LandingPageView() {
                 className="rounded-full bg-[oklch(88%_0.11_105)] text-[oklch(12%_0.012_110)] hover:brightness-110 shadow-2xl shadow-[oklch(88%_0.11_105/0.35)] font-black text-base px-10 py-6"
                 asChild
               >
-                <Link href="/register">
-                  Join Greetup — it&apos;s free <ArrowRight className="size-5" />
+                <Link href={isLoggedIn ? "/home" : "/register"}>
+                  {isLoggedIn ? `Continue${firstName ? `, ${firstName}` : ""}` : "Join Greetup — it&apos;s free"} <ArrowRight className="size-5" />
                 </Link>
               </Button>
             </motion.div>
