@@ -1,7 +1,7 @@
 import { eq } from "drizzle-orm";
 
 import { db } from "@/core/database";
-import { currentStatus, profileInterests } from "@/core/database/schema";
+import { currentStatus, profileInterests, profilePreferences, userLocations } from "@/core/database/schema";
 import logger from "@/core/logging";
 import { refreshProfileSnapshotFromDatabase } from "@/modules/user/services/profile-snapshot-cache.service";
 import { matchPrepSessionRepository } from "../repositories/match-prep-session.repository";
@@ -10,6 +10,23 @@ import { profileSetupRepository } from "../repositories/profile-setup.repository
 import { profileStepsRepository } from "../repositories/profile-steps.repository";
 import type { MatchPrepSaveBody } from "../schemas/match-prep.schema";
 import { fetchProfileStepsService } from "./profile-steps.service";
+
+type MatchDistancePreference = "random" | "same_city" | "same_country" | "global";
+
+function toClientDistancePreference(value: string | null | undefined): MatchDistancePreference {
+  const normalized = value?.trim().toLowerCase();
+  if (normalized === "same city" || normalized === "same_city") return "same_city";
+  if (normalized === "same country" || normalized === "same_country") return "same_country";
+  if (normalized === "global") return "global";
+  return "random";
+}
+
+function toDbDistancePreference(value: MatchDistancePreference): "same city" | "same country" | "random" | "global" {
+  if (value === "same_city") return "same city";
+  if (value === "same_country") return "same country";
+  if (value === "global") return "global";
+  return "random";
+}
 
 export async function getMatchPrepOptionsService() {
   const opts = await profileStepsRepository.fetchStepOptions();
@@ -37,7 +54,7 @@ export async function getMatchPrepOptionsService() {
 
 export async function getMatchPrepCurrentService(userId: string) {
   const profileId = await profileSetupRepository.getOrCreateProfile(userId);
-  const [row, interestRows] = await Promise.all([
+  const [row, interestRows, preferences, location] = await Promise.all([
     db.query.currentStatus.findFirst({
       where: eq(currentStatus.profileId, profileId),
       columns: {
@@ -63,6 +80,26 @@ export async function getMatchPrepCurrentService(userId: string) {
         interest: { columns: { id: true } },
       },
     }),
+    db.query.profilePreferences.findFirst({
+      where: eq(profilePreferences.profileId, profileId),
+      columns: {
+        distancePreference: true,
+        locationPreferenceEnabled: true,
+      },
+    }),
+    db.query.userLocations.findFirst({
+      where: eq(userLocations.profileId, profileId),
+      columns: {
+        country: true,
+        countryCode: true,
+        region: true,
+        regionCode: true,
+        city: true,
+        latitude: true,
+        longitude: true,
+        source: true,
+      },
+    }),
   ]);
 
   const interestIds = interestRows.map((pi) => pi.interest.id);
@@ -78,6 +115,20 @@ export async function getMatchPrepCurrentService(userId: string) {
         | "open_to_anyone"
         | null,
       sessionGoal: null as string | null,
+      locationPreferenceEnabled: preferences?.locationPreferenceEnabled ?? false,
+      distancePreference: toClientDistancePreference(preferences?.distancePreference),
+      location: location
+        && location.source?.startsWith("match_prep")
+        ? {
+            country: location.country ?? null,
+            countryCode: location.countryCode ?? null,
+            region: location.region ?? null,
+            regionCode: location.regionCode ?? null,
+            city: location.city ?? null,
+            latitude: location.latitude ?? null,
+            longitude: location.longitude ?? null,
+          }
+        : null,
     };
   }
 
@@ -87,6 +138,20 @@ export async function getMatchPrepCurrentService(userId: string) {
     interestIds,
     connectionPreference: row.connectionPreference ?? null,
     sessionGoal: row.sessionGoal?.trim() || null,
+    locationPreferenceEnabled: preferences?.locationPreferenceEnabled ?? false,
+    distancePreference: toClientDistancePreference(preferences?.distancePreference),
+    location: location
+      && location.source?.startsWith("match_prep")
+      ? {
+          country: location.country ?? null,
+          countryCode: location.countryCode ?? null,
+          region: location.region ?? null,
+          regionCode: location.regionCode ?? null,
+          city: location.city ?? null,
+          latitude: location.latitude ?? null,
+          longitude: location.longitude ?? null,
+        }
+      : null,
   };
 }
 
@@ -127,6 +192,27 @@ export async function saveMatchPrepService(
     sessionGoal,
     connectionPreference: body.connectionPreference ?? null,
   });
+
+  const locationPreferenceEnabled = body.locationPreferenceEnabled ?? false;
+  await profileSetupRepository.upsertPreferences(profileId, {
+    locationPreferenceEnabled,
+    distancePreference: toDbDistancePreference(
+      locationPreferenceEnabled ? (body.distancePreference ?? "random") : "random",
+    ),
+  });
+
+  if (body.location) {
+    await profileSetupRepository.upsertLocation(profileId, {
+      country: body.location.country,
+      countryCode: body.location.countryCode,
+      region: body.location.region,
+      regionCode: body.location.regionCode,
+      city: body.location.city,
+      latitude: body.location.latitude,
+      longitude: body.location.longitude,
+      source: body.location.source ? `match_prep_${body.location.source}` : "match_prep",
+    });
+  }
 
   const stepsResult = await fetchProfileStepsService({
     userId,

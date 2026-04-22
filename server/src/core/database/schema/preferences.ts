@@ -20,6 +20,7 @@ export const profilePreferences = t.pgTable("profile_preferences", {
 
     preferredGender: preferredGenderEnum("preferred_gender").default("any").notNull(),
     distancePreference: distancePreferenceEnum("distance_preference").default("random").notNull(),
+    locationPreferenceEnabled: t.boolean("location_preference_enabled").default(false).notNull(),
 
     minAge: t.integer("min_age").default(18).notNull(),
     maxAge: t.integer("max_age").default(99).notNull(),

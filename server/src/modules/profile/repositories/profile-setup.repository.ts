@@ -15,7 +15,7 @@ import {
   profilePreferences,
   userPhotos,
 } from "@/core/database/schema";
-import { eq } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 
 export class UsernameTakenError extends Error {
   constructor() {
@@ -97,9 +97,12 @@ export const profileSetupRepository = {
     data: {
       country: string;
       countryCode: string;
+      region?: string;
+      regionCode?: string;
       city?: string;
       latitude?: number;
       longitude?: number;
+      source?: string;
     }
   ) {
     const existing = await db.query.userLocations.findFirst({
@@ -111,9 +114,15 @@ export const profileSetupRepository = {
       countryCode: data.countryCode,
       updatedAt: new Date(),
     };
+    if (data.region !== undefined) payload.region = data.region;
+    if (data.regionCode !== undefined) payload.regionCode = data.regionCode;
     if (data.city !== undefined) payload.city = data.city;
     if (data.latitude !== undefined) payload.latitude = data.latitude;
     if (data.longitude !== undefined) payload.longitude = data.longitude;
+    if (data.source !== undefined) payload.source = data.source;
+    if (data.latitude != null && data.longitude != null) {
+      payload.location = sql`ST_SetSRID(ST_MakePoint(${data.longitude}, ${data.latitude}), 4326)`;
+    }
 
     if (existing) {
       return db
@@ -126,9 +135,16 @@ export const profileSetupRepository = {
       profileId,
       country: data.country,
       countryCode: data.countryCode,
+      region: data.region,
+      regionCode: data.regionCode,
       city: data.city,
       latitude: data.latitude,
       longitude: data.longitude,
+      source: data.source,
+      location:
+        data.latitude != null && data.longitude != null
+          ? sql`ST_SetSRID(ST_MakePoint(${data.longitude}, ${data.latitude}), 4326)`
+          : undefined,
     });
   },
 
@@ -194,7 +210,15 @@ export const profileSetupRepository = {
     profileId: string,
     data: {
       preferredGender?: "any" | "male" | "female" | "others" | "same";
-      distancePreference?: "nearby" | "same city" | "same country" | "random" | "global";
+      distancePreference?:
+        | "nearby"
+        | "same city"
+        | "same country"
+        | "random"
+        | "global"
+        | "same_city"
+        | "same_country";
+      locationPreferenceEnabled?: boolean;
       minAge?: number;
       maxAge?: number;
     }
@@ -203,7 +227,22 @@ export const profileSetupRepository = {
       where: (p, { eq }) => eq(p.profileId, profileId),
     });
 
-    const payload: Record<string, unknown> = { ...data };
+    const normalizedDistancePreference =
+      data.distancePreference === "same_city"
+        ? "same city"
+        : data.distancePreference === "same_country"
+          ? "same country"
+          : data.distancePreference;
+
+    const payload: Record<string, unknown> = {
+      ...data,
+      distancePreference: normalizedDistancePreference,
+    };
+    if (typeof payload.distancePreference === "string") {
+      const normalized = payload.distancePreference.toLowerCase().trim();
+      if (normalized === "same_city") payload.distancePreference = "same city";
+      if (normalized === "same_country") payload.distancePreference = "same country";
+    }
     if (Object.keys(payload).length === 0) return;
 
     if (existing) {
@@ -215,7 +254,8 @@ export const profileSetupRepository = {
       await db.insert(profilePreferences).values({
         profileId,
         preferredGender: data.preferredGender ?? "any",
-        distancePreference: data.distancePreference ?? "random",
+        distancePreference: normalizedDistancePreference ?? "random",
+        locationPreferenceEnabled: data.locationPreferenceEnabled ?? false,
         minAge: data.minAge ?? 18,
         maxAge: data.maxAge ?? 99,
       });

@@ -81,29 +81,18 @@ export const saveStep1Schema = z.object({
   gender: z.enum(["male", "female", "other"]),
 });
 
-/* Step 2 – Location */
+/* Step 2 – Goals */
 export const saveStep2Schema = z.object({
-  country: z.object({
-    code: z.string().min(1),
-    name: z.string().min(1),
-  }),
-  city: z.string().min(1).max(100),
-  latitude: z.number().optional(),
-  longitude: z.number().optional(),
-});
-
-/* Step 3 – Goals */
-export const saveStep3Schema = z.object({
   goals: z.array(z.object({ id: z.string().uuid() })).min(1).max(10),
 });
 
-/* Step 4 – Interests */
-export const saveStep4Schema = z.object({
+/* Step 3 – Interests */
+export const saveStep3Schema = z.object({
   interests: z.array(z.object({ id: z.string().uuid() })).min(1).max(10),
 });
 
-/* Step 5 – Profession */
-export const saveStep5Schema = z.object({
+/* Step 4 – Profession */
+export const saveStep4Schema = z.object({
   profession: z
     .object({
       id: z.string().uuid(),
@@ -113,20 +102,8 @@ export const saveStep5Schema = z.object({
     .nullable(),
 });
 
-/* Step 7 – Prompt Questions (optional free-text answers) */
-export const saveStep7Schema = z.object({
-  answers: z
-    .array(
-      z.object({
-        questionId: z.string().uuid(),
-        answer: z.string().min(1).max(300),
-      }),
-    )
-    .max(6),
-});
-
-/* Step 6 – Bio, Photos & Socials */
-export const saveStep6Schema = z.object({
+/* Step 5 – Bio, Photos & Socials */
+export const saveStep5Schema = z.object({
   bio: z.string().max(500).optional(),
   photos: z
     .array(
@@ -142,6 +119,18 @@ export const saveStep6Schema = z.object({
   twitter: z.string().max(15).optional(),
 });
 
+/* Step 6 – Prompt Questions (optional free-text answers) */
+export const saveStep6Schema = z.object({
+  answers: z
+    .array(
+      z.object({
+        questionId: z.string().uuid(),
+        answer: z.string().min(10).max(300),
+      }),
+    )
+    .max(6),
+});
+
 const saveStepDataSchema = z.discriminatedUnion("step", [
   z.object({ step: z.literal(1), data: saveStep1Schema }),
   z.object({ step: z.literal(2), data: saveStep2Schema }),
@@ -149,7 +138,6 @@ const saveStepDataSchema = z.discriminatedUnion("step", [
   z.object({ step: z.literal(4), data: saveStep4Schema }),
   z.object({ step: z.literal(5), data: saveStep5Schema }),
   z.object({ step: z.literal(6), data: saveStep6Schema }),
-  z.object({ step: z.literal(7), data: saveStep7Schema }),
 ]);
 
 export const saveProfileSetupBodySchema = saveStepDataSchema;

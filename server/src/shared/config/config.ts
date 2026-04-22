@@ -70,6 +70,7 @@ const config = {
   resendApiKey: requiredEnv("RESEND_API_KEY"),
   googleClientId: requiredEnv("GOOGLE_CLIENT_ID"),
   googleClientSecret: requiredEnv("GOOGLE_CLIENT_SECRET"),
+  googleMapsApiKey: optionalEnv("GOOGLE_MAPS_API_KEY"),
   redisUrl: requiredEnv("REDIS_URL"),
   serverUrl: requiredUrlEnv("SERVER_URL"),
   authCookieDomain: optionalEnv("AUTH_COOKIE_DOMAIN")?.replace(/^\./, ""),

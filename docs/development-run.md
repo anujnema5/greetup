@@ -357,6 +357,7 @@ npm run dev
 | `RTC_JWT_SECRET` | _(min 16 chars, shared with rtc-service)_ | JWT for Socket.IO auth with RTC |
 | `GOOGLE_CLIENT_ID` | _(OAuth credential)_ | Google OAuth |
 | `GOOGLE_CLIENT_SECRET` | _(OAuth credential)_ | Google OAuth |
+| `GOOGLE_MAPS_API_KEY` | _(Google Maps credential)_ | Server-side geocoding for match prep location |
 | `RESEND_API_KEY` | _(optional)_ | Email delivery |
 | `DEV_NOTIFICATION_EMAIL` | _(optional)_ | Dev email override |
 

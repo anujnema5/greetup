@@ -139,12 +139,11 @@ export type PresignProfilePhotoData = {
 /** Payload for POST /profile-setup - discriminated by step */
 export type SaveProfileSetupPayload =
   | { step: 1; data: { displayName: string; username: string; age: number; gender: string } }
-  | { step: 2; data: { country: { code: string; name: string }; city: string; latitude?: number; longitude?: number } }
-  | { step: 3; data: { goals: Array<{ id: string }> } }
-  | { step: 4; data: { interests: Array<{ id: string }> } }
-  | { step: 5; data: { profession: { id: string; name?: string; category?: string } | null } }
-  | { step: 6; data: { bio?: string; photos?: Array<{ url: string; order?: number }>; instagram?: string; twitter?: string } }
-  | { step: 7; data: { answers: Array<{ questionId: string; answer: string }> } }
+  | { step: 2; data: { goals: Array<{ id: string }> } }
+  | { step: 3; data: { interests: Array<{ id: string }> } }
+  | { step: 4; data: { profession: { id: string; name?: string; category?: string } | null } }
+  | { step: 5; data: { bio?: string; photos?: Array<{ url: string; order?: number }>; instagram?: string; twitter?: string } }
+  | { step: 6; data: { answers: Array<{ questionId: string; answer: string }> } }
 
 /** GET /profile/match-prep/options */
 export interface MatchPrepOptionRow {
@@ -165,12 +164,40 @@ export interface MatchPrepCurrentData {
   moodIds: string[]
   lookingForIds: string[]
   interestIds: string[]
+  locationPreferenceEnabled: boolean
+  distancePreference: "random" | "same_city" | "same_country" | "global"
+  location: {
+    country: string | null
+    countryCode: string | null
+    region: string | null
+    regionCode: string | null
+    city: string | null
+    latitude: number | null
+    longitude: number | null
+  } | null
   connectionPreference:
     | "same_profession"
     | "different_profession"
     | "open_to_anyone"
     | null
   sessionGoal: string | null
+}
+
+export interface ResolvedLocationData {
+  country: string
+  countryCode: string
+  region: string | null
+  regionCode: string | null
+  city: string | null
+  latitude: number
+  longitude: number
+}
+
+export interface ResolvedLocationSuggestionData extends ResolvedLocationData {
+  placeId: string
+  label: string
+  primaryText?: string
+  secondaryText?: string
 }
 
 /** GET /profile/me — canonical type: `@/features/profile/types/my-profile.types` */

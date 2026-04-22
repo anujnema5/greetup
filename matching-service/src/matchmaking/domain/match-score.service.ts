@@ -16,6 +16,20 @@ const CONNECTION_PREF_SCORE = {
 
 const normalize = (value: string): string => value.trim().toLowerCase();
 
+const canonicalDistancePreference = (
+  value: string | null,
+): "random" | "same_city" | "same_region" | "same_country" | "global" | null => {
+  if (!value) return null;
+  const normalized = normalize(value);
+  if (normalized === "same city" || normalized === "same_city" || normalized === "nearby") {
+    return "same_city";
+  }
+  if (normalized === "same region" || normalized === "same_region") return "same_region";
+  if (normalized === "same country" || normalized === "same_country") return "same_country";
+  if (normalized === "global") return "global";
+  return "random";
+};
+
 const toNumber = (value: unknown): number | null => {
   if (typeof value === "number" && Number.isFinite(value)) return value;
   if (typeof value === "string" && value.trim().length > 0) {
@@ -73,15 +87,19 @@ const distanceScore = (
   requester: { city: string | null; region: string | null; countryCode: string | null },
   candidate: { city: string | null; region: string | null; countryCode: string | null },
 ): number => {
-  if (!preference || normalize(preference) === "random") return 1;
+  const canonicalPreference = canonicalDistancePreference(preference);
+  if (!canonicalPreference || canonicalPreference === "random" || canonicalPreference === "global") {
+    return 1;
+  }
 
   const same = (a: string | null, b: string | null): boolean =>
     Boolean(a && b && normalize(a) === normalize(b));
 
-  const p = normalize(preference);
-  if (p === "same_city") return same(requester.city, candidate.city) ? 1 : 0;
-  if (p === "same_region") return same(requester.region, candidate.region) ? 1 : 0;
-  if (p === "same_country") return same(requester.countryCode, candidate.countryCode) ? 1 : 0;
+  if (canonicalPreference === "same_city") return same(requester.city, candidate.city) ? 1 : 0;
+  if (canonicalPreference === "same_region") return same(requester.region, candidate.region) ? 1 : 0;
+  if (canonicalPreference === "same_country") {
+    return same(requester.countryCode, candidate.countryCode) ? 1 : 0;
+  }
   return 0.5;
 };
 

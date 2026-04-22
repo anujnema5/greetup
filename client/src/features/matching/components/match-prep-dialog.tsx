@@ -12,114 +12,32 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Textarea } from "@/components/ui/textarea";
 import {
   useGetMatchPrepCurrentQuery,
   useGetMatchPrepOptionsQuery,
   useSaveMatchPrepMutation,
 } from "@/features/profile-setup/components/profile-setup-api";
 import type {
-  MatchPrepCurrentData,
-  MatchPrepOptionsData,
-} from "@/features/profile-setup/types/profile-setup-api.types";
-import { cn } from "@/lib/utils";
+  MatchPrepDialogProps,
+  ConnectionPreferenceValue,
+  DistancePreferenceValue,
+} from "../types/match-prep.types";
+import { useMatchPrepLocation } from "../hooks/use-match-prep-location";
+import {
+  deriveInitialFormState,
+  dialogShellClass,
+  scrollAnchoredSectionIntoView,
+  scrollBodyClass,
+  sectionLabelClass,
+  toggleIdInSet,
+} from "../utils/match-prep-dialog.utils";
+import { MatchPrepLocationSection } from "./match-prep-location-section";
 
 import {
   ConnectionPreferenceRow,
   InterestsBlock,
   OptionChipList,
-  type ConnectionPreferenceValue,
 } from "./match-prep-dialog-parts";
-
-// --- props ---
-
-export type MatchPrepDialogProps = {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-  onStartSearch: () => void;
-  clientSessionId: string | null;
-  mode?: "match_flow" | "edit";
-};
-
-// --- layout (same idea as Start a circle: flex shell + scrollable body) ---
-
-const dialogShellClass = cn(
-  "flex! min-h-0 max-h-[min(92vh,760px)] flex-col! gap-0! overflow-hidden",
-  "rounded-2xl border-border bg-card p-0 shadow-xl sm:max-w-lg",
-);
-
-const scrollBodyClass = cn(
-  "min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 pb-2 sm:px-6",
-  "[overflow-anchor:none] [scrollbar-gutter:stable]",
-  "pr-4 sm:pr-5 [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-border [&::-webkit-scrollbar-track]:bg-transparent",
-);
-
-const sectionLabelClass =
-  "text-xs font-semibold uppercase tracking-wide text-muted-foreground";
-
-// --- small helpers (dialog-only) ---
-
-function toggleIdInSet(id: string, prev: Set<string>): Set<string> {
-  const next = new Set(prev);
-  if (next.has(id)) next.delete(id);
-  else next.add(id);
-  return next;
-}
-
-/** Mirrors Start a circle “More options” scroll-into-view behavior. */
-function scrollAnchoredSectionIntoView(
-  scrollEl: HTMLElement,
-  anchor: HTMLElement,
-  pad = 12,
-): void {
-  const s = scrollEl.getBoundingClientRect();
-  const a = anchor.getBoundingClientRect();
-  if (a.bottom > s.bottom - pad) {
-    scrollEl.scrollBy({ top: a.bottom - s.bottom + pad, behavior: "smooth" });
-  } else if (a.top < s.top + pad) {
-    scrollEl.scrollBy({ top: a.top - s.top - pad, behavior: "smooth" });
-  }
-}
-
-function deriveInitialFormState(
-  options: MatchPrepOptionsData,
-  saved: MatchPrepCurrentData | undefined,
-): {
-  moods: Set<string>;
-  lookingFor: Set<string>;
-  interests: Set<string>;
-  connectionPreference: ConnectionPreferenceValue;
-  sessionGoal: string;
-} {
-  const moodIds =
-    saved && saved.moodIds.length > 0
-      ? saved.moodIds
-      : options.moods[0]?.id
-        ? [options.moods[0].id]
-        : [];
-  const lookingForIds =
-    saved && saved.lookingForIds.length > 0
-      ? saved.lookingForIds
-      : options.lookingFor[0]?.id
-        ? [options.lookingFor[0].id]
-        : [];
-  const interestIds =
-    saved && saved.interestIds.length > 0
-      ? saved.interestIds
-      : options.interests[0]?.id
-        ? [options.interests[0].id]
-        : [];
-
-  return {
-    moods: new Set(moodIds),
-    lookingFor: new Set(lookingForIds),
-    interests: new Set(interestIds),
-    connectionPreference: saved?.connectionPreference ?? "open_to_anyone",
-    sessionGoal: saved?.sessionGoal?.trim() ? saved.sessionGoal : "",
-  };
-}
-
-// --- dialog ---
 
 export function MatchPrepDialog({
   open,
@@ -148,6 +66,26 @@ export function MatchPrepDialog({
   const [interests, setInterests] = useState<Set<string>>(new Set());
   const [connectionPreference, setConnectionPreference] =
     useState<ConnectionPreferenceValue>("open_to_anyone");
+  const [locationPreferenceEnabled, setLocationPreferenceEnabled] = useState(false);
+  const [distancePreference, setDistancePreference] =
+    useState<DistancePreferenceValue>("random");
+  const {
+    selectedLocation,
+    setSelectedLocation,
+    manualLocationText,
+    handleManualLocationInputChange,
+    handleManualLocationInputFocus,
+    locationSuggestions,
+    isFetchingSuggestions,
+    suggestionsOpen,
+    isLocatingCurrent,
+    isResolvingManualLocation,
+    locationError,
+    resetLocationUiState,
+    handleSelectLocationSuggestion,
+    handleUseCurrentLocation,
+    handleUseTypedLocation,
+  } = useMatchPrepLocation();
   const [sessionGoal, setSessionGoal] = useState("");
   const [localError, setLocalError] = useState<string | null>(null);
   const [interestsOpen, setInterestsOpen] = useState(false);
@@ -155,6 +93,21 @@ export function MatchPrepDialog({
   const seededRef = useRef(false);
   const formScrollRef = useRef<HTMLDivElement>(null);
   const interestsSectionRef = useRef<HTMLDivElement>(null);
+
+  const resetDialogUiState = useCallback(() => {
+    seededRef.current = false;
+    setLocalError(null);
+    setInterestsOpen(false);
+    resetLocationUiState();
+  }, [resetLocationUiState]);
+
+  const handleDialogOpenChange = useCallback(
+    (nextOpen: boolean) => {
+      if (!nextOpen) resetDialogUiState();
+      onOpenChange(nextOpen);
+    },
+    [onOpenChange, resetDialogUiState],
+  );
 
   useEffect(() => {
     if (!interestsOpen) return;
@@ -169,34 +122,43 @@ export function MatchPrepDialog({
   }, [interestsOpen]);
 
   useEffect(() => {
-    if (!open) {
-      seededRef.current = false;
-      setLocalError(null);
-      setInterestsOpen(false);
-      return;
-    }
+    if (!open) return;
     if (!data || seededRef.current) return;
     if (!savedReady && !savedError) return;
 
     seededRef.current = true;
     const next = deriveInitialFormState(data, saved);
+    /* eslint-disable react-hooks/set-state-in-effect */
     setMoods(next.moods);
     setLookingFor(next.lookingFor);
     setInterests(next.interests);
     setConnectionPreference(next.connectionPreference);
+    setLocationPreferenceEnabled(next.locationPreferenceEnabled);
+    setDistancePreference(next.distancePreference);
+    setSelectedLocation(next.location);
     setSessionGoal(next.sessionGoal);
-  }, [open, data, saved, savedReady, savedError]);
+    /* eslint-enable react-hooks/set-state-in-effect */
+  }, [open, data, saved, savedReady, savedError, setSelectedLocation]);
 
   const handleSkip = useCallback(() => {
     setLocalError(null);
-    onOpenChange(false);
+    handleDialogOpenChange(false);
     onStartSearch();
-  }, [onOpenChange, onStartSearch]);
+  }, [handleDialogOpenChange, onStartSearch]);
 
   const handleSave = useCallback(async () => {
     setLocalError(null);
     if (moods.size === 0 || lookingFor.size === 0 || interests.size === 0) {
       setLocalError("Choose at least one mood, one “looking for” option, and one interest.");
+      return;
+    }
+    if (
+      locationPreferenceEnabled &&
+      (!selectedLocation ||
+        typeof selectedLocation.latitude !== "number" ||
+        typeof selectedLocation.longitude !== "number")
+    ) {
+      setLocalError("Select a location (with coordinates) to enable location-based matching.");
       return;
     }
     try {
@@ -205,10 +167,24 @@ export function MatchPrepDialog({
         lookingForIds: [...lookingFor],
         interestIds: [...interests],
         connectionPreference,
+        locationPreferenceEnabled,
+        distancePreference: locationPreferenceEnabled ? distancePreference : "random",
+        location: selectedLocation
+          ? {
+              country: selectedLocation.country,
+              countryCode: selectedLocation.countryCode,
+              region: selectedLocation.region,
+              regionCode: selectedLocation.regionCode,
+              city: selectedLocation.city,
+              latitude: selectedLocation.latitude,
+              longitude: selectedLocation.longitude,
+              source: selectedLocation.source,
+            }
+          : undefined,
         sessionGoal: sessionGoal.trim() || null,
         clientSessionId: clientSessionId ?? undefined,
       }).unwrap();
-      onOpenChange(false);
+      handleDialogOpenChange(false);
       if (!isEdit) onStartSearch();
     } catch {
       setLocalError(isEdit ? "Could not save. Try again." : "Could not save. Try again or skip for now.");
@@ -218,11 +194,14 @@ export function MatchPrepDialog({
     lookingFor,
     interests,
     connectionPreference,
+    locationPreferenceEnabled,
+    distancePreference,
+    selectedLocation,
     sessionGoal,
     clientSessionId,
     isEdit,
     saveMatchPrep,
-    onOpenChange,
+    handleDialogOpenChange,
     onStartSearch,
   ]);
 
@@ -230,7 +209,7 @@ export function MatchPrepDialog({
   const prefsLoading = isLoading || (open && !savedReady && !savedError);
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={handleDialogOpenChange}>
       <DialogContent showCloseButton className={dialogShellClass}>
         <div className="shrink-0 px-5 pt-5 sm:px-6 sm:pt-6 sm:pb-2">
           <DialogHeader className="space-y-2 text-left">
@@ -297,6 +276,27 @@ export function MatchPrepDialog({
                   />
                 </section>
 
+                <MatchPrepLocationSection
+                  locationPreferenceEnabled={locationPreferenceEnabled}
+                  onLocationPreferenceEnabledChange={setLocationPreferenceEnabled}
+                  distancePreference={distancePreference}
+                  onDistancePreferenceChange={setDistancePreference}
+                  selectedLocation={selectedLocation}
+                  manualLocationText={manualLocationText}
+                  onManualLocationTextChange={handleManualLocationInputChange}
+                  onManualLocationTextFocus={handleManualLocationInputFocus}
+                  locationSuggestions={locationSuggestions}
+                  isFetchingSuggestions={isFetchingSuggestions}
+                  suggestionsOpen={suggestionsOpen}
+                  onSelectLocationSuggestion={handleSelectLocationSuggestion}
+                  onUseCurrentLocation={() => void handleUseCurrentLocation()}
+                  onUseTypedLocation={() => void handleUseTypedLocation()}
+                  busy={busy}
+                  isLocatingCurrent={isLocatingCurrent}
+                  isResolvingManualLocation={isResolvingManualLocation}
+                  locationError={locationError}
+                />
+
                 <InterestsBlock
                   sectionRef={interestsSectionRef}
                   open={interestsOpen}
@@ -337,7 +337,7 @@ export function MatchPrepDialog({
                 type="button"
                 variant="ghost"
                 className="w-full text-muted-foreground sm:w-auto"
-                onClick={() => onOpenChange(false)}
+                onClick={() => handleDialogOpenChange(false)}
                 disabled={busy}
               >
                 Cancel

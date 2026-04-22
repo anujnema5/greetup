@@ -11,6 +11,9 @@ export const API_ENDPOINTS = {
     MATCH_PREP_CURRENT: "/profile/match-prep/current",
     MATCH_PREP_OPTIONS: "/profile/match-prep/options",
     MATCH_PREP_PROMPT_STATUS: "/profile/match-prep/prompt-status",
+    LOCATION_SUGGESTIONS: "/profile/location/suggestions",
+    LOCATION_GEOCODE: "/profile/location/geocode",
+    LOCATION_REVERSE_GEOCODE: "/profile/location/reverse-geocode",
     MATCH_PREP: "/profile/match-prep",
     public: (username: string) =>
       `/profile/public/${encodeURIComponent(username)}` as const,

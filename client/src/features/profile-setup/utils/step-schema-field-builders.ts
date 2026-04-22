@@ -29,6 +29,12 @@ function plainTextSchema(field: ProfileSetupStepField): z.ZodTypeAny {
         : `At least ${minLen} characters`,
     );
   } else {
+    if (field.minLength && field.minLength > 1) {
+      s = (s as z.ZodString).refine(
+        (val) => val.length === 0 || val.length >= field.minLength!,
+        { message: `At least ${field.minLength} characters` },
+      );
+    }
     s = s.optional().nullable();
   }
   return s;

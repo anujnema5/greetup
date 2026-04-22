@@ -15,6 +15,22 @@ const toString = (value: unknown): string | null => {
 
 const normalize = (value: string): string => value.trim().toLowerCase();
 
+const canonicalDistancePreference = (value: string | null): "random" | "same_city" | "same_region" | "same_country" | "global" | null => {
+  if (!value) return null;
+  const normalized = normalize(value);
+  if (normalized === "same city" || normalized === "same_city" || normalized === "nearby") {
+    return "same_city";
+  }
+  if (normalized === "same region" || normalized === "same_region") {
+    return "same_region";
+  }
+  if (normalized === "same country" || normalized === "same_country") {
+    return "same_country";
+  }
+  if (normalized === "global") return "global";
+  return "random";
+};
+
 export class MatchValidatorService {
   accepts(
     requesterFilters: Record<string, unknown>,
@@ -37,7 +53,10 @@ export class MatchValidatorService {
     const candidateCountryCode = toString(candidateAttributes.countryCode);
 
     if (distancePreference) {
-      const normalizedDistance = normalize(distancePreference);
+      const normalizedDistance = canonicalDistancePreference(distancePreference);
+      if (!normalizedDistance || normalizedDistance === "random" || normalizedDistance === "global") {
+        return true;
+      }
       if (normalizedDistance === "same_city") {
         if (!requesterCity || !candidateCity || normalize(requesterCity) !== normalize(candidateCity)) {
           return false;
