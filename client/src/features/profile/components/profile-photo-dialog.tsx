@@ -8,6 +8,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import {
+  useEnsureProfilePhotoPublicMutation,
   usePresignProfilePhotoMutation,
   useSaveProfileSetupMutation,
 } from "@/features/profile-setup/components/profile-setup-api";
@@ -75,8 +76,9 @@ export function ProfilePhotoDialog({
   const [file, setFile] = useState<File | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [presign, { isLoading: isPresigning }] = usePresignProfilePhotoMutation();
+  const [ensurePublic, { isLoading: isEnsuring }] = useEnsureProfilePhotoPublicMutation();
   const [saveProfile, { isLoading: isSaving }] = useSaveProfileSetupMutation();
-  const busy = isPresigning || isSaving;
+  const busy = isPresigning || isEnsuring || isSaving;
   const currentPhotoUrl = existingPhotos[0]?.url ?? "";
   const selectedPreviewUrl = useMemo(() => (file ? URL.createObjectURL(file) : null), [file]);
   const previewUrl = selectedPreviewUrl ?? currentPhotoUrl;
@@ -133,15 +135,23 @@ export function ProfilePhotoDialog({
     try {
       const pres = await presign({ contentType }).unwrap();
       const inner = pres.data;
+      const putHeaders =
+        inner.uploadHeaders ?? ({ "Content-Type": inner.contentType } as Record<string, string>);
       const put = await fetch(inner.uploadUrl, {
         method: "PUT",
         body: file,
-        headers: { "Content-Type": inner.contentType },
+        headers: putHeaders,
         credentials: "omit",
       });
       if (!put.ok) {
         toast.error(`Upload failed (${put.status}). Check Spaces CORS and credentials.`);
         return;
+      }
+
+      try {
+        await ensurePublic({ publicUrl: inner.publicUrl }).unwrap();
+      } catch {
+        toast.warning("Photo uploaded; fixing public access… saving profile will retry.");
       }
 
       const photos = buildPhotosPayload(inner.publicUrl, existingPhotos);

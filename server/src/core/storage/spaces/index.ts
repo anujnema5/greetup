@@ -16,6 +16,7 @@ export {
   buildSpacesPublicObjectUrl,
   isSpacesStorageConfigured,
   parseSpacesObjectKeyFromPublicUrl,
+  verifyProfileImageKeyForUser,
 } from "./spaces.config";
 
 export { getSpacesS3Client } from "./spaces.client";

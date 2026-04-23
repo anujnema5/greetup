@@ -136,6 +136,8 @@ export type PresignProfilePhotoData = {
   key: string
   expiresIn: number
   contentType: string
+  /** Send on the PUT with the file body (Content-Type + Cache-Control). */
+  uploadHeaders?: Record<string, string>
 }
 
 /** Payload for POST /profile-setup - discriminated by step */

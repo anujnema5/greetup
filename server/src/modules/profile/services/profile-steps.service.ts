@@ -195,8 +195,9 @@ function buildSteps(profile: ProfileForSteps | undefined, options: StepOptions):
         {
           key: "photos",
           name: "photos",
-          label: "Profile photos",
+          label: "Profile photo",
           type: "photo-upload",
+          required: true,
           max: 6,
           value: photosValue,
         },
