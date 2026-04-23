@@ -77,30 +77,18 @@ export async function saveProfileSetupStepService(
     }
 
     case 2: {
-      const { country, city, latitude, longitude } = body.data;
-      await profileSetupRepository.upsertLocation(profileId, {
-        country: country.name,
-        countryCode: country.code,
-        city,
-        latitude,
-        longitude,
-      });
-      break;
-    }
-
-    case 3: {
       const goalIds = body.data.goals.map((g) => g.id);
       await profileSetupRepository.replaceGoals(profileId, goalIds);
       break;
     }
 
-    case 4: {
+    case 3: {
       const interestIds = body.data.interests.map((i) => i.id);
       await profileSetupRepository.replaceInterests(profileId, interestIds);
       break;
     }
 
-    case 5: {
+    case 4: {
       if (body.data.profession) {
         await profileSetupRepository.replaceProfessions(
           profileId,
@@ -112,7 +100,7 @@ export async function saveProfileSetupStepService(
       break;
     }
 
-    case 6: {
+    case 5: {
       const saves: Promise<unknown>[] = [];
 
       if (body.data.bio !== undefined) {
@@ -152,7 +140,7 @@ export async function saveProfileSetupStepService(
       break;
     }
 
-    case 7: {
+    case 6: {
       await profileSetupRepository.replacePromptAnswers(profileId, body.data.answers);
       break;
     }

@@ -34,6 +34,8 @@ export const userProfilesRepository = {
             countryCode: true,
             city: true,
             region: true,
+            latitude: true,
+            longitude: true,
           },
         },
         goals: {
@@ -75,6 +77,7 @@ export const userProfilesRepository = {
           columns: {
             preferredGender: true,
             distancePreference: true,
+            locationPreferenceEnabled: true,
             minAge: true,
             maxAge: true,
           },

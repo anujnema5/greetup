@@ -41,6 +41,10 @@ const parseSnapshot = (raw: JsonRecord, fallbackUserId: string): SnapshotUserPro
       minAge: toNumberOrNull(preferences.minAge) ?? 18,
       maxAge: toNumberOrNull(preferences.maxAge) ?? 99,
       distancePreference: toStringOrNull(preferences.distancePreference) ?? "random",
+      locationPreferenceEnabled:
+        typeof preferences.locationPreferenceEnabled === "boolean"
+          ? preferences.locationPreferenceEnabled
+          : false,
       countryCode: toStringOrNull(location.countryCode),
       city: toStringOrNull(location.city),
       region: toStringOrNull(location.region),
@@ -88,3 +92,34 @@ export class SnapshotRepository {
 }
 
 export const snapshotRepository = new SnapshotRepository();
+
+/**
+ * One round-trip read of `countryCode` from cached snapshot JSON (for pool ordering).
+ */
+export async function peekCountryCodesByUserIds(userIds: string[]): Promise<Map<string, string | null>> {
+  const out = new Map<string, string | null>();
+  if (userIds.length === 0) return out;
+
+  const redis = getRedis();
+  const keys = userIds.map((id) => redisKeys.snapshot(id));
+  const rows = await redis.mget(...keys);
+
+  for (let i = 0; i < userIds.length; i += 1) {
+    const uid = userIds[i];
+    if (uid === undefined) continue;
+    const raw = rows[i];
+    if (typeof raw !== "string" || raw.length === 0) {
+      out.set(uid, null);
+      continue;
+    }
+    try {
+      const parsed = JSON.parse(raw) as Record<string, unknown>;
+      const loc = isRecord(parsed.location) ? parsed.location : {};
+      const cc = typeof loc.countryCode === "string" ? loc.countryCode.trim().toLowerCase() : null;
+      out.set(uid, cc && cc.length > 0 ? cc : null);
+    } catch {
+      out.set(uid, null);
+    }
+  }
+  return out;
+}

@@ -4,19 +4,25 @@ import { ChevronDown } from "lucide-react";
 import type { RefObject } from "react";
 
 import type {
-  MatchPrepCurrentData,
   MatchPrepOptionRow,
 } from "@/features/profile-setup/types/profile-setup-api.types";
 import { cn } from "@/lib/utils";
-
-export type ConnectionPreferenceValue = NonNullable<
-  MatchPrepCurrentData["connectionPreference"]
->;
+import type {
+  ConnectionPreferenceValue,
+  DistancePreferenceValue,
+} from "../types/match-prep.types";
 
 const CONNECTION_OPTIONS: { id: ConnectionPreferenceValue; label: string }[] = [
   { id: "same_profession", label: "People in my profession" },
   { id: "different_profession", label: "People from other professions" },
   { id: "open_to_anyone", label: "Open to anyone" },
+];
+
+const DISTANCE_OPTIONS: { id: DistancePreferenceValue; label: string }[] = [
+  { id: "random", label: "Random" },
+  { id: "same_city", label: "Same city" },
+  { id: "same_country", label: "Same country" },
+  { id: "global", label: "Global" },
 ];
 
 function chipClass(selected: boolean): string {
@@ -64,6 +70,29 @@ export function ConnectionPreferenceRow({
   return (
     <div className="flex flex-wrap gap-2 py-1">
       {CONNECTION_OPTIONS.map((o) => (
+        <button
+          key={o.id}
+          type="button"
+          onClick={() => onChange(o.id)}
+          className={chipClass(value === o.id)}
+        >
+          {o.label}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+export function DistancePreferenceRow({
+  value,
+  onChange,
+}: {
+  value: DistancePreferenceValue;
+  onChange: (next: DistancePreferenceValue) => void;
+}) {
+  return (
+    <div className="flex flex-wrap gap-2 py-1">
+      {DISTANCE_OPTIONS.map((o) => (
         <button
           key={o.id}
           type="button"

@@ -23,11 +23,6 @@ function buildSteps(profile: ProfileForSteps | undefined, options: StepOptions):
   const displayName = profile?.user?.displayName ?? profile?.user?.name ?? null;
   const usernameValue = profile?.user?.username ?? null;
 
-  const countryValue =
-    profile?.location?.countryCode && profile?.location?.country
-      ? { code: profile.location.countryCode, name: profile.location.country }
-      : null;
-
   const goalsOptions = options.goals.map((g) => ({
     id: g.id,
     name: g.displayName,
@@ -137,31 +132,6 @@ function buildSteps(profile: ProfileForSteps | undefined, options: StepOptions):
     },
     {
       step: 2,
-      title: "Where are you from?",
-      fields: [
-        {
-          key: "country",
-          name: "country",
-          label: "Country",
-          placeholder: "Select your country",
-          type: "country-select",
-          required: true,
-          value: countryValue,
-        },
-        {
-          key: "city",
-          name: "city",
-          label: "City",
-          placeholder: "Enter your city",
-          type: "text",
-          required: true,
-          maxLength: 100,
-          value: profile?.location?.city ?? null,
-        },
-      ],
-    },
-    {
-      step: 3,
       title: "Your goals",
       fields: [
         {
@@ -177,7 +147,7 @@ function buildSteps(profile: ProfileForSteps | undefined, options: StepOptions):
       ],
     },
     {
-      step: 4,
+      step: 3,
       title: "Your interests",
       fields: [
         {
@@ -194,7 +164,7 @@ function buildSteps(profile: ProfileForSteps | undefined, options: StepOptions):
       ],
     },
     {
-      step: 5,
+      step: 4,
       title: "Profession",
       fields: [
         {
@@ -210,7 +180,7 @@ function buildSteps(profile: ProfileForSteps | undefined, options: StepOptions):
       ],
     },
     {
-      step: 6,
+      step: 5,
       title: "Complete your profile",
       fields: [
         {
@@ -255,9 +225,8 @@ function buildSteps(profile: ProfileForSteps | undefined, options: StepOptions):
       ],
     },
     {
-      step: 7,
+      step: 6,
       title: "A little more about you",
-      description: "All optional — answer as many or as few as you like.",
       optional: true,
       fields: options.promptQuestions.map((q) => ({
         key: q.key,
@@ -266,6 +235,8 @@ function buildSteps(profile: ProfileForSteps | undefined, options: StepOptions):
         label: q.question,
         type: "textarea" as const,
         required: false,
+        description: "If you answer, use at least 10 characters.",
+        minLength: 10,
         maxLength: 300,
         value: answerByQuestionId.get(q.id) ?? null,
       })),

@@ -8,7 +8,7 @@ import type { SaveProfileSetupPayload } from "../types/profile-setup-api.types";
 type FormValues = Record<string, unknown>;
 type StepField = { key: string; id?: string };
 
-type Step6PayloadData = Extract<SaveProfileSetupPayload, { step: 6 }>["data"];
+type Step5PayloadData = Extract<SaveProfileSetupPayload, { step: 5 }>["data"];
 
 function toIdArray(value: unknown): Array<{ id: string }> {
   if (!Array.isArray(value) || value.length === 0) return [];
@@ -41,34 +41,18 @@ export function transformStepToApiPayload(
     }
 
     case 2: {
-      const country = formValues.country as { code?: string; name?: string } | undefined;
-      if (!country?.code || !country?.name) throw new Error("Country is required");
-      const city = String(formValues.city ?? "").trim();
-      if (!city) throw new Error("City is required");
-      return {
-        step: 2,
-        data: {
-          country: { code: country.code, name: country.name },
-          city,
-          latitude: typeof formValues.latitude === "number" ? formValues.latitude : undefined,
-          longitude: typeof formValues.longitude === "number" ? formValues.longitude : undefined,
-        },
-      };
+      const goals = toIdArray(formValues.goals);
+      if (goals.length === 0) throw new Error("At least one goal is required");
+      return { step: 2, data: { goals } };
     }
 
     case 3: {
-      const goals = toIdArray(formValues.goals);
-      if (goals.length === 0) throw new Error("At least one goal is required");
-      return { step: 3, data: { goals } };
+      const interests = toIdArray(formValues.interests);
+      if (interests.length === 0) throw new Error("At least one interest is required");
+      return { step: 3, data: { interests } };
     }
 
     case 4: {
-      const interests = toIdArray(formValues.interests);
-      if (interests.length === 0) throw new Error("At least one interest is required");
-      return { step: 4, data: { interests } };
-    }
-
-    case 5: {
       const professionVal = formValues.profession;
       const profession =
         professionVal && typeof professionVal === "string" && professionVal.trim()
@@ -84,11 +68,11 @@ export function transformStepToApiPayload(
               category: (professionVal as { category?: string }).category,
             }
           : null;
-      return { step: 5, data: { profession } };
+      return { step: 4, data: { profession } };
     }
 
-    case 6: {
-      const data: Step6PayloadData = {
+    case 5: {
+      const data: Step5PayloadData = {
         bio: formValues.bio != null && String(formValues.bio).trim()
           ? String(formValues.bio).trim()
           : undefined,
@@ -107,17 +91,17 @@ export function transformStepToApiPayload(
           .filter(Boolean) as Array<{ url: string; order?: number }>;
         if (photos.length > 0) data.photos = photos;
       }
-      return { step: 6, data };
+      return { step: 5, data };
     }
 
-    case 7: {
+    case 6: {
       const answers = (stepFields ?? [])
         .filter((f) => f.id && formValues[f.key] && String(formValues[f.key]).trim())
         .map((f) => ({
           questionId: f.id!,
           answer: String(formValues[f.key]).trim(),
         }));
-      return { step: 7, data: { answers } };
+      return { step: 6, data: { answers } };
     }
 
     default:

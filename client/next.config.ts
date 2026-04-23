@@ -1,8 +1,7 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  // Ensures HTML responses allow getUserMedia even if `src/proxy.ts` skips a path.
-  // Omit camera/microphone — listing them is what triggered Permissions-Policy violations.
+  // Keep policy minimal and allow same-origin geolocation for match-prep location capture.
   async headers() {
     return [
       {
@@ -10,7 +9,7 @@ const nextConfig: NextConfig = {
         headers: [
           {
             key: "Permissions-Policy",
-            value: "geolocation=(), interest-cohort=()",
+            value: "geolocation=(self), interest-cohort=()",
           },
         ],
       },

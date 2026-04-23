@@ -55,6 +55,7 @@ export function MatchFoundDialog({
 
   useEffect(() => {
     if (!open) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setShowInsight(false);
       return;
     }
