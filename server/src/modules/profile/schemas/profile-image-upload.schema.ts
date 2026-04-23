@@ -9,3 +9,9 @@ export const presignProfileImageBodySchema = z.object({
 });
 
 export type PresignProfileImageBody = z.infer<typeof presignProfileImageBodySchema>;
+
+export const ensureProfilePhotoPublicBodySchema = z.object({
+  publicUrl: z.string().url(),
+});
+
+export type EnsureProfilePhotoPublicBody = z.infer<typeof ensureProfilePhotoPublicBodySchema>;

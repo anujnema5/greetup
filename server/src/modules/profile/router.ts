@@ -6,7 +6,10 @@ import {
   handleSaveProfileSetup,
   handleUpdateRoomInviteSettings,
 } from "./controllers/profile-setup.controller";
-import { handlePresignProfileImageUpload } from "./controllers/profile-image-upload.controller";
+import {
+  handleEnsureProfilePhotoPublic,
+  handlePresignProfileImageUpload,
+} from "./controllers/profile-image-upload.controller";
 import { handleGetPublicProfile } from "./controllers/public-profile.controller";
 import {
   handleGetMatchPrepCurrent,
@@ -41,3 +44,4 @@ profileRoute.post("/profile-setup", handleSaveProfileSetup);
 
 /** Profile images — presigned PUT to DigitalOcean Spaces */
 profileRoute.post("/photos/presign", handlePresignProfileImageUpload);
+profileRoute.post("/photos/ensure-public", handleEnsureProfilePhotoPublic);

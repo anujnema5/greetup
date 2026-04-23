@@ -44,6 +44,7 @@ import { ThemeToggle } from '@/components/theme-toggle'
 import { CountryDropdown, type Country } from '@/components/ui/country-dropdown'
 import { AgeDigitsInput } from '@/features/profile/components/age-digits-input'
 import { generateKey } from '../utils'
+import { ProfileSetupPhotoField } from '../components/profile-setup-photo-field'
 
 /** Fallback emoji when backend doesn't send one (e.g. legacy data). */
 const DEFAULT_OPTION_EMOJI = '✨'
@@ -554,13 +555,38 @@ const ProfileSetupStep = () => {
           />
         )
 
+      case 'photo-upload':
+        return (
+          <FormField
+            control={form.control}
+            name={field.key}
+            render={({ field: formField }) => (
+              <FormItem>
+                <FormControl>
+                  <ProfileSetupPhotoField
+                    label={field.label}
+                    description={field.description}
+                    required={field.required}
+                    max={field.max ?? 6}
+                    value={Array.isArray(formField.value) ? formField.value : []}
+                    onChange={formField.onChange}
+                    onBlur={formField.onBlur}
+                    disabled={isSaving}
+                  />
+                </FormControl>
+                <FormMessage className="text-xs" />
+              </FormItem>
+            )}
+          />
+        )
+
       default:
         return null
     }
   }
 
   const getFieldGridClass = (field: any) => {
-    if (['multi-select', 'textarea', 'radio', 'toggle'].includes(field.type)) {
+    if (['multi-select', 'textarea', 'radio', 'toggle', 'photo-upload'].includes(field.type)) {
       return 'col-span-full'
     }
     return 'col-span-full md:col-span-1'
