@@ -107,6 +107,8 @@ export type ProfileSetupField =
 export interface ProfileSetupStep {
   step: number
   title: string
+  /** Optional subtitle under the step title (server-driven when present). */
+  description?: string | null
   optional?: boolean
   fields: ProfileSetupField[]
 }
@@ -134,15 +136,37 @@ export type PresignProfilePhotoData = {
   key: string
   expiresIn: number
   contentType: string
+  /** Send on the PUT with the file body (Content-Type + Cache-Control). */
+  uploadHeaders?: Record<string, string>
 }
 
 /** Payload for POST /profile-setup - discriminated by step */
 export type SaveProfileSetupPayload =
-  | { step: 1; data: { displayName: string; username: string; age: number; gender: string } }
+  | {
+      step: 1;
+      data: {
+        displayName: string;
+        username: string;
+        age: number;
+        gender: string;
+        country?: { code: string; name: string };
+      };
+    }
   | { step: 2; data: { goals: Array<{ id: string }> } }
   | { step: 3; data: { interests: Array<{ id: string }> } }
   | { step: 4; data: { profession: { id: string; name?: string; category?: string } | null } }
-  | { step: 5; data: { bio?: string; photos?: Array<{ url: string; order?: number }>; instagram?: string; twitter?: string } }
+  | {
+      step: 5;
+      data: {
+        bio?: string;
+        photos?: Array<{ url: string; order?: number }>;
+        instagram?: string;
+        twitter?: string;
+        preferredGender?: "any" | "male" | "female" | "others" | "same";
+        distancePreference?: "nearby" | "same city" | "same country" | "random" | "global";
+        ageRange?: { min: number; max: number };
+      };
+    }
   | { step: 6; data: { answers: Array<{ questionId: string; answer: string }> } }
 
 /** GET /profile/match-prep/options */

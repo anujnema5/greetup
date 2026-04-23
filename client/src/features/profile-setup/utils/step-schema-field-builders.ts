@@ -101,6 +101,9 @@ function multiSelectSchema(field: ProfileSetupStepField): z.ZodTypeAny {
 
 function photoUploadSchema(field: ProfileSetupStepField): z.ZodTypeAny {
   let photos = z.array(z.any());
+  if (field.required) {
+    photos = photos.min(1, "Add a profile photo or generate an avatar");
+  }
   if (field.max) {
     photos = photos.max(field.max);
   }

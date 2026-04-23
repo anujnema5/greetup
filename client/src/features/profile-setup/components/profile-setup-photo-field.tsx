@@ -1,0 +1,326 @@
+"use client";
+
+import { useCallback, useEffect, useRef, useState } from "react";
+import type { FetchBaseQueryError } from "@reduxjs/toolkit/query";
+import { Camera, ImageOff, Loader2, UserRound, Wand2 } from "lucide-react";
+import { toast } from "sonner";
+
+import { Button } from "@/components/ui/button";
+import {
+  FormDescription,
+  FormLabel,
+} from "@/components/ui/form";
+import { cn } from "@/lib/utils";
+
+import {
+  useEnsureProfilePhotoPublicMutation,
+  usePresignProfilePhotoMutation,
+} from "./profile-setup-api";
+
+const MAX_BYTES = 5 * 1024 * 1024;
+const ALLOWED_CONTENT_TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);
+const ACCEPT_ATTR = "image/jpeg,image/png,image/webp";
+const MAX_SIZE_ERROR = "Image must be 5 MB or smaller.";
+const INVALID_TYPE_ERROR = "Use JPEG, PNG, or WebP.";
+
+/** DiceBear PNG — fetched as blob and uploaded like a normal photo (stored on your CDN). */
+const DICEBEAR_PNG = (seed: string) =>
+  `https://api.dicebear.com/9.x/avataaars-neutral/png?seed=${encodeURIComponent(seed)}&size=512`;
+
+export type ProfileSetupPhotoItem = {
+  id?: string;
+  url: string;
+  order?: number;
+};
+
+function normalizeContentType(file: File): string | null {
+  if (file.type && ALLOWED_CONTENT_TYPES.has(file.type)) return file.type;
+  const ext = file.name.split(".").pop()?.toLowerCase();
+  const byExt: Record<string, string> = {
+    jpg: "image/jpeg",
+    jpeg: "image/jpeg",
+    png: "image/png",
+    webp: "image/webp",
+  };
+  return ext && byExt[ext] ? byExt[ext]! : null;
+}
+
+function mergePrimaryPhoto(
+  publicUrl: string,
+  existing: ProfileSetupPhotoItem[],
+  max: number,
+): ProfileSetupPhotoItem[] {
+  const rest = existing.slice(1).map((p, i) => ({
+    ...p,
+    url: p.url,
+    order: i + 1,
+  }));
+  return [{ url: publicUrl, order: 0 }, ...rest].slice(0, max);
+}
+
+function rtkErrorMessage(error: unknown): string {
+  if (error && typeof error === "object" && "data" in error) {
+    const d = (error as FetchBaseQueryError).data;
+    if (d && typeof d === "object" && "message" in d && typeof (d as { message?: string }).message === "string") {
+      return (d as { message: string }).message;
+    }
+  }
+  if (error instanceof Error && error.message) return error.message;
+  return "Something went wrong";
+}
+
+type ProfileSetupPhotoFieldProps = {
+  label: string;
+  description?: string;
+  required?: boolean;
+  max?: number;
+  value: ProfileSetupPhotoItem[];
+  onChange: (next: ProfileSetupPhotoItem[]) => void;
+  onBlur: () => void;
+  disabled?: boolean;
+};
+
+export function ProfileSetupPhotoField({
+  label,
+  description,
+  required,
+  max = 6,
+  value,
+  onChange,
+  onBlur,
+  disabled,
+}: ProfileSetupPhotoFieldProps) {
+  const fileRef = useRef<HTMLInputElement | null>(null);
+  const [pending, setPending] = useState<"upload" | "generate" | null>(null);
+  const [localPreview, setLocalPreview] = useState<string | null>(null);
+  const [presign] = usePresignProfilePhotoMutation();
+  const [ensurePublic] = useEnsureProfilePhotoPublicMutation();
+  const busy = pending !== null;
+
+  const primary = value[0];
+  const previewUrl = localPreview ?? primary?.url ?? "";
+  const [imageLoadFailed, setImageLoadFailed] = useState(false);
+  const showImage = Boolean(previewUrl) && !imageLoadFailed;
+
+  useEffect(() => {
+    return () => {
+      if (localPreview) URL.revokeObjectURL(localPreview);
+    };
+  }, [localPreview]);
+
+  useEffect(() => {
+    setImageLoadFailed(false);
+  }, [previewUrl]);
+
+  const uploadBlob = useCallback(
+    async (blob: Blob, filename: string) => {
+      const contentType = blob.type && ALLOWED_CONTENT_TYPES.has(blob.type)
+        ? blob.type
+        : "image/png";
+      const file =
+        blob instanceof File
+          ? blob
+          : new File([blob], filename, { type: contentType });
+
+      const ct = normalizeContentType(file) ?? (contentType === "image/png" ? "image/png" : null);
+      if (!ct) {
+        toast.error(INVALID_TYPE_ERROR);
+        return;
+      }
+      if (file.size > MAX_BYTES) {
+        toast.error(MAX_SIZE_ERROR);
+        return;
+      }
+
+      const pres = await presign({ contentType: ct }).unwrap();
+      const inner = pres.data;
+      const putHeaders =
+        inner.uploadHeaders ?? ({ "Content-Type": inner.contentType } as Record<string, string>);
+      const put = await fetch(inner.uploadUrl, {
+        method: "PUT",
+        body: file,
+        headers: putHeaders,
+        credentials: "omit",
+      });
+      if (!put.ok) {
+        toast.error(`Upload failed (${put.status}). Try again.`);
+        return;
+      }
+
+      try {
+        await ensurePublic({ publicUrl: inner.publicUrl }).unwrap();
+      } catch {
+        toast.warning(
+          "Photo uploaded, but it may not show until permissions update. Try saving this step or re-upload.",
+        );
+      }
+
+      const next = mergePrimaryPhoto(inner.publicUrl, value, max);
+      onChange(next);
+      onBlur();
+      setLocalPreview(null);
+      toast.success("Photo added");
+    },
+    [ensurePublic, max, onBlur, onChange, presign, value],
+  );
+
+  const onFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const f = e.target.files?.[0];
+    e.target.value = "";
+    if (!f || disabled || busy) return;
+    if (f.size > MAX_BYTES) {
+      toast.error(MAX_SIZE_ERROR);
+      return;
+    }
+    const ct = normalizeContentType(f);
+    if (!ct) {
+      toast.error(INVALID_TYPE_ERROR);
+      return;
+    }
+    setPending("upload");
+    if (localPreview) URL.revokeObjectURL(localPreview);
+    setLocalPreview(URL.createObjectURL(f));
+    try {
+      await uploadBlob(f, f.name);
+    } catch (err) {
+      toast.error(rtkErrorMessage(err));
+      setLocalPreview(null);
+    } finally {
+      setPending(null);
+    }
+  };
+
+  const onGenerateAvatar = async () => {
+    if (disabled || busy) return;
+    setPending("generate");
+    try {
+      const seed = typeof crypto !== "undefined" && crypto.randomUUID
+        ? crypto.randomUUID()
+        : `greetup-${Date.now()}`;
+      const res = await fetch(DICEBEAR_PNG(seed));
+      if (!res.ok) {
+        toast.error("Could not generate an avatar. Try uploading instead.");
+        return;
+      }
+      const blob = await res.blob();
+      await uploadBlob(blob, `avatar-${seed.slice(0, 8)}.png`);
+    } catch (err) {
+      toast.error(rtkErrorMessage(err));
+    } finally {
+      setPending(null);
+    }
+  };
+
+  return (
+    <div className="space-y-3">
+      <div>
+        <FormLabel className="text-sm font-semibold text-foreground">
+          {label}
+          {required ? <span className="text-destructive">*</span> : null}
+        </FormLabel>
+        {description ? (
+          <FormDescription className="text-xs text-muted-foreground mt-1.5 leading-relaxed">
+            {description}
+          </FormDescription>
+        ) : null}
+      </div>
+
+      <div
+        className={cn(
+          "rounded-xl border border-input bg-background p-4 sm:p-5",
+          "transition-colors hover:border-primary/25",
+        )}
+      >
+        <div className="flex flex-col gap-5 sm:flex-row sm:items-stretch sm:gap-6">
+          {/* Preview — left, aligns with form controls like bio / inputs */}
+          <div
+            className={cn(
+              "relative shrink-0 self-start overflow-hidden rounded-xl border border-border bg-muted/30",
+              "w-[148px] h-[148px] sm:w-[168px] sm:h-[168px]",
+            )}
+          >
+            {showImage ? (
+              /* eslint-disable-next-line @next/next/no-img-element */
+              <img
+                src={previewUrl}
+                alt=""
+                className="h-full w-full object-cover"
+                onError={() => setImageLoadFailed(true)}
+              />
+            ) : (
+              <div className="flex h-full w-full flex-col items-center justify-center gap-2 px-3 text-center">
+                {previewUrl && imageLoadFailed ? (
+                  <>
+                    <ImageOff className="h-8 w-8 text-muted-foreground/70" aria-hidden />
+                    <span className="text-[11px] leading-snug text-muted-foreground">
+                      Couldn’t load this image. Upload or generate a new one.
+                    </span>
+                  </>
+                ) : (
+                  <>
+                    <UserRound className="h-9 w-9 text-muted-foreground/60" aria-hidden />
+                    <span className="text-[11px] leading-snug text-muted-foreground">
+                      Your profile photo
+                    </span>
+                  </>
+                )}
+              </div>
+            )}
+          </div>
+
+          <div className="flex min-w-0 flex-1 flex-col justify-center gap-3">
+            <p className="text-xs text-muted-foreground leading-relaxed sm:pt-0.5">
+              JPEG, PNG, or WebP · up to 5&nbsp;MB. Or create a character avatar — same as a real upload.
+            </p>
+
+            <input
+              ref={fileRef}
+              type="file"
+              accept={ACCEPT_ATTR}
+              className="hidden"
+              disabled={disabled || busy}
+              onChange={(e) => void onFileChange(e)}
+            />
+
+            <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2 sm:gap-3">
+              <Button
+                type="button"
+                variant="outline"
+                className="h-11 w-full rounded-xl gap-2 border-input bg-background font-medium shadow-none hover:bg-muted/60"
+                disabled={disabled || busy}
+                onClick={() => fileRef.current?.click()}
+              >
+                {pending === "upload" ? (
+                  <Loader2 className="h-4 w-4 shrink-0 animate-spin" aria-hidden />
+                ) : (
+                  <Camera className="h-4 w-4 shrink-0" aria-hidden />
+                )}
+                {pending === "upload" ? "Uploading…" : "Upload a photo"}
+              </Button>
+              <Button
+                type="button"
+                variant="default"
+                className="h-11 w-full rounded-xl gap-2 font-medium shadow-sm hover:opacity-95"
+                disabled={disabled || busy}
+                onClick={() => void onGenerateAvatar()}
+              >
+                {pending === "generate" ? (
+                  <Loader2 className="h-4 w-4 shrink-0 animate-spin" aria-hidden />
+                ) : (
+                  <Wand2 className="h-4 w-4 shrink-0 opacity-95" aria-hidden />
+                )}
+                {pending === "generate" ? "Generating…" : "Generate avatar"}
+              </Button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {value.length > 1 ? (
+        <p className="text-xs text-muted-foreground">
+          {value.length} photos — we’ll use the first as your main picture.
+        </p>
+      ) : null}
+    </div>
+  );
+}

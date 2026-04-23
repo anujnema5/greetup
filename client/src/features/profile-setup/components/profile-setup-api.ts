@@ -176,6 +176,17 @@ export const profileSetupApi = baseApi.injectEndpoints({
       },
     ),
 
+    ensureProfilePhotoPublic: build.mutation<
+      ApiResponse<{ ok: boolean }>,
+      { publicUrl: string }
+    >({
+      query: (body) => ({
+        url: PROFILE.PHOTOS_ENSURE_PUBLIC,
+        method: "POST",
+        body,
+      }),
+    }),
+
     // --- Match prep (preferences before matching) -----------------------------
 
     getMatchPrepCurrent: build.query<MatchPrepCurrentData, void>({
@@ -250,6 +261,7 @@ export const {
   useSaveProfileSetupMutation,
   useUpdateRoomInviteSettingsMutation,
   usePresignProfilePhotoMutation,
+  useEnsureProfilePhotoPublicMutation,
   useGetMatchPrepCurrentQuery,
   useGetMatchPrepOptionsQuery,
   useGetMatchPrepPromptStatusQuery,

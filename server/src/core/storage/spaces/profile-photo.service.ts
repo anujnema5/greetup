@@ -3,6 +3,7 @@
  */
 
 import {
+  CopyObjectCommand,
   PutObjectAclCommand,
   PutObjectCommand,
 } from "@aws-sdk/client-s3";
@@ -35,6 +36,11 @@ export type ProfileImagePresignResult = {
   expiresIn: number;
   /** Client must send this exact `Content-Type` on PUT. */
   contentType: string;
+  /**
+   * Headers the browser should send on PUT. `x-amz-acl=public-read` is on the presigned query string.
+   * We only add `Content-Type` here (avoids extra CORS preflight headers like `Cache-Control` on Spaces).
+   */
+  uploadHeaders: Record<string, string>;
 };
 
 type PresignProfileImageParams = {
@@ -77,12 +83,17 @@ export async function presignProfileImageUpload(
     expiresIn: PROFILE_IMAGE_PRESIGN_TTL_SECONDS,
   });
 
+  const uploadHeaders: Record<string, string> = {
+    "Content-Type": params.contentType,
+  };
+
   return {
     uploadUrl,
     publicUrl: buildSpacesPublicObjectUrl(key),
     key,
     expiresIn: PROFILE_IMAGE_PRESIGN_TTL_SECONDS,
     contentType: params.contentType,
+    uploadHeaders,
   };
 }
 
@@ -112,14 +123,31 @@ export async function ensureProfileImageUrlsArePublic(
             Bucket: bucket,
             Key,
             ACL: "public-read",
-          })
+          }),
         );
+        return;
       } catch (err) {
         logger.warn(`${LOG_PREFIX} PutObjectAcl failed`, {
           Key,
           err: String(err),
         });
       }
-    })
+      try {
+        await s3.send(
+          new CopyObjectCommand({
+            Bucket: bucket,
+            Key,
+            CopySource: `${bucket}/${Key}`,
+            ACL: "public-read",
+            MetadataDirective: "COPY",
+          }),
+        );
+      } catch (err) {
+        logger.warn(
+          `${LOG_PREFIX} CopyObject+ACL failed (Spaces may have ACLs disabled). Add a bucket policy allowing s3:GetObject for your profile-images prefix.`,
+          { Key, err: String(err) },
+        );
+      }
+    }),
   );
 }

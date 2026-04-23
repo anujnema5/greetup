@@ -69,10 +69,21 @@ export function parseSpacesObjectKeyFromPublicUrl(
   }
 
   const bucket = appConfig.doSpacesBucket!;
-  const region = appConfig.doSpacesRegion!;
-  const expectedHost = `${bucket}.${region}.digitaloceanspaces.com`;
-  if (parsed.hostname !== expectedHost) return null;
+  /** `{bucket}.{region}.digitaloceanspaces.com` — only bucket must match so we still resolve keys if region slug matches the Space. */
+  const hostMatch = parsed.hostname.match(/^([^.]+)\.([^.]+)\.digitaloceanspaces\.com$/);
+  if (!hostMatch || hostMatch[1] !== bucket) return null;
 
   const key = parsed.pathname.replace(/^\/+/, "").split("?")[0];
   return key || null;
+}
+
+/** True if `key` is under this app’s profile-images layout for `userId`. */
+export function verifyProfileImageKeyForUser(key: string, userId: string): boolean {
+  const prefix = normalizeKeyPrefix(
+    appConfig.doSpacesKeyPrefix ?? DEFAULT_PROFILE_IMAGES_KEY_PREFIX,
+  );
+  if (prefix) {
+    return key.startsWith(`${prefix}/${userId}/`);
+  }
+  return key.startsWith(`${userId}/`);
 }

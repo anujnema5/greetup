@@ -65,6 +65,10 @@ function isFieldCompleted(field: ProfileSetupField): boolean {
     return !!country.code && !!country.name
   }
 
+  if (field?.type === 'photo-upload') {
+    return Array.isArray(value) && value.length > 0
+  }
+
   return hasMeaningfulValue(value)
 }
 

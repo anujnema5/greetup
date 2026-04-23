@@ -79,6 +79,12 @@ export const saveStep1Schema = z.object({
     .transform((s) => s.trim().toLowerCase()),
   age: z.number().int().min(18).max(99),
   gender: z.enum(["male", "female", "other"]),
+  country: z
+    .object({
+      code: z.string().min(2).max(8),
+      name: z.string().min(2).max(120),
+    })
+    .optional(),
 });
 
 /* Step 2 – Goals */
@@ -102,7 +108,7 @@ export const saveStep4Schema = z.object({
     .nullable(),
 });
 
-/* Step 5 – Bio, Photos & Socials */
+/* Step 5 – Bio, Photos, Socials & matching preferences (profile editor) */
 export const saveStep5Schema = z.object({
   bio: z.string().max(500).optional(),
   photos: z
@@ -117,6 +123,16 @@ export const saveStep5Schema = z.object({
     .optional(),
   instagram: z.string().max(30).optional(),
   twitter: z.string().max(15).optional(),
+  preferredGender: z.enum(["any", "male", "female", "others", "same"]).optional(),
+  distancePreference: z
+    .enum(["nearby", "same city", "same country", "random", "global"])
+    .optional(),
+  ageRange: z
+    .object({
+      min: z.number().int().min(18).max(99),
+      max: z.number().int().min(18).max(99),
+    })
+    .optional(),
 });
 
 /* Step 6 – Prompt Questions (optional free-text answers) */
