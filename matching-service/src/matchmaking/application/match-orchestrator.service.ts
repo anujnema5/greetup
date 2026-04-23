@@ -183,7 +183,7 @@ export class MatchOrchestratorService {
     let poolHadOtherSearchers = false;
 
     for (let retryIndex = 0; retryIndex <= MATCH_CONFIG.maxRetries; retryIndex += 1) {
-      const candidates = await this.pool.getCandidates(request.userId);
+      const candidates = await this.pool.getCandidates(request.userId, requesterSnapshot);
       if (candidates.length > 0) poolHadOtherSearchers = true;
       logger.debug("[processMatchRequest] retry scan", { userId: request.userId, retryIndex, candidateCount: candidates.length });
 
@@ -461,7 +461,7 @@ export class MatchOrchestratorService {
       requestId: request.requestId,
     });
 
-    const candidates = await this.pool.getCandidates(request.userId);
+    const candidates = await this.pool.getCandidates(request.userId, requesterSnapshot);
     logger.debug("[tryFallbackMatch] raw pool candidates", {
       userId: request.userId,
       poolSize: candidates.length,
@@ -488,10 +488,10 @@ export class MatchOrchestratorService {
   }
 
   private async markPairInRoom(userA: string, userB: string): Promise<void> {
+    await this.pool.stripFromPool(userA);
+    await this.pool.stripFromPool(userB);
     const redis = getRedis();
     const pipeline = redis.pipeline();
-    pipeline.zrem(redisKeys.poolGlobal(), userA);
-    pipeline.zrem(redisKeys.poolGlobal(), userB);
     pipeline.del(redisKeys.userLock(userA));
     pipeline.del(redisKeys.userLock(userB));
     pipeline.del(redisKeys.pairLock(userA, userB));
@@ -525,8 +525,8 @@ export class MatchOrchestratorService {
       }
     }
 
+    await this.pool.stripFromPool(userId);
     const pipeline = redis.pipeline();
-    pipeline.zrem(redisKeys.poolGlobal(), userId);
     pipeline.del(redisKeys.userLock(userId));
     pipeline.del(redisKeys.userState(userId));
     await pipeline.exec();

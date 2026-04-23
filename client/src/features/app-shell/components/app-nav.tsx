@@ -20,7 +20,7 @@ function PendingIncomingBadge({ count }: { count: number }) {
   );
 }
 
-export function NavSidebar({ activePath = "/" }: { activePath?: string }) {
+export function NavSidebar({ activePath = "/home" }: { activePath?: string }) {
   const { data: pendingIncomingData } = useGetPendingIncomingConnectionCountQuery(undefined, {
     pollingInterval: 15000,
     refetchOnFocus: true,
@@ -30,13 +30,13 @@ export function NavSidebar({ activePath = "/" }: { activePath?: string }) {
 
   return (
     <aside className="hidden md:flex flex-col items-center gap-1 w-16 min-h-screen border-r border-border bg-card py-5 px-2">
-      <Link href="/" className="mb-6 h-10 w-10 rounded-xl bg-primary flex items-center justify-center shadow-lg shadow-primary/25">
+      <Link href="/home" className="mb-6 h-10 w-10 rounded-xl bg-primary flex items-center justify-center shadow-lg shadow-primary/25">
         <span className="text-sm font-black text-primary-foreground">C</span>
       </Link>
 
       <nav className="flex flex-col items-center gap-1 flex-1">
         {NAV_ITEMS.map(({ icon: Icon, label, href }) => {
-          const active = href === "/" ? activePath === "/" : activePath.startsWith(href);
+          const active = href === "/home" ? activePath === "/home" : activePath.startsWith(href);
           const isConnections = href === "/connections";
           const linkTitle =
             isConnections && pendingIncomingCount > 0
@@ -85,7 +85,7 @@ export function NavSidebar({ activePath = "/" }: { activePath?: string }) {
   );
 }
 
-export function BottomNav({ activePath = "/" }: { activePath?: string }) {
+export function BottomNav({ activePath = "/home" }: { activePath?: string }) {
   const { data: pendingIncomingData } = useGetPendingIncomingConnectionCountQuery(undefined, {
     pollingInterval: 15000,
     refetchOnFocus: true,
@@ -97,7 +97,7 @@ export function BottomNav({ activePath = "/" }: { activePath?: string }) {
     <nav className="md:hidden fixed bottom-0 inset-x-0 z-20 flex items-stretch border-t border-border bg-card/95 backdrop-blur-sm">
       <div className="flex min-w-0 flex-1 items-center justify-around gap-0.5 py-2 pr-0.5">
         {NAV_ITEMS.map(({ icon: Icon, label, href }) => {
-          const active = href === "/" ? activePath === "/" : activePath.startsWith(href);
+          const active = href === "/home" ? activePath === "/home" : activePath.startsWith(href);
           const isConnections = href === "/connections";
           const linkTitle =
             isConnections && pendingIncomingCount > 0

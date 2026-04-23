@@ -123,11 +123,11 @@ export function useRoom() {
   }, [room, scoreFromUrl]);
 
   const goHome = useCallback(() => {
-    router.replace("/");
+    router.replace("/home");
   }, [router]);
 
   const leaveAndGoHome = useCallback(() => {
-    void leaveRoomAndClear().then(() => router.replace("/"));
+    void leaveRoomAndClear().then(() => router.replace("/home"));
   }, [leaveRoomAndClear, router]);
 
   return {

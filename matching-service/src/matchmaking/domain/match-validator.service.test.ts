@@ -62,13 +62,13 @@ describe("MatchValidatorService", () => {
     expect(accepted).toBe(false);
   });
 
-  it("rejects when same_country is required and country differs", () => {
+  it("accepts when same_country preference but country differs (location is soft-scored only)", () => {
     const accepted = validator.accepts(
       { distancePreference: "same_country", countryCode: "IN" },
       { countryCode: "US", age: 22 },
     );
 
-    expect(accepted).toBe(false);
+    expect(accepted).toBe(true);
   });
 
   it("checks bidirectional compatibility", () => {

@@ -28,5 +28,5 @@ export function notificationRoute(item: NotificationItem): string {
     return deepLink;
   }
 
-  return "/";
+  return "/home";
 }

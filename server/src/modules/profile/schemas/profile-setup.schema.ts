@@ -79,10 +79,6 @@ export const saveStep1Schema = z.object({
     .transform((s) => s.trim().toLowerCase()),
   age: z.number().int().min(18).max(99),
   gender: z.enum(["male", "female", "other"]),
-  country: z.object({
-    code: z.string().min(1),
-    name: z.string().min(1),
-  }),
 });
 
 /* Step 2 – Goals */
@@ -106,22 +102,8 @@ export const saveStep4Schema = z.object({
     .nullable(),
 });
 
-/* Step 5 – Preferences */
+/* Step 5 – Bio, Photos & Socials */
 export const saveStep5Schema = z.object({
-  preferredGender: z.enum(["any", "male", "female", "others", "same"]).optional(),
-  distancePreference: z
-    .enum(["nearby", "same city", "same country", "random", "global"])
-    .optional(),
-  ageRange: z
-    .object({
-      min: z.number().int().min(18).max(99),
-      max: z.number().int().min(18).max(99),
-    })
-    .optional(),
-});
-
-/* Step 6 – Bio & Photos */
-export const saveStep6Schema = z.object({
   bio: z.string().max(500).optional(),
   photos: z
     .array(
@@ -133,6 +115,20 @@ export const saveStep6Schema = z.object({
     )
     .max(6)
     .optional(),
+  instagram: z.string().max(30).optional(),
+  twitter: z.string().max(15).optional(),
+});
+
+/* Step 6 – Prompt Questions (optional free-text answers) */
+export const saveStep6Schema = z.object({
+  answers: z
+    .array(
+      z.object({
+        questionId: z.string().uuid(),
+        answer: z.string().min(10).max(300),
+      }),
+    )
+    .max(6),
 });
 
 const saveStepDataSchema = z.discriminatedUnion("step", [

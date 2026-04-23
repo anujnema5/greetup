@@ -15,6 +15,10 @@ export const MATCH_CONFIG = {
   maxRetries: 3,
   retryBackoffMs: [500, 1_500, 3_500],
   candidateBatchSize: 25,
+  /** Max Redis ZSET members to read when scanning the pool (per key). */
+  poolScanLimit: 100,
+  /** Extra-wide global fetch when ordering `global` preference (foreign-first). */
+  poolGlobalSortFetch: 120,
   /** Failsafe TTL so users are not stuck in `in_room` if leave-room is never called. */
   userInRoomStateTtlSeconds: 7200,
   /** Covers search + proposal UI + room join */
@@ -41,4 +45,18 @@ export const MATCH_SCORE_CONFIG = {
     connectionPreference: 21,
   },
   minScoreToMatch: 35,
+  /**
+   * Location is soft-scored only (no hard reject). Mismatch → below 1; `global` boosts cross-border pairs.
+   */
+  distanceScoreTuning: {
+    sameCityMismatch: 0.58,
+    sameRegionMismatch: 0.68,
+    sameCountryMismatch: 0.58,
+    /** When preference is `global`: same country as requester (weaker). */
+    globalSameCountry: 0.55,
+    /** When preference is `global`: different country (stronger). */
+    globalForeign: 1,
+    /** Missing country on either side for `global`. */
+    globalIncomplete: 0.82,
+  },
 } as const;

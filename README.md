@@ -193,6 +193,7 @@ All request bodies are parsed with **Zod** schemas before reaching handlers. Val
 | `INTERNAL_API_KEY` | server, matching-service, rtc-service | Service-to-service auth |
 | `BETTER_AUTH_SECRET` | server | Session token signing |
 | `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` | server | Google OAuth |
+| `GOOGLE_MAPS_API_KEY` | server | Server-side location geocoding |
 | `DATABASE_URL` | server | PostgreSQL connection |
 | `REDIS_URL` | matching-service, rtc-service | Redis connection |
 

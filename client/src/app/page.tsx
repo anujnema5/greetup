@@ -1,3 +1,1 @@
-import { DashboardPage } from "@/features/dashboard";
-
-export default DashboardPage;
+export { LandingPageView as default } from "./landing/page";

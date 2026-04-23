@@ -3,7 +3,7 @@ import { Home, Search, Users, MessagesSquare, User, type LucideIcon } from "luci
 export type NavItem = { icon: LucideIcon; label: string; href: string };
 
 export const NAV_ITEMS: NavItem[] = [
-  { icon: Home, label: "Home", href: "/" },
+  { icon: Home, label: "Home", href: "/home" },
   { icon: Search, label: "Explore", href: "/explore" },
   { icon: Users, label: "Connections", href: "/connections" },
   { icon: MessagesSquare, label: "Messages", href: "/messages" },

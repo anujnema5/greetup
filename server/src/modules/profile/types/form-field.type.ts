@@ -6,6 +6,8 @@
 
 export interface FormField {
     key: string;
+    /** UUID of the backing entity (e.g. prompt_questions.id) — used by the client to build save payloads. */
+    id?: string;
     name: string;
     label: string;
     placeholder?: string;
@@ -13,7 +15,7 @@ export interface FormField {
     description?: string;
     /** Passed through to HTML autocomplete when relevant (e.g. `"username"`). */
     autoComplete?: string;
-    type: "text" | "number" | "select" | "multi-select" | "radio" | "toggle" | 
+    type: "text" | "number" | "select" | "multi-select" | "radio" | "toggle" |
           "range" | "textarea" | "photo-upload" | "country-select";
     required?: boolean;
     value?: any;

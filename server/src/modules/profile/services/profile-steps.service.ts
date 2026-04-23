@@ -22,10 +22,6 @@ export const PROFILE_COMPLETE_THRESHOLD = 80;
 function buildSteps(profile: ProfileForSteps | undefined, options: StepOptions): FormStep[] {
   const displayName = profile?.user?.displayName ?? profile?.user?.name ?? null;
   const usernameValue = profile?.user?.username ?? null;
-  const countryValue =
-    profile?.location?.countryCode && profile?.location?.country
-      ? { code: profile.location.countryCode, name: profile.location.country }
-      : null;
 
   const goalsOptions = options.goals.map((g) => ({
     id: g.id,
@@ -58,18 +54,15 @@ function buildSteps(profile: ProfileForSteps | undefined, options: StepOptions):
     name: p.displayName,
     category: p.category,
   }));
-  const selectedProfessionIds = profile?.professions?.map((pp) => pp.profession.id) ?? [];
   const professionValue =
-    profile?.profession ?? // legacy text on userProfiles
+    profile?.profession ??
     (profile?.professions?.[0]
       ? {
-        id: profile.professions[0].profession.id,
-        name: profile.professions[0].profession.displayName,
-        category: profile.professions[0].profession.category,
-      }
+          id: profile.professions[0].profession.id,
+          name: profile.professions[0].profession.displayName,
+          category: profile.professions[0].profession.category,
+        }
       : null);
-
-  const pref = profile?.preferences;
 
   const photosValue =
     profile?.photos
@@ -80,6 +73,11 @@ function buildSteps(profile: ProfileForSteps | undefined, options: StepOptions):
         order: p.order,
         isVerified: p.isVerified,
       })) ?? [];
+
+  // Build a map of questionId → existing answer for quick lookup
+  const answerByQuestionId = new Map(
+    (profile?.promptAnswers ?? []).map((a) => [a.questionId, a.answer]),
+  );
 
   const steps: FormStep[] = [
     {
@@ -129,15 +127,6 @@ function buildSteps(profile: ProfileForSteps | undefined, options: StepOptions):
           required: true,
           options: ["male", "female", "other"],
           value: profile?.gender ?? null,
-        },
-        {
-          key: "country",
-          name: "country",
-          label: "Country",
-          placeholder: "Select your country",
-          type: "country-select",
-          required: true,
-          value: countryValue,
         },
       ],
     },
@@ -192,45 +181,6 @@ function buildSteps(profile: ProfileForSteps | undefined, options: StepOptions):
     },
     {
       step: 5,
-      title: "Preferences",
-      optional: true,
-      fields: [
-        {
-          key: "preferredGender",
-          name: "preferredGender",
-          label: "Preferred gender",
-          placeholder: "Select preference",
-          type: "select",
-          required: false,
-          options: ["any", "male", "female", "others", "same"],
-          value: pref?.preferredGender ?? null,
-        },
-        {
-          key: "distancePreference",
-          name: "distancePreference",
-          label: "Distance preference",
-          placeholder: "Select preference",
-          type: "select",
-          required: false,
-          options: ["nearby", "same city", "same country", "random", "global"],
-          value: pref?.distancePreference ?? null,
-        },
-        {
-          key: "ageRange",
-          name: "ageRange",
-          label: "Age preference",
-          type: "range",
-          min: 18,
-          max: 99,
-          value: {
-            min: pref?.minAge ?? 18,
-            max: pref?.maxAge ?? 99,
-          },
-        },
-      ],
-    },
-    {
-      step: 6,
       title: "Complete your profile",
       fields: [
         {
@@ -250,7 +200,46 @@ function buildSteps(profile: ProfileForSteps | undefined, options: StepOptions):
           max: 6,
           value: photosValue,
         },
+        {
+          key: "instagram",
+          name: "instagram",
+          label: "Instagram",
+          placeholder: "your_handle",
+          type: "text",
+          required: false,
+          maxLength: 30,
+          description: "Your Instagram username (without @)",
+          value: profile?.socials?.instagram ?? null,
+        },
+        {
+          key: "twitter",
+          name: "twitter",
+          label: "X / Twitter",
+          placeholder: "your_handle",
+          type: "text",
+          required: false,
+          maxLength: 15,
+          description: "Your X (Twitter) username (without @)",
+          value: profile?.socials?.twitter ?? null,
+        },
       ],
+    },
+    {
+      step: 6,
+      title: "A little more about you",
+      optional: true,
+      fields: options.promptQuestions.map((q) => ({
+        key: q.key,
+        id: q.id,
+        name: q.key,
+        label: q.question,
+        type: "textarea" as const,
+        required: false,
+        description: "If you answer, use at least 10 characters.",
+        minLength: 10,
+        maxLength: 300,
+        value: answerByQuestionId.get(q.id) ?? null,
+      })),
     },
   ];
 
@@ -260,11 +249,13 @@ function buildSteps(profile: ProfileForSteps | undefined, options: StepOptions):
 /**
  * Calculate profile completion from all fields in all steps (0–100).
  * Counts every question, not just required ones.
+ * Optional steps (e.g. prompt Q&A) are excluded so new questions cannot push users below the onboarded threshold.
  */
 function calculateCompletion(steps: FormStep[]): number {
   let total = 0;
   let filled = 0;
   for (const step of steps) {
+    if (step.optional) continue;
     for (const field of step.fields) {
       total++;
       const v = field.value;

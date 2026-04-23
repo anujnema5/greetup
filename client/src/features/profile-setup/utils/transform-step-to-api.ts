@@ -6,9 +6,9 @@
 import type { SaveProfileSetupPayload } from "../types/profile-setup-api.types";
 
 type FormValues = Record<string, unknown>;
+type StepField = { key: string; id?: string };
 
 type Step5PayloadData = Extract<SaveProfileSetupPayload, { step: 5 }>["data"];
-type Step6PayloadData = Extract<SaveProfileSetupPayload, { step: 6 }>["data"];
 
 function toIdArray(value: unknown): Array<{ id: string }> {
   if (!Array.isArray(value) || value.length === 0) return [];
@@ -20,23 +20,15 @@ function toIdArray(value: unknown): Array<{ id: string }> {
 
 export function transformStepToApiPayload(
   step: number,
-  formValues: FormValues
+  formValues: FormValues,
+  stepFields?: StepField[],
 ): SaveProfileSetupPayload {
   switch (step) {
     case 1: {
-      const country = formValues.country as { code?: string; name?: string } | undefined;
-      if (!country?.code || !country?.name) {
-        throw new Error("Country is required");
-      }
-      const username = String(formValues.username ?? "")
-        .trim()
-        .toLowerCase();
-      if (username.length < 3) {
-        throw new Error("Username must be at least 3 characters");
-      }
-      if (!/^[a-zA-Z0-9_]+$/.test(username)) {
+      const username = String(formValues.username ?? "").trim().toLowerCase();
+      if (username.length < 3) throw new Error("Username must be at least 3 characters");
+      if (!/^[a-zA-Z0-9_]+$/.test(username))
         throw new Error("Username may only contain letters, numbers, and underscores");
-      }
       return {
         step: 1,
         data: {
@@ -44,7 +36,6 @@ export function transformStepToApiPayload(
           username,
           age: Number(formValues.age),
           gender: String(formValues.gender),
-          country: { code: country.code, name: country.name },
         },
       };
     }
@@ -82,27 +73,12 @@ export function transformStepToApiPayload(
 
     case 5: {
       const data: Step5PayloadData = {
-        preferredGender: formValues.preferredGender
-          ? String(formValues.preferredGender)
-          : undefined,
-        distancePreference: formValues.distancePreference
-          ? String(formValues.distancePreference)
-          : undefined,
-        ageRange: undefined,
-      };
-      const ageRange = formValues.ageRange as { min?: number; max?: number } | undefined;
-      if (ageRange && typeof ageRange.min === "number" && typeof ageRange.max === "number") {
-        data.ageRange = { min: ageRange.min, max: ageRange.max };
-      }
-      return { step: 5, data };
-    }
-
-    case 6: {
-      const data: Step6PayloadData = {
         bio: formValues.bio != null && String(formValues.bio).trim()
           ? String(formValues.bio).trim()
           : undefined,
         photos: undefined,
+        instagram: formValues.instagram ? String(formValues.instagram).trim().replace(/^@/, "") : undefined,
+        twitter: formValues.twitter ? String(formValues.twitter).trim().replace(/^@/, "") : undefined,
       };
       const photosRaw = formValues.photos;
       if (Array.isArray(photosRaw) && photosRaw.length > 0) {
@@ -115,7 +91,17 @@ export function transformStepToApiPayload(
           .filter(Boolean) as Array<{ url: string; order?: number }>;
         if (photos.length > 0) data.photos = photos;
       }
-      return { step: 6, data };
+      return { step: 5, data };
+    }
+
+    case 6: {
+      const answers = (stepFields ?? [])
+        .filter((f) => f.id && formValues[f.key] && String(formValues[f.key]).trim())
+        .map((f) => ({
+          questionId: f.id!,
+          answer: String(formValues[f.key]).trim(),
+        }));
+      return { step: 6, data: { answers } };
     }
 
     default:

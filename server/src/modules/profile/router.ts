@@ -14,6 +14,11 @@ import {
   handleGetMatchPrepPromptStatus,
   handleSaveMatchPrep,
 } from "./controllers/match-prep.controller";
+import {
+  handleGeocodeLocation,
+  handleGeocodeLocationSuggestions,
+  handleReverseGeocodeLocation,
+} from "./controllers/location-geocode.controller";
 
 export const profileRoute = new Hono();
 
@@ -28,6 +33,9 @@ profileRoute.get("/setup-steps", handleFetchProfileSteps);
 profileRoute.get("/match-prep/current", handleGetMatchPrepCurrent);
 profileRoute.get("/match-prep/options", handleGetMatchPrepOptions);
 profileRoute.get("/match-prep/prompt-status", handleGetMatchPrepPromptStatus);
+profileRoute.get("/location/suggestions", handleGeocodeLocationSuggestions);
+profileRoute.post("/location/geocode", handleGeocodeLocation);
+profileRoute.post("/location/reverse-geocode", handleReverseGeocodeLocation);
 profileRoute.post("/match-prep", handleSaveMatchPrep);
 profileRoute.post("/profile-setup", handleSaveProfileSetup);
 

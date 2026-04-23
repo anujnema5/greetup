@@ -37,3 +37,4 @@ export * from "./blocks";
 export * from "./rooms";
 export * from "./notifications";
 export * from "./chat";
+export * from "./prompts";

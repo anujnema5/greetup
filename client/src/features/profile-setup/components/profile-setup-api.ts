@@ -17,6 +17,8 @@ import type {
   SaveProfileSetupPayload,
   MatchPrepCurrentData,
   MatchPrepOptionsData,
+  ResolvedLocationData,
+  ResolvedLocationSuggestionData,
 } from "../types/profile-setup-api.types";
 import type { MyProfileResponse } from "@/features/profile/types/my-profile.types";
 
@@ -37,6 +39,18 @@ type SaveMatchPrepBody = {
   interestIds: string[];
   sessionGoal?: string | null;
   connectionPreference?: "same_profession" | "different_profession" | "open_to_anyone";
+  locationPreferenceEnabled?: boolean;
+  distancePreference?: "random" | "same_city" | "same_country" | "global";
+  location?: {
+    country: string;
+    countryCode: string;
+    region?: string;
+    regionCode?: string;
+    city?: string;
+    latitude?: number;
+    longitude?: number;
+    source?: "current" | "manual";
+  };
   clientSessionId?: string;
 };
 
@@ -92,6 +106,22 @@ function voidFromSaveMatchPrepResponse(response: ApiResponse<{ ok: boolean }>): 
   }
 }
 
+function toResolvedLocationData(response: ApiResponse<ResolvedLocationData>): ResolvedLocationData {
+  if (!response.success || response.data == null) {
+    throw new Error(response.message ?? "Could not resolve location");
+  }
+  return response.data;
+}
+
+function toResolvedLocationSuggestionsData(
+  response: ApiResponse<{ suggestions: ResolvedLocationSuggestionData[] }>,
+): ResolvedLocationSuggestionData[] {
+  if (!response.success || response.data == null) {
+    throw new Error(response.message ?? "Could not fetch location suggestions");
+  }
+  return response.data.suggestions ?? [];
+}
+
 // ── API slice ─────────────────────────────────────────────────────────────────
 
 export const profileSetupApi = baseApi.injectEndpoints({
@@ -104,7 +134,7 @@ export const profileSetupApi = baseApi.injectEndpoints({
     }),
 
     getProfileSetupSteps: build.query<ProfileSetupApiResponse, void>({
-      query: () => PROFILE.SETUP_STEPS,
+      query: () => ({ url: PROFILE.SETUP_STEPS, params: { limit: 10 } }),
       providesTags: [CACHE_PROFILE_SETUP_STEPS],
     }),
 
@@ -168,6 +198,38 @@ export const profileSetupApi = baseApi.injectEndpoints({
       providesTags: [CACHE_MATCH_PREP_PROMPT],
     }),
 
+    getLocationSuggestions: build.query<
+      ResolvedLocationSuggestionData[],
+      { query: string; limit?: number }
+    >({
+      query: ({ query, limit = 5 }) => ({
+        url: PROFILE.LOCATION_SUGGESTIONS,
+        params: { query, limit },
+      }),
+      transformResponse: toResolvedLocationSuggestionsData,
+    }),
+
+    geocodeLocation: build.mutation<ResolvedLocationData, { query: string }>({
+      query: (body) => ({
+        url: PROFILE.LOCATION_GEOCODE,
+        method: "POST",
+        body,
+      }),
+      transformResponse: toResolvedLocationData,
+    }),
+
+    reverseGeocodeLocation: build.mutation<
+      ResolvedLocationData,
+      { latitude: number; longitude: number }
+    >({
+      query: (body) => ({
+        url: PROFILE.LOCATION_REVERSE_GEOCODE,
+        method: "POST",
+        body,
+      }),
+      transformResponse: toResolvedLocationData,
+    }),
+
     saveMatchPrep: build.mutation<void, SaveMatchPrepBody>({
       query: (body) => ({
         url: PROFILE.MATCH_PREP,
@@ -191,5 +253,8 @@ export const {
   useGetMatchPrepCurrentQuery,
   useGetMatchPrepOptionsQuery,
   useGetMatchPrepPromptStatusQuery,
+  useLazyGetLocationSuggestionsQuery,
+  useGeocodeLocationMutation,
+  useReverseGeocodeLocationMutation,
   useSaveMatchPrepMutation,
 } = profileSetupApi;

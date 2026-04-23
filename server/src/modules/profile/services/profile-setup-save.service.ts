@@ -3,14 +3,12 @@
  */
 
 import { profileSetupRepository } from "../repositories/profile-setup.repository";
-import { profileStepsRepository } from "../repositories/profile-steps.repository";
 import type {
   SaveProfileSetupParams,
   SaveProfileSetupResult,
 } from "../types/profile-setup-services.types";
 import {
   fetchProfileStepsService,
-  PROFILE_COMPLETE_THRESHOLD,
 } from "./profile-steps.service";
 import { refreshProfileSnapshotFromDatabase } from "@/modules/user/services/profile-snapshot-cache.service";
 import { ensureProfileImageUrlsArePublic } from "@/core/storage";
@@ -20,14 +18,42 @@ import logger from "@/core/logging";
  * Calculate profile completion (0–100) from current profile state.
  * Uses forceRecalculate so we always get the computed value, not stored 0.
  */
-async function recalculateCompletion(userId: string): Promise<number> {
+function hasRequiredFieldValue(value: unknown): boolean {
+  if (value === null || value === undefined) return false;
+  if (typeof value === "string") return value.trim().length > 0;
+  if (Array.isArray(value)) return value.length > 0;
+  if (typeof value === "object") {
+    // Country and similar structured values count as filled when they have at least one property.
+    return Object.keys(value as Record<string, unknown>).length > 0;
+  }
+  return true;
+}
+
+type CompletionField = { required?: boolean; value?: unknown };
+type CompletionStep = { fields: CompletionField[] };
+
+function areRequiredFieldsComplete(steps: CompletionStep[]): boolean {
+  return steps.every((step) =>
+    step.fields
+      .filter((field) => field.required)
+      .every((field) => hasRequiredFieldValue(field.value)),
+  );
+}
+
+async function recalculateCompletion(userId: string): Promise<{
+  profileCompletion: number;
+  isOnboardingComplete: boolean;
+}> {
   const result = await fetchProfileStepsService({
     userId,
     page: 1,
     limit: 10,
     forceRecalculate: true,
   });
-  return result.profileCompletion;
+  return {
+    profileCompletion: result.profileCompletion,
+    isOnboardingComplete: areRequiredFieldsComplete(result.steps),
+  };
 }
 
 /**
@@ -41,15 +67,11 @@ export async function saveProfileSetupStepService(
 
   switch (body.step) {
     case 1: {
-      const { displayName, username, age, gender, country } = body.data;
+      const { displayName, username, age, gender } = body.data;
       await Promise.all([
         profileSetupRepository.updateUserDisplayName(userId, displayName),
         profileSetupRepository.setUsername(userId, username),
         profileSetupRepository.updateBasicProfile(profileId, { age, gender }),
-        profileSetupRepository.upsertLocation(profileId, {
-          country: country.name,
-          countryCode: country.code,
-        }),
       ]);
       break;
     }
@@ -79,27 +101,27 @@ export async function saveProfileSetupStepService(
     }
 
     case 5: {
-      const prefs: Parameters<
-        typeof profileSetupRepository.upsertPreferences
-      >[1] = {};
-      if (body.data.preferredGender)
-        prefs.preferredGender = body.data.preferredGender;
-      if (body.data.distancePreference)
-        prefs.distancePreference = body.data.distancePreference;
-      if (body.data.ageRange) {
-        prefs.minAge = body.data.ageRange.min;
-        prefs.maxAge = body.data.ageRange.max;
-      }
-      await profileSetupRepository.upsertPreferences(profileId, prefs);
-      break;
-    }
+      const saves: Promise<unknown>[] = [];
 
-    case 6: {
       if (body.data.bio !== undefined) {
-        await profileSetupRepository.updateBasicProfile(profileId, {
-          bio: body.data.bio,
-        });
+        saves.push(
+          profileSetupRepository.updateBasicProfile(profileId, {
+            bio: body.data.bio,
+          })
+        );
       }
+
+      if (body.data.instagram !== undefined || body.data.twitter !== undefined) {
+        saves.push(
+          profileSetupRepository.upsertSocials(profileId, {
+            instagram: body.data.instagram,
+            twitter: body.data.twitter,
+          })
+        );
+      }
+
+      await Promise.all(saves);
+
       if (body.data.photos && body.data.photos.length > 0) {
         const photoRows = body.data.photos.map((p) => ({
           url: p.url,
@@ -117,14 +139,19 @@ export async function saveProfileSetupStepService(
       }
       break;
     }
+
+    case 6: {
+      await profileSetupRepository.replacePromptAnswers(profileId, body.data.answers);
+      break;
+    }
   }
 
-  const profileCompletion = await recalculateCompletion(userId);
-  const isProfileComplete = profileCompletion >= PROFILE_COMPLETE_THRESHOLD;
+  const { profileCompletion, isOnboardingComplete } = await recalculateCompletion(userId);
+  const isProfileComplete = isOnboardingComplete;
 
   await profileSetupRepository.updateCompletionAndOnboarded(profileId, {
     profileCompletion,
-    isOnboarded: isProfileComplete,
+    isOnboarded: isOnboardingComplete,
   });
 
   try {

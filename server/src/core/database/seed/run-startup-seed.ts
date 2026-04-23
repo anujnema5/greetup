@@ -7,10 +7,12 @@ import {
   lookingForOptions,
   moods,
   professions,
+  promptQuestions,
 } from "@/core/database/schema";
 import logger from "@/core/logging";
 
 import { upsertOnboardingLookups } from "./upsert-onboarding-lookups";
+import { upsertPromptQuestions } from "./upsert-prompt-questions";
 import { upsertRoomCategories } from "./upsert-room-categories";
 
 async function countRows(
@@ -19,36 +21,36 @@ async function countRows(
     | typeof interests
     | typeof professions
     | typeof moods
-    | typeof lookingForOptions,
+    | typeof lookingForOptions
+    | typeof promptQuestions,
 ): Promise<number> {
   const rows = await db.select({ count: sql<number>`count(*)` }).from(table);
   return Number(rows[0]?.count ?? 0);
 }
 
 export async function runStartupSeed(): Promise<void> {
-  logger.info("[seed] Starting onboarding lookups upsert...");
-  console.log("[seed] Starting onboarding lookups upsert...");
+  logger.info("[seed] Starting startup seed upsert...");
 
   await upsertOnboardingLookups(db);
+  await upsertPromptQuestions(db);
   await upsertRoomCategories();
 
-  const [goalCount, interestCount, professionCount, moodCount, lookingForCount] =
+  const [goalCount, interestCount, professionCount, moodCount, lookingForCount, promptCount] =
     await Promise.all([
       countRows(goals),
       countRows(interests),
       countRows(professions),
       countRows(moods),
       countRows(lookingForOptions),
+      countRows(promptQuestions),
     ]);
 
-  logger.info("[seed] Onboarding lookups upserted.", {
+  logger.info("[seed] Startup seed complete.", {
     goals: goalCount,
     interests: interestCount,
     professions: professionCount,
     moods: moodCount,
     lookingForOptions: lookingForCount,
+    promptQuestions: promptCount,
   });
-  console.log(
-    `[seed] Onboarding lookups upserted. goals=${goalCount} interests=${interestCount} professions=${professionCount} moods=${moodCount} lookingForOptions=${lookingForCount}`,
-  );
 }
