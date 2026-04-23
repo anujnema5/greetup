@@ -67,12 +67,22 @@ export async function saveProfileSetupStepService(
 
   switch (body.step) {
     case 1: {
-      const { displayName, username, age, gender } = body.data;
-      await Promise.all([
+      const { displayName, username, age, gender, country } = body.data;
+      const saves: Promise<unknown>[] = [
         profileSetupRepository.updateUserDisplayName(userId, displayName),
         profileSetupRepository.setUsername(userId, username),
         profileSetupRepository.updateBasicProfile(profileId, { age, gender }),
-      ]);
+      ];
+      if (country?.code && country?.name) {
+        saves.push(
+          profileSetupRepository.upsertLocation(profileId, {
+            country: country.name,
+            countryCode: country.code,
+            source: "profile_setup",
+          }),
+        );
+      }
+      await Promise.all(saves);
       break;
     }
 
@@ -117,6 +127,27 @@ export async function saveProfileSetupStepService(
             instagram: body.data.instagram,
             twitter: body.data.twitter,
           })
+        );
+      }
+
+      const {
+        preferredGender,
+        distancePreference,
+        ageRange,
+      } = body.data;
+      if (
+        preferredGender !== undefined ||
+        distancePreference !== undefined ||
+        ageRange !== undefined
+      ) {
+        saves.push(
+          profileSetupRepository.upsertPreferences(profileId, {
+            ...(preferredGender !== undefined ? { preferredGender } : {}),
+            ...(distancePreference !== undefined ? { distancePreference } : {}),
+            ...(ageRange !== undefined
+              ? { minAge: ageRange.min, maxAge: ageRange.max }
+              : {}),
+          }),
         );
       }
 

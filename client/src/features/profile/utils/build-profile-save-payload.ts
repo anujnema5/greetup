@@ -66,7 +66,7 @@ export function buildProfileSavePayload(
     }
     case "bio":
       return {
-        step: 6,
+        step: 5,
         data: { bio: d.bio },
       };
   }

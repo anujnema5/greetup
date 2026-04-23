@@ -145,7 +145,7 @@ export function ProfilePhotoDialog({
       }
 
       const photos = buildPhotosPayload(inner.publicUrl, existingPhotos);
-      await saveProfile({ step: 6, data: { photos } }).unwrap();
+      await saveProfile({ step: 5, data: { photos } }).unwrap();
       toast.success("Profile photo updated");
       reset();
       onOpenChange(false);
