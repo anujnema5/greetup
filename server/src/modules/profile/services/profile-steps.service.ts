@@ -249,11 +249,13 @@ function buildSteps(profile: ProfileForSteps | undefined, options: StepOptions):
 /**
  * Calculate profile completion from all fields in all steps (0–100).
  * Counts every question, not just required ones.
+ * Optional steps (e.g. prompt Q&A) are excluded so new questions cannot push users below the onboarded threshold.
  */
 function calculateCompletion(steps: FormStep[]): number {
   let total = 0;
   let filled = 0;
   for (const step of steps) {
+    if (step.optional) continue;
     for (const field of step.fields) {
       total++;
       const v = field.value;

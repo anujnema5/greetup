@@ -8,6 +8,7 @@ import { matchPrepSessionRepository } from "../repositories/match-prep-session.r
 import { matchPrepStatusRepository } from "../repositories/match-prep-status.repository";
 import { profileSetupRepository } from "../repositories/profile-setup.repository";
 import { profileStepsRepository } from "../repositories/profile-steps.repository";
+import { userProfilesRepository } from "../repositories/user-profiles.repository";
 import type { MatchPrepSaveBody } from "../schemas/match-prep.schema";
 import { fetchProfileStepsService } from "./profile-steps.service";
 
@@ -214,15 +215,19 @@ export async function saveMatchPrepService(
     });
   }
 
-  const stepsResult = await fetchProfileStepsService({
-    userId,
-    page: 1,
-    limit: 10,
-    forceRecalculate: true,
-  });
+  const [{ isOnboarded: wasOnboarded }, stepsResult] = await Promise.all([
+    userProfilesRepository.getOnboardingStatus(userId),
+    fetchProfileStepsService({
+      userId,
+      page: 1,
+      limit: 10,
+      forceRecalculate: true,
+    }),
+  ]);
+  // Match-prep edits must not revoke onboarding; completion % can dip when optional steps gain new fields.
   await profileSetupRepository.updateCompletionAndOnboarded(profileId, {
     profileCompletion: stepsResult.profileCompletion,
-    isOnboarded: stepsResult.isProfileComplete,
+    isOnboarded: wasOnboarded || stepsResult.isProfileComplete,
   });
 
   if (body.clientSessionId) {
