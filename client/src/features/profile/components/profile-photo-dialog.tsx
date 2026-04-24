@@ -64,6 +64,10 @@ function rtkErrorMessage(error: unknown): string {
   return "Something went wrong";
 }
 
+function truncateFilename(name: string): string {
+  return name.length > 30 ? name.slice(0, 30) + "…" : name;
+}
+
 type ProfilePhotoDialogProps = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -78,14 +82,15 @@ export function ProfilePhotoDialog({
   onUploaded,
 }: ProfilePhotoDialogProps) {
   const [file, setFile] = useState<File | null>(null);
-  const [pending, setPending] = useState<"upload" | "generate" | null>(null);
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
-  const [presign, { isLoading: isPresigning }] = usePresignProfilePhotoMutation();
-  const [ensurePublic, { isLoading: isEnsuring }] = useEnsureProfilePhotoPublicMutation();
-  const [saveProfile, { isLoading: isSaving }] = useSaveProfileSetupMutation();
+  const [presign] = usePresignProfilePhotoMutation();
+  const [ensurePublic] = useEnsureProfilePhotoPublicMutation();
+  const [saveProfile] = useSaveProfileSetupMutation();
 
-  const busy = isPresigning || isEnsuring || isSaving || pending !== null;
+  const busy = isUploading || isGenerating;
   const currentPhotoUrl = existingPhotos[0]?.url ?? "";
   const selectedPreviewUrl = useMemo(() => (file ? URL.createObjectURL(file) : null), [file]);
   const previewUrl = selectedPreviewUrl ?? currentPhotoUrl;
@@ -98,7 +103,7 @@ export function ProfilePhotoDialog({
 
   const reset = () => {
     setFile(null);
-    setPending(null);
+    setIsGenerating(false);
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
@@ -109,7 +114,10 @@ export function ProfilePhotoDialog({
 
   const onFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const f = e.target.files?.[0];
-    if (!f) { setFile(null); return; }
+    if (!f) {
+      setFile(null);
+      return;
+    }
     if (f.size > MAX_BYTES) {
       toast.error(MAX_SIZE_ERROR);
       e.target.value = "";
@@ -127,10 +135,16 @@ export function ProfilePhotoDialog({
   };
 
   const handleUpload = async () => {
-    if (!file) { toast.error("Choose a photo first."); return; }
+    if (!file) {
+      toast.error("Choose a photo first.");
+      return;
+    }
     const contentType = normalizeContentType(file);
-    if (!contentType) { toast.error("Could not read image type."); return; }
-
+    if (!contentType) {
+      toast.error("Could not read image type.");
+      return;
+    }
+    setIsUploading(true);
     try {
       const pres = await presign({ contentType }).unwrap();
       const inner = pres.data;
@@ -159,12 +173,14 @@ export function ProfilePhotoDialog({
       onUploaded?.();
     } catch (e) {
       toast.error(rtkErrorMessage(e));
+    } finally {
+      setIsUploading(false);
     }
   };
 
   const onGenerateAvatar = async () => {
     if (busy) return;
-    setPending("generate");
+    setIsGenerating(true);
     try {
       const seed =
         typeof crypto !== "undefined" && crypto.randomUUID
@@ -181,18 +197,14 @@ export function ProfilePhotoDialog({
     } catch {
       toast.error("Could not generate an avatar. Try uploading instead.");
     } finally {
-      setPending(null);
+      setIsGenerating(false);
     }
   };
-
-  const shortName = (name: string) =>
-    name.length > 30 ? name.slice(0, 30) + "…" : name;
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
       <DialogContent className="sm:max-w-[380px]" showCloseButton>
 
-        {/* Icon + title + description */}
         <div className="flex items-start gap-3">
           <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-muted/80 text-muted-foreground">
             <ImageIcon className="h-4 w-4" />
@@ -207,7 +219,6 @@ export function ProfilePhotoDialog({
           </div>
         </div>
 
-        {/* Preview */}
         <div className="flex justify-center py-1">
           <div className="relative h-36 w-36 overflow-hidden rounded-2xl border-2 border-dashed border-border bg-muted/30 transition-colors">
             {previewUrl ? (
@@ -223,7 +234,7 @@ export function ProfilePhotoDialog({
                 <span className="text-[10px]">No photo yet</span>
               </div>
             )}
-            {pending === "generate" && (
+            {isGenerating && (
               <div className="absolute inset-0 flex items-center justify-center bg-background/60 backdrop-blur-[2px]">
                 <Loader2 className="h-6 w-6 animate-spin text-foreground" aria-hidden />
               </div>
@@ -231,7 +242,6 @@ export function ProfilePhotoDialog({
           </div>
         </div>
 
-        {/* Hidden file input */}
         <input
           ref={fileInputRef}
           type="file"
@@ -240,7 +250,6 @@ export function ProfilePhotoDialog({
           onChange={onFileChange}
         />
 
-        {/* Action buttons */}
         <div className="grid grid-cols-2 gap-2">
           <button
             type="button"
@@ -262,16 +271,14 @@ export function ProfilePhotoDialog({
           </button>
         </div>
 
-        {/* Filename hint */}
-        {file && pending === null ? (
+        {file && !isGenerating ? (
           <p className="text-center text-[11px] text-muted-foreground">
             <span className="font-medium text-foreground">Ready to save</span>
             {" · "}
-            {shortName(file.name)}
+            {truncateFilename(file.name)}
           </p>
         ) : null}
 
-        {/* Footer */}
         <div className="flex gap-2 pt-1">
           <Button
             type="button"
@@ -288,7 +295,7 @@ export function ProfilePhotoDialog({
             disabled={busy || !file}
             onClick={() => void handleUpload()}
           >
-            {(isPresigning || isEnsuring || isSaving) ? (
+            {isUploading ? (
               <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
             ) : null}
             Save photo
