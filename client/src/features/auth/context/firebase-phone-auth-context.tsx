@@ -51,7 +51,13 @@ function mountFreshRecaptchaContainer(host: HTMLDivElement): string {
 
 type FirebasePhoneAuthContextValue = {
   sendOtp: (e164Phone: string) => Promise<void>;
+  /** Sign-in / sign-up: exchange Firebase token for a Better Auth session. */
   confirmOtp: (code: string, options?: { displayName?: string }) => Promise<void>;
+  /**
+   * After SMS verification, returns a Firebase ID token for the phone credential.
+   * Caller (e.g. settings + RTK) sends it to `updateAccountPhone`; then call `reset()` and Firebase `signOut()`.
+   */
+  confirmPhoneOtpToIdToken: (code: string) => Promise<string>;
   isSending: boolean;
   reset: () => void;
 };
@@ -111,8 +117,23 @@ export function FirebasePhoneAuthProvider({ children }: { children: ReactNode })
     [reset]
   );
 
+  const confirmPhoneOtpToIdToken = useCallback(async (code: string) => {
+    const confirmation = confirmationRef.current;
+    if (!confirmation) {
+      throw new Error("Request a code first");
+    }
+    const otp = digitsOnlyOtp(code);
+    if (otp.length !== 6) {
+      throw new Error("Enter the 6-digit code");
+    }
+    const cred = await confirmation.confirm(otp);
+    return cred.user.getIdToken();
+  }, []);
+
   return (
-    <FirebasePhoneAuthContext.Provider value={{ sendOtp, confirmOtp, isSending, reset }}>
+    <FirebasePhoneAuthContext.Provider
+      value={{ sendOtp, confirmOtp, confirmPhoneOtpToIdToken, isSending, reset }}
+    >
       <div ref={recaptchaHostRef} className="sr-only" aria-hidden />
       {children}
     </FirebasePhoneAuthContext.Provider>

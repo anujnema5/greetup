@@ -1,5 +1,6 @@
 import { configureStore } from '@reduxjs/toolkit'
 import { baseApi } from '@/lib/api/base-api'
+import '@/features/settings/api/account-settings-api'
 import roomReducer from './slices/roomSlice'
 import chatReducer from '@/features/chat/slices/chat.slice'
 
