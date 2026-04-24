@@ -19,6 +19,13 @@ export function validateProfileSection(
     if (!/^[a-z0-9_]+$/.test(u)) return "Username can only use letters, numbers, and underscores.";
     if (!d.country?.code || !d.country?.name) return "Country is required.";
   }
+  if (section === "prompts") {
+    for (const answer of Object.values(d.promptAnswers)) {
+      if (answer.trim().length > 0 && answer.trim().length < 10) {
+        return "If you answer a prompt, add a few more words—or clear it to skip.";
+      }
+    }
+  }
   return null;
 }
 
@@ -68,6 +75,15 @@ export function buildProfileSavePayload(
       return {
         step: 5,
         data: { bio: d.bio },
+      };
+    case "prompts":
+      return {
+        step: 6,
+        data: {
+          answers: Object.entries(d.promptAnswers)
+            .filter(([, answer]) => answer.trim().length >= 10)
+            .map(([questionId, answer]) => ({ questionId, answer: answer.trim() })),
+        },
       };
   }
 }

@@ -44,4 +44,5 @@ export type MyProfileResponse = {
     policy: "all_connections" | "selected_only";
     allowlistedUserIds: string[];
   };
+  promptAnswers: Array<{ questionId: string; answer: string }>;
 };

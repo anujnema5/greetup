@@ -73,5 +73,8 @@ export function mapMyProfileToEditable(api: MyProfileResponse): EditableProfile 
     photos: api.photos.length
       ? api.photos.slice(0, 1).map((p) => ({ id: p.id, url: p.url }))
       : [],
+    promptAnswers: Object.fromEntries(
+      (api.promptAnswers ?? []).map((a) => [a.questionId, a.answer])
+    ),
   };
 }
