@@ -1,4 +1,8 @@
 export const API_ENDPOINTS = {
+  ACCOUNT: {
+    /** Better Auth plugin: update signed-in user phone after Firebase SMS verification. */
+    FIREBASE_PHONE_UPDATE: "/auth/firebase-phone-update",
+  },
   PROFILE: {
     ME: "/profile/me",
     SETUP_STEPS: "/profile/setup-steps",

@@ -9,15 +9,9 @@ export const phoneLoginSchema = z.object({
     phone: z.string().min(10, "Please enter a valid phone number"),
 });
 
-export const otpVerificationSchema = z.object({
-    otp: z.string().length(6, "OTP must be a 6-digit code"),
-});
-
-export const otpSchema = z.object({
-    otp: z
-        .string()
-        .min(6, "OTP must be 6 digits")
-        .max(6, "OTP must be 6 digits"),
+/** Firebase Phone Auth SMS code (exactly 6 digits in the UI before `digitsOnlyOtp` in context). */
+export const phoneOtpVerificationSchema = z.object({
+    otp: z.string().length(6, "Enter the 6-digit code"),
 });
 
 export const emailRegisterSchema = z
@@ -41,10 +35,7 @@ export const emailRegisterSchema = z
         path: ["confirmPassword"],
     });
 
-
-
 export type EmailRegisterInput = z.infer<typeof emailRegisterSchema>;
 export type EmailLoginInput = z.infer<typeof emailLoginSchema>;
 export type PhoneLoginInput = z.infer<typeof phoneLoginSchema>;
-export type OTPVerificationInput = z.infer<typeof otpVerificationSchema>;
-export type OTPInputInput = z.infer<typeof otpSchema>;
+export type PhoneOtpVerificationInput = z.infer<typeof phoneOtpVerificationSchema>;

@@ -6,6 +6,7 @@ export const baseApi = createApi({
   baseQuery: fetchBaseQuery({ baseUrl: API_BASE_URL, credentials: 'include' }),
   endpoints: () => ({}),
   tagTypes: [
+    'AccountSession',
     'ProfileSetupSteps',
     'ProfileMe',
     'Connections',

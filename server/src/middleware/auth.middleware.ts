@@ -1,4 +1,5 @@
 import { auth } from "@/core/auth/auth";
+import logger from "@/core/logging";
 import { userProfilesRepository } from "@/modules/profile/repositories/user-profiles.repository";
 import { EmailNotVerifiedError, PremiumSubscriptionExpiredError, PremiumSubscriptionRequiredError, UnauthorizedError } from "@/shared/errors";
 import type { Context, Next } from "hono";
@@ -30,6 +31,14 @@ export const authMiddleware = async (c: Context, next: Next) => {
         });
 
         if (!session) {
+            const cookie = c.req.header("cookie") ?? "";
+            const hasSessionCookie =
+                cookie.includes("better-auth.session_token") ||
+                cookie.includes("__Secure-better-auth.session_token");
+            logger.warn("authMiddleware: no Better Auth session", {
+                path: c.req.path,
+                hasSessionCookie,
+            });
             throw new UnauthorizedError();
         }
 
@@ -55,6 +64,10 @@ export const authMiddleware = async (c: Context, next: Next) => {
     }
 
     catch (error) {
+        if (error instanceof UnauthorizedError) {
+            throw error;
+        }
+        logger.error("authMiddleware: getSession failed", error instanceof Error ? error : undefined);
         throw new UnauthorizedError();
     }
 }

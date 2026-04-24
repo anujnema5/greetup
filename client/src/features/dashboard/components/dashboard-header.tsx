@@ -69,7 +69,10 @@ function DashboardHeaderInner() {
 
   const headline = mounted && firstName ? `${g}, ${firstName}` : g;
   const avatarSrc = getProfileImageUrl(mounted ? (sessionUser?.image ?? null) : null);
-  const email = sessionUser?.email?.trim() ?? "";
+  const rawEmail = sessionUser?.email?.trim() ?? "";
+  const email = rawEmail.endsWith("@firebase.greetup.local") ? "" : rawEmail;
+  const phone = (session?.user as { phoneNumber?: string | null } | undefined)?.phoneNumber?.trim() ?? "";
+  const accountSubtitle = email || phone;
   const unreadCount = unreadData?.data?.unreadCount ?? 0;
   const unreadBadgeLabel = unreadCount > 99 ? "99+" : String(unreadCount);
   const notifications = notificationsData?.data?.items ?? [];
@@ -192,7 +195,7 @@ function DashboardHeaderInner() {
           <DropdownMenuContent align="end" sideOffset={8} className="w-56">
             <DropdownMenuLabel className="space-y-0.5">
               <p className="truncate text-sm font-medium text-foreground">{displayName || "My Account"}</p>
-              {email ? <p className="truncate text-xs font-normal text-muted-foreground">{email}</p> : null}
+              {accountSubtitle ? <p className="truncate text-xs font-normal text-muted-foreground">{accountSubtitle}</p> : null}
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
             <DropdownMenuItem className="cursor-pointer" onClick={handleGoToProfile}>
