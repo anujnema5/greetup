@@ -28,7 +28,8 @@ function mapAuthUrlToPublicHost(url: string): string {
 }
 
 function resolveAuthEmailRecipient(email: string): string {
-  return config.env === "development" ? DEV_NOTIFICATION_EMAIL : email;
+  // return config.env === "development" ? DEV_NOTIFICATION_EMAIL : email;
+  return email;
 }
 
 const auth = betterAuth({

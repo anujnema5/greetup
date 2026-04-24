@@ -10,6 +10,7 @@ import {
   Heart,
   Loader2,
   MapPin,
+  MessageSquare,
   SlidersHorizontal,
   Star,
   Zap,
@@ -126,6 +127,13 @@ export function ProfilePage() {
       profile.preferredGender === "any" ? "Open to everyone" : `Into ${profile.preferredGender}`,
     ];
     return bits.join(" · ");
+  }, [profile]);
+
+  const promptsSummary = useMemo(() => {
+    if (!profile) return "Add answers to show on your profile";
+    const count = Object.values(profile.promptAnswers).filter((a) => a.trim().length > 0).length;
+    if (count === 0) return "Add answers to show on your profile";
+    return `${count} answer${count === 1 ? "" : "s"} added`;
   }, [profile]);
 
   const loading = profileQuery.isLoading || stepsQuery.isLoading;
@@ -345,6 +353,12 @@ export function ProfilePage() {
                 profile.bio.length > 72 ? `${profile.bio.slice(0, 72)}…` : profile.bio || "Add a bio"
               }
               onClick={() => setActiveSection("bio")}
+            />
+            <ProfileSectionRow
+              icon={<MessageSquare className="h-4 w-4" />}
+              label="About me"
+              summary={promptsSummary}
+              onClick={() => setActiveSection("prompts")}
             />
           </div>
 

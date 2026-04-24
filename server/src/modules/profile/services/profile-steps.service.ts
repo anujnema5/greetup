@@ -236,7 +236,7 @@ function buildSteps(profile: ProfileForSteps | undefined, options: StepOptions):
         label: q.question,
         type: "textarea" as const,
         required: false,
-        description: "If you answer, use at least 10 characters.",
+        description: "Optional—if you answer, a short line (a few words) is enough.",
         minLength: 10,
         maxLength: 300,
         value: answerByQuestionId.get(q.id) ?? null,
