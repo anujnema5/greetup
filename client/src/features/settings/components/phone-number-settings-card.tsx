@@ -1,8 +1,8 @@
 "use client";
 
 import { useState } from "react";
+import { Phone, ChevronRight } from "lucide-react";
 
-import { Button } from "@/components/ui/button";
 import { ChangePhoneDialog } from "@/features/settings/components/change-phone-dialog";
 import { useSession } from "@/lib/auth-client";
 
@@ -21,35 +21,39 @@ export function PhoneNumberSettingsCard() {
 
   return (
     <>
-      <div className="rounded-xl border border-border bg-card/50 p-5">
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-          <div className="min-w-0 space-y-1">
-            <h2 className="text-base font-semibold text-foreground">Phone number</h2>
-            <p className="text-sm text-muted-foreground">
-              Used for sign-in with SMS. We&apos;ll send a code to confirm a new number.
-            </p>
-            {current ? (
-              <p className="pt-1 text-sm text-foreground">
-                <span className="text-muted-foreground">Current: </span>
-                <span className="font-medium tabular-nums">{current}</span>
-              </p>
-            ) : (
-              <p className="pt-1 text-sm text-muted-foreground">No phone on file yet.</p>
-            )}
+      <button
+        type="button"
+        className="flex w-full items-center gap-3 rounded-2xl border border-border bg-card px-4 py-3.5 text-left transition-colors hover:bg-muted/60 active:bg-muted/80 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset"
+        onClick={() => {
+          setDialogInstance((n) => n + 1);
+          setDialogOpen(true);
+        }}
+      >
+        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-muted/80 text-muted-foreground">
+          <Phone className="h-4 w-4" />
+        </span>
+
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center gap-2">
+            <p className="text-[13px] font-semibold text-foreground">Phone number</p>
+            <span
+              className={[
+                "inline-flex items-center rounded-full border px-1.5 py-0.5 text-[10px] font-medium leading-none",
+                current
+                  ? "border-success/30 bg-success/10 text-success"
+                  : "border-border bg-muted text-muted-foreground",
+              ].join(" ")}
+            >
+              {current ? "Verified" : "Not set"}
+            </span>
           </div>
-          <Button
-            type="button"
-            variant="secondary"
-            className="shrink-0"
-            onClick={() => {
-              setDialogInstance((n) => n + 1);
-              setDialogOpen(true);
-            }}
-          >
-            {current ? "Change" : "Add phone"}
-          </Button>
+          <p className="mt-0.5 line-clamp-1 text-[12px] leading-snug text-muted-foreground">
+            {current ?? "Add a number for SMS sign-in"}
+          </p>
         </div>
-      </div>
+
+        <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground/70" aria-hidden />
+      </button>
 
       <ChangePhoneDialog
         key={dialogInstance}

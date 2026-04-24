@@ -1,19 +1,18 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Loader2 } from "lucide-react";
+import { Loader2, MessageSquare, Phone } from "lucide-react";
 import { toast } from "sonner";
+import { isValidPhoneNumber } from "react-phone-number-input";
 
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
   DialogDescription,
-  DialogFooter,
-  DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
 import {
@@ -21,7 +20,6 @@ import {
   FormControl,
   FormField,
   FormItem,
-  FormLabel,
   FormMessage,
 } from "@/components/ui/form";
 import {
@@ -42,7 +40,9 @@ import {
   type PhoneOtpVerificationInput,
 } from "@/features/settings/schemas/change-phone.schemas";
 import { getRtkQueryErrorMessage } from "@/lib/api/rtk-query-error";
-import { isValidPhoneNumber } from "react-phone-number-input";
+import { cn } from "@/lib/utils";
+
+// ─── Types ────────────────────────────────────────────────────────────────────
 
 type Step = "phone" | "otp";
 
@@ -52,6 +52,8 @@ type ChangePhoneDialogProps = {
   currentPhone: string | null;
 };
 
+// ─── Component ────────────────────────────────────────────────────────────────
+
 export function ChangePhoneDialog({ open, onOpenChange, currentPhone }: ChangePhoneDialogProps) {
   const router = useRouter();
   const { sendOtp, confirmPhoneOtpToIdToken, isSending, reset: resetFirebasePhone } =
@@ -60,6 +62,7 @@ export function ChangePhoneDialog({ open, onOpenChange, currentPhone }: ChangePh
 
   const [step, setStep] = useState<Step>("phone");
   const [pendingE164, setPendingE164] = useState("");
+  const [countdown, setCountdown] = useState(0);
 
   const phoneForm = useForm<PhoneLoginInput>({
     resolver: zodResolver(phoneLoginSchema),
@@ -71,37 +74,49 @@ export function ChangePhoneDialog({ open, onOpenChange, currentPhone }: ChangePh
     defaultValues: { otp: "" },
   });
 
+  // Countdown timer for OTP resend cooldown
+  useEffect(() => {
+    if (countdown === 0) return;
+    const id = setInterval(() => setCountdown((c) => (c > 0 ? c - 1 : 0)), 1000);
+    return () => clearInterval(id);
+  }, [countdown]);
+
+  // ─── Handlers ───────────────────────────────────────────────────────────────
+
   const closeAndReset = () => {
     resetFirebasePhone();
     phoneForm.reset({ phone: currentPhone ?? "" });
     otpForm.reset({ otp: "" });
     setStep("phone");
     setPendingE164("");
+    setCountdown(0);
   };
 
   const handleOpenChange = (next: boolean) => {
-    if (!next) {
-      closeAndReset();
-    }
+    if (!next) closeAndReset();
     onOpenChange(next);
   };
 
   const onSendCode = async (data: PhoneLoginInput) => {
     const raw = data.phone.trim();
+
     if (!isValidPhoneNumber(raw)) {
+      phoneForm.setError("phone", { message: "Enter a valid phone number with country code" });
+      return;
+    }
+
+    if (currentPhone && raw === currentPhone) {
       phoneForm.setError("phone", {
-        message: "Enter a valid phone number with country code",
+        message: "This number is already linked to your account — enter a different one",
       });
       return;
     }
-    if (currentPhone && raw === currentPhone) {
-      toast.message("This is already your phone number.");
-      return;
-    }
+
     try {
       await sendOtp(raw);
       setPendingE164(raw);
       setStep("otp");
+      setCountdown(30);
       otpForm.reset({ otp: "" });
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Could not send code");
@@ -131,19 +146,67 @@ export function ChangePhoneDialog({ open, onOpenChange, currentPhone }: ChangePh
     }
   };
 
+  const handleResend = () => {
+    void sendOtp(pendingE164)
+      .then(() => {
+        toast.success("Code sent");
+        setCountdown(30);
+      })
+      .catch((err) =>
+        toast.error(err instanceof Error ? err.message : "Could not resend code"),
+      );
+  };
+
   const busy = isSending || isSaving;
+
+  // ─── Render ─────────────────────────────────────────────────────────────────
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent className="sm:max-w-md" showCloseButton>
-        <DialogHeader>
-          <DialogTitle>Change phone number</DialogTitle>
-          <DialogDescription>
-            We&apos;ll text a code to the new number. Your account stays signed in.
-          </DialogDescription>
-        </DialogHeader>
+      <DialogContent className="sm:max-w-100" showCloseButton>
 
-        {step === "phone" ? (
+        {/* Step pills — sits top-left, clear of the absolute close button */}
+        <div className="flex items-center gap-1.5 pr-8">
+          <div className="h-1 w-8 rounded-full bg-primary" />
+          <div
+            className={cn(
+              "h-1 w-8 rounded-full transition-colors duration-300",
+              step === "otp" ? "bg-primary" : "bg-muted",
+            )}
+          />
+          <span className="ml-1 text-[11px] text-muted-foreground">
+            Step {step === "phone" ? "1" : "2"} of 2
+          </span>
+        </div>
+
+        {/* Header — icon + title + description */}
+        <div className="flex items-start gap-3">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-muted/80 text-muted-foreground">
+            {step === "phone" ? (
+              <Phone className="h-4 w-4" />
+            ) : (
+              <MessageSquare className="h-4 w-4" />
+            )}
+          </div>
+          <div className="min-w-0 flex-1 pt-0.5">
+            <DialogTitle className="text-[13px] font-semibold leading-none text-foreground">
+              {step === "phone" ? "Enter new number" : "Check your messages"}
+            </DialogTitle>
+            <DialogDescription className="mt-1 text-[12px] leading-snug">
+              {step === "phone" ? (
+                "We'll send a 6-digit code to verify ownership."
+              ) : (
+                <>
+                  Code sent to{" "}
+                  <span className="font-medium tabular-nums text-foreground">{pendingE164}</span>
+                </>
+              )}
+            </DialogDescription>
+          </div>
+        </div>
+
+        {/* ── Step 1: phone input ─────────────────────────────────────────── */}
+        {step === "phone" && (
           <Form {...phoneForm}>
             <form onSubmit={phoneForm.handleSubmit(onSendCode)} className="space-y-4">
               <FormField
@@ -151,51 +214,68 @@ export function ChangePhoneDialog({ open, onOpenChange, currentPhone }: ChangePh
                 name="phone"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>New phone number</FormLabel>
                     <FormControl>
                       <PhoneInput
                         {...field}
                         placeholder="Enter phone number"
                         defaultCountry="IN"
                         international
+                        onChange={(value) => {
+                          field.onChange(value);
+                          // Clear the error as soon as they start editing again
+                          phoneForm.clearErrors("phone");
+                        }}
+                        onBlur={() => {
+                          field.onBlur();
+                          const raw = (field.value ?? "").trim();
+                          if (currentPhone && raw === currentPhone) {
+                            phoneForm.setError("phone", {
+                              message:
+                                "This number is already linked to your account — enter a different one",
+                            });
+                          }
+                        }}
                       />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
               />
-              <DialogFooter className="gap-2 sm:gap-0">
-                <Button type="button" variant="outline" onClick={() => handleOpenChange(false)}>
+              <div className="flex gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="flex-3"
+                  disabled={busy}
+                  onClick={() => handleOpenChange(false)}
+                >
                   Cancel
                 </Button>
-                <Button type="submit" disabled={busy}>
-                  {busy ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Sending…
-                    </>
-                  ) : (
-                    "Send code"
-                  )}
+                <Button type="submit" className="flex-2" disabled={busy}>
+                  {busy && <Loader2 className="h-4 w-4 animate-spin" />}
+                  {busy ? "Sending…" : "Send code"}
                 </Button>
-              </DialogFooter>
+              </div>
             </form>
           </Form>
-        ) : (
+        )}
+
+        {/* ── Step 2: OTP verification ────────────────────────────────────── */}
+        {step === "otp" && (
           <Form {...otpForm}>
             <form onSubmit={otpForm.handleSubmit(onConfirmOtp)} className="space-y-4">
-              <p className="text-sm text-muted-foreground">
-                Code sent to{" "}
-                <span className="font-medium text-foreground">{pendingE164}</span>
-              </p>
               <FormField
                 control={otpForm.control}
                 name="otp"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel className="sr-only">Verification code</FormLabel>
                     <FormControl>
-                      <InputOTP maxLength={6} value={field.value} onChange={field.onChange}>
+                      <InputOTP
+                        maxLength={6}
+                        value={field.value}
+                        onChange={field.onChange}
+                        containerClassName="justify-center"
+                      >
                         <InputOTPGroup>
                           <InputOTPSlot index={0} />
                           <InputOTPSlot index={1} />
@@ -209,31 +289,37 @@ export function ChangePhoneDialog({ open, onOpenChange, currentPhone }: ChangePh
                         </InputOTPGroup>
                       </InputOTP>
                     </FormControl>
-                    <FormMessage />
+                    <FormMessage className="text-center" />
                   </FormItem>
                 )}
               />
-              <p className="text-center text-sm text-muted-foreground">
-                Didn&apos;t receive it?{" "}
-                <button
-                  type="button"
-                  className="underline"
-                  disabled={busy}
-                  onClick={() =>
-                    void sendOtp(pendingE164)
-                      .then(() => toast.success("Code sent"))
-                      .catch((err) =>
-                        toast.error(err instanceof Error ? err.message : "Could not resend code")
-                      )
-                  }
-                >
-                  Resend
-                </button>
+
+              <p className="text-center text-[12px] text-muted-foreground">
+                {countdown > 0 ? (
+                  <>
+                    Resend in{" "}
+                    <span className="font-medium tabular-nums text-foreground">{countdown}s</span>
+                  </>
+                ) : (
+                  <>
+                    Didn&apos;t receive it?{" "}
+                    <button
+                      type="button"
+                      className="font-medium text-primary hover:underline disabled:opacity-50"
+                      disabled={busy}
+                      onClick={handleResend}
+                    >
+                      Resend
+                    </button>
+                  </>
+                )}
               </p>
-              <DialogFooter className="flex-col gap-2 sm:flex-row">
+
+              <div className="flex gap-2">
                 <Button
                   type="button"
                   variant="outline"
+                  className="flex-3"
                   disabled={busy}
                   onClick={() => {
                     setStep("phone");
@@ -242,20 +328,15 @@ export function ChangePhoneDialog({ open, onOpenChange, currentPhone }: ChangePh
                 >
                   Back
                 </Button>
-                <Button type="submit" disabled={busy}>
-                  {busy ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Saving…
-                    </>
-                  ) : (
-                    "Verify & save"
-                  )}
+                <Button type="submit" className="flex-2" disabled={busy}>
+                  {busy && <Loader2 className="h-4 w-4 animate-spin" />}
+                  {busy ? "Saving…" : "Verify & save"}
                 </Button>
-              </DialogFooter>
+              </div>
             </form>
           </Form>
         )}
+
       </DialogContent>
     </Dialog>
   );
