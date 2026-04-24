@@ -48,6 +48,14 @@ This document describes how end-user authentication works in this repo: **Better
 
 Phone users typically have **`emailVerified: false`** until you add a separate email verification path.
 
+### 3.4 Change phone (Settings)
+
+1. **Settings** (`/settings`) wraps **Change phone** in `FirebasePhoneAuthProvider` (same Firebase SMS + reCAPTCHA as login).
+2. User enters the **new** E.164 number → Firebase sends OTP → user confirms.
+3. Client calls **`POST /api/auth/firebase-phone-update`** with `{ idToken }` and the **existing** Better Auth session cookie.
+4. Server (`firebase-phone-update` in `firebase-phone.plugin.ts`): **`sessionMiddleware`** loads the current user → verifies the Firebase token → ensures the number is not on **another** account → **`updateUser`** + **`setSessionCookie`**.
+5. **`get-session`** normalization includes **`phoneNumber`** from Postgres so the UI shows the current number.
+
 ---
 
 ## 4. Next.js and cookies (why `/api` is proxied)
@@ -115,7 +123,9 @@ Implications:
 | `server/src/core/socket/socket.ts` | Socket session from cookies |
 | `client/next.config.ts` | `/api` → Hono rewrites |
 | `client/src/lib/auth-client.ts` | Better Auth React client |
-| `client/src/features/auth/context/firebase-phone-auth-context.tsx` | Phone OTP + exchange |
+| `client/src/features/auth/context/firebase-phone-auth-context.tsx` | Phone OTP; sign-in exchange vs **signed-in** phone update |
+| `client/src/features/auth/lib/update-account-phone.ts` | `POST /api/auth/firebase-phone-update` |
+| `client/src/features/settings/components/change-phone-section.tsx` | Settings UI for changing phone |
 | `client/src/features/auth/types/` | Auth-related TS types (e.g. Firebase session exchange) |
 | `client/src/features/auth/schemas/auth.schemas.ts` | Zod schemas including phone OTP |
 

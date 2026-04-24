@@ -1,4 +1,7 @@
-import { sessionUserRepository } from "../repositories/session-user.repository";
+import {
+  sessionUserRepository,
+  type SessionUserIdentityRow,
+} from "../repositories/session-user.repository";
 
 type SessionUserLike = {
   id?: string;
@@ -14,7 +17,7 @@ export type AuthSessionLike = {
 
 function resolveDisplayName(
   sessionUser: SessionUserLike,
-  dbUser: { name: string | null; displayName: string | null } | null,
+  dbUser: Pick<SessionUserIdentityRow, "name" | "displayName"> | null,
 ): string {
   return (
     dbUser?.displayName?.trim() ||
@@ -41,6 +44,7 @@ export async function getNormalizedSessionService(
       ...session.user,
       name: displayName,
       displayName: displayName || null,
+      phoneNumber: dbUser?.phoneNumber ?? (session.user as { phoneNumber?: string | null }).phoneNumber ?? null,
     },
   };
 }
