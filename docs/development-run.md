@@ -358,7 +358,10 @@ npm run dev
 | `GOOGLE_CLIENT_ID` | _(OAuth credential)_ | Google OAuth |
 | `GOOGLE_CLIENT_SECRET` | _(OAuth credential)_ | Google OAuth |
 | `GOOGLE_MAPS_API_KEY` | _(Google Maps credential)_ | Server-side geocoding for match prep location |
-| `RESEND_API_KEY` | _(optional)_ | Email delivery |
+| `MAILJET_API_KEY` | _(Mailjet primary API key)_ | Transactional email (Better Auth) |
+| `MAILJET_API_SECRET` | _(Mailjet secret key)_ | Pair with `MAILJET_API_KEY` |
+| `MAIL_FROM_EMAIL` | _(verified sender, e.g. noreply@yourdomain)_ | From address in Mailjet |
+| `MAIL_FROM_NAME` | _(optional)_ | Display name (default `Greetup`) |
 | `DEV_NOTIFICATION_EMAIL` | _(optional)_ | Dev email override |
 
 ### matching-service — `matching-service/env/.env.development`

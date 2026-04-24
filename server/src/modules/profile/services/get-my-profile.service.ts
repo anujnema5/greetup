@@ -67,5 +67,9 @@ export async function getMyProfileService(userId: string): Promise<MyProfileResp
       policy: (p.roomInvitePolicy ?? "all_connections") as "all_connections" | "selected_only",
       allowlistedUserIds: allowlisted,
     },
+    promptAnswers: (p.promptAnswers ?? []).map((a) => ({
+      questionId: a.questionId,
+      answer: a.answer,
+    })),
   };
 }

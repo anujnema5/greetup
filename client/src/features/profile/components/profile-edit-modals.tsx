@@ -1,6 +1,10 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import * as React from "react";
+import { startTransition, useEffect, useState } from "react";
+
+/** React 19.2+ — types may lag; runtime provides this hook. */
+const useEffectEvent = React.useEffectEvent as <T extends (...args: never[]) => unknown>(fn: T) => T;
 import { Loader2 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -75,9 +79,14 @@ export function ProfileEditModals({
   const open = active !== null;
   const section = active;
 
+  const resetDraftFromProfile = useEffectEvent(() => {
+    if (!section) return;
+    startTransition(() => setDraft({ ...profile }));
+  });
+
   useEffect(() => {
-    if (section) setDraft({ ...profile });
-  }, [section, profile]);
+    resetDraftFromProfile();
+  }, [section]);
 
   const d = draft ?? profile;
 
@@ -402,6 +411,49 @@ export function ProfileEditModals({
             <p className="text-[11px] text-muted-foreground text-right">{d.bio.length}/500</p>
           </div>
         </div>
+      </ProfileEditShell>
+
+      <ProfileEditShell
+        open={open && section === "prompts"}
+        onOpenChange={(o) => !o && onClose()}
+        title="A little more about you"
+        description="Pick the prompts that feel right, Your answers show on your profile. Everything here is optional; if you answer one, a few words is enough to make it feel real."
+        footer={section === "prompts" ? footer : undefined}
+      >
+        {catalog.promptQuestions.length === 0 ? (
+          <p className="text-sm text-muted-foreground">No questions available right now.</p>
+        ) : (
+          <div className="flex flex-col gap-5">
+            {catalog.promptQuestions.map((q) => {
+              const answer = d.promptAnswers[q.id] ?? "";
+              return (
+                <div key={q.id} className="space-y-2">
+                  <Label htmlFor={`pe-prompt-${q.id}`} className="leading-snug">
+                    {q.question}
+                  </Label>
+                  <Textarea
+                    id={`pe-prompt-${q.id}`}
+                    value={answer}
+                    onChange={(e) =>
+                      patchDraft({
+                        promptAnswers: { ...d.promptAnswers, [q.id]: e.target.value },
+                      })
+                    }
+                    placeholder="Your answer (optional)"
+                    className="min-h-[80px] rounded-xl resize-none"
+                    maxLength={300}
+                  />
+                  <p className="text-[11px] text-muted-foreground text-right">
+                    {answer.length}/300
+                    {answer.length > 0 && answer.length < 10 ? (
+                      <span className="text-destructive ml-2">min 10 chars</span>
+                    ) : null}
+                  </p>
+                </div>
+              );
+            })}
+          </div>
+        )}
       </ProfileEditShell>
     </>
   );

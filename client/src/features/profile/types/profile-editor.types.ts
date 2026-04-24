@@ -17,6 +17,8 @@ export type EditableProfile = {
   ageRange: { min: number; max: number };
   /** At most one profile image for avatar; API may return a single photo */
   photos: Array<{ id: string; url: string }>;
+  /** Answers to onboarding prompt questions, keyed by questionId */
+  promptAnswers: Record<string, string>;
 };
 
 export type ProfileEditSectionId =
@@ -25,4 +27,5 @@ export type ProfileEditSectionId =
   | "interests"
   | "work"
   | "preferences"
-  | "bio";
+  | "bio"
+  | "prompts";
