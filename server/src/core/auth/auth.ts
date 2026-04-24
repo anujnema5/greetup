@@ -1,14 +1,13 @@
 import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
-import { openAPI, phoneNumber } from "better-auth/plugins";
+import { openAPI } from "better-auth/plugins";
 import { db } from "../database";
+import { firebasePhonePlugin } from "@/core/auth/plugins/firebase-phone.plugin";
 import { sendEmail } from "@/services/email";
 import logger from "../logging";
 import config from "@/shared/config/config";
-import { BETTER_AUTH_URL, DEV_NOTIFICATION_EMAIL, SERVER_URL } from "@/shared/constants";
+import { BETTER_AUTH_URL, SERVER_URL } from "@/shared/constants";
 import * as schema from "@/core/database/schema";
-
-// npx @better-auth/cli generate --config ./src/core/auth/index.ts
 
 const normalizedBetterAuthUrl = BETTER_AUTH_URL?.replace(/\/$/, "");
 const normalizedServerUrl = SERVER_URL?.replace(/\/$/, "");
@@ -28,7 +27,6 @@ function mapAuthUrlToPublicHost(url: string): string {
 }
 
 function resolveAuthEmailRecipient(email: string): string {
-  // return config.env === "development" ? DEV_NOTIFICATION_EMAIL : email;
   return email;
 }
 
@@ -41,42 +39,39 @@ const auth = betterAuth({
     },
   }),
 
+  /**
+   * Must match `users` columns used outside Better Auth defaults (see `schema/users.ts`).
+   * Phone fields are server-written only (`input: false`) so clients cannot spoof them on email sign-up.
+   */
+  user: {
+    additionalFields: {
+      username: {
+        type: "string",
+        required: false,
+      },
+      displayName: {
+        type: "string",
+        required: false,
+      },
+      phoneNumber: {
+        type: "string",
+        required: false,
+        unique: true,
+        input: false,
+      },
+      phoneNumberVerified: {
+        type: "boolean",
+        required: false,
+        input: false,
+      },
+    },
+  },
+
   advanced: {
     useSecureCookies: config.env === "production",
     crossSubDomainCookies,
   },
-  plugins: [
-    openAPI(),
-    phoneNumber({
-      sendOTP: async ({ phoneNumber, code }) => {
-        logger.info("OTP generated", {
-          phoneNumber,
-          otp: config.env === "development" ? code : "hidden",
-        });
-
-        // TODO: integrate SMS provider here
-      },
-    }),
-  ],
-
-  // Let Better Auth generate user/session/account IDs (required when users.id has no DB default)
-  // advanced.database.generateId defaults to true; only set to false if your DB has DEFAULT on id columns
-
-  signUpOnVerification: {
-    getTempEmail: (phoneNumber: string) => {
-      logger.debug("Generating temp email from phone number", {
-        phoneNumber,
-      });
-      return `${phoneNumber}@my-site.com`;
-    },
-
-    getTempName: (phoneNumber: string) => {
-      logger.debug("Generating temp name from phone number", {
-        phoneNumber,
-      });
-      return phoneNumber;
-    },
-  },
+  plugins: [openAPI(), firebasePhonePlugin()],
 
   emailAndPassword: {
     enabled: true,

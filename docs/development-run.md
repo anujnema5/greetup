@@ -15,6 +15,8 @@
 11. [Architecture & Data Flow](#architecture--data-flow)
 12. [Security Model](#security-model)
 
+**Authentication (Better Auth, Firebase Phone, cookies, Next proxy):** [authentication.md](./authentication.md)
+
 ---
 
 ## Getting Started
@@ -363,6 +365,21 @@ npm run dev
 | `MAIL_FROM_EMAIL` | _(verified sender, e.g. noreply@yourdomain)_ | From address in Mailjet |
 | `MAIL_FROM_NAME` | _(optional)_ | Display name (default `Greetup`) |
 | `DEV_NOTIFICATION_EMAIL` | _(optional)_ | Dev email override |
+| `FIREBASE_SERVICE_ACCOUNT_PATH` | e.g. `./env/firebase-service-account.json` | **Recommended:** path to the service account key file (avoids multi-line `.env` issues) |
+| `FIREBASE_SERVICE_ACCOUNT_JSON` | _optional; one-line JSON only_ | Same key inlined; do not paste multi-line JSON into `.env` |
+
+### client — `.env.local` (or Doppler)
+
+| Variable | Example | Purpose |
+|---|---|---|
+| `NEXT_PUBLIC_SOCKET_SERVER_URL` | `http://localhost:5300` | Better Auth + API origin (cookies) |
+| `NEXT_PUBLIC_FIREBASE_API_KEY` | _(Firebase console → Web app)_ | Firebase client |
+| `NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN` | `your-project.firebaseapp.com` | Firebase Auth |
+| `NEXT_PUBLIC_FIREBASE_PROJECT_ID` | `your-project` | Firebase project |
+| `NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID` | `123456789` | Firebase |
+| `NEXT_PUBLIC_FIREBASE_APP_ID` | `1:...:web:...` | Firebase app |
+
+Enable **Phone** sign-in in Firebase Console → Authentication → Sign-in method.
 
 ### matching-service — `matching-service/env/.env.development`
 

@@ -16,6 +16,8 @@ node_modules/
 .env.production
 env/.env.development
 env/.env.production
+# Firebase Admin key when using FIREBASE_SERVICE_ACCOUNT_PATH (never commit)
+env/firebase-service-account.json
 
 bruno/
 .todos.mdx

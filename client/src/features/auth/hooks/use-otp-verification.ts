@@ -1,66 +1,68 @@
 import { useState, useCallback } from "react";
 import { useForm } from "react-hook-form";
-import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { toast } from "sonner";
 
-const otpSchema = z.object({
-    otp: z
-        .string()
-        .min(6, "OTP must be 6 digits")
-        .max(6, "OTP must be 6 digits"),
-});
+import { useFirebasePhoneAuth } from "@/features/auth/context/firebase-phone-auth-context";
+import {
+  phoneOtpVerificationSchema,
+  type PhoneOtpVerificationInput,
+} from "@/features/auth/schemas/auth.schemas";
 
-export function useOTPVerification(phoneNumber: string) {
-    const [isLoading, setIsLoading] = useState(false);
+export function useOTPVerification(
+  phoneE164: string,
+  options?: { displayName?: string }
+) {
+  const { confirmOtp, sendOtp, isSending } = useFirebasePhoneAuth();
+  const [isLoading, setIsLoading] = useState(false);
 
-    const form = useForm<z.infer<typeof otpSchema>>({
-        resolver: zodResolver(otpSchema),
-        defaultValues: {
-            otp: "",
-        },
-    });
+  const form = useForm<PhoneOtpVerificationInput>({
+    resolver: zodResolver(phoneOtpVerificationSchema),
+    defaultValues: { otp: "" },
+  });
 
-    const mockVerifyAPI = async (otp: string) => {
-        await new Promise((res) => setTimeout(res, 1000));
-        return { success: otp === "123456" }; // change logic for production
-    };
+  const verifyOTP = useCallback(
+    async (otp: string) => {
+      setIsLoading(true);
+      try {
+        await confirmOtp(otp, {
+          displayName: options?.displayName,
+        });
+        return { success: true as const };
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : "Verification failed";
+        toast.error(msg);
+        return { success: false as const };
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    [confirmOtp, options?.displayName]
+  );
 
-    const mockResendAPI = async () => {
-        await new Promise((res) => setTimeout(res, 1000));
-        return { success: true };
-    };
+  const resendOTP = useCallback(async () => {
+    if (!phoneE164) {
+      toast.error("Phone number missing");
+      return { success: false as const };
+    }
+    setIsLoading(true);
+    try {
+      await sendOtp(phoneE164);
+      toast.success("Code sent");
+      return { success: true as const };
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Could not resend code";
+      toast.error(msg);
+      return { success: false as const };
+    } finally {
+      setIsLoading(false);
+    }
+  }, [phoneE164, sendOtp]);
 
-    const verifyOTP = useCallback(
-        async (otp: string) => {
-            setIsLoading(true);
-            try {
-                const response = await mockVerifyAPI(otp);
-                return response;
-            } catch (error) {
-                return { success: false };
-            } finally {
-                setIsLoading(false);
-            }
-        },
-        []
-    );
-
-    const resendOTP = useCallback(async () => {
-        setIsLoading(true);
-        try {
-            const response = await mockResendAPI();
-            return response;
-        } catch (error) {
-            return { success: false };
-        } finally {
-            setIsLoading(false);
-        }
-    }, []);
-
-    return {
-        form,
-        verifyOTP,
-        resendOTP,
-        isLoading,
-    };
+  return {
+    form,
+    verifyOTP,
+    resendOTP,
+    isLoading: isLoading || isSending,
+  };
 }
