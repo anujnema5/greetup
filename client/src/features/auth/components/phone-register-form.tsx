@@ -1,10 +1,12 @@
-// features/auth/components/phone-register-form.tsx
 "use client";
 
-import { useState } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
+import { isValidPhoneNumber } from "react-phone-number-input";
+import { Loader2 } from "lucide-react";
+import { toast } from "sonner";
+
 import { Button } from "@/components/ui/button";
 import {
   Form,
@@ -15,51 +17,43 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Loader2 } from "lucide-react";
+import { PhoneInput } from "@/components/ui/phone-input";
+import { useFirebasePhoneAuth } from "@/features/auth/context/firebase-phone-auth-context";
 
-const phoneSchema = z.object({
+const phoneRegisterSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters"),
-  phone: z
-    .string()
-    .min(10, "Phone number must be at least 10 digits")
-    .regex(/^[0-9]+$/, "Phone number must contain only digits"),
-  termsAccepted: z.boolean().refine((val) => val === true, {
-    message: "You must accept the terms and conditions",
-  }),
+  phone: z.string().min(8, "Enter a valid phone number"),
 });
 
-type PhoneFormValues = z.infer<typeof phoneSchema>;
+type PhoneFormValues = z.infer<typeof phoneRegisterSchema>;
 
 interface PhoneRegisterFormProps {
-  onOTPSent: (phone: string) => void;
+  onOTPSent: (phoneE164: string, name: string) => void;
 }
 
-export default function PhoneRegisterForm({
-  onOTPSent,
-}: PhoneRegisterFormProps) {
-  const [isLoading, setIsLoading] = useState(false);
+export default function PhoneRegisterForm({ onOTPSent }: PhoneRegisterFormProps) {
+  const { sendOtp, isSending } = useFirebasePhoneAuth();
 
   const form = useForm<PhoneFormValues>({
-    resolver: zodResolver(phoneSchema),
+    resolver: zodResolver(phoneRegisterSchema),
     defaultValues: {
       name: "",
       phone: "",
-      termsAccepted: true,
     },
   });
 
   const onSubmit = async (data: PhoneFormValues) => {
-    setIsLoading(true);
+    const raw = data.phone.trim();
+    if (!isValidPhoneNumber(raw)) {
+      form.setError("phone", { message: "Enter a valid phone number with country code" });
+      return;
+    }
     try {
-      // API call to send OTP
-      console.log("Sending OTP to:", data);
-      await new Promise((resolve) => setTimeout(resolve, 1500));
-      onOTPSent(data.phone);
-    } catch (error) {
-      console.error("Error sending OTP:", error);
-    } finally {
-      setIsLoading(false);
+      await sendOtp(raw);
+      onOTPSent(raw, data.name.trim());
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Could not send verification code";
+      toast.error(msg);
     }
   };
 
@@ -71,13 +65,9 @@ export default function PhoneRegisterForm({
           name="name"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Full Name</FormLabel>
+              <FormLabel>Full name</FormLabel>
               <FormControl>
-                <Input
-                  placeholder="Enter your full name"
-                  {...field}
-                  disabled={isLoading}
-                />
+                <Input placeholder="Your name" {...field} disabled={isSending} />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -89,12 +79,14 @@ export default function PhoneRegisterForm({
           name="phone"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Phone Number</FormLabel>
+              <FormLabel>Phone number</FormLabel>
               <FormControl>
-                <Input
-                  placeholder="Enter your phone number"
+                <PhoneInput
                   {...field}
-                  disabled={isLoading}
+                  placeholder="Enter phone number"
+                  defaultCountry="IN"
+                  international
+                  disabled={isSending}
                 />
               </FormControl>
               <FormMessage />
@@ -102,50 +94,11 @@ export default function PhoneRegisterForm({
           )}
         />
 
-        {/* <FormField
-          control={form.control}
-          name="termsAccepted"
-          render={({ field }) => (
-            <FormItem className="flex flex-row items-start space-x-3 space-y-0">
-              <FormControl>
-                <Checkbox
-                  checked={field.value}
-                  onCheckedChange={field.onChange}
-                  disabled={isLoading}
-                />
-              </FormControl>
-              <div className="space-y-1 leading-none">
-                <FormLabel className="text-xs font-normal">
-                  I agree to the{""}
-                  <a
-                    href="/terms"
-                    className="text-primary hover:underline"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                  >
-                    Terms & Conditions
-                  </a>{""}
-                  and{""}
-                  <a
-                    href="/privacy"
-                    className="text-primary hover:underline"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                  >
-                    Privacy Policy
-                  </a>
-                </FormLabel>
-                <FormMessage />
-              </div>
-            </FormItem>
-          )}
-        /> */}
-
-        <Button type="submit" className="w-full" disabled={isLoading}>
-          {isLoading ? (
+        <Button type="submit" className="w-full" disabled={isSending}>
+          {isSending ? (
             <>
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              Sending OTP...
+              Sending...
             </>
           ) : (
             "Continue"

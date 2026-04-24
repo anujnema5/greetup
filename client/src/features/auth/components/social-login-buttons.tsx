@@ -1,30 +1,20 @@
-// features/auth/components/social-login-buttons.tsx
 import { Button } from "@/components/ui/button";
 import { authClient } from "@/lib/auth-client";
 import { CURRENT_HOST } from "@/shared/constants";
+import { Phone } from "lucide-react";
 
 interface SocialLoginButtonsProps {
-  isRegistration?: boolean;
+  /** Switches the auth view to phone OTP (login/register pages). */
+  onPhoneClick?: () => void;
 }
 
-export default function SocialLoginButtons({
-  isRegistration = false,
-}: SocialLoginButtonsProps) {
-  
+export default function SocialLoginButtons({ onPhoneClick }: SocialLoginButtonsProps) {
   const handleGoogleAuth = () => {
     authClient.signIn.social({
-      provider: 'google',
-      callbackURL: typeof window !== 'undefined' ? window.location.origin : CURRENT_HOST,
-    })
+      provider: "google",
+      callbackURL: typeof window !== "undefined" ? window.location.origin : CURRENT_HOST,
+    });
   };
-
-  const handleFacebookAuth = () => {
-    console.log(
-      isRegistration ? "Register with Facebook" : "Login with Facebook"
-    );
-  };
-
-  const actionText = isRegistration ? "Sign up" : "Continue";
 
   return (
     <div className="grid grid-cols-2 gap-3">
@@ -58,13 +48,12 @@ export default function SocialLoginButtons({
       <Button
         type="button"
         variant="outline"
-        onClick={handleFacebookAuth}
+        onClick={onPhoneClick}
+        disabled={!onPhoneClick}
         className="w-full text-foreground hover:text-foreground dark:hover:text-foreground"
       >
-        <svg className="mr-2 h-4 w-4" fill="#1877F2" viewBox="0 0 24 24">
-          <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z" />
-        </svg>
-        Facebook
+        <Phone className="mr-2 h-4 w-4" aria-hidden />
+        Phone
       </Button>
     </div>
   );

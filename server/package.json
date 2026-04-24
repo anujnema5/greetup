@@ -29,6 +29,7 @@
     "dotenv": "^17.4.0",
     "drizzle-orm": "^0.45.2",
     "drizzle-seed": "^0.3.1",
+    "firebase-admin": "^13.8.0",
     "hono": "^4.12.10",
     "ioredis": "^5.10.1",
     "jose": "^6.2.2",

@@ -1,15 +1,14 @@
-import { createAuthClient } from "better-auth/react"
-import { phoneNumberClient } from "better-auth/client/plugins"
+import { createAuthClient } from "better-auth/react";
 
+import { CURRENT_HOST } from "@/shared/constants/environments";
+
+/** Same origin as the Next app so `/api/auth/*` goes through rewrites and session cookies stick. */
 export const authClient = createAuthClient({
-    baseURL: process.env.NEXT_PUBLIC_SOCKET_SERVER_URL ?? "http://localhost:5300",
-    fetchOptions: {
-        credentials: "include"
-    },
-    plugins: [
-        phoneNumberClient()
-    ]
-})
+  baseURL: CURRENT_HOST,
+  fetchOptions: {
+    credentials: "include",
+  },
+});
 
 export const { signIn, signOut, signUp, useSession } = authClient;
 export const Session = authClient.$Infer.Session;

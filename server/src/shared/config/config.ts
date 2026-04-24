@@ -106,6 +106,14 @@ const config = {
 
   geminiApiKey: requiredEnv("GEMINI_API_KEY"),
 
+  /**
+   * Full JSON of Firebase service account (Phone Auth). Prefer `FIREBASE_SERVICE_ACCOUNT_PATH`
+   * locally — standard `.env` files do not support multi-line JSON.
+   */
+  firebaseServiceAccountJson: optionalEnv("FIREBASE_SERVICE_ACCOUNT_JSON"),
+  /** Absolute path, or path relative to `server` process cwd (usually repo `server/`), to the downloaded `.json` key file. */
+  firebaseServiceAccountPath: optionalEnv("FIREBASE_SERVICE_ACCOUNT_PATH"),
+
   /** AES-256-GCM message encryption key (32 bytes / 64 hex chars). Loaded from Doppler. */
   messageEncryptionKey: optionalEnv("MESSAGE_ENCRYPTION_KEY"),
   messageEncryptionKeyPrevious: optionalEnv("MESSAGE_ENCRYPTION_KEY_PREVIOUS"),

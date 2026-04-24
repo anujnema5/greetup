@@ -1,5 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
-import { API_BASE_URL } from "./shared/constants";
+
+/** Session + API cookies are on the Next origin; `/api` is rewritten to Hono (see next.config). */
+function sameOriginApiBase(req: NextRequest): string {
+  return `${req.nextUrl.origin}/api`;
+}
 
 // ==================== ROUTES CONFIGURATION ====================
 const PUBLIC_ROUTES = [
@@ -307,12 +311,7 @@ async function checkAuthWithCache(req: NextRequest): Promise<boolean> {
 }
 
 async function performAuthCheck(req: NextRequest): Promise<boolean> {
-  const apiBaseUrl = API_BASE_URL;
-
-  if (!apiBaseUrl) {
-    console.error("[Auth] NEXT_PUBLIC_API_BASE_URL is not defined in environment variables");
-    throw new Error("API base URL not configured");
-  }
+  const apiBaseUrl = sameOriginApiBase(req);
 
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), AUTH_REQUEST_TIMEOUT_MS);
@@ -384,8 +383,7 @@ async function checkOnboardingWithCache(
     return cached.isOnboarded;
   }
 
-  const apiBaseUrl = API_BASE_URL;
-  if (!apiBaseUrl) return false;
+  const apiBaseUrl = sameOriginApiBase(req);
 
   try {
     const res = await fetch(`${apiBaseUrl}/profile/onboarding-status`, {
