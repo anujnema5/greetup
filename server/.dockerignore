@@ -7,3 +7,5 @@ coverage
 Dockerfile*
 README.md
 dist
+env
+firebase-service-account.json
