@@ -1,12 +1,17 @@
 "use client";
 
+import * as React from "react";
 import { useEffect, useMemo, useState, type CSSProperties } from "react";
 import { toast } from "sonner";
+
+/** React 19 — types may lag; runtime provides this hook. */
+const useEffectEvent = React.useEffectEvent as <T extends (...args: never[]) => unknown>(fn: T) => T;
 import { Chess, type Square } from "chess.js";
 import { Chessboard } from "react-chessboard";
 import { useRoomChessMoveMutation } from "@/features/activity";
 import { RoomActivityLayout } from "@/features/room/components/room-activity/room-activity-layout";
 import { getRtkMutationErrorMessage } from "@/lib/api/rtk-mutation-error";
+import { cn } from "@/lib/utils";
 import type { RoomChessActivityState } from "@/lib/redux/types/room-slice.types";
 
 export type ChessActivityStageProps = {
@@ -47,6 +52,7 @@ const CUSTOM_PIECES = Object.fromEntries(
   Object.entries(CHESS_PIECE_SVGS).map(([piece, src]) => [
     piece,
     (props?: { svgStyle?: CSSProperties }) => (
+      // eslint-disable-next-line @next/next/no-img-element -- remote Lichess piece SVGs
       <img
         src={src}
         alt={piece}
@@ -69,9 +75,10 @@ function PlayerBar({
 }) {
   return (
     <div
-      className={`flex shrink-0 items-center gap-2.5 rounded-lg px-3 py-2 transition-all ${
-        isActive ? "bg-card/80 shadow-sm ring-1 ring-primary/20" : "bg-muted/10"
-      }`}
+      className={cn(
+        "flex shrink-0 items-center gap-2.5 rounded-lg px-3 py-2 transition-all",
+        isActive ? "bg-card/80 shadow-sm ring-1 ring-primary/20" : "bg-muted/10",
+      )}
     >
       <div
         className="h-4 w-4 shrink-0 rounded-sm border shadow-sm"
@@ -81,9 +88,10 @@ function PlayerBar({
         }}
       />
       <span
-        className={`flex-1 truncate text-sm font-semibold ${
-          isActive ? "text-foreground" : "text-muted-foreground/60"
-        }`}
+        className={cn(
+          "flex-1 truncate text-sm font-semibold",
+          isActive ? "text-foreground" : "text-muted-foreground/60",
+        )}
       >
         {name}
       </span>
@@ -126,31 +134,39 @@ export function ChessActivityStage({
   const myColor: "w" | "b" = iPlayWhite ? "w" : "b";
   const boardOrientation = iPlayWhite ? "white" : "black";
   const myTurn = game.turn() === myColor;
-  const moveHistory = syncedMoves;
 
   const movePairs = useMemo(
     () =>
-      Array.from({ length: Math.ceil(moveHistory.length / 2) }, (_, i) => ({
+      Array.from({ length: Math.ceil(syncedMoves.length / 2) }, (_, i) => ({
         n: i + 1,
-        white: moveHistory[i * 2],
-        black: moveHistory[i * 2 + 1],
+        white: syncedMoves[i * 2],
+        black: syncedMoves[i * 2 + 1],
       })),
-    [moveHistory],
+    [syncedMoves],
   );
 
-  useEffect(() => {
+  const resetLocalBoardState = useEffectEvent(() => {
     setSyncedMoves([]);
     setMoveFrom(null);
     setSelectedSquare(null);
-  }, [chessActivity?.gameId]);
+  });
 
   useEffect(() => {
+    resetLocalBoardState();
+  }, [chessActivity?.gameId]);
+
+  const appendSyncedMoveFromActivity = useEffectEvent(() => {
     const lastSan = chessActivity?.lastMoveSan;
     if (!lastSan) return;
+    const moveNumber = chessActivity?.moveNumber ?? 0;
     setSyncedMoves((prev) => {
-      if (prev.length >= chessActivity.moveNumber) return prev;
+      if (prev.length >= moveNumber) return prev;
       return [...prev, lastSan];
     });
+  });
+
+  useEffect(() => {
+    appendSyncedMoveFromActivity();
   }, [chessActivity?.moveNumber, chessActivity?.lastMoveSan]);
 
   const squareStyles = useMemo(() => {
@@ -164,7 +180,7 @@ export function ChessActivityStage({
       };
     }
     return styles;
-  }, [game, selectedSquare, fen]);
+  }, [game, selectedSquare]);
 
   const applyMove = (from: string, to: string) => {
     if (!chessActivity || !currentUserId || moveSubmitting || !myTurn) return false;
@@ -226,7 +242,7 @@ export function ChessActivityStage({
 
   const sidePanel = (
     <>
-      <div className="overflow-hidden rounded-lg border border-border-red-800">
+      <div className="overflow-hidden rounded-lg border border-border/40">
         <div className="flex items-center gap-1.5 border-b border-border/40 bg-muted/30 px-3 py-1.5">
           <svg className="h-3 w-3 shrink-0 text-amber-400" fill="currentColor" viewBox="0 0 20 20">
             <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
@@ -275,9 +291,9 @@ export function ChessActivityStage({
           <span className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
             Moves
           </span>
-          {moveHistory.length > 0 && (
+          {syncedMoves.length > 0 && (
             <span className="ml-auto text-[10px] tabular-nums text-muted-foreground/50">
-              {moveHistory.length}
+              {syncedMoves.length}
             </span>
           )}
         </div>
@@ -288,7 +304,7 @@ export function ChessActivityStage({
             {movePairs.map(({ n, white, black }) => (
               <div
                 key={n}
-                className="flex items-center gap-1 px-2 py-0.75 text-xs even:bg-muted/10 hover:bg-muted/20"
+                className="flex items-center gap-1 px-2 py-1 text-xs even:bg-muted/10 hover:bg-muted/20"
               >
                 <span className="w-5 shrink-0 text-right font-mono tabular-nums text-muted-foreground/40">
                   {n}.
