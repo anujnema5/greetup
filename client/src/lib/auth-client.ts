@@ -1,10 +1,9 @@
 import { createAuthClient } from "better-auth/react";
 
-import { CURRENT_HOST } from "@/shared/constants/environments";
+import { API_BASE_URL } from "@/shared/constants/environments";
 
-/** Same origin as the Next app so `/api/auth/*` goes through rewrites and session cookies stick. */
 export const authClient = createAuthClient({
-  baseURL: CURRENT_HOST,
+  baseURL: API_BASE_URL,
   fetchOptions: {
     credentials: "include",
   },
