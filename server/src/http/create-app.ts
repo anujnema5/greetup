@@ -28,7 +28,7 @@ const createApp = async () => {
   app.use(`${HTTP_PATHS.internal}/*`, internalMiddleware);
   app.route(HTTP_PATHS.internal, internalRoomsRoute);
 
-  app.get(HTTP_PATHS.root, (c) => c.json({ message: "Greetup Hono!" }));
+  app.get(HTTP_PATHS.root, (c) => c.json({ message: "Hi Greetup!" }));
 
   app.onError(errorHandler);
 

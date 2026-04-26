@@ -58,4 +58,5 @@ export type RoomVideoViewProps = {
   onRequestChessInvite?: () => void;
   requestChessBusy?: boolean;
   onEndActiveGame?: () => void;
+  onOfferDrawGame?: () => void;
 };

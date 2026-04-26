@@ -80,5 +80,8 @@ export const API_ENDPOINTS = {
     chessInvite: (roomId: string) => `/room/${roomId}/activity/chess/invite` as const,
     chessRespond: (roomId: string) => `/room/${roomId}/activity/chess/respond` as const,
     chessEnd: (roomId: string) => `/room/${roomId}/activity/chess/end` as const,
+    chessMove: (roomId: string) => `/room/${roomId}/activity/chess/move` as const,
+    chessDrawOffer: (roomId: string) => `/room/${roomId}/activity/chess/draw-offer` as const,
+    chessDrawRespond: (roomId: string) => `/room/${roomId}/activity/chess/draw-respond` as const,
   },
 }
