@@ -112,8 +112,9 @@ export function MessageInput({
     }
   };
 
+  /* Padding matches `MessageList` (px-3 / sm:px-4 / md:px-5) so edges align with bubbles. */
   return (
-    <div className="shrink-0 border-t border-border bg-background/95 px-3 py-3 backdrop-blur-sm md:px-4">
+    <div className="shrink-0 border-t border-border/70 bg-card/80 px-3 py-3 backdrop-blur-sm sm:px-4 md:px-5">
       <MessageTooLongDialog open={tooLongDialogOpen} onOpenChange={setTooLongDialogOpen} />
 
       {replyTo && (
