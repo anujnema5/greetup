@@ -1,10 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { useSession } from "@/lib/auth-client";
-import { useAppSelector } from "@/lib/redux/hooks";
-import { selectRoomActiveActivity, selectRoomPhase } from "@/lib/redux/selectors/room-selectors";
+import { useAppDispatch, useAppSelector } from "@/lib/redux/hooks";
+import { selectRoomPhase } from "@/lib/redux/selectors/room-selectors";
+import { selectRoomActiveActivity } from "@/lib/redux/selectors/room-activity-selectors";
+import { setDirectCallPeerLabel } from "@/lib/redux/slices/room-slice";
 import {
   useRoomChessDrawOfferMutation,
   useRoomChessEndMutation,
@@ -34,6 +36,7 @@ export function RoomVideoLayer({
   isGroupRoom,
   groupRoomTitle,
 }: RoomVideoLayerProps) {
+  const dispatch = useAppDispatch();
   const { data: session } = useSession();
   const roomPhase = useAppSelector(selectRoomPhase);
   const activeRealtimeActivity = useAppSelector(selectRoomActiveActivity);
@@ -104,6 +107,10 @@ export function RoomVideoLayer({
     isGroupRoom,
     groupRoomTitle,
   });
+
+  useEffect(() => {
+    dispatch(setDirectCallPeerLabel(isGroupRoom ? null : peerLabel));
+  }, [dispatch, isGroupRoom, peerLabel]);
 
   return (
     <div className="fixed inset-0 z-100 flex flex-col overflow-hidden bg-background">

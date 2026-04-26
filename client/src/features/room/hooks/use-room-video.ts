@@ -8,7 +8,7 @@ import {
   endVideoSession,
   expandVideoSession,
   minimizeVideoSession,
-} from "@/lib/redux/slices/roomSlice";
+} from "@/lib/redux/slices/room-slice";
 import { MATCHMAKING_HUB_PATH } from "@/features/room/constants/call-flow";
 import { getRoomReturnPath } from "@/features/room/lib/room-return-path";
 import {

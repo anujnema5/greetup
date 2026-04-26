@@ -1,8 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 
-/** Session + API cookies are on the Next origin; `/api` is rewritten to Hono (see next.config). */
-function sameOriginApiBase(req: NextRequest): string {
-  return `${req.nextUrl.origin}/api`;
+import { API_BASE_URL } from "@/shared/constants/environments";
+
+function middlewareApiBase(req: NextRequest): string {
+  return process.env.NEXT_PUBLIC_API_BASE_URL?.trim()
+    ? API_BASE_URL
+    : `${req.nextUrl.origin}/api`;
 }
 
 // ==================== ROUTES CONFIGURATION ====================
@@ -311,7 +314,7 @@ async function checkAuthWithCache(req: NextRequest): Promise<boolean> {
 }
 
 async function performAuthCheck(req: NextRequest): Promise<boolean> {
-  const apiBaseUrl = sameOriginApiBase(req);
+  const apiBaseUrl = middlewareApiBase(req);
 
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), AUTH_REQUEST_TIMEOUT_MS);
@@ -383,7 +386,7 @@ async function checkOnboardingWithCache(
     return cached.isOnboarded;
   }
 
-  const apiBaseUrl = sameOriginApiBase(req);
+  const apiBaseUrl = middlewareApiBase(req);
 
   try {
     const res = await fetch(`${apiBaseUrl}/profile/onboarding-status`, {

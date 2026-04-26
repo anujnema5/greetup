@@ -1,10 +1,17 @@
 import { createAuthClient } from "better-auth/react";
 
-import { CURRENT_HOST } from "@/shared/constants/environments";
+import { API_BASE_URL } from "@/shared/constants/environments";
 
-/** Same origin as the Next app so `/api/auth/*` goes through rewrites and session cookies stick. */
+/**
+ * Must be origin only (no `/api`). better-auth's client merges `baseURL` + `basePath`;
+ * if `baseURL` already has a path, it does not add `/api/auth` and you get broken paths like `/api/sign-in/social`.
+ * Server: `HTTP_PATHS.authGlob` = `/api/auth/*` (see `server/src/http/create-app.ts`).
+ */
+const authOrigin = API_BASE_URL.replace(/\/+$/, "").replace(/\/api$/, "");
+
 export const authClient = createAuthClient({
-  baseURL: CURRENT_HOST,
+  baseURL: authOrigin,
+  basePath: "/api/auth",
   fetchOptions: {
     credentials: "include",
   },
