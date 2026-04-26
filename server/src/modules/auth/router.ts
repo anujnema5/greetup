@@ -1,5 +1,10 @@
-/**
- * Auth-related HTTP helpers. Session normalization lives at `GET /api/auth/get-session`
- * (registered in `create-app.ts`). Better Auth handles all other `/api/auth/*` routes.
- */
-export { handleGetSession } from "./controllers/auth-session.controller";
+import { Hono } from "hono";
+
+import { handleGetSession } from "./controllers/auth-session.controller";
+
+const authPublicRouter = new Hono();
+
+authPublicRouter.get("/get-session", handleGetSession);
+authPublicRouter.get("/get-session/", handleGetSession);
+
+export { authPublicRouter };

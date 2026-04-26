@@ -18,6 +18,7 @@ export type ActivityStageProps = {
   localStream: MediaStream | null;
   activeRealtimeActivity: RoomActiveActivity | null;
   onEndActiveGame?: () => void;
+  onOfferDrawGame?: () => void;
 };
 
 export function ActivityStage({
@@ -33,6 +34,7 @@ export function ActivityStage({
   localStream,
   activeRealtimeActivity,
   onEndActiveGame,
+  onOfferDrawGame,
 }: ActivityStageProps) {
   if (activity.id === "chess") {
     return (
@@ -47,6 +49,7 @@ export function ActivityStage({
         localStream={localStream}
         chessActivity={activeRealtimeActivity?.kind === "chess" ? activeRealtimeActivity : null}
         onEndGame={onEndActiveGame}
+        onOfferDraw={onOfferDrawGame}
       />
     );
   }

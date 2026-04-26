@@ -23,6 +23,11 @@ export type RoomChessActivityState = {
   blackUserId: string;
   startedByUserId: string;
   startedAt: number;
+  fen: string;
+  turn: "w" | "b";
+  moveNumber: number;
+  lastMoveSan: string | null;
+  lastMoveAt: number | null;
 };
 
 export type RoomActiveActivity = RoomChessActivityState;

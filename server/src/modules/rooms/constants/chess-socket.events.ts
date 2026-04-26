@@ -6,5 +6,8 @@ export const CHESS_SOCKET_EVENTS = {
   invite: "room:chess_invite",
   declined: "room:chess_declined",
   started: "room:chess_started",
+  moved: "room:chess_moved",
+  drawOffered: "room:chess_draw_offered",
+  drawRejected: "room:chess_draw_rejected",
   ended: "room:chess_ended",
 } as const;

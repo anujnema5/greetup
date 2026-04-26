@@ -2,6 +2,9 @@ export const CHESS_SOCKET_EVENTS = {
   invite: "room:chess_invite",
   declined: "room:chess_declined",
   started: "room:chess_started",
+  moved: "room:chess_moved",
+  drawOffered: "room:chess_draw_offered",
+  drawRejected: "room:chess_draw_rejected",
   ended: "room:chess_ended",
 } as const;
 
@@ -26,6 +29,33 @@ export type ChessStartedPayload = {
   blackUserId: string;
   startedByUserId: string;
   startedAt: number;
+  fen: string;
+  turn: "w" | "b";
+};
+
+export type ChessMovedPayload = {
+  roomId: string;
+  gameId: string;
+  movedByUserId: string;
+  from: string;
+  to: string;
+  san: string;
+  fen: string;
+  turn: "w" | "b";
+  moveNumber: number;
+  movedAt: number;
+};
+
+export type ChessDrawOfferedPayload = {
+  roomId: string;
+  gameId: string;
+  offeredByUserId: string;
+};
+
+export type ChessDrawRejectedPayload = {
+  roomId: string;
+  gameId: string;
+  rejectedByUserId: string;
 };
 
 export type ChessEndedPayload = {
@@ -34,6 +64,8 @@ export type ChessEndedPayload = {
   endedByUserId: string;
   endedAt: number;
   startedAt: number;
+  winnerUserId: string | null;
+  result: "checkmate" | "stalemate" | "draw" | "resign";
 };
 
 function isObject(raw: unknown): raw is Record<string, unknown> {
@@ -84,7 +116,9 @@ export function parseChessStartedPayload(raw: unknown): ChessStartedPayload | nu
     typeof raw.whiteUserId !== "string" ||
     typeof raw.blackUserId !== "string" ||
     typeof raw.startedByUserId !== "string" ||
-    typeof raw.startedAt !== "number"
+    typeof raw.startedAt !== "number" ||
+    typeof raw.fen !== "string" ||
+    (raw.turn !== "w" && raw.turn !== "b")
   ) {
     return null;
   }
@@ -95,6 +129,70 @@ export function parseChessStartedPayload(raw: unknown): ChessStartedPayload | nu
     blackUserId: raw.blackUserId,
     startedByUserId: raw.startedByUserId,
     startedAt: raw.startedAt,
+    fen: raw.fen,
+    turn: raw.turn,
+  };
+}
+
+export function parseChessMovedPayload(raw: unknown): ChessMovedPayload | null {
+  if (!isObject(raw)) return null;
+  if (
+    typeof raw.roomId !== "string" ||
+    typeof raw.gameId !== "string" ||
+    typeof raw.movedByUserId !== "string" ||
+    typeof raw.from !== "string" ||
+    typeof raw.to !== "string" ||
+    typeof raw.san !== "string" ||
+    typeof raw.fen !== "string" ||
+    (raw.turn !== "w" && raw.turn !== "b") ||
+    typeof raw.moveNumber !== "number" ||
+    typeof raw.movedAt !== "number"
+  ) {
+    return null;
+  }
+  return {
+    roomId: raw.roomId,
+    gameId: raw.gameId,
+    movedByUserId: raw.movedByUserId,
+    from: raw.from,
+    to: raw.to,
+    san: raw.san,
+    fen: raw.fen,
+    turn: raw.turn,
+    moveNumber: raw.moveNumber,
+    movedAt: raw.movedAt,
+  };
+}
+
+export function parseChessDrawOfferedPayload(raw: unknown): ChessDrawOfferedPayload | null {
+  if (!isObject(raw)) return null;
+  if (
+    typeof raw.roomId !== "string" ||
+    typeof raw.gameId !== "string" ||
+    typeof raw.offeredByUserId !== "string"
+  ) {
+    return null;
+  }
+  return {
+    roomId: raw.roomId,
+    gameId: raw.gameId,
+    offeredByUserId: raw.offeredByUserId,
+  };
+}
+
+export function parseChessDrawRejectedPayload(raw: unknown): ChessDrawRejectedPayload | null {
+  if (!isObject(raw)) return null;
+  if (
+    typeof raw.roomId !== "string" ||
+    typeof raw.gameId !== "string" ||
+    typeof raw.rejectedByUserId !== "string"
+  ) {
+    return null;
+  }
+  return {
+    roomId: raw.roomId,
+    gameId: raw.gameId,
+    rejectedByUserId: raw.rejectedByUserId,
   };
 }
 
@@ -105,7 +203,12 @@ export function parseChessEndedPayload(raw: unknown): ChessEndedPayload | null {
     typeof raw.gameId !== "string" ||
     typeof raw.endedByUserId !== "string" ||
     typeof raw.endedAt !== "number" ||
-    typeof raw.startedAt !== "number"
+    typeof raw.startedAt !== "number" ||
+    (raw.winnerUserId !== null && typeof raw.winnerUserId !== "string") ||
+    (raw.result !== "checkmate" &&
+      raw.result !== "stalemate" &&
+      raw.result !== "draw" &&
+      raw.result !== "resign")
   ) {
     return null;
   }
@@ -115,5 +218,7 @@ export function parseChessEndedPayload(raw: unknown): ChessEndedPayload | null {
     endedByUserId: raw.endedByUserId,
     endedAt: raw.endedAt,
     startedAt: raw.startedAt,
+    winnerUserId: raw.winnerUserId,
+    result: raw.result,
   };
 }

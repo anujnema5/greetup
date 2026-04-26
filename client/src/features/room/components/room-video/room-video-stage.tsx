@@ -29,6 +29,7 @@ export function RoomVideoStage({
   setActiveActivity,
   activeRealtimeActivity,
   onEndActiveGame,
+  onOfferDrawGame,
   remoteVideoLive,
   localVideoLive,
   remoteStream,
@@ -53,6 +54,7 @@ export function RoomVideoStage({
   setActiveActivity: (activity: RoomActivityId | null) => void;
   activeRealtimeActivity: RoomActiveActivity | null;
   onEndActiveGame?: () => void;
+  onOfferDrawGame?: () => void;
   remoteVideoLive: boolean;
   localVideoLive: boolean;
   remoteStream: MediaStream | null;
@@ -183,6 +185,7 @@ export function RoomVideoStage({
                     localStream={localStream}
                     activeRealtimeActivity={activeRealtimeActivity}
                     onEndActiveGame={onEndActiveGame}
+                    onOfferDrawGame={onOfferDrawGame}
                   />
                 ) : null
               ) : (

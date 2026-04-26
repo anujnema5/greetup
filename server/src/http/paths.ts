@@ -10,4 +10,5 @@ export const HTTP_PATHS = {
   authGlob: "/api/auth/*",
   internal: "/internal",
   root: "/",
+  auth: "/api/auth"
 } as const;

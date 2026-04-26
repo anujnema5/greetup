@@ -55,6 +55,7 @@ export function RoomVideoView({
   onRequestChessInvite,
   requestChessBusy = false,
   onEndActiveGame,
+  onOfferDrawGame,
 }: RoomVideoViewProps) {
   const [rightPanelTab, setRightPanelTab] = useState<RightPanelTab>("chat");
   const [activeActivity, setActiveActivity] = useState<RoomActivityId | null>(null);
@@ -126,6 +127,7 @@ export function RoomVideoView({
             setActiveActivity={setActiveActivity}
             activeRealtimeActivity={activeRealtimeActivity}
             onEndActiveGame={onEndActiveGame}
+            onOfferDrawGame={onOfferDrawGame}
             remoteVideoLive={remoteVideoLive}
             localVideoLive={localVideoLive}
             remoteStream={remoteStream}
@@ -174,8 +176,6 @@ export function RoomVideoView({
             stageRatio={stageRatio}
             setStageRatio={setStageRatio}
             onMinimize={onMinimize}
-            elapsed={elapsed}
-            formatDuration={formatDuration}
           />
 
           <RoomVideoToolbar
@@ -198,6 +198,8 @@ export function RoomVideoView({
             showSkip={showSkip}
             onSkip={onSkip}
             onEnd={onEnd}
+            elapsed={elapsed}
+            formatDuration={formatDuration}
           />
         </div>
 
