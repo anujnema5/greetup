@@ -1,22 +1,25 @@
-# DEVELOPMENT — Production: cloudbuild.matching.production.yaml
+# Production API (Hono + Better Auth). Image is the same kind as dev; env vars come from Cloud Run / Secret Manager.
+#
+# If dev and prod share one GCP project, set _SERVICE (and triggers) so you do not overwrite the dev service.
+# Typical: separate GCP project for prod → keep _SERVICE as `server`.
 
 substitutions:
   _REGION: us-central1
   _ARTIFACT_REPO: greetup
-  _IMAGE: matching-service
-  _SERVICE: matching-service
-  _PORT: "5060"
+  _IMAGE: server
+  _SERVICE: server-prod
+  _PORT: "5300"
   _CPU: "1"
-  _MEMORY: 512Mi
-  _MIN_INSTANCES: "0"
-  _MAX_INSTANCES: "3"
+  _MEMORY: 1Gi
+  _MIN_INSTANCES: "1"
+  _MAX_INSTANCES: "10"
 
 options:
   logging: CLOUD_LOGGING_ONLY
 
 steps:
   - name: gcr.io/cloud-builders/docker
-    dir: matching-service
+    dir: server
     args:
       - build
       - -f
@@ -42,7 +45,7 @@ steps:
       - ${_REGION}
       - --platform
       - managed
-      - --no-allow-unauthenticated
+      - --allow-unauthenticated
       - --port
       - ${_PORT}
       - --cpu

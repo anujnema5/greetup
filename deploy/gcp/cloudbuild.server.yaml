@@ -1,3 +1,5 @@
+# DEVELOPMENT — Cloud Run service + scaling below. Production: cloudbuild.server.production.yaml
+
 substitutions:
   _REGION: us-central1
   _ARTIFACT_REPO: greetup

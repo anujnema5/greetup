@@ -1,6 +1,8 @@
 # GCP deployment setup (GitHub -> GCP)
 
-This folder contains production Docker and Cloud Build configs for all 4 services:
+This folder contains Docker and Cloud Build configs for all 4 services.
+
+**Development vs production (client):** the Next.js client bakes public URLs at build time. Use `cloudbuild.client.yaml` for **development** only; for **production** use `cloudbuild.client.production.yaml` and separate triggers—see `environments/README.md`.
 
 - `client` -> Cloud Run
 - `server` -> Cloud Run
@@ -58,6 +60,8 @@ From repo root, you can deploy each service with:
 
 ```bash
 gcloud builds submit --config deploy/gcp/cloudbuild.client.yaml .
+# Production client (after filling substitutions in the YAML or trigger):
+# gcloud builds submit --config deploy/gcp/cloudbuild.client.production.yaml .
 gcloud builds submit --config deploy/gcp/cloudbuild.server.yaml .
 gcloud builds submit --config deploy/gcp/cloudbuild.matching.yaml .
 ```
@@ -128,12 +132,12 @@ Open firewall rules for your mediasoup UDP/TCP ranges from `rtc-service` env con
 
 ## 5) Connect GitHub to auto-deploy
 
-Create 4 Cloud Build triggers (one per config file):
+Create Cloud Build triggers (dev vs prod configs live in `*.yaml` vs `*.production.yaml`; see `environments/README.md`):
 
-- `deploy/gcp/cloudbuild.client.yaml`
-- `deploy/gcp/cloudbuild.server.yaml`
-- `deploy/gcp/cloudbuild.matching.yaml`
-- `deploy/gcp/cloudbuild.rtc.yaml`
+- `deploy/gcp/cloudbuild.client.yaml` / `cloudbuild.client.production.yaml`
+- `deploy/gcp/cloudbuild.server.yaml` / `cloudbuild.server.production.yaml`
+- `deploy/gcp/cloudbuild.matching.yaml` / `cloudbuild.matching.production.yaml`
+- `deploy/gcp/cloudbuild.rtc.yaml` / `cloudbuild.rtc.production.yaml`
 
 Suggested trigger paths:
 
@@ -142,7 +146,7 @@ Suggested trigger paths:
 - `matching-service/**`
 - `rtc-service/**`
 
-Use branch `main` for production, and optionally a `staging` branch with separate services.
+Use branch `development` for current dev deploys; add a **second** client trigger on `main` (or `production`) pointing at `cloudbuild.client.production.yaml` when you launch prod. Details: `environments/README.md`.
 
 ## 6) Recommended production defaults
 

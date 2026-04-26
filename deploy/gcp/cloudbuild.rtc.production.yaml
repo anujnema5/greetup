@@ -1,4 +1,6 @@
-# DEVELOPMENT — Production image build: cloudbuild.rtc.production.yaml (prod VM / registry may differ)
+# Production rtc-service image (push only). Mediasoup still needs a VM or bare metal — use a prod VM + .env, not dev connection strings.
+#
+# Optional: use a dedicated Artifact Registry repo for prod (`_ARTIFACT_REPO`) or a prod GCP project.
 
 substitutions:
   _REGION: us-central1

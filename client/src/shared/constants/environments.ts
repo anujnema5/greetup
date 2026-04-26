@@ -18,7 +18,6 @@ export const SOCKET_SERVER_URL = trim(
 const envApi = process.env.NEXT_PUBLIC_API_BASE_URL?.trim();
 const apiRoot = envApi ? trim(envApi) : null;
 
-/** Unset → `{app}/api` (Next rewrite). Set → Hono, always normalized to `…/api`. */
 export const API_BASE_URL = apiRoot
   ? apiRoot.endsWith("/api")
     ? apiRoot

@@ -1,5 +1,11 @@
-# DEVELOPMENT ONLY — Next.js public URLs baked into this build.
-# Production: use deploy/gcp/cloudbuild.client.production.yaml (see deploy/gcp/environments/README.md).
+# Production — Next.js client (bakes NEXT_PUBLIC_* at build time).
+#
+# Before first use:
+# 1. Replace every YOUR-PROD-* placeholder in substitutions (or override in the Cloud Build trigger).
+# 2. Prefer a separate GCP project from development; if you reuse one project, change _SERVICE (e.g. client-prod).
+# 3. Point a trigger at this file (e.g. branch `main`), not at cloudbuild.client.yaml.
+#
+# Development builds: deploy/gcp/cloudbuild.client.yaml
 
 substitutions:
   _REGION: us-central1
@@ -10,11 +16,11 @@ substitutions:
   _CPU: "1"
   _MEMORY: 512Mi
   _MIN_INSTANCES: "0"
-  _MAX_INSTANCES: "5"
-  _NEXT_PUBLIC_API_BASE_URL: https://dev-api.greetup.club/api
-  _NEXT_PUBLIC_SOCKET_SERVER_URL: https://dev-api.greetup.club
-  _NEXT_PUBLIC_RTC_SOCKET_URL: https://rtc.dev.greetup.club
-  _NEXT_PUBLIC_APP_URL: https://dev.greetup.club
+  _MAX_INSTANCES: "10"
+  _NEXT_PUBLIC_API_BASE_URL: https://api.YOUR-PROD-DOMAIN/api
+  _NEXT_PUBLIC_SOCKET_SERVER_URL: https://api.YOUR-PROD-DOMAIN
+  _NEXT_PUBLIC_RTC_SOCKET_URL: https://rtc.YOUR-PROD-DOMAIN
+  _NEXT_PUBLIC_APP_URL: https://YOUR-PROD-DOMAIN
 
 options:
   logging: CLOUD_LOGGING_ONLY
