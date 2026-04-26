@@ -18,6 +18,7 @@ export const INITIAL_EDITABLE_PROFILE: EditableProfile = {
   photos: [
     { id: "ph1", url: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400&h=500&fit=crop" },
   ],
+  promptAnswers: {},
 };
 
 export const MOCK_GOALS = [
