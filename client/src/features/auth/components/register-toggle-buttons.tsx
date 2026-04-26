@@ -12,7 +12,7 @@ export default function RegisterToggleButtons({
     onToggle,
 }: RegisterToggleButtonsProps) {
     return (
-        <div className="grid grid-cols-2 gap-2">
+        <div className="grid grid-cols-2 gap-3">
             <Button
                 type="button"
                 variant={currentView === "phone" ? "default" : "outline"}

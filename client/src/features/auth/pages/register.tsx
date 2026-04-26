@@ -69,7 +69,7 @@ export default function RegisterPage() {
         footerLinkText="Log in"
         onFooterLinkClick={handleLogin}
       >
-        <SocialLoginButtons onPhoneClick={() => setView("phone")} />
+        <SocialLoginButtons />
 
         {view !== "otp" && (
           <RegisterToggleButtons
