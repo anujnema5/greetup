@@ -14,6 +14,7 @@ export function RoomVideoHud({
   peerLabel,
   stageRatio,
   setStageRatio,
+  showAspectRatioToggle,
   onMinimize,
 }: {
   isOneToOneStage: boolean;
@@ -24,6 +25,8 @@ export function RoomVideoHud({
   peerLabel: string;
   stageRatio: StageRatio;
   setStageRatio: (ratio: StageRatio) => void;
+  /** Direct room only: 16:9 / 1:1 control (hidden on narrow mobile where 1:1 is required). */
+  showAspectRatioToggle: boolean;
   onMinimize?: () => void;
 }) {
   return (
@@ -50,7 +53,7 @@ export function RoomVideoHud({
       </div>
 
       <div className="pointer-events-auto ml-auto flex shrink-0 items-center gap-2.5 pl-2 max-[420px]:gap-1.5 max-[420px]:pl-1 sm:gap-2.5">
-        {!isGroupRoom && !activeActivity ? (
+        {showAspectRatioToggle ? (
           <div className="flex shrink-0 items-center overflow-hidden rounded-full border border-white/20 bg-black/50 shadow-sm">
             <Button
               type="button"

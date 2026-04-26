@@ -10,6 +10,8 @@ import type { RoomActiveActivity } from "@/lib/redux/types/room-slice.types";
 
 type RightPanelTab = "chat" | "activities";
 
+export type RoomVideoRightPanelVariant = "dock" | "sheet";
+
 export function RoomVideoRightPanel({
   rightPanelTab,
   setRightPanelTab,
@@ -21,6 +23,7 @@ export function RoomVideoRightPanel({
   activeRealtimeActivity,
   onRequestChessInvite,
   requestChessBusy,
+  variant = "dock",
 }: {
   rightPanelTab: RightPanelTab;
   setRightPanelTab: (tab: RightPanelTab) => void;
@@ -32,11 +35,20 @@ export function RoomVideoRightPanel({
   activeRealtimeActivity: RoomActiveActivity | null;
   onRequestChessInvite?: () => void;
   requestChessBusy?: boolean;
+  variant?: RoomVideoRightPanelVariant;
 }) {
   const chessActive = activeRealtimeActivity?.kind === "chess";
 
   return (
-    <aside className="flex h-[36vh] min-h-0 min-w-0 w-full shrink-0 flex-col overflow-hidden rounded-2xl border border-border/70 bg-card/92 backdrop-blur-md sm:h-[40vh] lg:h-auto lg:w-88">
+    <div
+      className={cn(
+        "flex min-h-0 min-w-0 flex-col overflow-hidden",
+        variant === "dock" &&
+          "h-full min-h-0 w-full flex-1 rounded-2xl border border-border/70 bg-card/92 backdrop-blur-md lg:max-h-none lg:w-88",
+        variant === "sheet" &&
+          "h-full max-h-[min(82dvh,800px)] w-full flex-1 rounded-none border-0 bg-card/95",
+      )}
+    >
       <Tabs
         value={rightPanelTab}
         onValueChange={(value) => {
@@ -44,9 +56,9 @@ export function RoomVideoRightPanel({
             setRightPanelTab(value);
           }
         }}
-        className="min-h-0 flex-1 gap-0"
+        className="flex min-h-0 flex-1 flex-col gap-0"
       >
-        <div className="flex items-center justify-between border-b border-border/70 px-3 py-2">
+        <div className="flex shrink-0 items-center justify-between border-b border-border/70 px-3 py-2">
           <TabsList className="h-auto rounded-md border border-border/60 bg-muted/70 p-0.5">
             <TabsTrigger value="chat" className="h-7 px-2.5 text-[12px] font-semibold">
               chat
@@ -64,7 +76,7 @@ export function RoomVideoRightPanel({
           ) : null}
         </div>
 
-        <TabsContent value="chat" className="mt-0">
+        <TabsContent value="chat" className="mt-0 min-h-0 flex-1 overflow-y-auto">
           {conversationId ? (
             <ChatPanel
               conversationId={conversationId}
@@ -72,15 +84,15 @@ export function RoomVideoRightPanel({
               showQuickReactions
             />
           ) : (
-            <div className="flex min-h-0 flex-1 items-center justify-center px-4 text-center text-sm text-muted-foreground">
+            <div className="flex min-h-48 flex-1 items-center justify-center px-4 text-center text-sm text-muted-foreground">
               Chat will appear once this room conversation is available.
             </div>
           )}
         </TabsContent>
 
         {!isGroupRoom ? (
-          <TabsContent value="activities" className="mt-0">
-            <div className="grid grid-cols-2 gap-2.5 p-3">
+          <TabsContent value="activities" className="mt-0 min-h-0 flex-1 overflow-y-auto data-[state=inactive]:hidden">
+            <div className="grid grid-cols-2 gap-2.5 p-3 sm:grid-cols-2 sm:gap-3">
               {DIRECT_ROOM_ACTIVITIES.map((activity) => (
                 <Button
                   key={activity.id}
@@ -111,6 +123,6 @@ export function RoomVideoRightPanel({
           </TabsContent>
         ) : null}
       </Tabs>
-    </aside>
+    </div>
   );
 }
