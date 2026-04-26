@@ -8,7 +8,7 @@ import {
   minimizeVideoSession,
   expandVideoSession,
   setRtcPrimaryRemoteUserId,
-} from "@/lib/redux/slices/roomSlice";
+} from "@/lib/redux/slices/room-slice";
 import {
   selectActiveRoomId,
   selectIsRoomMinimized,

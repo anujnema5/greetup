@@ -24,6 +24,4 @@ export const selectRoomMediaStatus = (state: RootState) => state.room.media.stat
 
 export const selectRoomChatDraft = (state: RootState) => state.room.chat.draft;
 
-export const selectRoomActivity = (state: RootState) => state.room.activity;
-
-export const selectRoomActiveActivity = (state: RootState) => state.room.activity.active;
+export const selectDirectCallPeerLabel = (state: RootState) => state.room.session.directCallPeerLabel;

@@ -12,9 +12,9 @@ Plain-language map of the code paths: what “activity mode” means on the clie
 - That sets `activeActivity` to an id like `"chess"`.
 - This only drives **which panel to show** and **which `ActivityStage` branch** to render until something “real” takes over.
 
-**B) Shared realtime state (Redux `roomSlice.activity.active`)**
+**B) Shared realtime state (Redux `roomActivity.active`)**
 
-- Field: `activity.active` — either `null` or a **`RoomChessActivityState`** object (`kind: "chess"`, `gameId`, `roomId`, white/black user ids, `fen`, `turn`, `moveNumber`, last move fields, etc.).
+- Field: `roomActivity.active` — either `null` or a **`RoomChessActivityState`** object (`kind: "chess"`, `gameId`, `roomId`, white/black user ids, `fen`, `turn`, `moveNumber`, last move fields, etc.).
 - This is what **both players** must agree on for chess. It is updated when:
   - The socket says the game **started**, **moved**, or **ended** (see `ChessSocketBridge`).
   - The inviter might also get state from API responses depending on flow; the **canonical updates for the other player** are mostly socket-driven.
@@ -22,13 +22,13 @@ Plain-language map of the code paths: what “activity mode” means on the clie
 **How they combine**
 
 - In `RoomVideoView`, `stageActivity` is **`"chess"` if Redux has an active chess game**, otherwise it falls back to the local `activeActivity` picker.
-- So: you can open the chess tile locally, but the stage **locks to chess** once Redux holds `activity.active.kind === "chess"` until the game ends and `setActiveActivity(null)` runs.
+- So: you can open the chess tile locally, but the stage **locks to chess** once Redux holds `roomActivity.active.kind === "chess"` until the game ends and `setActiveActivity(null)` runs.
 
 Files to read:
 
 - `client/src/features/room/components/room-video-view.tsx` — `stageActivity`, passes `activeRealtimeActivity` down.
-- `client/src/lib/redux/slices/roomSlice.ts` — `setActiveActivity`.
-- `client/src/lib/redux/types/room-slice.types.ts` — `RoomChessActivityState`.
+- `client/src/lib/redux/slices/room-activity-slice.ts` — `setActiveActivity`.
+- `client/src/lib/redux/types/activity-slice.types.ts` — `RoomChessActivityState` (also re-exported from `room-slice.types.ts`).
 
 ---
 

@@ -3,7 +3,7 @@
  *
  * - Constants: `constants/call-flow.ts`, `constants/direct-call-recovery.ts`, `constants/mock-match.ts`
  * - Partner drop (direct match): `components/direct-call-partner-disconnect-handler.tsx`
- * - Redux: import actions/selectors from here or `@/lib/redux/slices/roomSlice`
+ * - Redux: import actions/selectors from here or `@/lib/redux/slices/room-slice`
  */
 
 export * from "./lib/room-sync";
@@ -11,7 +11,7 @@ export * from "./lib/room-return-path";
 export { useRoomUi } from "./hooks/use-room-ui";
 export { useRoomVideo } from "./hooks/use-room-video";
 export { RoomPage } from "./pages/room-page";
-export type { RoomSliceState } from "@/lib/redux/slices/roomSlice";
+export type { RoomSliceState } from "@/lib/redux/slices/room-slice";
 export {
   enterRoomPage,
   resetRoomState,
@@ -26,8 +26,12 @@ export {
   upsertRoomPeer,
   removeRoomPeer,
   setChatDraft,
+} from "@/lib/redux/slices/room-slice";
+export {
   setActiveActivity,
-} from "@/lib/redux/slices/roomSlice";
+  setLastChessOutcome,
+  clearLastChessOutcome,
+} from "@/lib/redux/slices/room-activity-slice";
 export { MOCK_MATCH } from "./constants/mock-match";
 export { MATCHMAKING_HUB_PATH } from "./constants/call-flow";
 export {
