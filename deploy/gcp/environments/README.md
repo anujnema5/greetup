@@ -21,6 +21,8 @@ Production YAMLs default to **`server-prod`** / **`matching-service-prod`** so o
 
 `NEXT_PUBLIC_*` (client only) are fixed at **build** time. Changing them requires a new client build.
 
+**Firebase (phone auth, etc.):** the client needs `NEXT_PUBLIC_FIREBASE_*` passed as Docker `--build-arg` via Cloud Build substitutions (`cloudbuild.client*.yaml`). Set them on the build trigger (or in the YAML) to match the Firebase Web app config; they were previously omitted, so the image could build without baking Firebase into the bundle.
+
 ## VM (`deploy/gcp/vm`)
 
 Postgres / Redis / rtc on the VM are **per-environment**. Production should use its own VM (or managed DB/Redis), not dev connection strings.
