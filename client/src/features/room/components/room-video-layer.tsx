@@ -5,7 +5,11 @@ import { toast } from "sonner";
 import { useSession } from "@/lib/auth-client";
 import { useAppSelector } from "@/lib/redux/hooks";
 import { selectRoomActiveActivity, selectRoomPhase } from "@/lib/redux/selectors/room-selectors";
-import { useRoomChessEndMutation, useRoomChessInviteMutation } from "@/features/activity";
+import {
+  useRoomChessDrawOfferMutation,
+  useRoomChessEndMutation,
+  useRoomChessInviteMutation,
+} from "@/features/activity";
 import { useRtcSocketContext } from "@/features/rtc";
 import { AddToCircleDialog } from "@/features/room/components/add-to-circle-dialog";
 import { RoomVideoView } from "@/features/room/components/room-video-view";
@@ -36,6 +40,7 @@ export function RoomVideoLayer({
   const [addCircleOpen, setAddCircleOpen] = useState(false);
   const [inviteToChess, { isLoading: requestingChess }] = useRoomChessInviteMutation();
   const [endChess, { isLoading: endingChess }] = useRoomChessEndMutation();
+  const [offerDraw, { isLoading: offeringDraw }] = useRoomChessDrawOfferMutation();
   const video = useRoomVideo(roomId);
   const {
     mediasoupStatus,
@@ -66,7 +71,6 @@ export function RoomVideoLayer({
 
   const handleRequestChessInvite = async () => {
     if (isGroupRoom) return;
-    if (!window.confirm("Send a chess invite to your peer?")) return;
     try {
       await inviteToChess({ roomId }).unwrap();
       toast.success("Chess invite sent");
@@ -77,11 +81,20 @@ export function RoomVideoLayer({
 
   const handleEndActiveGame = async () => {
     if (!activeRealtimeActivity || activeRealtimeActivity.kind !== "chess") return;
-    if (!window.confirm("End this chess game for both players?")) return;
     try {
       await endChess({ roomId, gameId: activeRealtimeActivity.gameId }).unwrap();
     } catch (e: unknown) {
       toast.error(getRtkMutationErrorMessage(e, "Could not end chess game"));
+    }
+  };
+
+  const handleOfferDraw = async () => {
+    if (!activeRealtimeActivity || activeRealtimeActivity.kind !== "chess") return;
+    try {
+      await offerDraw({ roomId, gameId: activeRealtimeActivity.gameId }).unwrap();
+      toast.success("Draw offer sent");
+    } catch (e: unknown) {
+      toast.error(getRtkMutationErrorMessage(e, "Could not send draw offer"));
     }
   };
 
@@ -138,6 +151,7 @@ export function RoomVideoLayer({
         onRequestChessInvite={() => void handleRequestChessInvite()}
         requestChessBusy={requestingChess}
         onEndActiveGame={() => void handleEndActiveGame()}
+        onOfferDrawGame={() => void handleOfferDraw()}
       />
     </div>
   );

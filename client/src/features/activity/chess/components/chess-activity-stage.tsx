@@ -1,9 +1,12 @@
 "use client";
 
-import { useMemo, useState, type CSSProperties } from "react";
+import { useEffect, useMemo, useState, type CSSProperties } from "react";
+import { toast } from "sonner";
 import { Chess, type Square } from "chess.js";
 import { Chessboard } from "react-chessboard";
+import { useRoomChessMoveMutation } from "@/features/activity";
 import { RoomActivityLayout } from "@/features/room/components/room-activity/room-activity-layout";
+import { getRtkMutationErrorMessage } from "@/lib/api/rtk-mutation-error";
 import type { RoomChessActivityState } from "@/lib/redux/types/room-slice.types";
 
 export type ChessActivityStageProps = {
@@ -13,13 +16,13 @@ export type ChessActivityStageProps = {
   peerInitials: string;
   chessActivity: RoomChessActivityState | null;
   onEndGame?: () => void;
+  onOfferDraw?: () => void;
   remoteVideoLive?: boolean;
   localVideoLive?: boolean;
   remoteStream?: MediaStream | null;
   localStream?: MediaStream | null;
 };
 
-// Muted warm tones aligned with the app's primary hue family.
 const BOARD_COLORS = {
   light: "#ece8dc",
   dark: "#8b7a62",
@@ -43,14 +46,13 @@ const CHESS_PIECE_SVGS = {
 const CUSTOM_PIECES = Object.fromEntries(
   Object.entries(CHESS_PIECE_SVGS).map(([piece, src]) => [
     piece,
-    ({ squareWidth }: { squareWidth: number }) => (
+    (props?: { svgStyle?: CSSProperties }) => (
       <img
         src={src}
         alt={piece}
-        width={squareWidth}
-        height={squareWidth}
         draggable={false}
         className="pointer-events-none h-full w-full select-none object-contain"
+        style={props?.svgStyle}
       />
     ),
   ]),
@@ -107,20 +109,24 @@ export function ChessActivityStage({
   peerInitials,
   chessActivity,
   onEndGame,
+  onOfferDraw,
   remoteVideoLive = false,
   localVideoLive = false,
   remoteStream = null,
   localStream = null,
 }: ChessActivityStageProps) {
-  const [game] = useState(() => new Chess());
-  const [fen, setFen] = useState(game.fen());
+  const [submitMove, { isLoading: moveSubmitting }] = useRoomChessMoveMutation();
   const [selectedSquare, setSelectedSquare] = useState<string | null>(null);
   const [moveFrom, setMoveFrom] = useState<string | null>(null);
+  const [syncedMoves, setSyncedMoves] = useState<string[]>([]);
 
+  const fen = chessActivity?.fen ?? "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
+  const game = useMemo(() => new Chess(fen), [fen]);
   const iPlayWhite = currentUserId != null ? chessActivity?.whiteUserId === currentUserId : true;
+  const myColor: "w" | "b" = iPlayWhite ? "w" : "b";
   const boardOrientation = iPlayWhite ? "white" : "black";
-  const myTurn = (game.turn() === "w" && iPlayWhite) || (game.turn() === "b" && !iPlayWhite);
-  const moveHistory = useMemo(() => game.history(), [fen]);
+  const myTurn = game.turn() === myColor;
+  const moveHistory = syncedMoves;
 
   const movePairs = useMemo(
     () =>
@@ -132,12 +138,25 @@ export function ChessActivityStage({
     [moveHistory],
   );
 
+  useEffect(() => {
+    setSyncedMoves([]);
+    setMoveFrom(null);
+    setSelectedSquare(null);
+  }, [chessActivity?.gameId]);
+
+  useEffect(() => {
+    const lastSan = chessActivity?.lastMoveSan;
+    if (!lastSan) return;
+    setSyncedMoves((prev) => {
+      if (prev.length >= chessActivity.moveNumber) return prev;
+      return [...prev, lastSan];
+    });
+  }, [chessActivity?.moveNumber, chessActivity?.lastMoveSan]);
+
   const squareStyles = useMemo(() => {
     if (!selectedSquare) return {};
     const styles: Record<string, CSSProperties> = {
-      [selectedSquare]: {
-        boxShadow: "inset 0 0 0 4px oklch(52% 0.085 102 / 0.75)",
-      },
+      [selectedSquare]: { boxShadow: "inset 0 0 0 4px oklch(52% 0.085 102 / 0.75)" },
     };
     for (const move of game.moves({ square: selectedSquare as Square, verbose: true })) {
       styles[move.to] = {
@@ -148,15 +167,43 @@ export function ChessActivityStage({
   }, [game, selectedSquare, fen]);
 
   const applyMove = (from: string, to: string) => {
-    if (!game.move({ from, to, promotion: "q" })) return false;
-    setFen(game.fen());
+    if (!chessActivity || !currentUserId || moveSubmitting || !myTurn) return false;
+    const next = new Chess(fen);
+    const move = next.move({ from, to, promotion: "q" });
+    if (!move) return false;
+
+    const isGameOver = next.isGameOver();
+    const winnerUserId = isGameOver && next.isCheckmate() ? currentUserId : null;
+    const result: "checkmate" | "stalemate" | "draw" =
+      next.isCheckmate() ? "checkmate" : next.isStalemate() ? "stalemate" : "draw";
+
+    void submitMove({
+      roomId: chessActivity.roomId,
+      gameId: chessActivity.gameId,
+      from,
+      to,
+      san: move.san,
+      fen: next.fen(),
+      turn: next.turn(),
+      isGameOver,
+      winnerUserId,
+      result,
+    })
+      .unwrap()
+      .catch((e: unknown) => {
+        toast.error(getRtkMutationErrorMessage(e, "Could not submit chess move"));
+      });
+
     setSelectedSquare(null);
     setMoveFrom(null);
     return true;
   };
 
   const onSquareClick = (sq: string) => {
+    if (moveSubmitting || !myTurn) return;
+    const piece = game.get(sq as Square);
     if (!moveFrom) {
+      if (!piece || piece.color !== myColor) return;
       setMoveFrom(sq);
       setSelectedSquare(sq);
       return;
@@ -167,6 +214,11 @@ export function ChessActivityStage({
       return;
     }
     if (!applyMove(moveFrom, sq)) {
+      if (!piece || piece.color !== myColor) {
+        setMoveFrom(null);
+        setSelectedSquare(null);
+        return;
+      }
       setMoveFrom(sq);
       setSelectedSquare(sq);
     }
@@ -174,8 +226,7 @@ export function ChessActivityStage({
 
   const sidePanel = (
     <>
-      {/* Score */}
-      <div className="overflow-hidden rounded-lg border border-border/40">
+      <div className="overflow-hidden rounded-lg border border-border-red-800">
         <div className="flex items-center gap-1.5 border-b border-border/40 bg-muted/30 px-3 py-1.5">
           <svg className="h-3 w-3 shrink-0 text-amber-400" fill="currentColor" viewBox="0 0 20 20">
             <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
@@ -197,9 +248,7 @@ export function ChessActivityStage({
             </span>
             <span
               className={`rounded-md px-2 py-0.5 text-xs font-bold tabular-nums ${
-                leading
-                  ? "bg-primary/20 text-primary ring-1 ring-primary/20"
-                  : "bg-muted/40 text-muted-foreground"
+                leading ? "bg-primary/20 text-primary ring-1 ring-primary/20" : "bg-muted/40 text-muted-foreground"
               }`}
             >
               {score}
@@ -208,7 +257,6 @@ export function ChessActivityStage({
         ))}
       </div>
 
-      {/* Move history */}
       <div className="overflow-hidden rounded-lg border border-border/40">
         <div className="flex items-center gap-1.5 border-b border-border/40 bg-muted/30 px-3 py-1.5">
           <svg
@@ -257,8 +305,8 @@ export function ChessActivityStage({
 
   return (
     <RoomActivityLayout
-      title="Chess"
-      subtitle={myTurn ? "Your turn" : `${peerLabel}'s turn`}
+      title={undefined}
+      subtitle={undefined}
       peerLabel={peerLabel}
       myName={myName}
       peerInitials={peerInitials}
@@ -268,11 +316,7 @@ export function ChessActivityStage({
       localStream={localStream}
       sidePanel={sidePanel}
     >
-      <div className="flex h-full flex-col gap-1.5">
-        {/* Opponent player bar */}
-        <PlayerBar name={peerLabel} isWhite={!iPlayWhite} isActive={!myTurn} />
-
-        {/* Board — fills all remaining vertical space */}
+      <div className="flex h-full min-h-0 gap-2">
         <div className="flex min-h-0 flex-1 items-center justify-center overflow-hidden px-1 py-0.5">
           <div className="aspect-square h-full max-h-full w-auto max-w-full">
             <Chessboard
@@ -299,32 +343,40 @@ export function ChessActivityStage({
                   width: "100%",
                   height: "100%",
                 },
-                allowDragging: !game.isGameOver(),
+                allowDragging: !game.isGameOver() && myTurn && !moveSubmitting,
               }}
             />
           </div>
         </div>
 
-        {/* My player bar */}
-        <PlayerBar name={myName} isWhite={iPlayWhite} isActive={myTurn} />
+        <aside className="flex w-44 shrink-0 flex-col gap-2 rounded-lg border border-border/40 bg-card/55 p-2">
+          <div className="rounded-md border border-border/40 bg-muted/20 px-2 py-1.5">
+            <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">Chess</p>
+            <p className="mt-0.5 text-xs font-medium text-foreground">
+              {myTurn ? "Your turn" : `${peerLabel}'s turn`}
+            </p>
+          </div>
 
-        {/* Action row */}
-        <div className="flex shrink-0 items-center gap-1 rounded-lg border border-border/30 bg-muted/10 p-1">
-          <button
-            type="button"
-            onClick={onEndGame}
-            className="flex-1 rounded-md py-1.5 text-xs font-semibold text-rose-400/70 transition-colors hover:bg-rose-500/10 hover:text-rose-400"
-          >
-            Resign
-          </button>
-          <div className="h-4 w-px shrink-0 bg-border/40" />
-          <button
-            type="button"
-            className="flex-1 rounded-md py-1.5 text-xs font-semibold text-muted-foreground/60 transition-colors hover:bg-muted/30 hover:text-muted-foreground"
-          >
-            Offer Draw
-          </button>
-        </div>
+          <PlayerBar name={peerLabel} isWhite={!iPlayWhite} isActive={!myTurn} />
+          <PlayerBar name={myName} isWhite={iPlayWhite} isActive={myTurn} />
+
+          <div className="mt-auto flex flex-col gap-1.5 rounded-md border border-border/30 bg-card/70 p-1.5">
+            <button
+              type="button"
+              onClick={onEndGame}
+              className="cursor-pointer rounded-md bg-rose-500/12 px-2 py-1.5 text-xs font-semibold text-rose-300 transition-colors hover:bg-rose-500/20 hover:text-rose-200"
+            >
+              Resign
+            </button>
+            <button
+              type="button"
+              className="cursor-pointer rounded-md bg-muted/35 px-2 py-1.5 text-xs font-semibold text-foreground/90 transition-colors hover:bg-muted/55 hover:text-foreground"
+              onClick={onOfferDraw}
+            >
+              Offer Draw
+            </button>
+          </div>
+        </aside>
       </div>
     </RoomActivityLayout>
   );

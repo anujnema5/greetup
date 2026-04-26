@@ -22,6 +22,21 @@ type ChessStartedPayload = {
   blackUserId: string;
   startedByUserId: string;
   startedAt: number;
+  fen: string;
+  turn: "w" | "b";
+};
+
+type ChessMovedPayload = {
+  roomId: string;
+  gameId: string;
+  movedByUserId: string;
+  from: string;
+  to: string;
+  san: string;
+  fen: string;
+  turn: "w" | "b";
+  moveNumber: number;
+  movedAt: number;
 };
 
 type ChessEndedPayload = {
@@ -30,6 +45,20 @@ type ChessEndedPayload = {
   endedByUserId: string;
   endedAt: number;
   startedAt: number;
+  winnerUserId: string | null;
+  result: "checkmate" | "stalemate" | "draw" | "resign";
+};
+
+type ChessDrawOfferedPayload = {
+  roomId: string;
+  gameId: string;
+  offeredByUserId: string;
+};
+
+type ChessDrawRejectedPayload = {
+  roomId: string;
+  gameId: string;
+  rejectedByUserId: string;
 };
 
 export function emitChessInvite(inviteeUserId: string, payload: ChessInvitePayload): void {
@@ -49,6 +78,15 @@ export function emitChessStarted(
   emitToUser(inviteeUserId, CHESS_SOCKET_EVENTS.started, payload);
 }
 
+export function emitChessMoved(
+  whiteUserId: string,
+  blackUserId: string,
+  payload: ChessMovedPayload,
+): void {
+  emitToUser(whiteUserId, CHESS_SOCKET_EVENTS.moved, payload);
+  emitToUser(blackUserId, CHESS_SOCKET_EVENTS.moved, payload);
+}
+
 export function emitChessEnded(
   whiteUserId: string,
   blackUserId: string,
@@ -56,4 +94,12 @@ export function emitChessEnded(
 ): void {
   emitToUser(whiteUserId, CHESS_SOCKET_EVENTS.ended, payload);
   emitToUser(blackUserId, CHESS_SOCKET_EVENTS.ended, payload);
+}
+
+export function emitChessDrawOffered(targetUserId: string, payload: ChessDrawOfferedPayload): void {
+  emitToUser(targetUserId, CHESS_SOCKET_EVENTS.drawOffered, payload);
+}
+
+export function emitChessDrawRejected(targetUserId: string, payload: ChessDrawRejectedPayload): void {
+  emitToUser(targetUserId, CHESS_SOCKET_EVENTS.drawRejected, payload);
 }

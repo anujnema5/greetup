@@ -2,10 +2,16 @@ import { API_ENDPOINTS, baseApi } from "@/lib/api";
 
 import type {
   ActivityApiEnvelope,
+  RoomChessDrawOfferMutationArg,
+  RoomChessDrawOfferMutationResult,
+  RoomChessDrawRespondMutationArg,
+  RoomChessDrawRespondMutationResult,
   RoomChessEndMutationArg,
   RoomChessEndMutationResult,
   RoomChessInviteMutationArg,
   RoomChessInviteMutationResult,
+  RoomChessMoveMutationArg,
+  RoomChessMoveMutationResult,
   RoomChessRespondMutationArg,
   RoomChessRespondMutationResult,
 } from "../types/activity-api.types";
@@ -37,6 +43,32 @@ function toChessEndResult(
   return toActivityResult(response, "Could not end chess game");
 }
 
+function toChessMoveResult(
+  response: ActivityApiEnvelope<{
+    roomId: string;
+    gameId: string;
+    moved: boolean;
+    moveNumber: number;
+    fen: string;
+    turn: "w" | "b";
+    isGameOver: boolean;
+  }>,
+): RoomChessMoveMutationResult {
+  return toActivityResult(response, "Could not apply chess move");
+}
+
+function toChessDrawOfferResult(
+  response: ActivityApiEnvelope<{ roomId: string; gameId: string; offered: boolean }>,
+): RoomChessDrawOfferMutationResult {
+  return toActivityResult(response, "Could not offer draw");
+}
+
+function toChessDrawRespondResult(
+  response: ActivityApiEnvelope<{ roomId: string; gameId: string; accepted: boolean }>,
+): RoomChessDrawRespondMutationResult {
+  return toActivityResult(response, "Could not respond to draw offer");
+}
+
 export const activityApi = baseApi.injectEndpoints({
   endpoints: (build) => ({
     roomChessInvite: build.mutation<RoomChessInviteMutationResult, RoomChessInviteMutationArg>({
@@ -65,11 +97,44 @@ export const activityApi = baseApi.injectEndpoints({
       }),
       transformResponse: toChessEndResult,
     }),
+
+    roomChessMove: build.mutation<RoomChessMoveMutationResult, RoomChessMoveMutationArg>({
+      query: ({ roomId, ...body }) => ({
+        url: ROOM.chessMove(roomId),
+        method: "POST",
+        body,
+      }),
+      transformResponse: toChessMoveResult,
+    }),
+
+    roomChessDrawOffer: build.mutation<RoomChessDrawOfferMutationResult, RoomChessDrawOfferMutationArg>({
+      query: ({ roomId, gameId }) => ({
+        url: ROOM.chessDrawOffer(roomId),
+        method: "POST",
+        body: { gameId },
+      }),
+      transformResponse: toChessDrawOfferResult,
+    }),
+
+    roomChessDrawRespond: build.mutation<
+      RoomChessDrawRespondMutationResult,
+      RoomChessDrawRespondMutationArg
+    >({
+      query: ({ roomId, gameId, accept }) => ({
+        url: ROOM.chessDrawRespond(roomId),
+        method: "POST",
+        body: { gameId, accept },
+      }),
+      transformResponse: toChessDrawRespondResult,
+    }),
   }),
 });
 
 export const {
   useRoomChessInviteMutation,
+  useRoomChessMoveMutation,
+  useRoomChessDrawOfferMutation,
+  useRoomChessDrawRespondMutation,
   useRoomChessRespondMutation,
   useRoomChessEndMutation,
 } = activityApi;

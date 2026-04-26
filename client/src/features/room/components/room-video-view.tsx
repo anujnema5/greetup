@@ -55,6 +55,7 @@ export function RoomVideoView({
   onRequestChessInvite,
   requestChessBusy = false,
   onEndActiveGame,
+  onOfferDrawGame,
 }: RoomVideoViewProps) {
   const [rightPanelTab, setRightPanelTab] = useState<RightPanelTab>("chat");
   const [activeActivity, setActiveActivity] = useState<RoomActivityId | null>(null);
@@ -126,6 +127,7 @@ export function RoomVideoView({
             setActiveActivity={setActiveActivity}
             activeRealtimeActivity={activeRealtimeActivity}
             onEndActiveGame={onEndActiveGame}
+            onOfferDrawGame={onOfferDrawGame}
             remoteVideoLive={remoteVideoLive}
             localVideoLive={localVideoLive}
             remoteStream={remoteStream}

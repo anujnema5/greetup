@@ -8,11 +8,17 @@ import {
   createDirectRoomChessInvite,
   DirectRoomChessError,
   endDirectRoomChessGame,
+  moveDirectRoomChessGame,
+  offerDirectRoomChessDraw,
+  respondDirectRoomChessDraw,
   respondDirectRoomChessInvite,
 } from "@/modules/rooms/services/chess-activity.service";
 import {
+  chessDrawOfferBodySchema,
+  chessDrawRespondBodySchema,
   chessEndBodySchema,
   chessInviteBodySchema,
+  chessMoveBodySchema,
   chessRespondBodySchema,
 } from "@/modules/rooms/schemas/room-activity.schema";
 
@@ -139,5 +145,68 @@ export const handleChessEnd = async (c: Context) => {
       return chessDomainErrorResponse(c, error);
     }
     return logAndReturnInternalError(c, error, "End chess game error");
+  }
+};
+
+/**
+ * POST /api/room/:roomId/activity/chess/move
+ * Applies a validated move and syncs it to both players.
+ */
+export const handleChessMove = async (c: Context) => {
+  const roomParam = requireRoomId(c);
+  if ("response" in roomParam) return roomParam.response;
+
+  const parsedBody = await parseValidatedBody(c, chessMoveBodySchema);
+  if ("response" in parsedBody) return parsedBody.response;
+
+  const { roomId } = roomParam;
+  const userId = c.get("userId") as string;
+
+  try {
+    const { gameId, ...move } = parsedBody.data;
+    const data = await moveDirectRoomChessGame(roomId, gameId, userId, move);
+    return c.json(ApiResponse.success(data, "Chess move applied", 200), 200);
+  } catch (error: unknown) {
+    if (error instanceof DirectRoomChessError) {
+      return chessDomainErrorResponse(c, error);
+    }
+    return logAndReturnInternalError(c, error, "Move chess game error");
+  }
+};
+
+export const handleChessDrawOffer = async (c: Context) => {
+  const roomParam = requireRoomId(c);
+  if ("response" in roomParam) return roomParam.response;
+  const parsedBody = await parseValidatedBody(c, chessDrawOfferBodySchema);
+  if ("response" in parsedBody) return parsedBody.response;
+  const { roomId } = roomParam;
+  const userId = c.get("userId") as string;
+  try {
+    const data = await offerDirectRoomChessDraw(roomId, parsedBody.data.gameId, userId);
+    return c.json(ApiResponse.success(data, "Draw offer sent", 200), 200);
+  } catch (error: unknown) {
+    if (error instanceof DirectRoomChessError) return chessDomainErrorResponse(c, error);
+    return logAndReturnInternalError(c, error, "Offer chess draw error");
+  }
+};
+
+export const handleChessDrawRespond = async (c: Context) => {
+  const roomParam = requireRoomId(c);
+  if ("response" in roomParam) return roomParam.response;
+  const parsedBody = await parseValidatedBody(c, chessDrawRespondBodySchema);
+  if ("response" in parsedBody) return parsedBody.response;
+  const { roomId } = roomParam;
+  const userId = c.get("userId") as string;
+  try {
+    const data = await respondDirectRoomChessDraw(
+      roomId,
+      parsedBody.data.gameId,
+      userId,
+      parsedBody.data.accept,
+    );
+    return c.json(ApiResponse.success(data, data.accepted ? "Draw accepted" : "Draw rejected", 200), 200);
+  } catch (error: unknown) {
+    if (error instanceof DirectRoomChessError) return chessDomainErrorResponse(c, error);
+    return logAndReturnInternalError(c, error, "Respond chess draw error");
   }
 };

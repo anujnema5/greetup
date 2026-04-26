@@ -4,8 +4,11 @@ import { getRedis } from "@/core/redis";
 import { roomsRepository } from "@/modules/rooms/repositories/rooms.repository";
 import {
   emitChessDeclined,
+  emitChessDrawOffered,
+  emitChessDrawRejected,
   emitChessEnded,
   emitChessInvite,
+  emitChessMoved,
   emitChessStarted,
 } from "@/modules/rooms/socket/activity-socket.handler";
 import {
@@ -16,10 +19,12 @@ import {
 
 const CHESS_INVITE_TTL_SEC = 90;
 const CHESS_ACTIVE_TTL_SEC = 4 * 60 * 60;
+const CHESS_INITIAL_FEN = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
 
 const chessInviteKey = (requestId: string) => `room:chess:invite:${requestId}`;
 const chessPendingByRoomKey = (roomId: string) => `room:chess:pending:${roomId}`;
 const chessActiveByRoomKey = (roomId: string) => `room:chess:active:${roomId}`;
+const chessDrawOfferKey = (roomId: string, gameId: string) => `room:chess:draw:${roomId}:${gameId}`;
 
 export type ChessInviteResult = {
   requestId: string;
@@ -37,6 +42,28 @@ export type ChessEndResult = {
   ended: boolean;
 };
 
+export type ChessMoveResult = {
+  roomId: string;
+  gameId: string;
+  moved: boolean;
+  moveNumber: number;
+  fen: string;
+  turn: "w" | "b";
+  isGameOver: boolean;
+};
+
+export type ChessDrawOfferResult = {
+  roomId: string;
+  gameId: string;
+  offered: boolean;
+};
+
+export type ChessDrawRespondResult = {
+  roomId: string;
+  gameId: string;
+  accepted: boolean;
+};
+
 export type DirectRoomChessErrorCode =
   | RoomActivityErrorCode
   | "INVITE_PENDING"
@@ -45,7 +72,11 @@ export type DirectRoomChessErrorCode =
   | "INVITE_NOT_PENDING"
   | "GAME_ALREADY_ACTIVE"
   | "GAME_NOT_ACTIVE"
-  | "GAME_MISMATCH";
+  | "GAME_MISMATCH"
+  | "NOT_YOUR_TURN"
+  | "DRAW_ALREADY_PENDING"
+  | "DRAW_NOT_PENDING"
+  | "DRAW_NOT_FOR_YOU";
 
 export class DirectRoomChessError extends Error {
   constructor(
@@ -69,6 +100,15 @@ function toChessError(error: RoomActivityError): DirectRoomChessError {
 function toUnixMs(raw: string | undefined): number {
   const parsed = Number(raw);
   return Number.isFinite(parsed) ? parsed : Date.now();
+}
+
+function toTurn(raw: string | undefined): "w" | "b" {
+  return raw === "b" ? "b" : "w";
+}
+
+function toMoveNumber(raw: string | undefined): number {
+  const parsed = Number(raw);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : 0;
 }
 
 export async function createDirectRoomChessInvite(
@@ -191,6 +231,10 @@ export async function respondDirectRoomChessInvite(
       blackUserId: inviteeUserId,
       startedByUserId: inviteeUserId,
       startedAt,
+      fen: CHESS_INITIAL_FEN,
+      turn: "w" as const,
+      turnUserId: inviterUserId,
+      moveNumber: 0,
     };
 
     await redis.hset(activeKey, gamePayload);
@@ -246,6 +290,8 @@ export async function endDirectRoomChessGame(
       endedByUserId,
       endedAt: Date.now(),
       startedAt: toUnixMs(active.startedAt),
+      winnerUserId: endedByUserId === whiteUserId ? blackUserId : whiteUserId,
+      result: "resign" as const,
     };
     emitChessEnded(whiteUserId, blackUserId, payload);
 
@@ -254,6 +300,205 @@ export async function endDirectRoomChessGame(
     if (error instanceof RoomActivityError) {
       throw toChessError(error);
     }
+    throw error;
+  }
+}
+
+export async function moveDirectRoomChessGame(
+  roomId: string,
+  gameId: string,
+  movedByUserId: string,
+  move: {
+    from: string;
+    to: string;
+    san: string;
+    fen: string;
+    turn: "w" | "b";
+    isGameOver: boolean;
+    winnerUserId: string | null;
+    result: "checkmate" | "stalemate" | "draw";
+  },
+): Promise<ChessMoveResult> {
+  try {
+    await ensureDirectRoomActivityContext(roomId, movedByUserId);
+
+    const redis = getRedis();
+    const activeKey = chessActiveByRoomKey(roomId);
+    const active = await redis.hgetall(activeKey);
+
+    if (!active || !active.gameId) {
+      throw new DirectRoomChessError("No active chess game found", "GAME_NOT_ACTIVE", 404);
+    }
+    if (active.roomId !== roomId || active.gameId !== gameId) {
+      throw new DirectRoomChessError("Game id does not match active chess game", "GAME_MISMATCH", 409);
+    }
+
+    const whiteUserId = active.whiteUserId;
+    const blackUserId = active.blackUserId;
+    if (!whiteUserId || !blackUserId || (movedByUserId !== whiteUserId && movedByUserId !== blackUserId)) {
+      throw new DirectRoomChessError("You are not in this chess game", "NOT_PARTICIPANT", 403);
+    }
+
+    const turnUserId = active.turnUserId;
+    if (turnUserId && turnUserId !== movedByUserId) {
+      throw new DirectRoomChessError("Not your turn", "NOT_YOUR_TURN", 409);
+    }
+
+    const nextTurnUserId = move.turn === "w" ? whiteUserId : blackUserId;
+    const moveNumber = toMoveNumber(active.moveNumber) + 1;
+    const movedAt = Date.now();
+
+    if (move.isGameOver) {
+      await redis.del(activeKey);
+      emitChessEnded(whiteUserId, blackUserId, {
+        roomId,
+        gameId,
+        endedByUserId: movedByUserId,
+        endedAt: movedAt,
+        startedAt: toUnixMs(active.startedAt),
+        winnerUserId: move.winnerUserId,
+        result: move.result,
+      });
+      return {
+        roomId,
+        gameId,
+        moved: true,
+        moveNumber,
+        fen: move.fen,
+        turn: toTurn(move.turn),
+        isGameOver: true,
+      };
+    }
+
+    await redis.hset(activeKey, {
+      fen: move.fen,
+      turn: move.turn,
+      turnUserId: nextTurnUserId,
+      moveNumber,
+      lastMoveSan: move.san,
+      lastMoveAt: movedAt,
+    });
+    await redis.expire(activeKey, CHESS_ACTIVE_TTL_SEC);
+
+    emitChessMoved(whiteUserId, blackUserId, {
+      roomId,
+      gameId,
+      movedByUserId,
+      from: move.from,
+      to: move.to,
+      san: move.san,
+      fen: move.fen,
+      turn: toTurn(move.turn),
+      moveNumber,
+      movedAt,
+    });
+
+    return {
+      roomId,
+      gameId,
+      moved: true,
+      moveNumber,
+      fen: move.fen,
+      turn: toTurn(move.turn),
+      isGameOver: false,
+    };
+  } catch (error: unknown) {
+    if (error instanceof RoomActivityError) {
+      throw toChessError(error);
+    }
+    throw error;
+  }
+}
+
+export async function offerDirectRoomChessDraw(
+  roomId: string,
+  gameId: string,
+  offeredByUserId: string,
+): Promise<ChessDrawOfferResult> {
+  try {
+    await ensureDirectRoomActivityContext(roomId, offeredByUserId);
+    const redis = getRedis();
+    const activeKey = chessActiveByRoomKey(roomId);
+    const active = await redis.hgetall(activeKey);
+    if (!active || !active.gameId) {
+      throw new DirectRoomChessError("No active chess game found", "GAME_NOT_ACTIVE", 404);
+    }
+    if (active.roomId !== roomId || active.gameId !== gameId) {
+      throw new DirectRoomChessError("Game id does not match active chess game", "GAME_MISMATCH", 409);
+    }
+
+    const whiteUserId = active.whiteUserId;
+    const blackUserId = active.blackUserId;
+    if (!whiteUserId || !blackUserId || (offeredByUserId !== whiteUserId && offeredByUserId !== blackUserId)) {
+      throw new DirectRoomChessError("You are not in this chess game", "NOT_PARTICIPANT", 403);
+    }
+
+    const drawKey = chessDrawOfferKey(roomId, gameId);
+    const pending = await redis.hgetall(drawKey);
+    if (pending?.offeredByUserId) {
+      throw new DirectRoomChessError("Draw offer already pending", "DRAW_ALREADY_PENDING", 409);
+    }
+
+    const targetUserId = offeredByUserId === whiteUserId ? blackUserId : whiteUserId;
+    await redis.hset(drawKey, { roomId, gameId, offeredByUserId, targetUserId, createdAt: Date.now() });
+    await redis.expire(drawKey, 120);
+    emitChessDrawOffered(targetUserId, { roomId, gameId, offeredByUserId });
+
+    return { roomId, gameId, offered: true };
+  } catch (error: unknown) {
+    if (error instanceof RoomActivityError) throw toChessError(error);
+    throw error;
+  }
+}
+
+export async function respondDirectRoomChessDraw(
+  roomId: string,
+  gameId: string,
+  responderUserId: string,
+  accept: boolean,
+): Promise<ChessDrawRespondResult> {
+  try {
+    await ensureDirectRoomActivityContext(roomId, responderUserId);
+    const redis = getRedis();
+    const drawKey = chessDrawOfferKey(roomId, gameId);
+    const offer = await redis.hgetall(drawKey);
+    if (!offer || !offer.offeredByUserId) {
+      throw new DirectRoomChessError("No pending draw offer", "DRAW_NOT_PENDING", 404);
+    }
+    if (offer.targetUserId !== responderUserId) {
+      throw new DirectRoomChessError("Draw offer is not for you", "DRAW_NOT_FOR_YOU", 403);
+    }
+
+    const offeredByUserId = offer.offeredByUserId;
+    await redis.del(drawKey);
+
+    if (!accept) {
+      emitChessDrawRejected(offeredByUserId, {
+        roomId,
+        gameId,
+        rejectedByUserId: responderUserId,
+      });
+      return { roomId, gameId, accepted: false };
+    }
+
+    const activeKey = chessActiveByRoomKey(roomId);
+    const active = await redis.hgetall(activeKey);
+    if (active?.gameId === gameId && active.whiteUserId && active.blackUserId) {
+      await redis.del(activeKey);
+      emitChessEnded(active.whiteUserId, active.blackUserId, {
+        roomId,
+        gameId,
+        endedByUserId: responderUserId,
+        endedAt: Date.now(),
+        startedAt: toUnixMs(active.startedAt),
+        winnerUserId: null,
+        result: "draw",
+      });
+    }
+
+    return { roomId, gameId, accepted: true };
+  } catch (error: unknown) {
+    if (error instanceof RoomActivityError) throw toChessError(error);
     throw error;
   }
 }
