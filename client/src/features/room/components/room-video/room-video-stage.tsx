@@ -110,10 +110,10 @@ export function RoomVideoStage({
       ) : (
         <>
           <div
-            className="absolute inset-0 flex gap-2 p-3 pb-20"
+            className="absolute inset-0 flex min-h-0 flex-col gap-2 overflow-hidden p-3 md:flex-row"
             style={{ display: stageRatio === "1:1" && !stageActivity ? "flex" : "none" }}
           >
-            <div className="relative flex-1 overflow-hidden rounded-2xl bg-black">
+            <div className="relative min-h-0 w-full flex-1 basis-0 overflow-hidden rounded-2xl bg-black">
               <VideoMirror
                 srcRef={remoteVideoRef}
                 className={cn(
@@ -140,7 +140,7 @@ export function RoomVideoStage({
               </TileNameBadge>
             </div>
 
-            <div className="relative flex-1 overflow-hidden rounded-2xl border border-border/60 bg-card">
+            <div className="relative min-h-0 w-full flex-1 basis-0 overflow-hidden rounded-2xl border border-border/60 bg-card">
               <VideoMirror
                 srcRef={localVideoRef}
                 mirrored
@@ -164,10 +164,20 @@ export function RoomVideoStage({
           </div>
 
           <div
-            className="absolute inset-0 pb-20"
+            className="absolute inset-0 overflow-x-hidden overflow-y-auto overscroll-y-contain rounded-[1.2rem] md:overflow-hidden"
             style={{ display: stageRatio === "1:1" && !stageActivity ? "none" : "block" }}
           >
-            <div className="relative h-full w-full overflow-hidden rounded-[1.2rem]">
+            {/*
+              One scroll surface: padding lives inside the scroll flow so the toolbar
+              clears the last pixels — avoid nesting h-full + overflow-y-auto (feels like a second scroller by the board).
+            */}
+            <div
+              className={cn(
+                "relative w-full min-h-0",
+                /* Desktop: fill stage so `RoomActivityLayout`’s `md:absolute md:inset-0` has a real height. Mobile chess: height from content + one outer scroll. */
+                stageActivity ? "min-h-0 md:h-full" : "h-full min-h-0 pb-0",
+              )}
+            >
               {stageActivity ? (
                 activeActivityMeta ? (
                   <ActivityStage
@@ -189,7 +199,7 @@ export function RoomVideoStage({
                   />
                 ) : null
               ) : (
-                <>
+                <div className="relative h-full min-h-0 w-full">
                   <VideoMirror
                     srcRef={remoteVideoRef}
                     className={cn(
@@ -211,7 +221,7 @@ export function RoomVideoStage({
                       />
                     </div>
                   )}
-                </>
+                </div>
               )}
             </div>
           </div>
