@@ -16,7 +16,6 @@ import { ServiceUnavailableError, ValidationError } from "@/shared/errors";
 
 import {
   fileExtensionForProfileImageContentType,
-  PROFILE_IMAGE_CACHE_CONTROL,
   PROFILE_IMAGE_PRESIGN_TTL_SECONDS,
 } from "./constants";
 import {
@@ -70,11 +69,12 @@ export async function presignProfileImageUpload(
   const key = buildProfileImageObjectKey(params.userId, fileName);
   const bucket = appConfig.doSpacesBucket!;
 
+  // Do not set Cache-Control (or other headers) here unless the browser sends the same values on PUT.
+  // Unsigned headers would still break SigV4; signed headers missing on fetch → SignatureDoesNotMatch.
   const command = new PutObjectCommand({
     Bucket: bucket,
     Key: key,
     ContentType: params.contentType,
-    CacheControl: PROFILE_IMAGE_CACHE_CONTROL,
     ACL: "public-read",
   });
 
