@@ -1,11 +1,6 @@
 import { createSlice, type PayloadAction } from "@reduxjs/toolkit";
 
-import type {
-  RoomActivityState,
-  RoomMediaStatus,
-  RoomPeerEntry,
-  RoomSessionPhase,
-} from "@/lib/redux/types/room-slice.types";
+import type { RoomMediaStatus, RoomPeerEntry, RoomSessionPhase } from "@/lib/redux/types/room-slice.types";
 
 export interface RoomSliceState {
   ui: {
@@ -17,6 +12,8 @@ export interface RoomSliceState {
     phase: RoomSessionPhase;
     rtcPrimaryRemoteUserId: string | null;
     conversationId: string | null;
+    /** Primary remote display name in 1:1 (for chess outcome copy); set from `RoomVideoLayer`. */
+    directCallPeerLabel: string | null;
   };
   media: {
     status: RoomMediaStatus;
@@ -27,16 +24,20 @@ export interface RoomSliceState {
   chat: {
     draft: string;
   };
-  activity: RoomActivityState;
 }
 
 const initialState = (): RoomSliceState => ({
   ui: { sessionActive: false, isMinimized: false },
-  session: { activeRoomId: null, phase: "idle", rtcPrimaryRemoteUserId: null, conversationId: null },
+  session: {
+    activeRoomId: null,
+    phase: "idle",
+    rtcPrimaryRemoteUserId: null,
+    conversationId: null,
+    directCallPeerLabel: null,
+  },
   media: { status: "idle" },
   peers: { byUserId: {} },
   chat: { draft: "" },
-  activity: { active: null },
 });
 
 export const roomSlice = createSlice({
@@ -51,6 +52,7 @@ export const roomSlice = createSlice({
         state.session.activeRoomId = nextId;
         state.session.phase = "lobby";
         state.session.rtcPrimaryRemoteUserId = null;
+        state.session.directCallPeerLabel = null;
         return;
       }
       state.session.activeRoomId = nextId;
@@ -99,10 +101,10 @@ export const roomSlice = createSlice({
       state.session.phase = "idle";
       state.session.rtcPrimaryRemoteUserId = null;
       state.session.conversationId = null;
+      state.session.directCallPeerLabel = null;
       state.media.status = "idle";
       state.peers.byUserId = {};
       state.chat.draft = "";
-      state.activity.active = null;
     },
 
     minimizeVideoSession: (state) => {
@@ -128,10 +130,10 @@ export const roomSlice = createSlice({
       state.session.phase = "searching";
       state.session.rtcPrimaryRemoteUserId = null;
       state.session.conversationId = null;
+      state.session.directCallPeerLabel = null;
       state.media.status = "idle";
       state.peers.byUserId = {};
       state.chat.draft = "";
-      state.activity.active = null;
     },
 
     setMediaStatus: (state, action: PayloadAction<RoomMediaStatus>) => {
@@ -154,8 +156,8 @@ export const roomSlice = createSlice({
       state.chat.draft = action.payload;
     },
 
-    setActiveActivity: (state, action: PayloadAction<RoomActivityState["active"]>) => {
-      state.activity.active = action.payload;
+    setDirectCallPeerLabel: (state, action: PayloadAction<string | null>) => {
+      state.session.directCallPeerLabel = action.payload;
     },
   },
 });
@@ -175,7 +177,7 @@ export const {
   upsertRoomPeer,
   removeRoomPeer,
   setChatDraft,
-  setActiveActivity,
+  setDirectCallPeerLabel,
 } = roomSlice.actions;
 
 export default roomSlice.reducer;

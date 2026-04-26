@@ -5,7 +5,7 @@ import { useParams, useSearchParams, useRouter } from "next/navigation";
 import { useSession } from "@/lib/auth-client";
 import { getRtkQueryErrorMessage } from "@/lib/api/rtk-query-error";
 import { useAppDispatch } from "@/lib/redux/hooks";
-import { enterRoomPage, resetRoomState } from "@/lib/redux/slices/roomSlice";
+import { enterRoomPage, resetRoomState } from "@/lib/redux/slices/room-slice";
 import { clearRoomStorage } from "@/features/room/lib/room-sync";
 import { useGetRoomQuery, useLeaveRoomMutation, leaveRoomKeepalive } from "@/features/room/api/room-api";
 import { useRtcSocketContext } from "@/features/rtc";

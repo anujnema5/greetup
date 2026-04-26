@@ -8,7 +8,7 @@ import {
   selectIsRoomMinimized,
   selectIsVideoSessionActive,
 } from "@/lib/redux/selectors/room-selectors";
-import { expandVideoSession } from "@/lib/redux/slices/roomSlice";
+import { expandVideoSession } from "@/lib/redux/slices/room-slice";
 import { clearRoomMinimized } from "@/features/room/lib/room-sync";
 import { isCircleRoomData } from "@/features/matching";
 import { useGetRoomQuery } from "@/features/room/api/room-api";

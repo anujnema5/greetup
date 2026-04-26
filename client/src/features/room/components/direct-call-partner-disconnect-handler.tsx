@@ -6,7 +6,7 @@ import {
   selectIsVideoSessionActive,
   selectRoomPhase,
 } from "@/lib/redux/selectors/room-selectors";
-import { beginSearchingNextCall, setRoomPhase } from "@/lib/redux/slices/roomSlice";
+import { beginSearchingNextCall, setRoomPhase } from "@/lib/redux/slices/room-slice";
 import { useRtcSocketContext, remotePeerIdsStableKey, remotePeerCountFromStableKey } from "@/features/rtc";
 import { useMatchmaking } from "@/features/matching";
 import { useLeaveRoomMutation } from "@/features/room/api/room-api";

@@ -1,7 +1,11 @@
 /**
  * Global room / realtime session model (client-only).
- * Server truth stays in RTK Query; this slice holds UI + future WebRTC / activities / chat.
+ * Server truth stays in RTK Query; this slice holds session UI + WebRTC peer bookkeeping.
+ *
+ * Synchronized in-call activities live in `roomActivity` slice (`activity-slice.types.ts`).
  */
+
+export type { RoomActiveActivity, RoomChessActivityState, RoomChessLastOutcome } from "./activity-slice.types";
 
 export type RoomSessionPhase = "idle" | "lobby" | "in_call" | "searching";
 
@@ -14,25 +18,3 @@ export type RoomPeerEntry = {
  * Serializable mediasoup phase (actual `MediaStream`s live in `RtcSocketProvider` context only).
  */
 export type RoomMediaStatus = "idle" | "connecting" | "connected" | "error";
-
-export type RoomChessActivityState = {
-  kind: "chess";
-  gameId: string;
-  roomId: string;
-  whiteUserId: string;
-  blackUserId: string;
-  startedByUserId: string;
-  startedAt: number;
-  fen: string;
-  turn: "w" | "b";
-  moveNumber: number;
-  lastMoveSan: string | null;
-  lastMoveAt: number | null;
-};
-
-export type RoomActiveActivity = RoomChessActivityState;
-
-/** In-call activities that must stay synchronized between peers. */
-export type RoomActivityState = {
-  active: RoomActiveActivity | null;
-};

@@ -2,7 +2,7 @@
 
 import { useEffect } from "react";
 import { useAppDispatch } from "@/lib/redux/hooks";
-import { startVideoSession, minimizeVideoSession } from "@/lib/redux/slices/roomSlice";
+import { startVideoSession, minimizeVideoSession } from "@/lib/redux/slices/room-slice";
 import {
   isRoomMarkedActive,
   isRoomMinimizedMarked,

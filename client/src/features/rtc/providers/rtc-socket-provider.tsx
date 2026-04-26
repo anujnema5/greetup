@@ -9,7 +9,7 @@ import {
   selectIsVideoSessionActive,
   selectRtcPrimaryRemoteUserId,
 } from "@/lib/redux/selectors/room-selectors";
-import { setMediaStatus } from "@/lib/redux/slices/roomSlice";
+import { setMediaStatus } from "@/lib/redux/slices/room-slice";
 import { deriveRoomRtcState } from "@/features/matching/utils/derive-room-rtc-state";
 import { useGetRtcTokenQuery } from "../api/rtc-api";
 import { useRtcSocket } from "../hooks/use-rtc-socket";

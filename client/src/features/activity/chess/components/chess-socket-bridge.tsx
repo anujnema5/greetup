@@ -9,8 +9,10 @@ const useEffectEvent = React.useEffectEvent as <T extends (...args: never[]) => 
 import { useSession } from "@/lib/auth-client";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
+import { ChessGameOutcomeDialog } from "@/features/activity/chess/components/chess-game-outcome-dialog";
 import {
   useRoomChessDrawRespondMutation,
+  useRoomChessInviteMutation,
   useRoomChessRespondMutation,
 } from "@/features/activity/api/activity-api";
 import {
@@ -28,10 +30,18 @@ import { getRtkMutationErrorMessage } from "@/lib/api/rtk-mutation-error";
 import { useAppDispatch, useAppSelector } from "@/lib/redux/hooks";
 import {
   selectActiveRoomId,
+  selectDirectCallPeerLabel,
   selectIsVideoSessionActive,
-  selectRoomActiveActivity,
 } from "@/lib/redux/selectors/room-selectors";
-import { setActiveActivity } from "@/lib/redux/slices/roomSlice";
+import {
+  selectRoomActiveActivity,
+  selectRoomLastChessOutcome,
+} from "@/lib/redux/selectors/room-activity-selectors";
+import {
+  clearLastChessOutcome,
+  setActiveActivity,
+  setLastChessOutcome,
+} from "@/lib/redux/slices/room-activity-slice";
 import { useSocket } from "@/lib/socket";
 
 export function ChessSocketBridge() {
@@ -41,10 +51,13 @@ export function ChessSocketBridge() {
   const activeRoomId = useAppSelector(selectActiveRoomId);
   const isVideoSessionActive = useAppSelector(selectIsVideoSessionActive);
   const activeRealtimeActivity = useAppSelector(selectRoomActiveActivity);
+  const lastChessOutcome = useAppSelector(selectRoomLastChessOutcome);
+  const directCallPeerLabel = useAppSelector(selectDirectCallPeerLabel);
   const [invite, setInvite] = useState<ChessInvitePayload | null>(null);
   const [drawOffer, setDrawOffer] = useState<{ roomId: string; gameId: string } | null>(null);
   const [respond, { isLoading: responding }] = useRoomChessRespondMutation();
   const [respondDraw, { isLoading: respondingDraw }] = useRoomChessDrawRespondMutation();
+  const [requestRematch, { isLoading: requestingRematch }] = useRoomChessInviteMutation();
 
   const onInvite = useEffectEvent((payload: unknown) => {
     const parsed = parseChessInvitePayload(payload);
@@ -65,6 +78,7 @@ export function ChessSocketBridge() {
     if (!parsed) return;
     if (!activeRoomId || parsed.roomId !== activeRoomId) return;
     setInvite(null);
+    dispatch(clearLastChessOutcome());
     dispatch(
       setActiveActivity({
         kind: "chess",
@@ -119,20 +133,29 @@ export function ChessSocketBridge() {
     const parsed = parseChessEndedPayload(payload);
     if (!parsed) return;
     if (!activeRoomId || parsed.roomId !== activeRoomId) return;
-    if (activeRealtimeActivity?.kind === "chess" && activeRealtimeActivity.gameId === parsed.gameId) {
+
+    const chess =
+      activeRealtimeActivity?.kind === "chess" && activeRealtimeActivity.gameId === parsed.gameId
+        ? activeRealtimeActivity
+        : null;
+
+    if (chess) {
+      dispatch(
+        setLastChessOutcome({
+          roomId: parsed.roomId,
+          gameId: parsed.gameId,
+          endedByUserId: parsed.endedByUserId,
+          endedAt: parsed.endedAt,
+          startedAt: parsed.startedAt,
+          winnerUserId: parsed.winnerUserId,
+          result: parsed.result,
+          whiteUserId: chess.whiteUserId,
+          blackUserId: chess.blackUserId,
+        }),
+      );
       dispatch(setActiveActivity(null));
     }
     setDrawOffer(null);
-    const me = session?.user?.id ?? null;
-    if (parsed.result === "resign") {
-      toast.message(parsed.endedByUserId === me ? "You resigned" : "Opponent resigned");
-    } else if (parsed.result === "draw" || parsed.result === "stalemate") {
-      toast.message("Game drawn");
-    } else if (parsed.result === "checkmate") {
-      toast.message(parsed.winnerUserId === me ? "You won by checkmate" : "You lost by checkmate");
-    } else {
-      toast.message("Chess game ended");
-    }
   });
 
   useEffect(() => {
@@ -170,6 +193,37 @@ export function ChessSocketBridge() {
     }
   };
 
+  const outcomeEligible = Boolean(
+    lastChessOutcome &&
+      isVideoSessionActive &&
+      activeRoomId &&
+      lastChessOutcome.roomId === activeRoomId,
+  );
+
+  /**
+   * Single visible modal — rematch `invite` replaces the game-over dialog immediately
+   * (no extra close). Outcome stays in Redux so if the user declines the invite, the
+   * result sheet can show again.
+   */
+  const inviteDialogOpen = Boolean(invite);
+  const outcomeDialogOpen = outcomeEligible && !invite;
+  const drawDialogOpen = Boolean(drawOffer) && !invite && !outcomeDialogOpen;
+
+  const dismissOutcome = () => {
+    dispatch(clearLastChessOutcome());
+  };
+
+  const onPlayAgainFromOutcome = async () => {
+    if (!lastChessOutcome || !activeRoomId || lastChessOutcome.roomId !== activeRoomId) return;
+    try {
+      await requestRematch({ roomId: lastChessOutcome.roomId }).unwrap();
+      toast.success("Chess invite sent");
+      dispatch(clearLastChessOutcome());
+    } catch (e: unknown) {
+      toast.error(getRtkMutationErrorMessage(e, "Could not send chess invite"));
+    }
+  };
+
   const onRespondDraw = async (accept: boolean) => {
     if (!drawOffer) return;
     try {
@@ -187,7 +241,7 @@ export function ChessSocketBridge() {
 
   return (
     <>
-      <Dialog open={Boolean(invite)} onOpenChange={(open) => !open && setInvite(null)}>
+      <Dialog open={inviteDialogOpen} onOpenChange={(open) => !open && setInvite(null)}>
         <DialogContent className="z-200 overflow-hidden p-0 sm:max-w-sm" overlayClassName="z-199">
           <div className="flex flex-col items-center gap-3 border-b border-border/40 px-6 pb-6 pt-8">
             <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-muted text-3xl ring-1 ring-border/60">
@@ -212,7 +266,20 @@ export function ChessSocketBridge() {
         </DialogContent>
       </Dialog>
 
-      <Dialog open={Boolean(drawOffer)} onOpenChange={(open) => !open && setDrawOffer(null)}>
+      <ChessGameOutcomeDialog
+        open={outcomeDialogOpen}
+        outcome={lastChessOutcome}
+        myUserId={session?.user?.id ?? null}
+        myDisplayName={session?.user?.name?.trim() || "You"}
+        peerDisplayName={directCallPeerLabel?.trim() || "Opponent"}
+        onOpenChange={(next) => {
+          if (!next) dismissOutcome();
+        }}
+        onPlayAgain={() => void onPlayAgainFromOutcome()}
+        playAgainBusy={requestingRematch}
+      />
+
+      <Dialog open={drawDialogOpen} onOpenChange={(open) => !open && setDrawOffer(null)}>
         <DialogContent className="z-200 overflow-hidden p-0 sm:max-w-sm" overlayClassName="z-199">
           <div className="flex flex-col items-center gap-3 border-b border-border/40 px-6 pb-6 pt-8">
             <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-muted text-3xl ring-1 ring-border/60">

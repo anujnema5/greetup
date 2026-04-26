@@ -36,7 +36,8 @@ Important rule: UI state (`phase`) and media state (`mediasoup status`) are rela
 
 ### Room session and control actions
 
-- `client/src/lib/redux/slices/roomSlice.ts`
+- `client/src/lib/redux/slices/room-slice.ts`
+- `client/src/lib/redux/slices/room-activity-slice.ts`
 - `client/src/lib/redux/selectors/room-selectors.ts`
 - `client/src/features/room/hooks/use-room-video.ts`
 - `client/src/features/room/components/direct-call-partner-disconnect-handler.tsx`
@@ -67,7 +68,7 @@ Important rule: UI state (`phase`) and media state (`mediasoup status`) are rela
 
 ## 3) Redux Room State: Main Variables
 
-Defined in `roomSlice`.
+Defined in `room-slice.ts` (session UI) and `room-activity-slice.ts` (in-call activities).
 
 ### UI
 
