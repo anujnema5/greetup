@@ -21,6 +21,12 @@ substitutions:
   _NEXT_PUBLIC_SOCKET_SERVER_URL: https://api.YOUR-PROD-DOMAIN
   _NEXT_PUBLIC_RTC_SOCKET_URL: https://rtc.YOUR-PROD-DOMAIN
   _NEXT_PUBLIC_APP_URL: https://YOUR-PROD-DOMAIN
+  # Firebase Console → Project settings → Your apps → Web app config (set on trigger or replace here).
+  _NEXT_PUBLIC_FIREBASE_API_KEY: ""
+  _NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN: ""
+  _NEXT_PUBLIC_FIREBASE_PROJECT_ID: ""
+  _NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID: ""
+  _NEXT_PUBLIC_FIREBASE_APP_ID: ""
 
 options:
   logging: CLOUD_LOGGING_ONLY
@@ -42,6 +48,16 @@ steps:
       - NEXT_PUBLIC_RTC_SOCKET_URL=${_NEXT_PUBLIC_RTC_SOCKET_URL}
       - --build-arg
       - NEXT_PUBLIC_APP_URL=${_NEXT_PUBLIC_APP_URL}
+      - --build-arg
+      - NEXT_PUBLIC_FIREBASE_API_KEY=${_NEXT_PUBLIC_FIREBASE_API_KEY}
+      - --build-arg
+      - NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=${_NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN}
+      - --build-arg
+      - NEXT_PUBLIC_FIREBASE_PROJECT_ID=${_NEXT_PUBLIC_FIREBASE_PROJECT_ID}
+      - --build-arg
+      - NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=${_NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID}
+      - --build-arg
+      - NEXT_PUBLIC_FIREBASE_APP_ID=${_NEXT_PUBLIC_FIREBASE_APP_ID}
       - .
 
   - name: gcr.io/cloud-builders/docker
