@@ -29,6 +29,8 @@ export function RoomVideoToolbar({
   showSkip,
   onSkip,
   onEnd,
+  elapsed,
+  formatDuration,
 }: {
   onToggleMic?: () => void;
   onToggleCamera?: () => void;
@@ -49,16 +51,16 @@ export function RoomVideoToolbar({
   showSkip: boolean;
   onSkip: () => void;
   onEnd: () => void;
+  elapsed: number;
+  formatDuration: (seconds: number) => string;
 }) {
   if (!onToggleMic || !onToggleCamera) {
     return null;
   }
 
   return (
-    <div
-      className="pointer-events-auto absolute bottom-4 left-4 z-20 flex items-center gap-2"
-      style={{ userSelect: "none" }}
-    >
+    <div className="pointer-events-auto absolute inset-x-4 bottom-4 z-20 flex select-none items-center justify-between">
+      <div className="flex items-center gap-2">
       <MediaControlButton
         active={micEnabled}
         onClick={onToggleMic}
@@ -138,14 +140,15 @@ export function RoomVideoToolbar({
         size="icon-lg"
         onClick={onEnd}
         aria-label="End call"
-        className="h-11 w-11 rounded-full bg-red-500 transition-colors hover:bg-red-600"
-        style={{
-          border: "1px solid rgba(255,255,255,0.1)",
-          backdropFilter: "blur(8px)",
-        }}
+        className="h-11 w-11 rounded-full border border-white/10 bg-red-500 backdrop-blur-md transition-colors hover:bg-red-600"
       >
         <PhoneOff size={18} className="text-white" />
       </Button>
+      </div>
+      {/* Timer hidden for now; keep props/wiring for future enable. */}
+      {/* <div className="flex h-11 shrink-0 items-center pr-1 text-right font-mono text-xs font-medium leading-none text-white/80">
+        {formatDuration(elapsed)}
+      </div> */}
     </div>
   );
 }

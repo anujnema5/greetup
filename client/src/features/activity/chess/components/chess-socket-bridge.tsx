@@ -123,27 +123,41 @@ export function ChessSocketBridge() {
 
   return (
     <Dialog open={Boolean(invite)} onOpenChange={(open) => !open && closeInvite()}>
-      <DialogContent className="z-200 sm:max-w-md" overlayClassName="z-199">
-        <DialogHeader>
-          <DialogTitle>Play chess?</DialogTitle>
-          <DialogDescription className="pt-1 text-sm text-muted-foreground">
-            <span className="font-medium text-foreground">{invite?.inviterDisplayName}</span> wants to
-            start a chess game with you.
-          </DialogDescription>
-        </DialogHeader>
-        <DialogFooter className="gap-2 sm:gap-0">
+      <DialogContent className="z-200 overflow-hidden p-0 sm:max-w-sm" overlayClassName="z-199">
+        {/* Icon + title */}
+        <div className="flex flex-col items-center gap-3 border-b border-border/40 px-6 pb-6 pt-8">
+          <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-muted text-3xl ring-1 ring-border/60">
+            ♟︎
+          </div>
+          <div className="text-center">
+            <DialogTitle className="text-lg font-semibold">Play chess?</DialogTitle>
+            <DialogDescription className="mt-1 text-sm text-muted-foreground">
+              <span className="font-medium text-foreground">{invite?.inviterDisplayName}</span>
+              {" "}wants to start a chess game with you.
+            </DialogDescription>
+          </div>
+        </div>
+
+        {/* Actions */}
+        <div className="flex gap-2 px-6 py-4">
           <Button
             type="button"
             variant="outline"
+            className="flex-1"
             onClick={() => void onRespond(false)}
             disabled={responding}
           >
             Decline
           </Button>
-          <Button type="button" onClick={() => void onRespond(true)} disabled={responding}>
-            {responding ? "Starting..." : "Accept"}
+          <Button
+            type="button"
+            className="flex-1"
+            onClick={() => void onRespond(true)}
+            disabled={responding}
+          >
+            {responding ? "Starting…" : "Accept"}
           </Button>
-        </DialogFooter>
+        </div>
       </DialogContent>
     </Dialog>
   );

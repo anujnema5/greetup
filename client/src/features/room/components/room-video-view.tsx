@@ -174,8 +174,6 @@ export function RoomVideoView({
             stageRatio={stageRatio}
             setStageRatio={setStageRatio}
             onMinimize={onMinimize}
-            elapsed={elapsed}
-            formatDuration={formatDuration}
           />
 
           <RoomVideoToolbar
@@ -198,6 +196,8 @@ export function RoomVideoView({
             showSkip={showSkip}
             onSkip={onSkip}
             onEnd={onEnd}
+            elapsed={elapsed}
+            formatDuration={formatDuration}
           />
         </div>
 
