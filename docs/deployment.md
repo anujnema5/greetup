@@ -28,10 +28,13 @@
 
 | Trigger | Config File | Branch |
 |---|---|---|
-| greetup-client | `deploy/gcp/cloudbuild.client.yaml` | development |
+| greetup-client (dev) | `deploy/gcp/cloudbuild.client.yaml` | development |
+| greetup-client (prod) | `deploy/gcp/cloudbuild.client.production.yaml` | add when going live (e.g. `main`) |
 | greetup-server | `deploy/gcp/cloudbuild.server.yaml` | development |
 | greetup-matching-service | `deploy/gcp/cloudbuild.matching.yaml` | development |
 | greetup-rtc-service | `deploy/gcp/cloudbuild.rtc.yaml` | development |
+
+See `deploy/gcp/environments/README.md` for why the client has two configs (public URLs are baked at build time).
 
 ## GCE VM Setup
 
