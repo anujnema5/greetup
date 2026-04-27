@@ -8,4 +8,4 @@ Dockerfile*
 README.md
 dist
 env
-firebase-service-account.json
+firebase-service-account.json 
