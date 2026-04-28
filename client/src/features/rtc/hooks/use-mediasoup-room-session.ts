@@ -131,6 +131,9 @@ export function useMediasoupRoomSession(options: MediasoupRoomSessionOptions): v
     };
 
     const cleanupMedia = (sendT: Transport | null, recvT: Transport | null) => {
+      if (socket.connected) {
+        socket.emit("leave");
+      }
       socket.off("newProducer", onNewProducer);
       socket.off("producerClosed", onProducerClosed);
       socket.off("producerPaused", onProducerPaused);

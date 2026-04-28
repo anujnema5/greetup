@@ -297,6 +297,22 @@ export function registerMediasoupSocketHandlers(socket: Socket, peers: PeerSessi
     void peers.onSocketDisconnect(socket);
   });
 
+  socket.on("leave", async (ack) => {
+    const reply = asSocketAck(ack);
+    const userId = socket.data.userId;
+    if (!userId) {
+      reply({ ok: false, error: { code: "unauthorized" } });
+      return;
+    }
+    try {
+      await peers.leave(userId);
+      reply({ ok: true });
+    } catch (err) {
+      logger.error("leave failed", { socketId: socket.id, err: String(err) });
+      reply({ ok: false, error: { code: "leave_failed", message: String(err) } });
+    }
+  });
+
   socket.on("error", (err) => {
     logger.error("Socket error", { socketId: socket.id, err });
   });

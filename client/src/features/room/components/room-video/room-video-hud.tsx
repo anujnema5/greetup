@@ -25,7 +25,6 @@ export function RoomVideoHud({
   peerLabel: string;
   stageRatio: StageRatio;
   setStageRatio: (ratio: StageRatio) => void;
-  /** Direct room only: 16:9 / 1:1 control (hidden on narrow mobile where 1:1 is required). */
   showAspectRatioToggle: boolean;
   onMinimize?: () => void;
 }) {

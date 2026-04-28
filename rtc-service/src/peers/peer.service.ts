@@ -478,6 +478,18 @@ export class PeerSessionService {
   }
 
   /**
+   * Explicit leave from client while keeping the underlying socket connected
+   * (e.g. user exits room but remains logged in on the app).
+   */
+  async leave(userId: string): Promise<void> {
+    await this.removeSession(userId, {
+      skipRedis: false,
+      skipSocketLeave: false,
+      releaseRoomIfEmpty: true,
+    });
+  }
+
+  /**
    * Updates JWT-derived `roomType` on all mediasoup sessions in a Socket.IO room (e.g. direct → circle)
    * without disconnecting transports — used when the main API expands a 1:1 call in place.
    */
