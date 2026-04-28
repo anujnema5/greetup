@@ -379,6 +379,12 @@ export class MatchOrchestratorService {
           peerAttemptId: peerAttemptId ?? null,
         });
         await this.lock.releasePair(request.userId, candidate.userId);
+        if (!peerAttemptId) {
+          logger.info("[tryPairWithSortedCandidates] evicting stale candidate from pool", {
+            candidateId: candidate.userId,
+          });
+          await this.pool.stripFromPool(candidate.userId);
+        }
         continue;
       }
 
