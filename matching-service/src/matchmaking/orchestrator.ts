@@ -1,33 +1,37 @@
-import type { FindMatchRequest, FindMatchResult, SnapshotUserProfile } from "@/contracts/matchmaking.contracts";
-import type { PairPendingRecord } from "@/matchmaking/infrastructure/services/match-proposal.service";
+import type { FindMatchRequest, FindMatchResult, SnapshotUserProfile } from "@/matchmaking/types";
+import type { PairPendingRecord } from "@/matchmaking/proposal/proposal";
 import { MATCH_CONFIG } from "@/config/constants";
-import { randomJitter, sleep } from "@/core/async-utils";
-import { logger } from "@/core/logger";
-import { sortScoredCandidatesDescending } from "@/matchmaking/application/candidate-ranking";
-import { MatchValidatorService } from "@/matchmaking/domain/match-validator.service";
-import { MatchScoreService } from "@/matchmaking/domain/match-score.service";
-import type { MatchCandidate, ScoredMatchCandidate } from "@/matchmaking/domain/matching.types";
-import { MatchLockService } from "@/matchmaking/infrastructure/services/match-lock.service";
-import { MatchPoolService } from "@/matchmaking/infrastructure/services/match-pool.service";
-import { MatchJobQueueService } from "@/matchmaking/infrastructure/services/match-job-queue.service";
-import { SnapshotRepository } from "@/matchmaking/infrastructure/repositories/snapshot.repository";
-import { MatchAttemptRepository } from "@/matchmaking/infrastructure/repositories/match-attempt.repository";
-import { RoomOrchestrationService } from "@/matchmaking/infrastructure/services/room-orchestration.service";
-import { MatchProposalService } from "@/matchmaking/infrastructure/services/match-proposal.service";
-import { MatchSkipPeersService } from "@/matchmaking/infrastructure/services/match-skip-peers.service";
-import { MatchWebhookService } from "@/matchmaking/infrastructure/services/match-webhook.service";
-import { getRedis } from "@/redis/client";
-import { redisKeys } from "@/redis/keys";
+import { randomJitter, sleep } from "@/shared/async";
+import { logger } from "@/shared/logger";
 import {
   coalesceActiveSearchOrProposal,
   releaseStartSearchLockIfHolder,
   searchingWithRequestId,
+  sortScoredCandidatesDescending,
   START_SEARCH_LOCK_POLL_MS,
   START_SEARCH_LOCK_WAIT_MS,
   tryAcquireStartSearchLock,
-} from "@/matchmaking/application/start-find-match.helpers";
-
-type ScorePoolMode = "eligible_only" | "all_compatible";
+} from "@/matchmaking/helpers";
+import { MatchValidatorService } from "@/matchmaking/scoring/validator";
+import { MatchScoreService } from "@/matchmaking/scoring/scorer";
+import type { MatchCandidate, ScoredMatchCandidate } from "@/matchmaking/types";
+import { MatchLockService } from "@/matchmaking/pool/lock";
+import { MatchPoolService } from "@/matchmaking/pool/pool";
+import { MatchJobQueueService } from "@/matchmaking/queue";
+import { SnapshotRepository } from "@/matchmaking/repositories/snapshot";
+import { MatchAttemptRepository } from "@/matchmaking/repositories/attempt";
+import { RoomOrchestrationService } from "@/matchmaking/room";
+import { MatchProposalService } from "@/matchmaking/proposal/proposal";
+import { MatchSkipPeersService } from "@/matchmaking/proposal/skip-peers";
+import { MatchWebhookService } from "@/matchmaking/webhook";
+import {
+  orderCandidatesForStrategy,
+  resolveMatchExecutionStrategy,
+  type CandidateScoringMode,
+  type MatchExecutionStrategy,
+} from "@/matchmaking/strategy";
+import { getRedis } from "@/redis/client";
+import { redisKeys } from "@/redis/keys";
 
 export class MatchOrchestratorService {
   constructor(
@@ -165,6 +169,13 @@ export class MatchOrchestratorService {
       await this.pool.remove(request.userId);
       return { status: "no_match", reason: "snapshot_not_found" };
     }
+    const strategy = resolveMatchExecutionStrategy(requesterSnapshot);
+    logger.debug("[processMatchRequest] resolved strategy", {
+      userId: request.userId,
+      strategyId: strategy.strategyId,
+      tier: strategy.tier,
+      retryBudget: strategy.retryBudget,
+    });
 
     const state = await getRedis().get(redisKeys.userState(request.userId));
     if (state === "in_room") {
@@ -182,12 +193,17 @@ export class MatchOrchestratorService {
     let foundEligibleCandidate = false;
     let poolHadOtherSearchers = false;
 
-    for (let retryIndex = 0; retryIndex <= MATCH_CONFIG.maxRetries; retryIndex += 1) {
+    const totalRetryPasses = MATCH_CONFIG.maxRetries + strategy.retryBudget;
+    for (let retryIndex = 0; retryIndex <= totalRetryPasses; retryIndex += 1) {
       const candidates = await this.pool.getCandidates(request.userId, requesterSnapshot);
       if (candidates.length > 0) poolHadOtherSearchers = true;
       logger.debug("[processMatchRequest] retry scan", { userId: request.userId, retryIndex, candidateCount: candidates.length });
 
-      const scoredCandidates = await this.scoreCandidatesFromPool(requesterSnapshot, candidates, "eligible_only");
+      const scoredCandidates = await this.scoreCandidatesFromPool(
+        requesterSnapshot,
+        candidates,
+        strategy.primaryScoringMode,
+      );
 
       if (scoredCandidates.length > 0) foundEligibleCandidate = true;
 
@@ -199,11 +215,12 @@ export class MatchOrchestratorService {
       });
 
       sortScoredCandidatesDescending(scoredCandidates);
+      const orderedCandidates = orderCandidatesForStrategy(strategy, scoredCandidates);
 
-      const matched = await this.tryPairWithSortedCandidates(request, scoredCandidates, false);
+      const matched = await this.tryPairWithSortedCandidates(request, orderedCandidates, false);
       if (matched) return matched;
 
-      if (retryIndex < MATCH_CONFIG.maxRetries) {
+      if (retryIndex < totalRetryPasses) {
         const backoffBase =
           MATCH_CONFIG.retryBackoffMs[retryIndex] ??
           MATCH_CONFIG.retryBackoffMs[MATCH_CONFIG.retryBackoffMs.length - 1] ??
@@ -218,7 +235,7 @@ export class MatchOrchestratorService {
         requestId: request.requestId,
         poolHadOtherSearchers,
       });
-      const fallbackResult = await this.tryFallbackMatch(request, requesterSnapshot);
+      const fallbackResult = await this.tryFallbackMatch(request, requesterSnapshot, strategy);
       if (fallbackResult) {
         logger.info("[processMatchRequest] fallback produced a result", {
           userId: request.userId,
@@ -273,44 +290,44 @@ export class MatchOrchestratorService {
   private async scoreCandidatesFromPool(
     requesterSnapshot: SnapshotUserProfile,
     poolCandidates: MatchCandidate[],
-    mode: ScorePoolMode,
+    mode: CandidateScoringMode,
   ): Promise<ScoredMatchCandidate[]> {
-    const out: ScoredMatchCandidate[] = [];
     const logSkips = mode === "eligible_only";
     const skippedPeerIds = await this.skipPeers.getSkippedPeerSet(requesterSnapshot.userId);
-
-    for (const candidate of poolCandidates) {
-      const candidateSnapshot = await this.getSnapshotWithHydration(candidate.userId);
-      if (!candidateSnapshot) {
-        if (logSkips) {
-          logger.debug("[processMatchRequest] skipping candidate — no snapshot", { candidateId: candidate.userId });
+    const scoredMaybe = await Promise.all(
+      poolCandidates.map(async (candidate): Promise<ScoredMatchCandidate | null> => {
+        const candidateSnapshot = await this.getSnapshotWithHydration(candidate.userId);
+        if (!candidateSnapshot) {
+          if (logSkips) {
+            logger.debug("[processMatchRequest] skipping candidate — no snapshot", { candidateId: candidate.userId });
+          }
+          return null;
         }
-        continue;
-      }
 
-      if (!this.validator.isBidirectionallyCompatible(requesterSnapshot, candidateSnapshot)) {
-        if (logSkips) {
-          logger.debug("[processMatchRequest] skipping candidate — not compatible", { candidateId: candidate.userId });
+        if (!this.validator.isBidirectionallyCompatible(requesterSnapshot, candidateSnapshot)) {
+          if (logSkips) {
+            logger.debug("[processMatchRequest] skipping candidate — not compatible", { candidateId: candidate.userId });
+          }
+          return null;
         }
-        continue;
-      }
 
-      const matchScore = this.scorer.calculateBidirectionalScore(requesterSnapshot, candidateSnapshot);
+        const matchScore = this.scorer.calculateBidirectionalScore(requesterSnapshot, candidateSnapshot);
+        if (mode === "eligible_only" && !this.scorer.isScoreEligible(matchScore)) {
+          logger.debug("[processMatchRequest] skipping candidate — score below threshold", {
+            candidateId: candidate.userId,
+            matchScore,
+          });
+          return null;
+        }
 
-      if (mode === "eligible_only" && !this.scorer.isScoreEligible(matchScore)) {
-        logger.debug("[processMatchRequest] skipping candidate — score below threshold", {
-          candidateId: candidate.userId,
+        return {
+          userId: candidate.userId,
           matchScore,
-        });
-        continue;
-      }
-
-      out.push({
-        userId: candidate.userId,
-        matchScore,
-        poolScore: candidate.score,
-      });
-    }
+          poolScore: candidate.score,
+        };
+      }),
+    );
+    const out = scoredMaybe.filter((row): row is ScoredMatchCandidate => row !== null);
 
     if (skippedPeerIds.size === 0) {
       return out;
@@ -461,6 +478,7 @@ export class MatchOrchestratorService {
   private async tryFallbackMatch(
     request: FindMatchRequest,
     requesterSnapshot: SnapshotUserProfile,
+    strategy: MatchExecutionStrategy,
   ): Promise<FindMatchResult | null> {
     logger.info("[tryFallbackMatch] starting — no eligible scores in main retries", {
       userId: request.userId,
@@ -473,8 +491,13 @@ export class MatchOrchestratorService {
       poolSize: candidates.length,
     });
 
-    const scoredCandidates = await this.scoreCandidatesFromPool(requesterSnapshot, candidates, "all_compatible");
+    const scoredCandidates = await this.scoreCandidatesFromPool(
+      requesterSnapshot,
+      candidates,
+      strategy.fallbackScoringMode,
+    );
     sortScoredCandidatesDescending(scoredCandidates);
+    const orderedCandidates = orderCandidatesForStrategy(strategy, scoredCandidates);
 
     if (scoredCandidates.length === 0) {
       logger.warn("[tryFallbackMatch] no all_compatible candidates after scoring — giving up fallback", {
@@ -487,10 +510,12 @@ export class MatchOrchestratorService {
     logger.info("[tryFallbackMatch] attempting pair with relaxed score pool", {
       userId: request.userId,
       requestId: request.requestId,
-      candidateCount: scoredCandidates.length,
+      candidateCount: orderedCandidates.length,
+      strategyId: strategy.strategyId,
+      tier: strategy.tier,
     });
 
-    return this.tryPairWithSortedCandidates(request, scoredCandidates, true);
+    return this.tryPairWithSortedCandidates(request, orderedCandidates, true);
   }
 
   private async markPairInRoom(userA: string, userB: string): Promise<void> {

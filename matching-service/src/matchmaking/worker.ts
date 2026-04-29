@@ -1,6 +1,9 @@
-import { logger } from "@/core/logger";
-import { MatchJobQueueService } from "@/matchmaking/infrastructure/services/match-job-queue.service";
-import { MatchOrchestratorService } from "@/matchmaking/application/match-orchestrator.service";
+/**
+ * Long-running background worker that drains the match queue and runs orchestration.
+ */
+import { logger } from "@/shared/logger";
+import { MatchJobQueueService } from "@/matchmaking/queue";
+import { MatchOrchestratorService } from "@/matchmaking/orchestrator";
 
 export class MatchWorkerService {
   private isRunning = false;
@@ -10,16 +13,19 @@ export class MatchWorkerService {
     private readonly orchestrator = new MatchOrchestratorService(),
   ) {}
 
+  /** Starts the worker loop exactly once. */
   start(): void {
     if (this.isRunning) return;
     this.isRunning = true;
     void this.runLoop();
   }
 
+  /** Signals the worker loop to stop after the current dequeue cycle. */
   stop(): void {
     this.isRunning = false;
   }
 
+  /** Polls Redis queue and processes jobs with failure isolation per iteration. */
   private async runLoop(): Promise<void> {
     logger.info("Match worker started");
     while (this.isRunning) {

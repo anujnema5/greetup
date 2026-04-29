@@ -1,5 +1,9 @@
+/**
+ * Room creation adapter.
+ * Supports local mock mode and HTTP-based room service mode behind a shared API.
+ */
 import { env } from "@/config/env";
-import { logger } from "@/core/logger";
+import { logger } from "@/shared/logger";
 
 type CreateRoomInput = {
   attemptId: string;
@@ -32,6 +36,10 @@ const pairIdFor = (left: string, right: string): string => {
 };
 
 export class RoomOrchestrationService {
+  /**
+   * Creates a room for a matched pair and returns a normalized result contract.
+   * Uses mock mode when room service is disabled or URL is missing.
+   */
   async createRoom(input: CreateRoomInput): Promise<CreateRoomResult> {
     const pairId = pairIdFor(input.requesterId, input.peerUserId);
 

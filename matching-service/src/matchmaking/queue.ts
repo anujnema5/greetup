@@ -1,4 +1,7 @@
-import type { FindMatchRequest } from "@/contracts/matchmaking.contracts";
+/**
+ * Redis-backed queue used by the worker to process match requests asynchronously.
+ */
+import type { FindMatchRequest } from "@/matchmaking/types";
 import { getRedis, getRedisBlocking } from "@/redis/client";
 import { redisKeys } from "@/redis/keys";
 
@@ -25,10 +28,12 @@ const parseQueuePayload = (value: string): FindMatchRequest | null => {
 };
 
 export class MatchJobQueueService {
+  /** Pushes a match request to the head of the queue for worker pickup. */
   async enqueue(request: FindMatchRequest): Promise<void> {
     await getRedis().lpush(redisKeys.matchJobQueue(), toQueuePayload(request));
   }
 
+  /** Blocks for up to `blockSeconds` waiting for the next queued request. */
   async dequeue(blockSeconds = 2): Promise<FindMatchRequest | null> {
     const result = await getRedisBlocking().brpop(redisKeys.matchJobQueue(), blockSeconds);
     if (!result || result.length < 2) {

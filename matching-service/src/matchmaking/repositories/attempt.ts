@@ -1,4 +1,4 @@
-import type { FindMatchResult } from "@/contracts/matchmaking.contracts";
+import type { FindMatchResult } from "@/matchmaking/types";
 import { MATCH_CONFIG } from "@/config/constants";
 import { getRedis } from "@/redis/client";
 import { redisKeys } from "@/redis/keys";

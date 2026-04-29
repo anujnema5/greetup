@@ -1,6 +1,6 @@
 import Redis from "ioredis";
 import { env } from "@/config/env";
-import { logger } from "@/core/logger";
+import { logger } from "@/shared/logger";
 
 export type RedisClient = Redis;
 

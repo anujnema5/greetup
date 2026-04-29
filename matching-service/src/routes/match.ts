@@ -1,6 +1,6 @@
 import type { Context } from "hono";
-import type { FindMatchRequest } from "@/contracts/matchmaking.contracts";
-import { MatchOrchestratorService } from "@/matchmaking/application/match-orchestrator.service";
+import type { FindMatchRequest } from "@/matchmaking/types";
+import { MatchOrchestratorService } from "@/matchmaking/orchestrator";
 
 const orchestrator = new MatchOrchestratorService();
 

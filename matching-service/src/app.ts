@@ -1,6 +1,6 @@
 import { Hono } from "hono";
 import { APP_CONFIG } from "@/config/constants";
-import { healthResponse } from "@/controllers/health.controller";
+import { healthResponse } from "@/routes/health";
 import {
   handleFindMatch,
   handleGetMatchResult,
@@ -8,12 +8,12 @@ import {
   handleCancelMatch,
   handleLeaveRoom,
   handleMatchRespond,
-} from "@/controllers/matchmaking.controller";
-import { logger } from "@/core/logger";
+} from "@/routes/match";
+import { logger } from "@/shared/logger";
 import { connectRedis, disconnectRedis } from "@/redis/client";
-import { MatchWorkerService } from "@/matchmaking/application/match-worker.service";
+import { MatchWorkerService } from "@/matchmaking/worker";
 
-const worker = new MatchWorkerService();
+const matchmakingWorker = new MatchWorkerService();
 
 const app = new Hono();
 
@@ -27,7 +27,7 @@ app.post("/match/leave-room", handleLeaveRoom);
 
 const setupShutdownHooks = (): void => {
   const shutdown = async () => {
-    worker.stop();
+    matchmakingWorker.stop();
     await disconnectRedis();
     process.exit(0);
   };
@@ -38,7 +38,7 @@ const setupShutdownHooks = (): void => {
 
 const bootstrap = async (): Promise<void> => {
   await connectRedis();
-  worker.start();
+  matchmakingWorker.start();
   setupShutdownHooks();
 
   logger.info(`matching-service listening on http://${APP_CONFIG.host}:${APP_CONFIG.port}`);
