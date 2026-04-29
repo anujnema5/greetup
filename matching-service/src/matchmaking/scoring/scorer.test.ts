@@ -1,6 +1,6 @@
 import { describe, expect, it } from "bun:test";
-import type { SnapshotUserProfile } from "@/contracts/matchmaking.contracts";
-import { MatchScoreService } from "./match-score.service";
+import type { SnapshotUserProfile } from "@/matchmaking/types";
+import { MatchScoreService } from "./scorer";
 
 const scorer = new MatchScoreService();
 

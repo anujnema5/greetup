@@ -1,17 +1,77 @@
-import type { SnapshotUserProfile } from "@/contracts/matchmaking.contracts";
+import type { SnapshotUserProfile } from "@/matchmaking/types";
 import { getRedis } from "@/redis/client";
 import { redisKeys } from "@/redis/keys";
-import {
-  buildMatchIds,
-  collectNestedIds,
-  isRecord,
-  parseDateToMs,
-  parseSessionPrepFromSnapshot,
-  toNumberOrNull,
-  toStringOrNull,
-} from "@/matchmaking/infrastructure/parsers/snapshot.parser-utils";
+
+// ── Parser utilities ──────────────────────────────────────────────────────────
 
 type JsonRecord = Record<string, unknown>;
+
+export const isRecord = (value: unknown): value is JsonRecord => {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+};
+
+const toStringOrNull = (value: unknown): string | null => {
+  return typeof value === "string" && value.trim().length > 0 ? value : null;
+};
+
+const toNumberOrNull = (value: unknown): number | null => {
+  if (typeof value === "number" && Number.isFinite(value)) return value;
+  if (typeof value === "string" && value.trim().length > 0) {
+    const parsed = Number(value);
+    if (Number.isFinite(parsed)) return parsed;
+  }
+  return null;
+};
+
+const parseDateToMs = (value: unknown): number | null => {
+  if (typeof value === "number" && Number.isFinite(value)) return value;
+  if (typeof value !== "string" || value.trim().length === 0) return null;
+  const ts = Date.parse(value);
+  return Number.isNaN(ts) ? null : ts;
+};
+
+const unique = (values: string[]): string[] => [...new Set(values)];
+
+const collectNestedIds = (value: unknown, childKey: string): string[] => {
+  if (!Array.isArray(value)) return [];
+  const ids: string[] = [];
+  for (const item of value) {
+    if (!isRecord(item)) continue;
+    const child = item[childKey];
+    if (!isRecord(child)) continue;
+    const id = toStringOrNull(child.id);
+    if (id) ids.push(id);
+  }
+  return ids;
+};
+
+const buildMatchIds = (interestIds: string[], goalIds: string[], professionIds: string[]): string[] => {
+  return unique([
+    ...interestIds.map((id) => `interest:${id}`),
+    ...goalIds.map((id) => `goal:${id}`),
+    ...professionIds.map((id) => `profession:${id}`),
+  ]);
+};
+
+type SessionPrepFromSnapshot = {
+  moodIds: string[];
+  lookingForIds: string[];
+  connectionPreference: string | null;
+};
+
+const parseSessionPrepFromSnapshot = (raw: JsonRecord): SessionPrepFromSnapshot => {
+  const cs = raw.currentStatus;
+  if (!isRecord(cs)) {
+    return { moodIds: [], lookingForIds: [], connectionPreference: null };
+  }
+  return {
+    moodIds: collectNestedIds(cs.moods, "mood"),
+    lookingForIds: collectNestedIds(cs.lookingFor, "lookingForOption"),
+    connectionPreference: toStringOrNull(cs.connectionPreference),
+  };
+};
+
+// ── Repository ────────────────────────────────────────────────────────────────
 
 const parseSnapshot = (raw: JsonRecord, fallbackUserId: string): SnapshotUserProfile => {
   const user = isRecord(raw.user) ? raw.user : {};

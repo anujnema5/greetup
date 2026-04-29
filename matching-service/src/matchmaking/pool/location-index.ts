@@ -1,5 +1,5 @@
-import type { SnapshotUserProfile } from "@/contracts/matchmaking.contracts";
-import { normalizeCountryCode, slugLocationPart } from "@/matchmaking/domain/location-preference.utils";
+import type { SnapshotUserProfile } from "@/matchmaking/types";
+import { normalizeCountryCode, slugLocationPart } from "@/matchmaking/scoring/location";
 
 export type LocationPoolIndexMeta = {
   countryCode?: string;

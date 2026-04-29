@@ -1,8 +1,13 @@
-import type { FindMatchResult } from "@/contracts/matchmaking.contracts";
-import { logger } from "@/core/logger";
-import type { MatchAttemptRepository } from "@/matchmaking/infrastructure/repositories/match-attempt.repository";
+/**
+ * Cross-cutting helpers for start-search locking, request coalescing, and ranking order.
+ */
+import type { FindMatchResult, ScoredMatchCandidate } from "@/matchmaking/types";
+import { logger } from "@/shared/logger";
+import type { MatchAttemptRepository } from "@/matchmaking/repositories/attempt";
 import { getRedis } from "@/redis/client";
 import { redisKeys } from "@/redis/keys";
+
+// ── Search-lock utilities ─────────────────────────────────────────────────────
 
 /** Redis TTL for `userStartSearchLock` — must cover setSearching + pool + job enqueue. */
 export const START_SEARCH_LOCK_TTL_SEC = 10;
@@ -10,6 +15,7 @@ export const START_SEARCH_LOCK_TTL_SEC = 10;
 export const START_SEARCH_LOCK_WAIT_MS = 3_000;
 export const START_SEARCH_LOCK_POLL_MS = 25;
 
+/** Normalized searching response shape used by coalesce + enqueue paths. */
 export function searchingWithRequestId(requestId: string): FindMatchResult {
   return { status: "searching", retryAfterMs: 1_000, requestId };
 }
@@ -48,9 +54,20 @@ export async function tryAcquireStartSearchLock(userId: string, requestId: strin
   return Boolean(ok);
 }
 
+/** Best-effort unlock that only clears lock if this request still owns it. */
 export async function releaseStartSearchLockIfHolder(userId: string, requestId: string): Promise<void> {
   const redis = getRedis();
   const lockKey = redisKeys.userStartSearchLock(userId);
   const holder = await redis.get(lockKey);
   if (holder === requestId) await redis.del(lockKey);
+}
+
+// ── Candidate ranking ─────────────────────────────────────────────────────────
+
+/** Stable descending rank by match score, then pool score tie-breaker. */
+export function sortScoredCandidatesDescending(candidates: ScoredMatchCandidate[]): void {
+  candidates.sort((a, b) => {
+    if (a.matchScore !== b.matchScore) return b.matchScore - a.matchScore;
+    return b.poolScore - a.poolScore;
+  });
 }

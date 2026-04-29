@@ -1,16 +1,16 @@
 import { MATCH_CONFIG } from "@/config/constants";
-import type { SnapshotUserProfile } from "@/contracts/matchmaking.contracts";
+import type { SnapshotUserProfile } from "@/matchmaking/types";
 import {
   canonicalDistancePreference,
   normalizeCountryCode,
   slugLocationPart,
-} from "@/matchmaking/domain/location-preference.utils";
-import type { MatchCandidate } from "@/matchmaking/domain/matching.types";
-import { buildLocationPoolIndexMeta } from "@/matchmaking/infrastructure/services/location-pool-index";
+} from "@/matchmaking/scoring/location";
+import type { MatchCandidate } from "@/matchmaking/types";
+import { buildLocationPoolIndexMeta } from "@/matchmaking/pool/location-index";
 import {
   peekCountryCodesByUserIds,
   snapshotRepository,
-} from "@/matchmaking/infrastructure/repositories/snapshot.repository";
+} from "@/matchmaking/repositories/snapshot";
 import { getRedis } from "@/redis/client";
 import { redisKeys } from "@/redis/keys";
 

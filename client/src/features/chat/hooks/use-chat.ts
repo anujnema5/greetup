@@ -61,12 +61,13 @@ function buildOptimisticMessage(
   };
 }
 
-export function useChat(conversationId: string) {
+export function useChat(conversationId: string, options?: { sendEnabled?: boolean }) {
   const dispatch = useDispatch<AppDispatch>();
   const store = useStore<RootState>();
   const { chatSocket: socket } = useSocket();
   const { data: session } = useSession();
   const me = session?.user;
+  const sendEnabled = options?.sendEnabled ?? true;
 
   const sendMessage = useCallback(
     (params: {
@@ -75,6 +76,9 @@ export function useChat(conversationId: string) {
       replyToId?: string;
       mentions?: string[];
     }) => {
+      if (!sendEnabled) {
+        return null;
+      }
       const tempId = `temp_${Date.now()}`;
       const optimisticMsg = buildOptimisticMessage(
         { tempId, conversationId, ...params },
@@ -102,7 +106,7 @@ export function useChat(conversationId: string) {
 
       return tempId;
     },
-    [socket, dispatch, store, conversationId, me],
+    [socket, dispatch, store, conversationId, me, sendEnabled],
   );
 
   const retryFailedMessage = useCallback(

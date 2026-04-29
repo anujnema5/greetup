@@ -172,6 +172,7 @@ export function RoomVideoView({
     isGroupRoom,
     isLive,
     conversationId,
+    searchingForNextCandidate: showSearchingState,
     activeActivity,
     setActiveActivity,
     activeRealtimeActivity,
@@ -278,6 +279,7 @@ export function RoomVideoView({
                 stageRatio={stageRatio}
                 setStageRatio={setStageRatio}
                 showAspectRatioToggle={showDirectAspectRatioToggle}
+                searchingForNextCandidate={showSearchingState}
                 onMinimize={onMinimize}
               />
             </div>

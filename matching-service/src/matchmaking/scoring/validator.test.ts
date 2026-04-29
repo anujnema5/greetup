@@ -1,6 +1,6 @@
 import { describe, expect, it } from "bun:test";
-import { MatchValidatorService } from "./match-validator.service";
-import type { SnapshotUserProfile } from "@/contracts/matchmaking.contracts";
+import { MatchValidatorService } from "./validator";
+import type { SnapshotUserProfile } from "@/matchmaking/types";
 
 const validator = new MatchValidatorService();
 

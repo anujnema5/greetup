@@ -1,4 +1,4 @@
-import type { SnapshotUserProfile } from "@/contracts/matchmaking.contracts";
+import type { SnapshotUserProfile } from "@/matchmaking/types";
 
 const toNumber = (value: unknown): number | null => {
   if (typeof value === "number" && Number.isFinite(value)) return value;
@@ -23,7 +23,7 @@ export class MatchValidatorService {
     }
 
     // Location preferences (same city / country / global) are applied only in scoring —
-    // soft penalties and global “foreign boost” — so small pools still get candidates.
+    // soft penalties and global "foreign boost" — so small pools still get candidates.
     return true;
   }
 

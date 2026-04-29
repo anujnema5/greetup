@@ -3,6 +3,15 @@ export type FindMatchRequest = {
   requestId: string;
 };
 
+/**
+ * Subscription level used to route matching behavior.
+ * Premium tiers can receive stronger matching retries.
+ */
+export type MatchUserTier = "standard" | "premium";
+
+/** Candidate algorithm family chosen for this match request. */
+export type MatchAlgorithm = "standard_pool" | "premium_pool";
+
 export type FindMatchResult =
   | { status: "matched"; roomId: string; peerUserId: string; matchScore: number }
   | {
@@ -27,4 +36,24 @@ export type SnapshotUserProfile = {
   attributes: Record<string, unknown>;
   version: number;
   updatedAt: number;
+};
+
+export type MatchState = "free" | "searching" | "locked" | "matched" | "in_room";
+
+export type MatchCandidate = {
+  userId: string;
+  score: number;
+};
+
+/** Pool candidate after compatibility and scoring (ready to rank and pair). */
+export type ScoredMatchCandidate = {
+  userId: string;
+  matchScore: number;
+  poolScore: number;
+};
+
+export type MatchAttempt = {
+  attemptId: string;
+  requesterId: string;
+  retryCount: number;
 };

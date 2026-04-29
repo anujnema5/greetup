@@ -1,6 +1,6 @@
 import { MATCH_SCORE_CONFIG } from "@/config/constants";
-import type { SnapshotUserProfile } from "@/contracts/matchmaking.contracts";
-import { canonicalDistancePreference } from "@/matchmaking/domain/location-preference.utils";
+import type { SnapshotUserProfile } from "@/matchmaking/types";
+import { canonicalDistancePreference } from "@/matchmaking/scoring/location";
 
 /** Aligns with DB enum `connection_preference` and match-prep UI. */
 const CONNECTION_PREF = {
@@ -117,7 +117,7 @@ const genderPreferenceScore = (preferredGender: string | null, candidateGender: 
 };
 
 /**
- * Jaccard overlap on session mood / “looking for” ids.
+ * Jaccard overlap on session mood / "looking for" ids.
  * Both empty → neutral 1; one side empty → 0.5; else Jaccard.
  */
 const sessionOverlapComponent = (left: string[], right: string[]): number => {
@@ -148,7 +148,7 @@ const activeMatchPrepWeights = (
 };
 
 /**
- * How well the candidate fits the requester’s “who to prioritize” vs profession overlap.
+ * How well the candidate fits the requester's "who to prioritize" vs profession overlap.
  * `open_to_anyone` → neutral. `same_profession` → reward overlap. `different_profession` → reward low overlap.
  */
 const connectionPreferenceDirectionalScore = (

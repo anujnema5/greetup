@@ -1,5 +1,5 @@
 import { env } from "@/config/env";
-import { logger } from "@/core/logger";
+import { logger } from "@/shared/logger";
 
 type MatchCompletedPayload = {
   attemptId: string;
