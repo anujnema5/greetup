@@ -13,6 +13,7 @@ interface ChatPanelProps {
   conversationId: string;
   conversationType?: ConversationType;
   showQuickReactions?: boolean;
+  sendDisabled?: boolean;
 }
 
 const QUICK_REACTION_EMOJIS = ["👏", "🔥", "😂", "🎉", "❤️"];
@@ -21,6 +22,7 @@ export function ChatPanel({
   conversationId,
   conversationType,
   showQuickReactions = false,
+  sendDisabled = false,
 }: ChatPanelProps) {
   const { data: session, isPending: sessionPending } = useSession();
   const sessionUserId = session?.user?.id ?? '';
@@ -43,17 +45,19 @@ export function ChatPanel({
     removeReaction,
     editMessage,
     deleteMessage,
-  } = useChat(conversationId);
+  } = useChat(conversationId, { sendEnabled: !sendDisabled });
 
   const typingUserIds = Object.entries(typingUsers)
     .filter(([uid, isTyping]) => isTyping && uid !== currentUserId)
     .map(([uid]) => uid);
 
   const handleSend = (content: string, replyToId?: string) => {
+    if (sendDisabled) return;
     sendMessage({ content, replyToId });
   };
 
   const handleQuickReaction = (emoji: string) => {
+    if (sendDisabled) return;
     sendMessage({ content: emoji });
   };
 
@@ -99,6 +103,7 @@ export function ChatPanel({
               variant="outline"
               size="sm"
               onClick={() => handleQuickReaction(emoji)}
+              disabled={sendDisabled}
               className="h-auto px-2 py-0.5 text-sm"
               aria-label={`Send ${emoji} reaction`}
             >
@@ -125,6 +130,7 @@ export function ChatPanel({
         replyTo={replyTo}
         onCancelReply={() => setReplyTo(null)}
         onSend={handleSend}
+        disabled={sendDisabled}
       />
     </div>
   );

@@ -15,6 +15,7 @@ export function RoomVideoHud({
   stageRatio,
   setStageRatio,
   showAspectRatioToggle,
+  searchingForNextCandidate,
   onMinimize,
 }: {
   isOneToOneStage: boolean;
@@ -26,6 +27,7 @@ export function RoomVideoHud({
   stageRatio: StageRatio;
   setStageRatio: (ratio: StageRatio) => void;
   showAspectRatioToggle: boolean;
+  searchingForNextCandidate: boolean;
   onMinimize?: () => void;
 }) {
   return (
@@ -52,7 +54,7 @@ export function RoomVideoHud({
       </div>
 
       <div className="pointer-events-auto ml-auto flex shrink-0 items-center gap-2.5 pl-2 max-[420px]:gap-1.5 max-[420px]:pl-1 sm:gap-2.5">
-        {showAspectRatioToggle ? (
+        {showAspectRatioToggle && !searchingForNextCandidate ? (
           <div className="flex shrink-0 items-center overflow-hidden rounded-full border border-white/20 bg-black/50 shadow-sm">
             <Button
               type="button"

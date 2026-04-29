@@ -23,6 +23,7 @@ export function RoomVideoRightPanel({
   activeRealtimeActivity,
   onRequestChessInvite,
   requestChessBusy,
+  searchingForNextCandidate = false,
   variant = "dock",
 }: {
   rightPanelTab: RightPanelTab;
@@ -35,6 +36,7 @@ export function RoomVideoRightPanel({
   activeRealtimeActivity: RoomActiveActivity | null;
   onRequestChessInvite?: () => void;
   requestChessBusy?: boolean;
+  searchingForNextCandidate?: boolean;
   variant?: RoomVideoRightPanelVariant;
 }) {
   const chessActive = activeRealtimeActivity?.kind === "chess";
@@ -82,6 +84,7 @@ export function RoomVideoRightPanel({
               conversationId={conversationId}
               conversationType={isGroupRoom ? "room_circle" : "room_direct"}
               showQuickReactions
+              sendDisabled={!isGroupRoom && searchingForNextCandidate}
             />
           ) : (
             <div className="flex min-h-48 flex-1 items-center justify-center px-4 text-center text-sm text-muted-foreground">
