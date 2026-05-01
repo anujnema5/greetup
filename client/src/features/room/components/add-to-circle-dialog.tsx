@@ -14,7 +14,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import { useExpandDirectInviteMutation } from "@/features/room/api/room-api";
+import { useRoomInviteMutation } from "@/features/room/api/room-api";
 import { getRtkMutationErrorMessage } from "@/lib/api/rtk-mutation-error";
 import {
   useGetMyConnectionsQuery,
@@ -65,7 +65,8 @@ export function AddToCircleDialog({
     skip: !open || peerIdsKey.length === 0,
   });
 
-  const [expandInvite, { isLoading: inviting }] = useExpandDirectInviteMutation();
+  const [sendRoomInvite] = useRoomInviteMutation();
+  const [invitingUserId, setInvitingUserId] = useState<string | null>(null);
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -74,6 +75,11 @@ export function AddToCircleDialog({
   }, [items, search]);
 
   const onInvite = async (item: ConnectionListItem) => {
+    const targetUserId = item.peer.userId;
+    if (!targetUserId) {
+      toast.error("Could not identify this person.");
+      return;
+    }
     const st = statusMap?.[item.peer.userId];
     if (!st?.isOnline) {
       toast.error("This person is offline.");
@@ -84,20 +90,23 @@ export function AddToCircleDialog({
       return;
     }
     try {
-      await expandInvite({ roomId, inviteeUserId: item.peer.userId }).unwrap();
+      setInvitingUserId(targetUserId);
+      await sendRoomInvite({ roomId, inviteeUserId: targetUserId }).unwrap();
       toast.success(`Invite sent to ${peerLabel(item)}`);
       onOpenChange(false);
       setSearch("");
     } catch (e: unknown) {
       toast.error(getRtkMutationErrorMessage(e, "Could not send invite"));
+    } finally {
+      setInvitingUserId(null);
     }
   };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
-        className="z-[200] sm:max-w-md"
-        overlayClassName="z-[199]"
+        className="z-200 sm:max-w-md"
+        overlayClassName="z-199"
       >
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
@@ -131,9 +140,11 @@ export function AddToCircleDialog({
           ) : (
             filtered.map((item: ConnectionListItem) => {
               const st = statusMap?.[item.peer.userId];
+              const statusKnown = Boolean(st);
               const online = st?.isOnline === true;
               const inOther = st?.inLiveRoom === true;
-              const canInvite = online && !inOther && !statusLoading;
+              const rowInviting = invitingUserId === item.peer.userId;
+              const canInvite = statusKnown && online && !inOther && !statusLoading && !invitingUserId;
               const label = peerLabel(item);
               return (
                 <div
@@ -143,7 +154,9 @@ export function AddToCircleDialog({
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-sm font-medium">{label}</p>
                     <div className="mt-0.5 flex flex-wrap items-center gap-1.5">
-                      {!online ? (
+                      {!statusKnown || statusLoading ? (
+                        <span className="text-[10px] text-muted-foreground">Checking status…</span>
+                      ) : !online ? (
                         <span className="text-[10px] text-muted-foreground">Offline</span>
                       ) : inOther ? (
                         <span className="rounded-full bg-destructive/15 px-2 py-0.5 text-[10px] font-medium text-destructive">
@@ -158,10 +171,10 @@ export function AddToCircleDialog({
                     type="button"
                     size="sm"
                     className={cn("shrink-0 rounded-lg")}
-                    disabled={!canInvite || inviting}
+                    disabled={!canInvite || rowInviting}
                     onClick={() => void onInvite(item)}
                   >
-                    {inviting ? <Loader2 className="size-4 animate-spin" /> : "Invite"}
+                    {rowInviting ? <Loader2 className="size-4 animate-spin" /> : "Invite"}
                   </Button>
                 </div>
               );

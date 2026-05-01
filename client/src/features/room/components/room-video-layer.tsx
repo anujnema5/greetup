@@ -1,5 +1,15 @@
 "use client";
 
+/**
+ * RoomVideoLayer is the room frontend orchestration layer between RTC state and presentational UI.
+ *
+ * Purpose:
+ * - Reads mediasoup/socket state from `useRtcSocketContext`.
+ * - Derives peer labels, camera/mic status, and direct-vs-circle behavior.
+ * - Wires room actions (end, skip, minimize, add-to-circle, chess controls) into `RoomVideoView`.
+ *
+ * Keep this file focused on state composition + event wiring, not low-level tile rendering.
+ */
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { useSession } from "@/lib/auth-client";
@@ -27,6 +37,7 @@ export type RoomVideoLayerProps = {
   myName: string;
   isGroupRoom: boolean;
   groupRoomTitle: string | null;
+  circleCanEditTitle?: boolean;
 };
 
 export function RoomVideoLayer({
@@ -36,6 +47,7 @@ export function RoomVideoLayer({
   myName,
   isGroupRoom,
   groupRoomTitle,
+  circleCanEditTitle = false,
 }: RoomVideoLayerProps) {
   const dispatch = useAppDispatch();
   const { data: session } = useSession();
@@ -66,9 +78,13 @@ export function RoomVideoLayer({
     clearLocalMediaDeviceError,
     roomConversationId,
   } = useRtcSocketContext();
-  const excludeAddIds = [session?.user?.id, peerId].filter((x): x is string => Boolean(x));
-  /** `null` while the RTC token query resolves — treat like direct; hide only when API says `circle`. */
-  const showAddToCircle = !isGroupRoom && rtcRoomType !== "circle";
+  const excludeAddIds = [
+    session?.user?.id,
+    peerId,
+    ...(isGroupRoom ? Object.keys(peers) : []),
+  ].filter((x): x is string => Boolean(x));
+  /** Show invite action in both direct and circle rooms. */
+  const showAddToCircle = true;
 
   const searchingForNextCandidate =
     !isGroupRoom && roomPhase === "searching";
@@ -169,6 +185,9 @@ export function RoomVideoLayer({
         requestChessBusy={requestingChess}
         onEndActiveGame={() => void handleEndActiveGame()}
         onOfferDrawGame={() => void handleOfferDraw()}
+        roomId={roomId}
+        circleDisplayTitle={groupRoomTitle}
+        circleCanEditTitle={circleCanEditTitle}
       />
     </div>
   );

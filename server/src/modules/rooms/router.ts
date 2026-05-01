@@ -1,7 +1,8 @@
 import { Hono } from "hono";
 import {
-  handleExpandDirectInvite,
-  handleExpandDirectRespond,
+  handlePatchRoomTitle,
+  handleRoomInvite,
+  handleRoomInviteRespond,
   handleGetRoom,
   handleIssueRtcToken,
   handleJoinRoom,
@@ -16,8 +17,12 @@ export { internalRoomsRoute };
 export const roomRoute = new Hono();
 roomRoute.get("/:roomId/rtc-token", handleIssueRtcToken);
 roomRoute.post("/:roomId/join", handleJoinRoom);
+roomRoute.patch("/:roomId/title", handlePatchRoomTitle);
 roomRoute.post("/:roomId/start", handleStartRoomSession);
-roomRoute.post("/:roomId/expand-direct/invite", handleExpandDirectInvite);
-roomRoute.post("/:roomId/expand-direct/respond", handleExpandDirectRespond);
+roomRoute.post("/:roomId/invite", handleRoomInvite);
+roomRoute.post("/:roomId/invite/respond", handleRoomInviteRespond);
+/* Back-compat legacy direct-expand routes */
+roomRoute.post("/:roomId/expand-direct/invite", handleRoomInvite);
+roomRoute.post("/:roomId/expand-direct/respond", handleRoomInviteRespond);
 roomRoute.get("/:roomId", handleGetRoom);
 roomRoute.route("/", roomActivityRoute);

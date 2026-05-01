@@ -5,9 +5,9 @@ import { cn } from "@/lib/utils";
 
 type StageRatio = "16:9" | "1:1";
 
+/** Top overlay for direct calls only. Circle rooms use the footer “Options” control for circle settings. */
 export function RoomVideoHud({
   isOneToOneStage,
-  isGroupRoom,
   activeActivityLabel,
   activeActivity,
   mainStageShowsScreen,
@@ -19,7 +19,6 @@ export function RoomVideoHud({
   onMinimize,
 }: {
   isOneToOneStage: boolean;
-  isGroupRoom: boolean;
   activeActivityLabel: string | null;
   activeActivity: boolean;
   mainStageShowsScreen: boolean;
@@ -38,7 +37,7 @@ export function RoomVideoHud({
       )}
     >
       <div className="flex min-w-0 flex-1 items-center gap-2 sm:flex-initial">
-        <div className="min-w-0">
+        <div className="min-w-0 flex-1">
           {!isOneToOneStage && !activeActivity ? (
             <>
               <p className="truncate text-xs font-semibold leading-none text-white md:text-sm">

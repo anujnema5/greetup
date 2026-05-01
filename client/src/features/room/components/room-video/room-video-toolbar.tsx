@@ -13,6 +13,7 @@ import {
   MessageCircle,
   Mic,
   MicOff,
+  MoreHorizontal,
   MoreVertical,
   PhoneOff,
   Radio,
@@ -92,6 +93,8 @@ export function RoomVideoToolbar({
   setIsLive,
   showAddToCircle,
   onOpenAddToCircle,
+  showCircleOptions = false,
+  onOpenCircleOptions,
   showSkip,
   onSkip,
   onEnd,
@@ -114,6 +117,9 @@ export function RoomVideoToolbar({
   setIsLive: (value: (prev: boolean) => boolean) => void;
   showAddToCircle: boolean;
   onOpenAddToCircle?: () => void;
+  /** Circle call: show footer control that opens rename / invite / link / chat dialog. */
+  showCircleOptions?: boolean;
+  onOpenCircleOptions?: () => void;
   showSkip: boolean;
   onSkip: () => void;
   onEnd: () => void;
@@ -125,11 +131,13 @@ export function RoomVideoToolbar({
   const endRef = useRef<HTMLDivElement>(null);
 
   const secondaryActions = useMemo(() => {
-    type Id = "chat" | "activities" | "live" | "add" | "skip";
+    type Id = "chat" | "activities" | "live" | "add" | "circleOptions" | "skip";
     const items: Id[] = [];
     if (conversationId) items.push("chat");
     if (!isGroupRoom) items.push("activities", "live");
-    if (showAddToCircle && onOpenAddToCircle) items.push("add");
+    if (showAddToCircle && onOpenAddToCircle && !isGroupRoom) items.push("add");
+    /* Circle: invite lives in options dialog; direct keeps quick-add in the bar. */
+    if (showCircleOptions && onOpenCircleOptions) items.push("circleOptions");
     if (showSkip) items.push("skip");
     return items;
   }, [
@@ -137,6 +145,8 @@ export function RoomVideoToolbar({
     isGroupRoom,
     showAddToCircle,
     onOpenAddToCircle,
+    showCircleOptions,
+    onOpenCircleOptions,
     showSkip,
   ]);
 
@@ -254,6 +264,17 @@ export function RoomVideoToolbar({
             <UserPlus size={18} className="text-white/80" />
           </CircleToolbarButton>
         ) : null;
+      case "circleOptions":
+        return onOpenCircleOptions ? (
+          <CircleToolbarButton
+            key={id}
+            onClick={onOpenCircleOptions}
+            ariaLabel="Circle options"
+            caption="Options"
+          >
+            <MoreHorizontal size={18} className="text-white/80" />
+          </CircleToolbarButton>
+        ) : null;
       case "skip":
         return (
           <CircleToolbarButton
@@ -306,6 +327,13 @@ export function RoomVideoToolbar({
           <DropdownMenuItem key={id} onClick={onOpenAddToCircle}>
             <UserPlus size={16} />
             Add to circle
+          </DropdownMenuItem>
+        ) : null;
+      case "circleOptions":
+        return onOpenCircleOptions ? (
+          <DropdownMenuItem key={id} onClick={onOpenCircleOptions}>
+            <MoreHorizontal size={16} />
+            Circle options
           </DropdownMenuItem>
         ) : null;
       case "skip":
@@ -436,17 +464,21 @@ export function RoomVideoToolbar({
           ) : null}
           {narrowToolbar ? (
             <div className="flex w-12 shrink-0 flex-col items-center gap-1 sm:w-13">
-              <Button
+              <button
                 type="button"
-                variant="ghost"
                 onClick={onEnd}
                 aria-label="Leave call"
                 title="Leave call"
-                className="h-11 w-11 rounded-full bg-red-500 p-0 transition-all hover:bg-red-600 active:scale-95"
-                style={{ border: "1px solid rgba(239,68,68,0.25)", backdropFilter: "blur(10px)" }}
+                className={cn(
+                  "inline-flex h-11 w-11 shrink-0 cursor-pointer items-center justify-center rounded-full",
+                  "border border-red-500/35 bg-red-600 text-white shadow-md shadow-black/30",
+                  "backdrop-blur-sm transition-[background-color,border-color,transform,box-shadow] duration-150",
+                  "hover:border-red-400/45 hover:bg-red-700 hover:shadow-lg hover:shadow-black/35",
+                  "active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-400/50 focus-visible:ring-offset-0",
+                )}
               >
                 <PhoneOff size={18} className="text-white" />
-              </Button>
+              </button>
               <span
                 className={cn(
                   TOOLBAR_CONTROL_CAPTION_CLASS,
@@ -457,18 +489,22 @@ export function RoomVideoToolbar({
               </span>
             </div>
           ) : (
-            <Button
+            <button
               type="button"
-              variant="ghost"
               onClick={onEnd}
               aria-label="Leave call"
               title="Leave call"
-              className="flex h-11 shrink-0 items-center gap-2 rounded-full bg-red-500 px-5 text-sm font-semibold text-white transition-all hover:bg-red-600 active:scale-95"
-              style={{ border: "1px solid rgba(239,68,68,0.25)", backdropFilter: "blur(10px)" }}
+              className={cn(
+                "inline-flex h-11 shrink-0 cursor-pointer items-center gap-2 rounded-full px-5",
+                "border border-red-500/35 bg-red-600 text-sm font-semibold text-white shadow-md shadow-black/30",
+                "backdrop-blur-sm transition-[background-color,border-color,transform,box-shadow] duration-150",
+                "hover:border-red-400/45 hover:bg-red-700 hover:shadow-lg hover:shadow-black/35",
+                "active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-400/50 focus-visible:ring-offset-0",
+              )}
             >
               <PhoneOff size={16} className="text-white" />
               Leave
-            </Button>
+            </button>
           )}
         </div>
       </div>

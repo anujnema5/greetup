@@ -10,8 +10,9 @@ import { ensureProfileSnapshotCached } from "@/modules/user/services/profile-sna
 import {
   createRoomBodySchema,
   ensureProfileSnapshotBodySchema,
-  expandDirectInviteBodySchema,
-  expandDirectRespondBodySchema,
+  roomInviteBodySchema,
+  roomInviteRespondBodySchema,
+  updateLiveRoomTitleBodySchema,
   matchCompletedBodySchema,
   matchFailedBodySchema,
   matchProposalCancelledBodySchema,
@@ -20,10 +21,14 @@ import {
 import { zodBodyValidationError } from "../lib/http-responses";
 import { roomsRepository } from "../repositories/rooms.repository";
 import {
-  createExpandDirectInviteService,
-  respondExpandDirectInviteService,
-  ExpandDirectRoomError,
+  createRoomInviteService,
+  respondRoomInviteService,
+  RoomInviteError,
 } from "../services/expand-direct-room.service";
+import {
+  updateLiveRoomTitleService,
+  UpdateLiveRoomTitleError,
+} from "../services/update-live-room-title.service";
 import { issueRtcTokenService, IssueRtcTokenError } from "../services/issue-rtc-token.service";
 import { joinRoomService, JoinRoomError } from "../services/join-room.service";
 import {
@@ -196,10 +201,10 @@ export const handleJoinRoom = async (c: Context) => {
 };
 
 /**
- * POST /api/room/:roomId/expand-direct/invite
- * Participant invites a connection to upgrade this direct call to a circle (pending until they accept).
+ * PATCH /api/room/:roomId/title
+ * Host renames a live circle room; syncs Redis session hash when present.
  */
-export const handleExpandDirectInvite = async (c: Context) => {
+export const handlePatchRoomTitle = async (c: Context) => {
   const roomId = c.req.param("roomId");
   const userId = c.get("userId") as string;
 
@@ -216,16 +221,16 @@ export const handleExpandDirectInvite = async (c: Context) => {
   } catch {
     body = {};
   }
-  const parsed = expandDirectInviteBodySchema.safeParse(body);
+  const parsed = updateLiveRoomTitleBodySchema.safeParse(body);
   if (!parsed.success) {
     return zodBodyValidationError(c, parsed.error);
   }
 
   try {
-    const data = await createExpandDirectInviteService(userId, roomId, parsed.data.inviteeUserId);
-    return c.json(ApiResponse.success(data, "Invite sent", 200), 200);
+    const data = await updateLiveRoomTitleService(userId, roomId, parsed.data.title);
+    return c.json(ApiResponse.success(data, "Title updated", 200), 200);
   } catch (error: unknown) {
-    if (error instanceof ExpandDirectRoomError) {
+    if (error instanceof UpdateLiveRoomTitleError) {
       return c.json(
         ApiResponse.error({
           message: error.message,
@@ -235,16 +240,16 @@ export const handleExpandDirectInvite = async (c: Context) => {
         error.statusCode as 400 | 403 | 404,
       );
     }
-    logger.error("Expand direct invite error", { error });
+    logger.error("Update room title error", { error });
     return internalError(c, error);
   }
 };
 
 /**
- * POST /api/room/:roomId/expand-direct/respond
- * Invitee accepts or declines — on accept the room becomes a circle in place.
+ * POST /api/room/:roomId/expand-direct/invite
+ * Participant invites a connection to upgrade this direct call to a circle (pending until they accept).
  */
-export const handleExpandDirectRespond = async (c: Context) => {
+export const handleRoomInvite = async (c: Context) => {
   const roomId = c.req.param("roomId");
   const userId = c.get("userId") as string;
 
@@ -261,13 +266,58 @@ export const handleExpandDirectRespond = async (c: Context) => {
   } catch {
     body = {};
   }
-  const parsed = expandDirectRespondBodySchema.safeParse(body);
+  const parsed = roomInviteBodySchema.safeParse(body);
   if (!parsed.success) {
     return zodBodyValidationError(c, parsed.error);
   }
 
   try {
-    const data = await respondExpandDirectInviteService(userId, parsed.data.inviteId, parsed.data.accept);
+    const data = await createRoomInviteService(userId, roomId, parsed.data.inviteeUserId);
+    return c.json(ApiResponse.success(data, "Invite sent", 200), 200);
+  } catch (error: unknown) {
+    if (error instanceof RoomInviteError) {
+      return c.json(
+        ApiResponse.error({
+          message: error.message,
+          statusCode: error.statusCode,
+          code: error.code,
+        }),
+        error.statusCode as 400 | 403 | 404,
+      );
+    }
+    logger.error("Room invite error", { error });
+    return internalError(c, error);
+  }
+};
+
+/**
+ * POST /api/room/:roomId/expand-direct/respond
+ * Invitee accepts or declines — on accept the room becomes a circle in place.
+ */
+export const handleRoomInviteRespond = async (c: Context) => {
+  const roomId = c.req.param("roomId");
+  const userId = c.get("userId") as string;
+
+  if (!roomId) {
+    return c.json(
+      ApiResponse.error({ message: "roomId is required", statusCode: 400, code: "VALIDATION_ERROR" }),
+      400,
+    );
+  }
+
+  let body: unknown;
+  try {
+    body = await c.req.json();
+  } catch {
+    body = {};
+  }
+  const parsed = roomInviteRespondBodySchema.safeParse(body);
+  if (!parsed.success) {
+    return zodBodyValidationError(c, parsed.error);
+  }
+
+  try {
+    const data = await respondRoomInviteService(userId, parsed.data.inviteId, parsed.data.accept);
     if (data.roomId !== roomId) {
       return c.json(
         ApiResponse.error({
@@ -280,7 +330,7 @@ export const handleExpandDirectRespond = async (c: Context) => {
     }
     return c.json(ApiResponse.success(data, data.expanded ? "Call expanded" : "Invite declined", 200), 200);
   } catch (error: unknown) {
-    if (error instanceof ExpandDirectRoomError) {
+    if (error instanceof RoomInviteError) {
       return c.json(
         ApiResponse.error({
           message: error.message,
@@ -290,10 +340,14 @@ export const handleExpandDirectRespond = async (c: Context) => {
         error.statusCode as 400 | 403 | 404 | 409,
       );
     }
-    logger.error("Expand direct respond error", { error });
+    logger.error("Room invite respond error", { error });
     return internalError(c, error);
   }
 };
+
+/** Back-compat aliases (legacy direct-expand naming). */
+export const handleExpandDirectInvite = handleRoomInvite;
+export const handleExpandDirectRespond = handleRoomInviteRespond;
 
 /**
  * GET /api/room/:roomId
@@ -342,6 +396,10 @@ export const handleGetRoom = async (c: Context) => {
     };
     if (dbRoom?.roomType === "circle") {
       matchPayload.roomType = "circle";
+      matchPayload.title = dbRoom.title;
+      if (dbRoom.hostUserId) {
+        matchPayload.hostUserId = dbRoom.hostUserId;
+      }
     }
 
     return c.json(ApiResponse.success(matchPayload, "Room found"));

@@ -65,4 +65,10 @@ export type RoomVideoViewProps = {
   requestChessBusy?: boolean;
   onEndActiveGame?: () => void;
   onOfferDrawGame?: () => void;
+  /** Circle call: room id for host rename API. */
+  roomId?: string | null;
+  /** Circle display name (DB-backed title or fallback). */
+  circleDisplayTitle?: string | null;
+  /** True when the signed-in user is the circle host (can rename). */
+  circleCanEditTitle?: boolean;
 };

@@ -40,13 +40,21 @@ export const ensureProfileSnapshotBodySchema = z.object({
   userId: z.string().min(1),
 });
 
-export const expandDirectInviteBodySchema = z.object({
+export const roomInviteBodySchema = z.object({
   inviteeUserId: z.string().min(1),
 });
 
-export const expandDirectRespondBodySchema = z.object({
+export const roomInviteRespondBodySchema = z.object({
   inviteId: z.string().uuid(),
   accept: z.boolean(),
+});
+
+/** Back-compat aliases (legacy direct-expand naming). */
+export const expandDirectInviteBodySchema = roomInviteBodySchema;
+export const expandDirectRespondBodySchema = roomInviteRespondBodySchema;
+
+export const updateLiveRoomTitleBodySchema = z.object({
+  title: z.string().min(1).max(160).trim(),
 });
 
 export type CreateRoomBody = z.infer<typeof createRoomBodySchema>;
