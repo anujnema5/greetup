@@ -16,6 +16,10 @@ export type RoomData =
       userBName?: string | null;
       /** After an in-place 1:1 → circle expansion, Postgres `room_type` is `circle`. */
       roomType?: RoomSessionType;
+      /** Present when expanded circle: DB `rooms.title`. */
+      title?: string;
+      /** Present when expanded circle: DB `rooms.host_user_id`. */
+      hostUserId?: string;
     }
   | {
       sessionKind: "db_room";
@@ -47,6 +51,8 @@ export function parseRoomData(data: unknown): RoomData {
   if ("userA" in d && "userB" in d && "roomId" in d) {
     const ms = d.matchScore;
     const rt = d.roomType;
+    const title = d.title;
+    const hostUserId = d.hostUserId;
     return {
       roomId: String(d.roomId),
       userA: String(d.userA),
@@ -55,6 +61,8 @@ export function parseRoomData(data: unknown): RoomData {
       userAName: typeof d.userAName === "string" ? d.userAName : null,
       userBName: typeof d.userBName === "string" ? d.userBName : null,
       roomType: rt === "circle" || rt === "direct" ? rt : undefined,
+      title: typeof title === "string" ? title : undefined,
+      hostUserId: typeof hostUserId === "string" ? hostUserId : undefined,
     };
   }
   throw new Error("Unexpected room payload");

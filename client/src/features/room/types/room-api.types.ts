@@ -9,12 +9,21 @@ export type RoomApiEnvelope<T> = {
   message?: string;
 };
 
-export type ExpandDirectInviteMutationArg = { roomId: string; inviteeUserId: string };
-export type ExpandDirectInviteMutationResult = { inviteId: string };
+export type RoomInviteMutationArg = { roomId: string; inviteeUserId: string };
+export type RoomInviteMutationResult = { inviteId: string };
 
-export type ExpandDirectRespondMutationArg = {
+export type RoomInviteRespondMutationArg = {
   roomId: string;
   inviteId: string;
   accept: boolean;
 };
-export type ExpandDirectRespondMutationResult = { roomId: string; expanded: boolean };
+export type RoomInviteRespondMutationResult = { roomId: string; expanded: boolean };
+
+export type UpdateRoomTitleMutationArg = { roomId: string; title: string };
+export type UpdateRoomTitleMutationResult = { title: string };
+
+/** Back-compat aliases (legacy direct-expand naming). */
+export type ExpandDirectInviteMutationArg = RoomInviteMutationArg;
+export type ExpandDirectInviteMutationResult = RoomInviteMutationResult;
+export type ExpandDirectRespondMutationArg = RoomInviteRespondMutationArg;
+export type ExpandDirectRespondMutationResult = RoomInviteRespondMutationResult;

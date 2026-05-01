@@ -65,7 +65,7 @@ export default function LoginPage() {
         footerLinkText="Create account"
         onFooterLinkClick={handleCreateAccount}
       >
-        <SocialLoginButtons onPhoneClick={() => setView("phone")} />
+        <SocialLoginButtons />
 
         {view !== "otp" && (
           <LoginToggleButtons

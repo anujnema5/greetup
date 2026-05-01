@@ -6,7 +6,7 @@ import { useSession } from "@/lib/auth-client";
 import { getRtkQueryErrorMessage } from "@/lib/api/rtk-query-error";
 import { useAppDispatch } from "@/lib/redux/hooks";
 import { enterRoomPage, resetRoomState } from "@/lib/redux/slices/room-slice";
-import { clearRoomStorage } from "@/features/room/lib/room-sync";
+import { clearRoomStorage, isRoomMinimizedMarked } from "@/features/room/lib/room-sync";
 import { useGetRoomQuery, useLeaveRoomMutation, leaveRoomKeepalive } from "@/features/room/api/room-api";
 import { useRtcSocketContext } from "@/features/rtc";
 import { isCircleRoomData, type RoomData } from "../types/room.types";
@@ -98,10 +98,29 @@ export function useRoom() {
   }, [leaveRoom, dispatch]);
 
   useEffect(() => {
-    const onBeforeUnload = () => leaveRoomKeepalive();
+    const onBeforeUnload = () => {
+      leaveRoomKeepalive();
+    };
+    const onPageHide = () => {
+      leaveRoomKeepalive();
+    };
     window.addEventListener("beforeunload", onBeforeUnload);
-    return () => window.removeEventListener("beforeunload", onBeforeUnload);
+    window.addEventListener("pagehide", onPageHide);
+    return () => {
+      window.removeEventListener("beforeunload", onBeforeUnload);
+      window.removeEventListener("pagehide", onPageHide);
+    };
   }, []);
+
+  useEffect(() => {
+    return () => {
+      // If the room page is left without minimizing, treat it as an intentional leave.
+      if (isRoomMinimizedMarked()) return;
+      leaveRoomKeepalive();
+      clearRoomStorage();
+      dispatch(resetRoomState());
+    };
+  }, [dispatch]);
 
   const currentUserId = session?.user?.id;
   const sessionUser = session?.user as

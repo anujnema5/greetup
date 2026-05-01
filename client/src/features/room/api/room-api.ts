@@ -4,10 +4,12 @@ import { invalidateRoomAndPeersCallStatusTags, roomEntityTag } from "@/features/
 
 import { parseRoomData, type RoomData } from "@/features/matching/types/room.types";
 import type {
-  ExpandDirectInviteMutationArg,
-  ExpandDirectInviteMutationResult,
-  ExpandDirectRespondMutationArg,
-  ExpandDirectRespondMutationResult,
+  RoomInviteMutationArg,
+  RoomInviteMutationResult,
+  RoomInviteRespondMutationArg,
+  RoomInviteRespondMutationResult,
+  UpdateRoomTitleMutationArg,
+  UpdateRoomTitleMutationResult,
   RoomApiEnvelope,
 } from "../types/room-api.types";
 
@@ -46,7 +48,7 @@ function toRoomData(response: RoomGetApiResponse): RoomData {
 
 function toExpandInviteResult(
   response: RoomApiEnvelope<{ inviteId: string }>,
-): ExpandDirectInviteMutationResult {
+): RoomInviteMutationResult {
   if (!response.success || !response.data?.inviteId) {
     throw new Error(response.message ?? "Could not send invite");
   }
@@ -55,11 +57,20 @@ function toExpandInviteResult(
 
 function toExpandRespondResult(
   response: RoomApiEnvelope<{ roomId: string; expanded: boolean }>,
-): ExpandDirectRespondMutationResult {
+): RoomInviteRespondMutationResult {
   if (!response.success || response.data == null) {
     throw new Error(response.message ?? "Could not respond");
   }
   return response.data;
+}
+
+function toUpdateRoomTitleResult(
+  response: RoomApiEnvelope<{ title: string }>,
+): UpdateRoomTitleMutationResult {
+  if (!response.success || response.data?.title == null) {
+    throw new Error(response.message ?? "Could not update title");
+  }
+  return { title: response.data.title };
 }
 
 function assertJoinRoomOk(response: JoinRoomApiResponse): void {
@@ -102,12 +113,12 @@ export const roomApi = baseApi.injectEndpoints({
       transformResponse: assertJoinRoomOk,
     }),
 
-    expandDirectInvite: build.mutation<
-      ExpandDirectInviteMutationResult,
-      ExpandDirectInviteMutationArg
+    roomInvite: build.mutation<
+      RoomInviteMutationResult,
+      RoomInviteMutationArg
     >({
       query: ({ roomId, inviteeUserId }) => ({
-        url: ROOM.expandDirectInvite(roomId),
+        url: ROOM.invite(roomId),
         method: "POST",
         body: { inviteeUserId },
       }),
@@ -115,17 +126,27 @@ export const roomApi = baseApi.injectEndpoints({
       invalidatesTags: (_result, _error, arg) => [...invalidateRoomAndPeersCallStatusTags(arg.roomId)],
     }),
 
-    expandDirectRespond: build.mutation<
-      ExpandDirectRespondMutationResult,
-      ExpandDirectRespondMutationArg
+    roomInviteRespond: build.mutation<
+      RoomInviteRespondMutationResult,
+      RoomInviteRespondMutationArg
     >({
       query: ({ roomId, inviteId, accept }) => ({
-        url: ROOM.expandDirectRespond(roomId),
+        url: ROOM.inviteRespond(roomId),
         method: "POST",
         body: { inviteId, accept },
       }),
       transformResponse: toExpandRespondResult,
       invalidatesTags: (_result, _error, arg) => [...invalidateRoomAndPeersCallStatusTags(arg.roomId)],
+    }),
+
+    updateRoomTitle: build.mutation<UpdateRoomTitleMutationResult, UpdateRoomTitleMutationArg>({
+      query: ({ roomId, title }) => ({
+        url: ROOM.updateTitle(roomId),
+        method: "PATCH",
+        body: { title },
+      }),
+      transformResponse: toUpdateRoomTitleResult,
+      invalidatesTags: (_result, _error, arg) => [roomEntityTag(arg.roomId)],
     }),
   }),
 });
@@ -134,6 +155,11 @@ export const {
   useLeaveRoomMutation,
   useGetRoomQuery,
   useJoinRoomMutation,
-  useExpandDirectInviteMutation,
-  useExpandDirectRespondMutation,
+  useRoomInviteMutation,
+  useRoomInviteRespondMutation,
+  useUpdateRoomTitleMutation,
 } = roomApi;
+
+/** Back-compat aliases (legacy direct-expand naming). */
+export const useExpandDirectInviteMutation = useRoomInviteMutation;
+export const useExpandDirectRespondMutation = useRoomInviteRespondMutation;

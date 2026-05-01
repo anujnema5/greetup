@@ -109,6 +109,10 @@ export function useMediasoupRoomSession(options: MediasoupRoomSessionOptions): v
           ...(prev[pid] ?? { peerId: pid }),
           displayName: data.displayName ?? prev[pid]?.displayName ?? null,
           image: data.image ?? prev[pid]?.image ?? null,
+          // Default to false so the UI shows "off" icons immediately.
+          // Producer events (newProducer / consumeRemoteProducer) will flip these to true.
+          cameraActive: prev[pid]?.cameraActive ?? false,
+          micActive: prev[pid]?.micActive ?? false,
         },
       }));
     };
@@ -131,6 +135,9 @@ export function useMediasoupRoomSession(options: MediasoupRoomSessionOptions): v
     };
 
     const cleanupMedia = (sendT: Transport | null, recvT: Transport | null) => {
+      if (socket.connected) {
+        socket.emit("leave");
+      }
       socket.off("newProducer", onNewProducer);
       socket.off("producerClosed", onProducerClosed);
       socket.off("producerPaused", onProducerPaused);
@@ -283,19 +290,17 @@ export function useMediasoupRoomSession(options: MediasoupRoomSessionOptions): v
 
       consumers.set(producerId, consumer);
 
-      // If the producer was already paused when we consumed it, mark camera/mic as off immediately.
-      if (raw.producerPaused) {
-        if (kind === "video" && mediaSource === "camera") {
-          set.setPeers((prev) => ({
-            ...prev,
-            [peerId]: { ...(prev[peerId] ?? { peerId }), cameraActive: false },
-          }));
-        } else if (kind === "audio") {
-          set.setPeers((prev) => ({
-            ...prev,
-            [peerId]: { ...(prev[peerId] ?? { peerId }), micActive: false },
-          }));
-        }
+      // Sync camera/mic state from the producer's current pause status.
+      if (kind === "video" && mediaSource === "camera") {
+        set.setPeers((prev) => ({
+          ...prev,
+          [peerId]: { ...(prev[peerId] ?? { peerId }), cameraActive: !raw.producerPaused },
+        }));
+      } else if (kind === "audio") {
+        set.setPeers((prev) => ({
+          ...prev,
+          [peerId]: { ...(prev[peerId] ?? { peerId }), micActive: !raw.producerPaused },
+        }));
       }
 
       let metaRefreshTimer: ReturnType<typeof setTimeout> | null = null;
@@ -469,6 +474,10 @@ export function useMediasoupRoomSession(options: MediasoupRoomSessionOptions): v
               peerId: id,
               displayName: joinRes.peerNames?.[id] ?? null,
               image: joinRes.peerImages?.[id] ?? null,
+              // Match `onPeerJoined`: assume off until consume / producer events set real state.
+              // Otherwise `micActive`/`cameraActive` stay undefined and remote tiles hide status icons.
+              cameraActive: false,
+              micActive: false,
             },
           ]),
         );

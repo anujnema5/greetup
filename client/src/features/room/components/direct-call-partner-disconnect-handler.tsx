@@ -150,7 +150,11 @@ export function DirectCallPartnerDisconnectHandler() {
       clearSearchRetryTimer();
       return;
     }
-    if (matchmakingStatus === "searching" || matchmakingStatus === "proposed") {
+    if (
+      matchmakingStatus === "searching" ||
+      matchmakingStatus === "proposed" ||
+      matchmakingStatus === "error"
+    ) {
       clearSearchRetryTimer();
       return;
     }

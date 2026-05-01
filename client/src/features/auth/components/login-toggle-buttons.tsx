@@ -1,26 +1,32 @@
-import { Button } from '@/components/ui/button'
-import React from 'react'
-import { FaPhoneAlt } from 'react-icons/fa'
-import { MdMail } from 'react-icons/md'
+import { Button } from "@/components/ui/button";
+import { Mail, Phone } from "lucide-react";
 
-const LoginToggleButtons = ({ currentView, onToggle }: { currentView: string, onToggle: () => void; }) => {
-    return (
-        <>
-            {/* {currentView === "email" && (
-                <Button className="mt-3 w-full gap-2" onClick={onToggle}>
-                    <FaPhoneAlt size={10} />
-                    Continue with Phone
-                </Button>
-            )} */}
-
-            {currentView === "phone" && (
-                <Button className="mt-3 w-full gap-2" onClick={onToggle}>
-                    <MdMail />
-                    Continue with Email
-                </Button>
-            )}
-        </>
-    )
+interface LoginToggleButtonsProps {
+  currentView: "phone" | "email";
+  onToggle: () => void;
 }
 
-export default LoginToggleButtons;
+export default function LoginToggleButtons({ currentView, onToggle }: LoginToggleButtonsProps) {
+  return (
+    <div className="grid grid-cols-2 gap-3">
+      <Button
+        type="button"
+        variant={currentView === "phone" ? "default" : "outline"}
+        onClick={() => currentView !== "phone" && onToggle()}
+        className="w-full"
+      >
+        <Phone className="mr-2 h-4 w-4" aria-hidden />
+        Phone
+      </Button>
+      <Button
+        type="button"
+        variant={currentView === "email" ? "default" : "outline"}
+        onClick={() => currentView !== "email" && onToggle()}
+        className="w-full"
+      >
+        <Mail className="mr-2 h-4 w-4" aria-hidden />
+        Email
+      </Button>
+    </div>
+  );
+}

@@ -21,7 +21,7 @@ export class DirectRoomExpandConflictError extends Error {
   }
 }
 
-export const expandDirectRoomRepository = {
+export const roomInviteRepository = {
   async findDisplayLabelForUser(userId: string): Promise<string> {
     const row = await db.query.users.findFirst({
       where: eq(users.id, userId),
@@ -80,6 +80,13 @@ export const expandDirectRoomRepository = {
     await db
       .update(roomFriendInvites)
       .set({ status: "declined", updatedAt: new Date() })
+      .where(eq(roomFriendInvites.id, inviteId));
+  },
+
+  async setFriendInviteAccepted(inviteId: string): Promise<void> {
+    await db
+      .update(roomFriendInvites)
+      .set({ status: "accepted", updatedAt: new Date() })
       .where(eq(roomFriendInvites.id, inviteId));
   },
 
@@ -211,3 +218,6 @@ export const expandDirectRoomRepository = {
     });
   },
 };
+
+/** Back-compat alias (legacy direct-expand naming). */
+export const expandDirectRoomRepository = roomInviteRepository;

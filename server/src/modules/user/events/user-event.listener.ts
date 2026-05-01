@@ -123,7 +123,8 @@ export class UserEventListeners {
                 emitToUser(userId, "match:state", { status: "matched", roomId: state.roomId, requestId: state.requestId });
                 logger.info(`[${this.jobName}] emitted match:state matched`, { userId, roomId: state.roomId });
             } else {
-                logger.info(`[${this.jobName}] no active match state to restore`, { userId, status: state.status });
+                emitToUser(userId, "match:state", { status: "idle" });
+                logger.info(`[${this.jobName}] no active match state to restore — emitted idle`, { userId, status: state.status });
             }
         } catch (err) {
             logger.warn(`[${this.jobName}] Failed to emit match state on connect for user ${userId}`, { err });

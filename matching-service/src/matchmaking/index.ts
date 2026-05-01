@@ -1,14 +1,24 @@
-export { MatchOrchestratorService } from "@/matchmaking/application/match-orchestrator.service";
-export { MatchValidatorService } from "@/matchmaking/domain/match-validator.service";
-export { MatchScoreService } from "@/matchmaking/domain/match-score.service";
+/**
+ * Matchmaking module barrel exports.
+ * Keeps import paths short for app routes, workers, and tests.
+ */
+export { MatchOrchestratorService } from "@/matchmaking/orchestrator";
+export { MatchValidatorService } from "@/matchmaking/scoring/validator";
+export { MatchScoreService } from "@/matchmaking/scoring/scorer";
 export type {
   MatchAttempt,
   MatchCandidate,
   MatchState,
   ScoredMatchCandidate,
-} from "@/matchmaking/domain/matching.types";
-export { MatchLockService } from "@/matchmaking/infrastructure/services/match-lock.service";
-export { MatchPoolService } from "@/matchmaking/infrastructure/services/match-pool.service";
-export { RoomOrchestrationService } from "@/matchmaking/infrastructure/services/room-orchestration.service";
-export { SnapshotRepository } from "@/matchmaking/infrastructure/repositories/snapshot.repository";
-export { MatchAttemptRepository } from "@/matchmaking/infrastructure/repositories/match-attempt.repository";
+} from "@/matchmaking/types";
+export { MatchLockService } from "@/matchmaking/pool/lock";
+export { MatchPoolService } from "@/matchmaking/pool/pool";
+export { RoomOrchestrationService } from "@/matchmaking/room";
+export { SnapshotRepository } from "@/matchmaking/repositories/snapshot";
+export { MatchAttemptRepository } from "@/matchmaking/repositories/attempt";
+export {
+  resolveMatchExecutionStrategy,
+  orderCandidatesForStrategy,
+  type MatchExecutionStrategy,
+  type CandidateScoringMode,
+} from "@/matchmaking/strategy";

@@ -70,8 +70,8 @@ export function useAppMatchFlow() {
     if (status === "idle" || status === "error") findAMatch();
   }, [status, findAMatch]);
 
-  const handleCancel = useCallback(() => {
-    cancelSearch();
+  const handleCancel = useCallback(async () => {
+    await cancelSearch();
   }, [cancelSearch]);
 
   const restartSearch = useCallback(async () => {

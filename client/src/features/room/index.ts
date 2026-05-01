@@ -53,6 +53,9 @@ export {
   useLeaveRoomMutation,
   useGetRoomQuery,
   useJoinRoomMutation,
+  useRoomInviteMutation,
+  useRoomInviteRespondMutation,
+  useUpdateRoomTitleMutation,
   useExpandDirectInviteMutation,
   useExpandDirectRespondMutation,
 } from "./api/room-api";

@@ -13,6 +13,7 @@ import {
   MessageCircle,
   Mic,
   MicOff,
+  MoreHorizontal,
   MoreVertical,
   PhoneOff,
   Radio,
@@ -24,6 +25,7 @@ import {
 import {
   CircleToolbarButton,
   MediaControlButton,
+  TOOLBAR_CONTROL_CAPTION_CLASS,
 } from "@/features/room/components/room-video/room-video-primitives";
 import { cn } from "@/lib/utils";
 
@@ -46,16 +48,16 @@ function getNarrowToolbarServerSnapshot() {
   return false;
 }
 
-/** Outer bar: reads on dark stage; safe-area padding for home indicator. */
+/** Outer bar: reads on dark stage; safe-area padding for home indicator + caption row. */
 const TOOLBAR_SHELL_CLASS =
-  "pointer-events-auto z-30 w-full shrink-0 select-none rounded-xl border border-white/12 bg-black/78 py-2 pt-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] shadow-[0_-6px_28px_-8px_rgb(0_0_0_/0.45)] backdrop-blur-xl";
+  "pointer-events-auto z-30 w-full shrink-0 select-none rounded-xl border border-white/10 bg-[#0c0c0c]/88 pt-3 pb-[max(0.9rem,calc(0.5rem+env(safe-area-inset-bottom)))] shadow-[0_-10px_40px_-8px_rgb(0_0_0_/0.55)] backdrop-blur-2xl";
 
 /** Hide scrollbars on narrow overflow row (Firefox / legacy Edge). */
 const HIDE_SCROLLBAR_CLASS =
   "[-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden";
 
-/** h-11 w-11 + typical flex gap between toolbar controls */
-const EST_ICON_PX = 44;
+/** Caption columns use w-12 / ~3.25rem on sm+; keep estimate conservative for overflow math */
+const EST_ICON_PX = 52;
 const EST_GAP_PX = 8;
 
 function maxSecondaryInlineCount(availablePx: number, total: number): number {
@@ -91,6 +93,8 @@ export function RoomVideoToolbar({
   setIsLive,
   showAddToCircle,
   onOpenAddToCircle,
+  showCircleOptions = false,
+  onOpenCircleOptions,
   showSkip,
   onSkip,
   onEnd,
@@ -113,6 +117,9 @@ export function RoomVideoToolbar({
   setIsLive: (value: (prev: boolean) => boolean) => void;
   showAddToCircle: boolean;
   onOpenAddToCircle?: () => void;
+  /** Circle call: show footer control that opens rename / invite / link / chat dialog. */
+  showCircleOptions?: boolean;
+  onOpenCircleOptions?: () => void;
   showSkip: boolean;
   onSkip: () => void;
   onEnd: () => void;
@@ -124,11 +131,13 @@ export function RoomVideoToolbar({
   const endRef = useRef<HTMLDivElement>(null);
 
   const secondaryActions = useMemo(() => {
-    type Id = "chat" | "activities" | "live" | "add" | "skip";
+    type Id = "chat" | "activities" | "live" | "add" | "circleOptions" | "skip";
     const items: Id[] = [];
     if (conversationId) items.push("chat");
     if (!isGroupRoom) items.push("activities", "live");
-    if (showAddToCircle && onOpenAddToCircle) items.push("add");
+    if (showAddToCircle && onOpenAddToCircle && !isGroupRoom) items.push("add");
+    /* Circle: invite lives in options dialog; direct keeps quick-add in the bar. */
+    if (showCircleOptions && onOpenCircleOptions) items.push("circleOptions");
     if (showSkip) items.push("skip");
     return items;
   }, [
@@ -136,6 +145,8 @@ export function RoomVideoToolbar({
     isGroupRoom,
     showAddToCircle,
     onOpenAddToCircle,
+    showCircleOptions,
+    onOpenCircleOptions,
     showSkip,
   ]);
 
@@ -202,10 +213,16 @@ export function RoomVideoToolbar({
     switch (id) {
       case "chat":
         return (
-          <CircleToolbarButton key={id} onClick={() => setRightPanelTab("chat")} ariaLabel="Chat">
+          <CircleToolbarButton
+            key={id}
+            onClick={() => setRightPanelTab("chat")}
+            ariaLabel="Open chat panel"
+            caption="Chat"
+            isActive={rightPanelTab === "chat"}
+          >
             <MessageCircle
               size={18}
-              className={rightPanelTab === "chat" ? "text-primary" : "text-white/80"}
+              className={rightPanelTab === "chat" ? "text-primary" : "text-white/75"}
             />
           </CircleToolbarButton>
         );
@@ -214,11 +231,13 @@ export function RoomVideoToolbar({
           <CircleToolbarButton
             key={id}
             onClick={() => setRightPanelTab("activities")}
-            ariaLabel="Activities"
+            ariaLabel="Open activities panel"
+            caption="Activities"
+            isActive={rightPanelTab === "activities"}
           >
             <LayoutGrid
               size={18}
-              className={rightPanelTab === "activities" ? "text-primary" : "text-white/80"}
+              className={rightPanelTab === "activities" ? "text-primary" : "text-white/75"}
             />
           </CircleToolbarButton>
         );
@@ -227,7 +246,8 @@ export function RoomVideoToolbar({
           <CircleToolbarButton
             key={id}
             onClick={() => setIsLive((prev) => !prev)}
-            ariaLabel={isLive ? "End Live" : "Go Live"}
+            ariaLabel={isLive ? "Stop live broadcast" : "Start live broadcast"}
+            caption={isLive ? "End live" : "Go live"}
             className={isLive ? "bg-red-500/80 hover:bg-red-500" : undefined}
           >
             <Radio size={18} className={isLive ? "text-white" : "text-white/80"} />
@@ -235,13 +255,34 @@ export function RoomVideoToolbar({
         );
       case "add":
         return onOpenAddToCircle ? (
-          <CircleToolbarButton key={id} onClick={onOpenAddToCircle} ariaLabel="Add">
+          <CircleToolbarButton
+            key={id}
+            onClick={onOpenAddToCircle}
+            ariaLabel="Add someone to your circle"
+            caption="Add"
+          >
             <UserPlus size={18} className="text-white/80" />
+          </CircleToolbarButton>
+        ) : null;
+      case "circleOptions":
+        return onOpenCircleOptions ? (
+          <CircleToolbarButton
+            key={id}
+            onClick={onOpenCircleOptions}
+            ariaLabel="Circle options"
+            caption="Options"
+          >
+            <MoreHorizontal size={18} className="text-white/80" />
           </CircleToolbarButton>
         ) : null;
       case "skip":
         return (
-          <CircleToolbarButton key={id} onClick={onSkip} ariaLabel="Skip">
+          <CircleToolbarButton
+            key={id}
+            onClick={onSkip}
+            ariaLabel="Find next person"
+            caption="Next"
+          >
             <SkipForward size={18} className="text-white/80" />
           </CircleToolbarButton>
         );
@@ -288,6 +329,13 @@ export function RoomVideoToolbar({
             Add to circle
           </DropdownMenuItem>
         ) : null;
+      case "circleOptions":
+        return onOpenCircleOptions ? (
+          <DropdownMenuItem key={id} onClick={onOpenCircleOptions}>
+            <MoreHorizontal size={16} />
+            Circle options
+          </DropdownMenuItem>
+        ) : null;
       case "skip":
         return (
           <DropdownMenuItem key={id} onClick={onSkip}>
@@ -307,21 +355,25 @@ export function RoomVideoToolbar({
           "flex w-full min-w-0 items-center",
           narrowToolbar
             ? cn(
-                "justify-start gap-1.5 overflow-x-auto overflow-y-visible overscroll-x-contain px-2",
+                "justify-start gap-1.5 overflow-x-auto overflow-y-visible overscroll-x-contain px-2.5",
                 HIDE_SCROLLBAR_CLASS,
               )
-            : "justify-start gap-2 px-3 sm:gap-3 sm:px-4",
+            : "justify-between gap-3 px-3 sm:gap-4 sm:px-5",
         )}
       >
         <div
           ref={mediaRef}
-          className={cn("flex shrink-0 items-center", narrowToolbar ? "gap-1.5" : "gap-2")}
+          className={cn(
+            "flex shrink-0 items-center pl-0.5 sm:pl-0",
+            narrowToolbar ? "gap-1.5" : "gap-2.5",
+          )}
         >
           <MediaControlButton
             active={micEnabled}
             onClick={onToggleMic}
             disabled={!mediaTogglesReady}
-            ariaLabel={micEnabled ? "Mute" : "Unmute"}
+            ariaLabel={micEnabled ? "Mute microphone" : "Unmute microphone"}
+            caption={micEnabled ? "Mute" : "Unmute"}
             iconOn={<Mic size={18} className="text-white/90" />}
             iconOff={<MicOff size={18} className="text-amber-200/95" />}
           />
@@ -330,7 +382,8 @@ export function RoomVideoToolbar({
             active={cameraEnabled}
             onClick={onToggleCamera}
             disabled={!mediaTogglesReady}
-            ariaLabel={cameraEnabled ? "Stop video" : "Start video"}
+            ariaLabel={cameraEnabled ? "Turn camera off" : "Turn camera on"}
+            caption={cameraEnabled ? "Video" : "Camera"}
             iconOn={<Video size={18} className="text-white/90" />}
             iconOff={<VideoOff size={18} className="text-amber-200/95" />}
           />
@@ -338,47 +391,60 @@ export function RoomVideoToolbar({
           {narrowToolbar && !isGroupRoom ? (
             <CircleToolbarButton
               onClick={() => setRightPanelTab("activities")}
-              ariaLabel="Activities"
+              ariaLabel="Open activities panel"
+              caption="Activities"
+              isActive={rightPanelTab === "activities"}
             >
               <LayoutGrid
                 size={18}
-                className={rightPanelTab === "activities" ? "text-primary" : "text-white/80"}
+                className={rightPanelTab === "activities" ? "text-primary" : "text-white/75"}
               />
             </CircleToolbarButton>
           ) : null}
 
           {/* Screen share — restore when needed (re-add Monitor, MonitorOff imports). */}
 
-          <div className="hidden h-6 w-px shrink-0 self-center bg-white/20 md:block" aria-hidden />
+          <div className="hidden h-7 w-px shrink-0 self-center bg-white/20 md:block" aria-hidden />
         </div>
 
         <div
           className={cn(
-            "flex min-h-11 shrink-0 items-center",
-            narrowToolbar ? "gap-1.5" : "gap-2",
+            "flex min-w-0 shrink-0 items-center",
+            narrowToolbar ? "gap-1.5" : "flex-1 justify-center gap-2.5",
           )}
         >
           {flowSecondaries.slice(0, inlineSecondaryCount).map((id) => renderSecondaryButton(id))}
           {skipPinnedMobile ? renderSecondaryButton("skip") : null}
           {showOverflowTrigger ? (
             <DropdownMenu modal={false}>
-              <DropdownMenuTrigger asChild>
-                <button
-                  type="button"
-                  aria-label="More options"
+              <div className="flex w-12 shrink-0 flex-col items-center gap-1 sm:w-13">
+                <DropdownMenuTrigger asChild>
+                  <button
+                    type="button"
+                    aria-label="More call actions"
+                    title="More call actions"
+                    className={cn(
+                      "inline-flex size-11 shrink-0 cursor-pointer items-center justify-center rounded-full bg-white/15 p-0",
+                      "transition-colors hover:bg-white/25 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/35",
+                      "touch-manipulation active:bg-white/20",
+                    )}
+                    style={{
+                      border: "1px solid rgba(255,255,255,0.18)",
+                      backdropFilter: "blur(8px)",
+                    }}
+                  >
+                    <MoreVertical size={18} className="text-white/85" />
+                  </button>
+                </DropdownMenuTrigger>
+                <span
                   className={cn(
-                    "inline-flex size-11 shrink-0 cursor-pointer items-center justify-center rounded-full bg-white/15 p-0",
-                    "transition-colors hover:bg-white/25 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/35",
-                    "touch-manipulation active:bg-white/20",
+                    TOOLBAR_CONTROL_CAPTION_CLASS,
+                    "flex w-full items-center justify-center whitespace-nowrap",
                   )}
-                  style={{
-                    border: "1px solid rgba(255,255,255,0.18)",
-                    backdropFilter: "blur(8px)",
-                  }}
                 >
-                  <MoreVertical size={18} className="text-white/85" />
-                </button>
-              </DropdownMenuTrigger>
+                  More
+                </span>
+              </div>
               <DropdownMenuContent
                 side="top"
                 align="end"
@@ -392,20 +458,54 @@ export function RoomVideoToolbar({
           ) : null}
         </div>
 
-        <div ref={endRef} className="flex shrink-0 items-center gap-2">
+        <div ref={endRef} className="flex shrink-0 items-center gap-2 sm:gap-3">
           {!narrowToolbar ? (
-            <div className="h-6 w-px shrink-0 self-center bg-white/20" aria-hidden />
+            <div className="h-7 w-px shrink-0 self-center bg-white/18" aria-hidden />
           ) : null}
-          <Button
-            type="button"
-            variant="destructive"
-            size="icon-lg"
-            onClick={onEnd}
-            aria-label="End call"
-            className="h-11 w-11 rounded-full border border-white/10 bg-red-500 backdrop-blur-md transition-colors hover:bg-red-600"
-          >
-            <PhoneOff size={18} className="text-white" />
-          </Button>
+          {narrowToolbar ? (
+            <div className="flex w-12 shrink-0 flex-col items-center gap-1 sm:w-13">
+              <button
+                type="button"
+                onClick={onEnd}
+                aria-label="Leave call"
+                title="Leave call"
+                className={cn(
+                  "inline-flex h-11 w-11 shrink-0 cursor-pointer items-center justify-center rounded-full",
+                  "border border-red-500/35 bg-red-600 text-white shadow-md shadow-black/30",
+                  "backdrop-blur-sm transition-[background-color,border-color,transform,box-shadow] duration-150",
+                  "hover:border-red-400/45 hover:bg-red-700 hover:shadow-lg hover:shadow-black/35",
+                  "active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-400/50 focus-visible:ring-offset-0",
+                )}
+              >
+                <PhoneOff size={18} className="text-white" />
+              </button>
+              <span
+                className={cn(
+                  TOOLBAR_CONTROL_CAPTION_CLASS,
+                  "flex w-full items-center justify-center whitespace-nowrap",
+                )}
+              >
+                Leave
+              </span>
+            </div>
+          ) : (
+            <button
+              type="button"
+              onClick={onEnd}
+              aria-label="Leave call"
+              title="Leave call"
+              className={cn(
+                "inline-flex h-11 shrink-0 cursor-pointer items-center gap-2 rounded-full px-5",
+                "border border-red-500/35 bg-red-600 text-sm font-semibold text-white shadow-md shadow-black/30",
+                "backdrop-blur-sm transition-[background-color,border-color,transform,box-shadow] duration-150",
+                "hover:border-red-400/45 hover:bg-red-700 hover:shadow-lg hover:shadow-black/35",
+                "active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-400/50 focus-visible:ring-offset-0",
+              )}
+            >
+              <PhoneOff size={16} className="text-white" />
+              Leave
+            </button>
+          )}
         </div>
       </div>
     </div>

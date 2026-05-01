@@ -64,14 +64,19 @@ export function useRoomVideo(roomId: string, options?: { skipSetup?: boolean }) 
       if (msg.type === "END_CALL") {
         clearRoomStorage();
         dispatch(endVideoSession());
-        router.replace(MATCHMAKING_HUB_PATH);
+        void matchmaking
+          .handleCancel()
+          .catch(() => {})
+          .finally(() => {
+            router.replace(MATCHMAKING_HUB_PATH);
+          });
       }
       if (msg.type === "SKIP_CALL") {
         beginSearchAfterSkip();
       }
     });
     return unsub;
-  }, [beginSearchAfterSkip, dispatch, router, skipSetup]);
+  }, [beginSearchAfterSkip, dispatch, matchmaking, router, skipSetup]);
 
   useEffect(() => {
     if (!skipHandledRef.current) return;
@@ -85,13 +90,18 @@ export function useRoomVideo(roomId: string, options?: { skipSetup?: boolean }) 
     clearRoomStorage();
     dispatch(endVideoSession());
     broadcastRoomMessage({ type: "END_CALL" });
-    void leaveRoom()
-      .unwrap()
+    void matchmaking
+      .handleCancel()
       .catch(() => {})
       .finally(() => {
-        router.replace(MATCHMAKING_HUB_PATH);
+        void leaveRoom()
+          .unwrap()
+          .catch(() => {})
+          .finally(() => {
+            router.replace(MATCHMAKING_HUB_PATH);
+          });
       });
-  }, [dispatch, leaveRoom, router]);
+  }, [dispatch, leaveRoom, matchmaking, router]);
 
   const handleSkip = useCallback(() => {
     broadcastRoomMessage({ type: "SKIP_CALL" });

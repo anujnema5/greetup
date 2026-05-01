@@ -3,6 +3,8 @@
  */
 export const DIRECT_EXPAND_SOCKET_EVENTS = {
   invite: "room:direct_expand_invite",
+  /** Backward-compatible alias for older server payloads/events. */
+  inviteLegacy: "room:expand_direct_invite",
   becameCircle: "room:became_circle",
   declined: "room:direct_expand_declined",
 } as const;
@@ -19,18 +21,18 @@ export type DirectExpandInvitePayload = {
 export function parseDirectExpandInvitePayload(raw: unknown): DirectExpandInvitePayload | null {
   if (!raw || typeof raw !== "object") return null;
   const p = raw as Record<string, unknown>;
-  if (
-    typeof p.inviteId !== "string" ||
-    typeof p.roomId !== "string" ||
-    typeof p.inviterDisplayName !== "string"
-  ) {
+  if (typeof p.inviteId !== "string" || typeof p.roomId !== "string") {
     return null;
   }
+  const inviterDisplayName =
+    typeof p.inviterDisplayName === "string" && p.inviterDisplayName.trim().length > 0
+      ? p.inviterDisplayName
+      : "Someone";
   return {
     inviteId: p.inviteId,
     roomId: p.roomId,
     inviterUserId: typeof p.inviterUserId === "string" ? p.inviterUserId : "",
-    inviterDisplayName: p.inviterDisplayName,
+    inviterDisplayName,
     roomTitle: typeof p.roomTitle === "string" ? p.roomTitle : "Call",
     currentParticipantNames: Array.isArray(p.currentParticipantNames)
       ? p.currentParticipantNames.filter((x): x is string => typeof x === "string")

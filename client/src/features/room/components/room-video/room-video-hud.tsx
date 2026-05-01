@@ -5,9 +5,9 @@ import { cn } from "@/lib/utils";
 
 type StageRatio = "16:9" | "1:1";
 
+/** Top overlay for direct calls only. Circle rooms use the footer “Options” control for circle settings. */
 export function RoomVideoHud({
   isOneToOneStage,
-  isGroupRoom,
   activeActivityLabel,
   activeActivity,
   mainStageShowsScreen,
@@ -15,18 +15,18 @@ export function RoomVideoHud({
   stageRatio,
   setStageRatio,
   showAspectRatioToggle,
+  searchingForNextCandidate,
   onMinimize,
 }: {
   isOneToOneStage: boolean;
-  isGroupRoom: boolean;
   activeActivityLabel: string | null;
   activeActivity: boolean;
   mainStageShowsScreen: boolean;
   peerLabel: string;
   stageRatio: StageRatio;
   setStageRatio: (ratio: StageRatio) => void;
-  /** Direct room only: 16:9 / 1:1 control (hidden on narrow mobile where 1:1 is required). */
   showAspectRatioToggle: boolean;
+  searchingForNextCandidate: boolean;
   onMinimize?: () => void;
 }) {
   return (
@@ -37,7 +37,7 @@ export function RoomVideoHud({
       )}
     >
       <div className="flex min-w-0 flex-1 items-center gap-2 sm:flex-initial">
-        <div className="min-w-0">
+        <div className="min-w-0 flex-1">
           {!isOneToOneStage && !activeActivity ? (
             <>
               <p className="truncate text-xs font-semibold leading-none text-white md:text-sm">
@@ -53,7 +53,7 @@ export function RoomVideoHud({
       </div>
 
       <div className="pointer-events-auto ml-auto flex shrink-0 items-center gap-2.5 pl-2 max-[420px]:gap-1.5 max-[420px]:pl-1 sm:gap-2.5">
-        {showAspectRatioToggle ? (
+        {showAspectRatioToggle && !searchingForNextCandidate ? (
           <div className="flex shrink-0 items-center overflow-hidden rounded-full border border-white/20 bg-black/50 shadow-sm">
             <Button
               type="button"

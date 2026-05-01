@@ -1,4 +1,5 @@
 import { emitToUser } from "@/core/socket/socket";
+import logger from "@/core/logging";
 import { getRedis } from "@/core/redis";
 import { USER_PRESENCE_KEYS } from "@/core/redis/keys";
 import { getAcceptedPeerIdsForUser } from "@/modules/connections/services/accepted-peer-ids.service";
@@ -10,24 +11,25 @@ import {
 import { DIRECT_EXPAND_SOCKET_EVENTS } from "@/modules/rooms/constants/direct-expand-socket.events";
 import {
   DirectRoomExpandConflictError,
-  expandDirectRoomRepository,
+  roomInviteRepository,
 } from "@/modules/rooms/repositories/expand-direct-room.repository";
 import { roomsRepository } from "@/modules/rooms/repositories/rooms.repository";
+import { syncCircleRoomTitleFromParticipants } from "@/modules/rooms/services/circle-participant-title.service";
 import { notifyRtcServiceRoomType } from "@/modules/rooms/services/notify-rtc-room-type.service";
 import { patchSessionRoomRedisRoomType } from "@/modules/rooms/services/session-room-redis.service";
 
-export class ExpandDirectRoomError extends Error {
+export class RoomInviteError extends Error {
   constructor(
-    message: string,
-    public readonly code: ExpandDirectRoomErrorCode,
+    override message: string,
+    public readonly code: RoomInviteErrorCode,
     public readonly statusCode: number,
   ) {
     super(message);
-    this.name = "ExpandDirectRoomError";
+    this.name = "RoomInviteError";
   }
 }
 
-export type ExpandDirectRoomErrorCode =
+export type RoomInviteErrorCode =
   | "ROOM_NOT_FOUND"
   | "ROOM_NOT_LIVE"
   | "NOT_DIRECT"
@@ -42,40 +44,40 @@ export type ExpandDirectRoomErrorCode =
   | "INVITE_NOT_PENDING"
   | "ROOM_CHANGED";
 
-export async function createExpandDirectInviteService(
+export async function createRoomInviteService(
   inviterUserId: string,
   roomId: string,
   inviteeUserId: string,
 ): Promise<{ inviteId: string }> {
   if (inviteeUserId === inviterUserId) {
-    throw new ExpandDirectRoomError("Invalid invitee", "NOT_CONNECTION", 400);
+    throw new RoomInviteError("Invalid invitee", "NOT_CONNECTION", 400);
   }
 
   const room = await roomsRepository.findRoomById(roomId);
   if (!room) {
-    throw new ExpandDirectRoomError("Room not found", "ROOM_NOT_FOUND", 404);
+    throw new RoomInviteError("Room not found", "ROOM_NOT_FOUND", 404);
   }
   if (room.status !== "live") {
-    throw new ExpandDirectRoomError("Room is not live", "ROOM_NOT_LIVE", 400);
+    throw new RoomInviteError("Room is not live", "ROOM_NOT_LIVE", 400);
   }
-  if (room.roomType !== "direct") {
-    throw new ExpandDirectRoomError("Only direct calls can be expanded this way", "NOT_DIRECT", 400);
+  if (room.roomType !== "direct" && room.roomType !== "circle") {
+    throw new RoomInviteError("This room type does not support invites", "NOT_DIRECT", 400);
   }
 
   const inviterOk = await roomsRepository.isUserRoomParticipant(roomId, inviterUserId);
   if (!inviterOk) {
-    throw new ExpandDirectRoomError("You are not in this room", "NOT_PARTICIPANT", 403);
+    throw new RoomInviteError("You are not in this room", "NOT_PARTICIPANT", 403);
   }
 
   const peers = await getAcceptedPeerIdsForUser(inviterUserId);
   if (!peers.has(inviteeUserId)) {
-    throw new ExpandDirectRoomError("You are not connected with this person", "NOT_CONNECTION", 403);
+    throw new RoomInviteError("You are not connected with this person", "NOT_CONNECTION", 403);
   }
 
   const prefsMap = await getRoomInvitePreferencesForUsers([inviteeUserId]);
   const inviteePrefs = prefsMap.get(inviteeUserId)!;
   if (!canHostInviteUserToRoom(inviterUserId, inviteePrefs)) {
-    throw new ExpandDirectRoomError(
+    throw new RoomInviteError(
       "This person does not accept invites from you",
       "INVITE_BLOCKED",
       403,
@@ -85,20 +87,20 @@ export async function createExpandDirectInviteService(
   const redis = getRedis();
   const online = (await redis.sismember(USER_PRESENCE_KEYS.ONLINE_USERS_SET, inviteeUserId)) === 1;
   if (!online) {
-    throw new ExpandDirectRoomError("User is offline", "INVITEE_OFFLINE", 400);
+    throw new RoomInviteError("User is offline", "INVITEE_OFFLINE", 400);
   }
 
   const statusMap = await peersCallStatusForUser(inviterUserId, [inviteeUserId]);
   const st = statusMap[inviteeUserId];
   if (st?.inLiveRoom && st.liveRoomId && st.liveRoomId !== roomId) {
-    throw new ExpandDirectRoomError("User is already in another call", "INVITEE_BUSY", 400);
+    throw new RoomInviteError("User is already in another call", "INVITEE_BUSY", 400);
   }
 
   if (await roomsRepository.isUserRoomParticipant(roomId, inviteeUserId)) {
-    throw new ExpandDirectRoomError("User is already in this room", "ALREADY_IN_ROOM", 400);
+    throw new RoomInviteError("User is already in this room", "ALREADY_IN_ROOM", 400);
   }
 
-  const existing = await expandDirectRoomRepository.findFriendInviteByRoomAndInvitee(
+  const existing = await roomInviteRepository.findFriendInviteByRoomAndInvitee(
     roomId,
     inviteeUserId,
   );
@@ -108,16 +110,16 @@ export async function createExpandDirectInviteService(
     return { inviteId: existing.id };
   }
   if (existing?.status === "accepted") {
-    throw new ExpandDirectRoomError("An invite for this user is already accepted", "ALREADY_IN_ROOM", 400);
+    throw new RoomInviteError("An invite for this user is already accepted", "ALREADY_IN_ROOM", 400);
   }
 
-  const inviteId = await expandDirectRoomRepository.upsertPendingFriendInvite({
+  const inviteId = await roomInviteRepository.upsertPendingFriendInvite({
     roomId,
     inviterUserId,
     inviteeUserId,
   });
   if (!inviteId) {
-    throw new ExpandDirectRoomError("Could not create invite", "ROOM_NOT_FOUND", 500);
+    throw new RoomInviteError("Could not create invite", "ROOM_NOT_FOUND", 500);
   }
 
   await emitInviteSocket(inviteId, roomId, inviterUserId, inviteeUserId, room.title);
@@ -131,13 +133,13 @@ async function emitInviteSocket(
   inviteeUserId: string,
   roomTitle: string,
 ): Promise<void> {
-  const inviterDisplayName = await expandDirectRoomRepository.findDisplayLabelForUser(inviterUserId);
+  const inviterDisplayName = await roomInviteRepository.findDisplayLabelForUser(inviterUserId);
   const others = (await roomsRepository.listActiveParticipantUserIds(roomId)).filter(
     (id) => id !== inviteeUserId,
   );
   const names: string[] = [];
   for (const uid of others) {
-    names.push(await expandDirectRoomRepository.findDisplayLabelForUser(uid));
+    names.push(await roomInviteRepository.findDisplayLabelForUser(uid));
   }
 
   emitToUser(inviteeUserId, DIRECT_EXPAND_SOCKET_EVENTS.invite, {
@@ -150,27 +152,27 @@ async function emitInviteSocket(
   });
 }
 
-export async function respondExpandDirectInviteService(
+export async function respondRoomInviteService(
   inviteeUserId: string,
   inviteId: string,
   accept: boolean,
 ): Promise<{ roomId: string; expanded: boolean }> {
-  const invite = await expandDirectRoomRepository.findFriendInviteById(inviteId);
+  const invite = await roomInviteRepository.findFriendInviteById(inviteId);
 
   if (!invite) {
-    throw new ExpandDirectRoomError("Invite not found", "INVITE_NOT_FOUND", 404);
+    throw new RoomInviteError("Invite not found", "INVITE_NOT_FOUND", 404);
   }
   if (invite.inviteeUserId !== inviteeUserId) {
-    throw new ExpandDirectRoomError("This invite is not for you", "NOT_YOUR_INVITE", 403);
+    throw new RoomInviteError("This invite is not for you", "NOT_YOUR_INVITE", 403);
   }
   if (invite.status !== "pending") {
-    throw new ExpandDirectRoomError("This invite is no longer pending", "INVITE_NOT_PENDING", 400);
+    throw new RoomInviteError("This invite is no longer pending", "INVITE_NOT_PENDING", 400);
   }
 
   const roomId = invite.roomId;
 
   if (!accept) {
-    await expandDirectRoomRepository.setFriendInviteDeclined(inviteId);
+    await roomInviteRepository.setFriendInviteDeclined(inviteId);
     emitToUser(invite.inviterUserId, DIRECT_EXPAND_SOCKET_EVENTS.declined, {
       inviteId,
       roomId,
@@ -181,14 +183,18 @@ export async function respondExpandDirectInviteService(
 
   const room = await roomsRepository.findRoomById(roomId);
   if (!room || room.status !== "live") {
-    throw new ExpandDirectRoomError("Room is no longer available", "ROOM_NOT_LIVE", 400);
+    throw new RoomInviteError("Room is no longer available", "ROOM_NOT_LIVE", 400);
+  }
+  if (room.roomType === "circle") {
+    await roomInviteRepository.setFriendInviteAccepted(inviteId);
+    return { roomId, expanded: true };
   }
   if (room.roomType !== "direct") {
-    throw new ExpandDirectRoomError("This call was already expanded", "ROOM_CHANGED", 400);
+    throw new RoomInviteError("This call was already expanded", "ROOM_CHANGED", 400);
   }
 
   try {
-    await expandDirectRoomRepository.runExpandDirectAcceptTransaction({
+    await roomInviteRepository.runExpandDirectAcceptTransaction({
       roomId,
       inviteId,
       inviteeUserId,
@@ -197,12 +203,18 @@ export async function respondExpandDirectInviteService(
     });
   } catch (err) {
     if (err instanceof DirectRoomExpandConflictError) {
-      throw new ExpandDirectRoomError("This call was already expanded", "ROOM_CHANGED", 409);
+      throw new RoomInviteError("This call was already expanded", "ROOM_CHANGED", 409);
     }
     throw err;
   }
 
   await patchSessionRoomRedisRoomType(roomId, "circle");
+
+  try {
+    await syncCircleRoomTitleFromParticipants(roomId);
+  } catch (err) {
+    logger.warn("Could not set participant-based circle title after expand", { roomId, err });
+  }
 
   void notifyRtcServiceRoomType(roomId, "circle");
 
@@ -213,3 +225,11 @@ export async function respondExpandDirectInviteService(
 
   return { roomId, expanded: true };
 }
+
+/** Back-compat aliases (legacy direct-expand naming). */
+export {
+  RoomInviteError as ExpandDirectRoomError,
+  createRoomInviteService as createExpandDirectInviteService,
+  respondRoomInviteService as respondExpandDirectInviteService,
+};
+export type { RoomInviteErrorCode as ExpandDirectRoomErrorCode };
