@@ -40,6 +40,8 @@ export type RoomVideoViewProps = {
   peerAvatarUrl?: string | null;
   /** True when the primary remote peer has explicitly paused their camera — show initials instead of black screen. */
   remotePeerCameraOff?: boolean;
+  /** True when the primary remote peer has explicitly muted their mic. */
+  remotePeerMicOff?: boolean;
   /** DB-backed circle / group — grid of remotes; still uses the same mediasoup streams. */
   isGroupRoom?: boolean;
   remoteParticipants?: RemoteParticipant[];
@@ -54,6 +56,10 @@ export type RoomVideoViewProps = {
   onOpenAddToCircle?: () => void;
   /** Direct call only: remote peer left; show searching state instead of stale remote tile. */
   searchingForNextCandidate?: boolean;
+  /** Direct call only: matchmaking reported no match / error while replacing the peer. */
+  directCallMatchSearchFailed?: boolean;
+  directCallMatchSearchError?: string | null;
+  onRetryDirectCallMatchSearch?: () => void;
   activeRealtimeActivity?: RoomActiveActivity | null;
   onRequestChessInvite?: () => void;
   requestChessBusy?: boolean;

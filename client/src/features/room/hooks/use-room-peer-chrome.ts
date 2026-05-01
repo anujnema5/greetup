@@ -29,7 +29,8 @@ export function useRoomPeerChrome({
           ? "Circle"
           : directPeerLabel;
     const remotePeerCameraOff = primaryPeer?.cameraActive === false;
+    const remotePeerMicOff = primaryPeer?.micActive === false;
     const peerAvatarUrl = primaryPeer?.image ?? null;
-    return { peerLabel, remotePeerCameraOff, peerAvatarUrl };
+    return { peerLabel, remotePeerCameraOff, remotePeerMicOff, peerAvatarUrl };
   }, [peerId, peers, isGroupRoom, groupRoomTitle]);
 }

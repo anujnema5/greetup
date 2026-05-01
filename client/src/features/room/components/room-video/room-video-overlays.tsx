@@ -3,7 +3,7 @@
 import type { RefObject } from "react";
 import { Zap } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { CameraOffAvatar, TileNameBadge, VideoMirror } from "@/features/room/components/room-video/room-video-primitives";
+import { CameraOffAvatar, TileMediaStatus, TileNameBadge, TileSpeakingRings, VideoMirror } from "@/features/room/components/room-video/room-video-primitives";
 
 type StageRatio = "16:9" | "1:1";
 
@@ -29,6 +29,9 @@ export function RoomVideoStageOverlays({
   peerInitials,
   peerAvatarUrl,
   scoreLabel,
+  micEnabled,
+  cameraEnabled,
+  localStream,
 }: {
   mediaBusy: boolean;
   mediaStatus: string;
@@ -51,6 +54,9 @@ export function RoomVideoStageOverlays({
   peerInitials: string;
   peerAvatarUrl?: string | null;
   scoreLabel: string | null;
+  micEnabled?: boolean;
+  cameraEnabled?: boolean;
+  localStream?: MediaStream | null;
 }) {
   return (
     <>
@@ -110,15 +116,18 @@ export function RoomVideoStageOverlays({
             />
           ) : (
             <div className="absolute inset-0 flex items-center justify-center border border-border/60 bg-muted">
-              <CameraOffAvatar
-                name={myName}
-                initials={myInitial}
-                imageUrl={myAvatarUrl}
-                sizeClass="h-14 w-14"
-              />
+              <TileSpeakingRings stream={localStream ?? null}>
+                <CameraOffAvatar
+                  name={myName}
+                  initials={myInitial}
+                  imageUrl={myAvatarUrl}
+                  sizeClass="h-14 w-14"
+                />
+              </TileSpeakingRings>
             </div>
           )}
           <TileNameBadge>You</TileNameBadge>
+          <TileMediaStatus micOn={micEnabled} cameraOn={cameraEnabled} />
         </div>
       ) : null}
 

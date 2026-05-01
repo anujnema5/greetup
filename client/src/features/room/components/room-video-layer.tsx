@@ -13,6 +13,7 @@ import {
   useRoomChessInviteMutation,
 } from "@/features/activity";
 import { useRtcSocketContext } from "@/features/rtc";
+import { useMatchmaking } from "@/features/matching";
 import { AddToCircleDialog } from "@/features/room/components/add-to-circle-dialog";
 import { RoomVideoView } from "@/features/room/components/room-video-view";
 import { useRoomPeerChrome } from "@/features/room/hooks/use-room-peer-chrome";
@@ -71,6 +72,9 @@ export function RoomVideoLayer({
 
   const searchingForNextCandidate =
     !isGroupRoom && roomPhase === "searching";
+  const matchmaking = useMatchmaking();
+  const directCallMatchSearchFailed =
+    searchingForNextCandidate && matchmaking.status === "error";
 
   const handleRequestChessInvite = async () => {
     if (isGroupRoom) return;
@@ -101,7 +105,7 @@ export function RoomVideoLayer({
     }
   };
 
-  const { peerLabel, remotePeerCameraOff, peerAvatarUrl } = useRoomPeerChrome({
+  const { peerLabel, remotePeerCameraOff, remotePeerMicOff, peerAvatarUrl } = useRoomPeerChrome({
     peerId,
     peers,
     isGroupRoom,
@@ -150,10 +154,16 @@ export function RoomVideoLayer({
         myAvatarUrl={session?.user?.image ?? null}
         peerAvatarUrl={peerAvatarUrl}
         remotePeerCameraOff={remotePeerCameraOff}
+        remotePeerMicOff={remotePeerMicOff}
         conversationId={roomConversationId}
         showAddToCircle={showAddToCircle}
         onOpenAddToCircle={() => setAddCircleOpen(true)}
         searchingForNextCandidate={searchingForNextCandidate}
+        directCallMatchSearchFailed={directCallMatchSearchFailed}
+        directCallMatchSearchError={
+          directCallMatchSearchFailed ? matchmaking.error : null
+        }
+        onRetryDirectCallMatchSearch={() => matchmaking.handleFindMatch()}
         activeRealtimeActivity={activeRealtimeActivity}
         onRequestChessInvite={() => void handleRequestChessInvite()}
         requestChessBusy={requestingChess}
