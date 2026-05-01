@@ -1,12 +1,21 @@
 "use client";
 
+/**
+ * RoomPage is the `/circle/[roomId]` route entry for all call sessions.
+ *
+ * Purpose:
+ * - Loads room/query context and determines direct vs circle layout mode.
+ * - Triggers join/start-video flow once prerequisites are ready.
+ * - Switches between loading/error states, full call UI (`RoomVideoLayer`), and minimized mode.
+ */
 import { useAppDispatch, useAppSelector } from "@/lib/redux/hooks";
 import {
   selectIsRoomMinimized,
   selectIsVideoSessionActive,
 } from "@/lib/redux/selectors/room-selectors";
+import { useSession } from "@/lib/auth-client";
 import { useRoom } from "@/features/matching";
-import { isRoomGroupLayout } from "@/features/matching/types/room.types";
+import { isCircleRoomData, isRoomGroupLayout } from "@/features/matching/types/room.types";
 import { RoomVideoLayer } from "@/features/room/components/room-video-layer";
 import { useRoomJoinAndStartVideo } from "@/features/room/hooks/use-room-join-and-start-video";
 
@@ -17,6 +26,7 @@ export function RoomPage() {
   const dispatch = useAppDispatch();
   const sessionActive = useAppSelector(selectIsVideoSessionActive);
   const isMinimized = useAppSelector(selectIsRoomMinimized);
+  const { data: session } = useSession();
 
   const {
     roomId,
@@ -33,6 +43,15 @@ export function RoomPage() {
   const myName = currentUserName ?? "You";
   const scoreLabel = score != null && String(score).length > 0 ? `${String(score)}% match` : null;
   const isCircleRoom = isRoomGroupLayout(room, rtcRoomType);
+  const uid = session?.user?.id;
+  const circleCanEditTitle = (() => {
+    if (!isCircleRoom || !uid || !room) return false;
+    if (isCircleRoomData(room)) return room.hostUserId === uid;
+    if ("userA" in room && room.roomType === "circle" && room.hostUserId) {
+      return room.hostUserId === uid;
+    }
+    return false;
+  })();
   const shouldStartVideo = !loading && Boolean(room) && (isCircleRoom || Boolean(peerId));
 
   const { joinRoomError, joinRoomLoading } = useRoomJoinAndStartVideo({
@@ -89,7 +108,10 @@ export function RoomPage() {
         scoreLabel={scoreLabel}
         myName={myName}
         isGroupRoom={isCircleRoom}
-        groupRoomTitle={room && "title" in room ? room.title : null}
+        groupRoomTitle={
+          room && "title" in room && typeof room.title === "string" ? room.title : null
+        }
+        circleCanEditTitle={circleCanEditTitle}
       />
     );
   }

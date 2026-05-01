@@ -49,3 +49,13 @@ export async function patchSessionRoomRedisRoomType(
   await redis.hset(key, { roomType });
   await redis.expire(key, ROOM_TTL);
 }
+
+/** Updates display title on an existing session-room hash (no-op if key missing). */
+export async function patchSessionRoomRedisTitle(roomId: string, title: string): Promise<void> {
+  const redis = getRedis();
+  const key = `${ROOM_KEYS.ROOM}${roomId}`;
+  const exists = await redis.exists(key);
+  if (!exists) return;
+  await redis.hset(key, { title });
+  await redis.expire(key, ROOM_TTL);
+}

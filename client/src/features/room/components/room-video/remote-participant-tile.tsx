@@ -5,12 +5,20 @@ import Image from "next/image";
 import { hasLiveVideo, type RemoteParticipant } from "@/features/rtc";
 import { useAttachMediaStream } from "@/features/room/hooks/use-attach-media-stream";
 import { getProfileImageUrl } from "@/lib/ui/profile-image";
+import { cn } from "@/lib/utils";
 import {
+  TileNameBadge,
   TileMediaStatus,
   TileSpeakingRings,
 } from "@/features/room/components/room-video/room-video-primitives";
 
-export function RemoteParticipantTile({ participant }: { participant: RemoteParticipant }) {
+export function RemoteParticipantTile({
+  participant,
+  className,
+}: {
+  participant: RemoteParticipant;
+  className?: string;
+}) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const { peer, stream } = participant;
 
@@ -18,7 +26,7 @@ export function RemoteParticipantTile({ participant }: { participant: RemotePart
   const micOff = peer.micActive === false;
   const live = hasLiveVideo(stream) && !cameraOff;
 
-  const label = peer.displayName?.trim() || `Peer ${peer.peerId.slice(0, 8)}…`;
+  const label = peer.displayName?.trim() || `Peer ${peer.peerId.slice(0, 6)}`;
   const initials = useMemo(
     () =>
       label
@@ -33,7 +41,12 @@ export function RemoteParticipantTile({ participant }: { participant: RemotePart
   useAttachMediaStream(videoRef, stream, live);
 
   return (
-    <div className="relative flex min-h-22 min-w-0 flex-col overflow-hidden rounded-xl border border-border/50 shadow-sm aspect-16/10">
+    <div
+      className={cn(
+        "relative flex min-h-22 min-w-0 flex-col overflow-hidden rounded-xl border border-border/50 shadow-sm",
+        className,
+      )}
+    >
       {live ? (
         <video ref={videoRef} playsInline autoPlay className="h-full w-full object-cover" />
       ) : (
@@ -59,10 +72,9 @@ export function RemoteParticipantTile({ participant }: { participant: RemotePart
         </div>
       )}
 
-      {/* Name gradient footer */}
-      <div className="pointer-events-none absolute inset-x-0 bottom-0 bg-linear-to-t from-black/85 via-black/40 to-transparent px-2 py-1.5 pt-8">
-        <p className="truncate text-[10px] font-medium text-white drop-shadow-sm">{label}</p>
-      </div>
+      <TileNameBadge className="max-w-[calc(100%-4rem)] truncate border-white/10 bg-black/55 text-white/90">
+        {label}
+      </TileNameBadge>
 
       {/* Mic / camera status — only renders when something is off */}
       <TileMediaStatus

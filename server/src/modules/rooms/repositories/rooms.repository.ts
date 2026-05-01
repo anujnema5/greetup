@@ -89,6 +89,15 @@ export const roomsRepository = {
     return row ?? null;
   },
 
+  async updateLiveRoomTitle(roomId: string, title: string) {
+    const [row] = await db
+      .update(rooms)
+      .set({ title, updatedAt: new Date() })
+      .where(and(eq(rooms.id, roomId), eq(rooms.status, "live")))
+      .returning({ id: rooms.id });
+    return row ?? null;
+  },
+
   /** Pending/accepted friend invites for a room (e.g. notify invitees when session goes live). */
   async listActiveFriendInviteeUserIds(roomId: string) {
     return db.query.roomFriendInvites.findMany({

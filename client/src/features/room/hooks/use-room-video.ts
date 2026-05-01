@@ -64,8 +64,12 @@ export function useRoomVideo(roomId: string, options?: { skipSetup?: boolean }) 
       if (msg.type === "END_CALL") {
         clearRoomStorage();
         dispatch(endVideoSession());
-        void matchmaking.handleCancel();
-        router.replace(MATCHMAKING_HUB_PATH);
+        void matchmaking
+          .handleCancel()
+          .catch(() => {})
+          .finally(() => {
+            router.replace(MATCHMAKING_HUB_PATH);
+          });
       }
       if (msg.type === "SKIP_CALL") {
         beginSearchAfterSkip();
@@ -86,12 +90,16 @@ export function useRoomVideo(roomId: string, options?: { skipSetup?: boolean }) 
     clearRoomStorage();
     dispatch(endVideoSession());
     broadcastRoomMessage({ type: "END_CALL" });
-    void matchmaking.handleCancel();
-    void leaveRoom()
-      .unwrap()
+    void matchmaking
+      .handleCancel()
       .catch(() => {})
       .finally(() => {
-        router.replace(MATCHMAKING_HUB_PATH);
+        void leaveRoom()
+          .unwrap()
+          .catch(() => {})
+          .finally(() => {
+            router.replace(MATCHMAKING_HUB_PATH);
+          });
       });
   }, [dispatch, leaveRoom, matchmaking, router]);
 

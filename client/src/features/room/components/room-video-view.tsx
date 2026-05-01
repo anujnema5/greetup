@@ -1,5 +1,15 @@
 "use client";
 
+/**
+ * RoomVideoView is the main in-call screen renderer for both direct and circle rooms.
+ *
+ * Purpose:
+ * - Owns local UI state (right panel tab, stage ratio, active activity, mobile chat sheet).
+ * - Delegates media-derived values to `useRoomVideoViewModel`.
+ * - Composes stage, overlays, HUD, toolbar, and right panel into a single responsive call layout.
+ *
+ * This component should stay as a UI coordinator; transport/signaling logic belongs upstream.
+ */
 import { useCallback, useEffect, useState, useSyncExternalStore } from "react";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { MOCK_MATCH } from "@/features/room/constants/mock-match";
@@ -8,6 +18,7 @@ import { useRoomVideoViewModel } from "@/features/room/hooks/use-room-video-view
 import type { RoomVideoViewProps } from "@/features/room/types/room-video-view.types";
 import type { RoomActivityId } from "@/features/room/types/room-activity.types";
 import { RoomVideoStage } from "@/features/room/components/room-video/room-video-stage";
+import { RoomCircleCallOptionsDialog } from "@/features/room/components/room-video/room-circle-call-options-dialog";
 import { RoomVideoHud } from "@/features/room/components/room-video/room-video-hud";
 import { RoomVideoToolbar } from "@/features/room/components/room-video/room-video-toolbar";
 import { RoomVideoStageOverlays } from "@/features/room/components/room-video/room-video-overlays";
@@ -91,6 +102,9 @@ export function RoomVideoView({
   requestChessBusy = false,
   onEndActiveGame,
   onOfferDrawGame,
+  roomId = null,
+  circleDisplayTitle = null,
+  circleCanEditTitle = false,
 }: RoomVideoViewProps) {
   const lgUp = useLgBreakpoint();
   const mdDown = useSyncExternalStore(subscribeMdDown, snapshotMdDown, snapshotMdDownServer);
@@ -101,6 +115,7 @@ export function RoomVideoView({
     isGroupRoom ? "16:9" : "1:1"
   );
   const [isLive, setIsLive] = useState(false);
+  const [circleOptionsOpen, setCircleOptionsOpen] = useState(false);
   const {
     remoteVideoRef,
     peerCameraInsetRef,
@@ -203,12 +218,19 @@ export function RoomVideoView({
     setIsLive,
     showAddToCircle,
     onOpenAddToCircle,
+    showCircleOptions: Boolean(isGroupRoom && roomId),
+    onOpenCircleOptions:
+      isGroupRoom && roomId ? () => setCircleOptionsOpen(true) : undefined,
     showSkip,
     onSkip,
     onEnd,
     elapsed,
     formatDuration,
   };
+
+  const openCircleChat = useCallback(() => {
+    selectRightPanelTab("chat");
+  }, [selectRightPanelTab]);
 
   return (
     <div className="flex h-full min-h-0 w-full min-w-0 overflow-hidden bg-background">
@@ -224,80 +246,83 @@ export function RoomVideoView({
           {/* Stage + toolbar share one column on lg so the footer is only as wide as the stage (not under chat). */}
           <div className="flex min-h-0 min-w-0 flex-1 flex-col gap-2 lg:min-h-0">
             <div className="relative flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden rounded-2xl bg-black/60 shadow-xl">
-              <RoomVideoStage
-                isGroupRoom={isGroupRoom}
-                groupGalleryParticipants={groupGalleryParticipants}
-                remoteVideoRef={remoteVideoRef}
-                localVideoRef={localVideoRef}
-                showSearchingState={showSearchingState}
-                directCallMatchSearchFailed={directCallMatchSearchFailed}
-                directCallMatchSearchError={directCallMatchSearchError}
-                onRetryDirectCallMatchSearch={retryDirectMatch}
-                stageRatio={stageRatio}
-                activeActivity={activeActivity}
-                activeActivityMeta={activeActivityMeta}
-                setActiveActivity={setActiveActivity}
-                activeRealtimeActivity={activeRealtimeActivity}
-                onEndActiveGame={onEndActiveGame}
-                onOfferDrawGame={onOfferDrawGame}
-                remoteVideoLive={remoteVideoLive}
-                localVideoLive={localVideoLive}
-                remoteStream={remoteStream}
-                localStream={localStream}
-                mainStageShowsScreen={mainStageShowsScreen}
-                peerLabel={peerLabel}
-                peerInitials={peerInitials}
-                myName={myName}
-                currentUserId={currentUserId}
-                myInitial={myInitial}
-                peerAvatarUrl={peerAvatarUrl}
-                myAvatarUrl={myAvatarUrl}
-                micEnabled={micEnabled}
-                cameraEnabled={cameraEnabled}
-                remoteCameraOff={remotePeerCameraOff}
-                remoteMicOff={remotePeerMicOff}
-              />
+              <div className="relative min-h-0 min-w-0 flex-1 overflow-hidden">
+                <RoomVideoStage
+                  isGroupRoom={isGroupRoom}
+                  groupGalleryParticipants={groupGalleryParticipants}
+                  remoteVideoRef={remoteVideoRef}
+                  localVideoRef={localVideoRef}
+                  showSearchingState={showSearchingState}
+                  directCallMatchSearchFailed={directCallMatchSearchFailed}
+                  directCallMatchSearchError={directCallMatchSearchError}
+                  onRetryDirectCallMatchSearch={retryDirectMatch}
+                  stageRatio={stageRatio}
+                  activeActivity={activeActivity}
+                  activeActivityMeta={activeActivityMeta}
+                  setActiveActivity={setActiveActivity}
+                  activeRealtimeActivity={activeRealtimeActivity}
+                  onEndActiveGame={onEndActiveGame}
+                  onOfferDrawGame={onOfferDrawGame}
+                  remoteVideoLive={remoteVideoLive}
+                  localVideoLive={localVideoLive}
+                  remoteStream={remoteStream}
+                  localStream={localStream}
+                  mainStageShowsScreen={mainStageShowsScreen}
+                  peerLabel={peerLabel}
+                  peerInitials={peerInitials}
+                  myName={myName}
+                  currentUserId={currentUserId}
+                  myInitial={myInitial}
+                  peerAvatarUrl={peerAvatarUrl}
+                  myAvatarUrl={myAvatarUrl}
+                  micEnabled={micEnabled}
+                  cameraEnabled={cameraEnabled}
+                  remoteCameraOff={remotePeerCameraOff}
+                  remoteMicOff={remotePeerMicOff}
+                />
 
-              <RoomVideoStageOverlays
-                mediaBusy={mediaBusy}
-                mediaStatus={mediaStatus}
-                mediaError={mediaError}
-                localMediaDeviceError={localMediaDeviceError}
-                onDismissLocalMediaDeviceError={onDismissLocalMediaDeviceError}
-                isGroupRoom={isGroupRoom}
-                activeActivity={Boolean(stageActivity)}
-                stageRatio={stageRatio}
-                localVideoLive={localVideoLive}
-                localVideoRef={localVideoRef}
-                myName={myName}
-                myInitial={myInitial}
-                myAvatarUrl={myAvatarUrl}
-                mainStageShowsScreen={mainStageShowsScreen}
-                peerCameraInsetStream={peerCameraInsetStream}
-                peerCameraInsetLive={peerCameraInsetLive}
-                peerCameraInsetRef={peerCameraInsetRef}
-                peerLabel={peerLabel}
-                peerInitials={peerInitials}
-                peerAvatarUrl={peerAvatarUrl}
-                scoreLabel={scoreLabel}
-                micEnabled={micEnabled}
-                cameraEnabled={cameraEnabled}
-                localStream={localStream}
-              />
+                <RoomVideoStageOverlays
+                  mediaBusy={mediaBusy}
+                  mediaStatus={mediaStatus}
+                  mediaError={mediaError}
+                  localMediaDeviceError={localMediaDeviceError}
+                  onDismissLocalMediaDeviceError={onDismissLocalMediaDeviceError}
+                  isGroupRoom={isGroupRoom}
+                  activeActivity={Boolean(stageActivity)}
+                  stageRatio={stageRatio}
+                  localVideoLive={localVideoLive}
+                  localVideoRef={localVideoRef}
+                  myName={myName}
+                  myInitial={myInitial}
+                  myAvatarUrl={myAvatarUrl}
+                  mainStageShowsScreen={mainStageShowsScreen}
+                  peerCameraInsetStream={peerCameraInsetStream}
+                  peerCameraInsetLive={peerCameraInsetLive}
+                  peerCameraInsetRef={peerCameraInsetRef}
+                  peerLabel={peerLabel}
+                  peerInitials={peerInitials}
+                  peerAvatarUrl={peerAvatarUrl}
+                  scoreLabel={scoreLabel}
+                  micEnabled={micEnabled}
+                  cameraEnabled={cameraEnabled}
+                  localStream={localStream}
+                />
 
-              <RoomVideoHud
-                isOneToOneStage={isOneToOneStage}
-                isGroupRoom={isGroupRoom}
-                activeActivityLabel={activeActivityLabel}
-                activeActivity={Boolean(stageActivity)}
-                mainStageShowsScreen={mainStageShowsScreen}
-                peerLabel={peerLabel}
-                stageRatio={stageRatio}
-                setStageRatio={setStageRatio}
-                showAspectRatioToggle={showDirectAspectRatioToggle}
-                searchingForNextCandidate={showSearchingState}
-                onMinimize={onMinimize}
-              />
+                {!isGroupRoom ? (
+                  <RoomVideoHud
+                    isOneToOneStage={isOneToOneStage}
+                    activeActivityLabel={activeActivityLabel}
+                    activeActivity={Boolean(stageActivity)}
+                    mainStageShowsScreen={mainStageShowsScreen}
+                    peerLabel={peerLabel}
+                    stageRatio={stageRatio}
+                    setStageRatio={setStageRatio}
+                    showAspectRatioToggle={showDirectAspectRatioToggle}
+                    searchingForNextCandidate={showSearchingState}
+                    onMinimize={onMinimize}
+                  />
+                ) : null}
+              </div>
             </div>
 
             <RoomVideoToolbar {...videoToolbarProps} />
@@ -314,12 +339,12 @@ export function RoomVideoView({
               showCloseButton
               aria-describedby={undefined}
               className={[
-                /* Above RoomVideoLayer (`z-100`) and in-room dialogs (e.g. z-[200]) */
-                "z-[250] gap-0 border-x-0 border-b-0 p-0",
+                /* Above RoomVideoLayer (`z-100`) and in-room dialogs (e.g. `z-200`). */
+                "z-250 gap-0 border-x-0 border-b-0 p-0",
                 "fixed! inset-x-0! bottom-0! top-auto! left-0! right-0! max-h-[min(88dvh,880px)]! w-full! max-w-full!",
                 "translate-x-0! translate-y-0! rounded-t-2xl rounded-b-none",
               ].join(" ")}
-              overlayClassName="z-[240]"
+              overlayClassName="z-240"
             >
               <DialogTitle className="sr-only">Chat and activities</DialogTitle>
               <div className="flex max-h-[min(88dvh,880px)] flex-col overflow-hidden pb-[env(safe-area-inset-bottom)]">
@@ -327,6 +352,20 @@ export function RoomVideoView({
               </div>
             </DialogContent>
           </Dialog>
+        ) : null}
+
+        {isGroupRoom && roomId ? (
+          <RoomCircleCallOptionsDialog
+            open={circleOptionsOpen}
+            onOpenChange={setCircleOptionsOpen}
+            roomId={roomId}
+            displayTitle={circleDisplayTitle?.trim() || "Circle"}
+            canEdit={Boolean(circleCanEditTitle)}
+            showInvite={showAddToCircle && Boolean(onOpenAddToCircle)}
+            onInvite={onOpenAddToCircle}
+            showChat={Boolean(conversationId)}
+            onOpenChat={conversationId ? openCircleChat : undefined}
+          />
         ) : null}
       </div>
     </div>
