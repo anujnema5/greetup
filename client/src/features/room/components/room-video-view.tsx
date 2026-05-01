@@ -74,6 +74,7 @@ export function RoomVideoView({
   myAvatarUrl = null,
   peerAvatarUrl = null,
   remotePeerCameraOff = false,
+  remotePeerMicOff = false,
   isGroupRoom = false,
   remoteParticipants = [],
   remotePeers = {},
@@ -82,6 +83,9 @@ export function RoomVideoView({
   showAddToCircle = false,
   onOpenAddToCircle,
   searchingForNextCandidate = false,
+  directCallMatchSearchFailed = false,
+  directCallMatchSearchError = null,
+  onRetryDirectCallMatchSearch,
   activeRealtimeActivity = null,
   onRequestChessInvite,
   requestChessBusy = false,
@@ -136,6 +140,8 @@ export function RoomVideoView({
   const myInitial = myName.charAt(0).toUpperCase();
   const isOneToOneStage = !isGroupRoom && !stageActivity && stageRatio === "1:1";
   const showSearchingState = !isGroupRoom && searchingForNextCandidate;
+  const retryDirectMatch =
+    onRetryDirectCallMatchSearch ?? (() => {});
   const activeActivityLabel = activeActivityMeta ? `${activeActivityMeta.label} activity` : null;
   const showDirectAspectRatioToggle =
     !isGroupRoom && !Boolean(stageActivity) && !mdDown;
@@ -224,6 +230,9 @@ export function RoomVideoView({
                 remoteVideoRef={remoteVideoRef}
                 localVideoRef={localVideoRef}
                 showSearchingState={showSearchingState}
+                directCallMatchSearchFailed={directCallMatchSearchFailed}
+                directCallMatchSearchError={directCallMatchSearchError}
+                onRetryDirectCallMatchSearch={retryDirectMatch}
                 stageRatio={stageRatio}
                 activeActivity={activeActivity}
                 activeActivityMeta={activeActivityMeta}
@@ -243,6 +252,10 @@ export function RoomVideoView({
                 myInitial={myInitial}
                 peerAvatarUrl={peerAvatarUrl}
                 myAvatarUrl={myAvatarUrl}
+                micEnabled={micEnabled}
+                cameraEnabled={cameraEnabled}
+                remoteCameraOff={remotePeerCameraOff}
+                remoteMicOff={remotePeerMicOff}
               />
 
               <RoomVideoStageOverlays
@@ -267,6 +280,9 @@ export function RoomVideoView({
                 peerInitials={peerInitials}
                 peerAvatarUrl={peerAvatarUrl}
                 scoreLabel={scoreLabel}
+                micEnabled={micEnabled}
+                cameraEnabled={cameraEnabled}
+                localStream={localStream}
               />
 
               <RoomVideoHud

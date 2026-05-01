@@ -9,8 +9,11 @@ import type { RoomActiveActivity } from "@/lib/redux/types/room-slice.types";
 import { RemoteParticipantTile } from "@/features/room/components/room-video/remote-participant-tile";
 import {
   CameraOffAvatar,
+  NoPeerAvailableState,
   SearchingCandidateState,
+  TileMediaStatus,
   TileNameBadge,
+  TileSpeakingRings,
   VideoMirror,
 } from "@/features/room/components/room-video/room-video-primitives";
 import type { RemoteParticipant } from "@/features/rtc";
@@ -23,6 +26,9 @@ export function RoomVideoStage({
   remoteVideoRef,
   localVideoRef,
   showSearchingState,
+  directCallMatchSearchFailed,
+  directCallMatchSearchError,
+  onRetryDirectCallMatchSearch,
   stageRatio,
   activeActivity,
   activeActivityMeta,
@@ -42,12 +48,19 @@ export function RoomVideoStage({
   myInitial,
   peerAvatarUrl,
   myAvatarUrl,
+  micEnabled,
+  cameraEnabled,
+  remoteCameraOff,
+  remoteMicOff,
 }: {
   isGroupRoom: boolean;
   groupGalleryParticipants: RemoteParticipant[];
   remoteVideoRef: RefObject<HTMLVideoElement | null>;
   localVideoRef: RefObject<HTMLVideoElement | null>;
   showSearchingState: boolean;
+  directCallMatchSearchFailed: boolean;
+  directCallMatchSearchError: string | null;
+  onRetryDirectCallMatchSearch: () => void;
   stageRatio: StageRatio;
   activeActivity: RoomActivityId | null;
   activeActivityMeta: RoomActivityMeta | null;
@@ -67,6 +80,10 @@ export function RoomVideoStage({
   myInitial: string;
   peerAvatarUrl?: string | null;
   myAvatarUrl?: string | null;
+  micEnabled?: boolean;
+  cameraEnabled?: boolean;
+  remoteCameraOff?: boolean;
+  remoteMicOff?: boolean;
 }) {
   const stageActivity = activeRealtimeActivity?.kind === "chess" ? "chess" : activeActivity;
 
@@ -106,7 +123,14 @@ export function RoomVideoStage({
       />
 
       {showSearchingState ? (
-        <SearchingCandidateState />
+        directCallMatchSearchFailed ? (
+          <NoPeerAvailableState
+            detail={directCallMatchSearchError}
+            onTryAgain={onRetryDirectCallMatchSearch}
+          />
+        ) : (
+          <SearchingCandidateState />
+        )
       ) : (
         <>
           <div
@@ -127,17 +151,23 @@ export function RoomVideoStage({
               />
               {!remoteVideoLive && (
                 <div className="absolute inset-0 flex items-center justify-center border border-border/60 bg-linear-to-br from-primary/15 via-muted/45 to-accent/20">
-                  <CameraOffAvatar
-                    name={peerLabel}
-                    initials={peerInitials}
-                    imageUrl={peerAvatarUrl}
-                    sizeClass="h-20 w-20 md:h-24 md:w-24"
-                  />
+                  <TileSpeakingRings stream={remoteMicOff ? null : remoteStream}>
+                    <CameraOffAvatar
+                      name={peerLabel}
+                      initials={peerInitials}
+                      imageUrl={peerAvatarUrl}
+                      sizeClass="h-20 w-20 md:h-24 md:w-24"
+                    />
+                  </TileSpeakingRings>
                 </div>
               )}
               <TileNameBadge className="border-white/10 bg-black/55 text-white/90">
                 {peerLabel}
               </TileNameBadge>
+              <TileMediaStatus
+                micOn={remoteMicOff ? false : undefined}
+                cameraOn={remoteCameraOff ? false : undefined}
+              />
             </div>
 
             <div className="relative min-h-0 w-full flex-1 basis-0 overflow-hidden rounded-2xl border border-border/60 bg-card">
@@ -151,15 +181,18 @@ export function RoomVideoStage({
               />
               {!localVideoLive && (
                 <div className="absolute inset-0 flex items-center justify-center border border-border/60 bg-linear-to-br from-primary/15 via-muted/45 to-accent/20">
-                  <CameraOffAvatar
-                    name={myName}
-                    initials={myInitial}
-                    imageUrl={myAvatarUrl}
-                    sizeClass="h-20 w-20 md:h-24 md:w-24"
-                  />
+                  <TileSpeakingRings stream={localStream}>
+                    <CameraOffAvatar
+                      name={myName}
+                      initials={myInitial}
+                      imageUrl={myAvatarUrl}
+                      sizeClass="h-20 w-20 md:h-24 md:w-24"
+                    />
+                  </TileSpeakingRings>
                 </div>
               )}
               <TileNameBadge>You</TileNameBadge>
+              <TileMediaStatus micOn={micEnabled} cameraOn={cameraEnabled} />
             </div>
           </div>
 
@@ -213,14 +246,20 @@ export function RoomVideoStage({
                   />
                   {!remoteVideoLive && (
                     <div className="absolute inset-0 flex items-center justify-center border border-border/60 bg-linear-to-br from-primary/15 via-muted/45 to-accent/20">
-                      <CameraOffAvatar
-                        name={peerLabel}
-                        initials={peerInitials}
-                        imageUrl={peerAvatarUrl}
-                        sizeClass="h-32 w-32 md:h-36 md:w-36"
-                      />
+                      <TileSpeakingRings stream={remoteMicOff ? null : remoteStream}>
+                        <CameraOffAvatar
+                          name={peerLabel}
+                          initials={peerInitials}
+                          imageUrl={peerAvatarUrl}
+                          sizeClass="h-32 w-32 md:h-36 md:w-36"
+                        />
+                      </TileSpeakingRings>
                     </div>
                   )}
+                  <TileMediaStatus
+                    micOn={remoteMicOff ? false : undefined}
+                    cameraOn={remoteCameraOff ? false : undefined}
+                  />
                 </div>
               )}
             </div>
