@@ -5,6 +5,7 @@
  *
  * Purpose:
  * - Owns local UI state (right panel tab, stage ratio, active activity, mobile chat sheet).
+ * - Circle calls: footer “Options” opens `RoomCircleCallOptionsDialog` (rename, link, invite, chat).
  * - Delegates media-derived values to `useRoomVideoViewModel`.
  * - Composes stage, overlays, HUD, toolbar, and right panel into a single responsive call layout.
  *
@@ -161,6 +162,10 @@ export function RoomVideoView({
   const showDirectAspectRatioToggle =
     !isGroupRoom && !Boolean(stageActivity) && !mdDown;
 
+  /** Circle route always has `roomId` when `isGroupRoom`; narrows types for options UI. */
+  const circleRoomId = isGroupRoom && roomId ? roomId : null;
+  const circleTitle = circleDisplayTitle?.trim() || "Circle";
+
   useEffect(() => {
     if (!isGroupRoom && mdDown && stageRatio === "16:9") {
       setStageRatio("1:1");
@@ -218,9 +223,8 @@ export function RoomVideoView({
     setIsLive,
     showAddToCircle,
     onOpenAddToCircle,
-    showCircleOptions: Boolean(isGroupRoom && roomId),
-    onOpenCircleOptions:
-      isGroupRoom && roomId ? () => setCircleOptionsOpen(true) : undefined,
+    showCircleOptions: Boolean(circleRoomId),
+    onOpenCircleOptions: circleRoomId ? () => setCircleOptionsOpen(true) : undefined,
     showSkip,
     onSkip,
     onEnd,
@@ -354,12 +358,12 @@ export function RoomVideoView({
           </Dialog>
         ) : null}
 
-        {isGroupRoom && roomId ? (
+        {circleRoomId ? (
           <RoomCircleCallOptionsDialog
             open={circleOptionsOpen}
             onOpenChange={setCircleOptionsOpen}
-            roomId={roomId}
-            displayTitle={circleDisplayTitle?.trim() || "Circle"}
+            roomId={circleRoomId}
+            displayTitle={circleTitle}
             canEdit={Boolean(circleCanEditTitle)}
             showInvite={showAddToCircle && Boolean(onOpenAddToCircle)}
             onInvite={onOpenAddToCircle}

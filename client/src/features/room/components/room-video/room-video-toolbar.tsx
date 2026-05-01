@@ -136,6 +136,7 @@ export function RoomVideoToolbar({
     if (conversationId) items.push("chat");
     if (!isGroupRoom) items.push("activities", "live");
     if (showAddToCircle && onOpenAddToCircle && !isGroupRoom) items.push("add");
+    /* Circle: invite lives in options dialog; direct keeps quick-add in the bar. */
     if (showCircleOptions && onOpenCircleOptions) items.push("circleOptions");
     if (showSkip) items.push("skip");
     return items;
