@@ -38,6 +38,7 @@ function ParticipantVideoTile({
   shareIsFocused,
   onSelectShare,
   allowPickShareFromTile = true,
+  tileClassName,
 }: {
   label: string;
   stream: MediaStream | null;
@@ -51,6 +52,7 @@ function ParticipantVideoTile({
   shareIsFocused: boolean;
   onSelectShare?: (key: string) => void;
   allowPickShareFromTile?: boolean;
+  tileClassName?: string;
 }) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const muteCycle = useRerenderOnVideoTrackMuteCycle(stream);
@@ -82,6 +84,7 @@ function ParticipantVideoTile({
     "aspect-video",
     shareIsFocused && "ring-2 ring-primary ring-offset-2 ring-offset-background",
     canPickShare && "cursor-pointer transition-[box-shadow,transform] hover:ring-2 hover:ring-primary/50",
+    tileClassName,
   );
 
   const inner = (
@@ -228,11 +231,11 @@ export function RoomCallParticipantsPanel({
         </section>
       ) : null}
 
-      <section className="min-h-0 flex-1">
-        <h3 className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+      <section className="flex min-h-0 flex-1 flex-col">
+        <h3 className="mb-2 shrink-0 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
           Cameras
         </h3>
-        <div className="flex flex-col gap-2.5">
+        <div className="grid min-h-0 flex-1 auto-rows-fr grid-cols-1 gap-2">
           <ParticipantVideoTile
             key={`self:${mediaStreamVideoAttachRevision(localStream)}`}
             label={`${myName} (you)`}
@@ -247,6 +250,7 @@ export function RoomCallParticipantsPanel({
             shareIsFocused={Boolean(localShareKey && focusedScreenShareKey === localShareKey)}
             onSelectShare={onSelectScreenShare}
             allowPickShareFromTile={allowPickShareFromTile}
+            tileClassName="h-full"
           />
 
           {isGroupRoom
@@ -269,6 +273,7 @@ export function RoomCallParticipantsPanel({
                     shareIsFocused={Boolean(sk && focusedScreenShareKey === sk)}
                     onSelectShare={onSelectScreenShare}
                     allowPickShareFromTile={allowPickShareFromTile}
+                    tileClassName="h-full"
                   />
                 );
               })
@@ -290,6 +295,7 @@ export function RoomCallParticipantsPanel({
                       shareIsFocused={Boolean(sk && focusedScreenShareKey === sk)}
                       onSelectShare={onSelectScreenShare}
                       allowPickShareFromTile={allowPickShareFromTile}
+                      tileClassName="h-full"
                     />
                   );
                 })
@@ -311,6 +317,7 @@ export function RoomCallParticipantsPanel({
                           )}
                           onSelectShare={onSelectScreenShare}
                           allowPickShareFromTile={allowPickShareFromTile}
+                          tileClassName="h-full"
                         />
                       );
                     })()

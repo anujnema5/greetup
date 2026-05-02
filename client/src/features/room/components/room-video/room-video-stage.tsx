@@ -11,11 +11,12 @@
  * - **Circle, cameras only** — Responsive grid of remote tiles + local “You” tile.
  * - **Direct** — 1:1 split (camera/camera or screen+rail), or 16:9 / activity scroll regions.
  *
- * `participantVideosInSidebar` is owned by `RoomVideoView` (lg+ docked People tab). When true,
- * camera UI moves off-stage so the main area is only the shared screen.
+ * `participantVideosInSidebar` is owned by `RoomVideoView` (People tab: dock on lg+, sheet on
+ * narrow). When true, camera UI moves off-stage so the main area is only the shared screen.
  */
 import { useRef, type RefObject } from "react";
 import { cn } from "@/lib/utils";
+import { CircleGalleryGrid } from "@/features/room/components/room-video/circle-gallery-grid";
 import type { RoomActivityId } from "@/features/room/types/room-activity.types";
 import type { RoomActivityMeta } from "@/features/room/types/room-activity.types";
 import { ActivityStage } from "@/features/room/components/room-activity/activity-stage";
@@ -40,12 +41,19 @@ type StageRatio = "16:9" | "1:1";
 /** Grid columns for circle room: tile count = you + each `RemoteParticipant`. */
 function circleGalleryGridClass(groupTileCount: number): string {
   if (groupTileCount === 1) return "grid-cols-1";
+  // 2 people: stacked on phone (portrait faces fill half the screen each), side-by-side on tablet+
   if (groupTileCount === 2) return "grid-cols-1 sm:grid-cols-2";
-  if (groupTileCount === 3) return "grid-cols-1 md:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)]";
-  if (groupTileCount <= 4) return "grid-cols-1 sm:grid-cols-2";
-  if (groupTileCount <= 6) return "grid-cols-2 lg:grid-cols-3";
-  if (groupTileCount <= 9) return "grid-cols-2 md:grid-cols-3 lg:grid-cols-4";
-  return "grid-cols-2 md:grid-cols-4 lg:grid-cols-5";
+  // 3 people: 2+1 on phone (last tile full-width for balance), featured layout on md+
+  if (groupTileCount === 3)
+    return "grid-cols-2 [&>*:last-child]:col-span-2 md:[&>*:last-child]:col-auto md:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)]";
+  // 4 people: 2×2 on all sizes
+  if (groupTileCount <= 4) return "grid-cols-2";
+  // 5–6 people: 2 cols on phone, 3 on md+ (tablet landscape / desktop)
+  if (groupTileCount <= 6) return "grid-cols-2 md:grid-cols-3";
+  // 7–9 people: 2 cols on phone, 3 on sm+ tablet, 4 on large desktop
+  if (groupTileCount <= 9) return "grid-cols-2 sm:grid-cols-3 lg:grid-cols-4";
+  // 10+ people: 2 → 3 → 4 → 5 columns across breakpoints
+  return "grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5";
 }
 
 export function RoomVideoStage({
@@ -85,7 +93,7 @@ export function RoomVideoStage({
   focusedScreenShareKey = null,
   onSelectScreenShare,
   remotePeerCameraStream = null,
-  /** lg+ docked sidebar: cameras live in People panel; stage is screen-only. */
+  /** Cameras live in People panel/sheet; stage is screen-only. */
   participantVideosInSidebar = false,
 }: {
   isGroupRoom: boolean;
@@ -180,7 +188,7 @@ export function RoomVideoStage({
       {/* --- Circle rooms --- */}
       {isGroupRoom ? (
         screenShareMainLayout ? (
-          /* Circle + share: full-bleed stage on lg when cameras are in the People panel. */
+          /* Circle + share: full-bleed stage when cameras are in the People panel/sheet. */
           participantVideosInSidebar ? (
             <div className="absolute inset-0 flex min-h-0 flex-col p-0 md:p-1 md:pt-1">
               <div className="relative min-h-0 flex-1 overflow-hidden rounded-none border-0 bg-black shadow-none md:rounded-xl md:border md:border-border/50 md:shadow-sm">
@@ -231,45 +239,57 @@ export function RoomVideoStage({
                   />
                 ) : null}
               </div>
-              <div className="min-h-0 flex-1 overflow-y-auto">
-                <div className={cn("grid min-h-0 auto-rows-fr gap-1 md:gap-1", groupGridClass)}>
-                  <div className="relative flex min-h-22 min-w-0 flex-col overflow-hidden rounded-xl border border-border/50 shadow-sm">
-                    <VideoMirror
-                      srcRef={localVideoRef}
-                      mirrored
-                      className={cn(
-                        "absolute inset-0 h-full w-full object-cover",
-                        !localVideoLive && "opacity-0",
-                      )}
-                    />
-                    {!localVideoLive ? (
-                      <div className="flex h-full w-full flex-1 items-center justify-center bg-muted/20">
-                        <TileSpeakingRings stream={localStream}>
-                          <CameraOffAvatar
-                            name={myName}
-                            initials={myInitial}
-                            imageUrl={myAvatarUrl}
-                            sizeClass="h-14 w-14"
-                          />
-                        </TileSpeakingRings>
-                      </div>
-                    ) : null}
-                    <TileNameBadge>You</TileNameBadge>
-                    <TileMediaStatus micOn={micEnabled} cameraOn={cameraEnabled} />
-                  </div>
-                  {sideParticipants.map((participant, idx) => (
-                    <RemoteParticipantTile
-                      key={participant.peer.peerId}
-                      participant={participant}
-                      className={groupTileCount === 3 && idx < 2 ? "min-h-0 md:min-h-22" : undefined}
-                    />
-                  ))}
+              {/* Fixed-height horizontal filmstrip — all participants visible, no vertical scroll */}
+              <div className="flex h-22 md:h-25 shrink-0 gap-1 overflow-x-auto overflow-y-hidden">
+                <div className="relative aspect-video h-full flex-none overflow-hidden rounded-xl border border-border/50 shadow-sm">
+                  <VideoMirror
+                    srcRef={localVideoRef}
+                    mirrored
+                    className={cn(
+                      "absolute inset-0 h-full w-full object-cover",
+                      !localVideoLive && "opacity-0",
+                    )}
+                  />
+                  {!localVideoLive ? (
+                    <div className="flex h-full w-full flex-1 items-center justify-center bg-muted/20">
+                      <TileSpeakingRings stream={localStream}>
+                        <CameraOffAvatar
+                          name={myName}
+                          initials={myInitial}
+                          imageUrl={myAvatarUrl}
+                          sizeClass="h-10 w-10"
+                        />
+                      </TileSpeakingRings>
+                    </div>
+                  ) : null}
+                  <TileNameBadge>You</TileNameBadge>
+                  <TileMediaStatus micOn={micEnabled} cameraOn={cameraEnabled} />
                 </div>
+                {sideParticipants.map((participant) => (
+                  <RemoteParticipantTile
+                    key={participant.peer.peerId}
+                    participant={participant}
+                    className="aspect-video min-h-0! h-full flex-none"
+                  />
+                ))}
               </div>
             </div>
           )
+        ) : groupTileCount > 6 ? (
+          /* 7+ participants: paginated gallery — no Y-scroll, left/right pages */
+          <CircleGalleryGrid
+            participants={groupGalleryParticipants}
+            localVideoRef={localVideoRef}
+            localVideoLive={localVideoLive}
+            localStream={localStream}
+            myName={myName}
+            myInitial={myInitial}
+            myAvatarUrl={myAvatarUrl}
+            micEnabled={micEnabled}
+            cameraEnabled={cameraEnabled}
+          />
         ) : (
-          /* Circle, cameras only (no main screen-share layout). */
+          /* 1–6 participants: adaptive single-page grid (featured layout for 3, 2×2 for 4, etc.) */
           <div className="absolute inset-0 overflow-y-auto p-1 md:p-1.5">
             <div className={cn("grid h-full min-h-0 auto-rows-fr gap-1 md:gap-1", groupGridClass)}>
               {featuredParticipant ? (
