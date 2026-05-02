@@ -4,6 +4,7 @@ import { createContext, useContext, useEffect, useMemo } from "react";
 import { useSession } from "@/lib/auth-client";
 import { useAppDispatch, useAppSelector } from "@/lib/redux/hooks";
 import { useGetMyProfileQuery } from "@/features/profile-setup/components/profile-setup-api";
+import { useRoomTabLeaseRtcSync } from "@/features/room";
 import {
   selectActiveRoomId,
   selectIsVideoSessionActive,
@@ -124,6 +125,12 @@ export function RtcSocketProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     dispatch(setMediaStatus(mapMediasoupToSliceStatus(sessionActive, mediasoup.status)));
   }, [dispatch, sessionActive, mediasoup.status]);
+
+  useRoomTabLeaseRtcSync({
+    activeRoomId,
+    sessionUserId: sessionUser?.id,
+    sessionActive,
+  });
 
   const value = useMemo<RtcSocketContextValue>(
     () => ({
