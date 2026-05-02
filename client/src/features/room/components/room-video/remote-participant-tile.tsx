@@ -2,8 +2,15 @@
 
 import { useMemo, useRef } from "react";
 import Image from "next/image";
-import { hasLiveVideo, type RemoteParticipant } from "@/features/rtc";
-import { useAttachMediaStream } from "@/features/room/hooks/use-attach-media-stream";
+import {
+  hasRenderableRemoteVideo,
+  mediaStreamVideoAttachRevision,
+  type RemoteParticipant,
+} from "@/features/rtc";
+import {
+  useAttachMediaStream,
+  useRerenderOnVideoTrackMuteCycle,
+} from "@/features/room/hooks/use-attach-media-stream";
 import { getProfileImageUrl } from "@/lib/ui/profile-image";
 import { cn } from "@/lib/utils";
 import {
@@ -24,7 +31,10 @@ export function RemoteParticipantTile({
 
   const cameraOff = peer.cameraActive === false;
   const micOff = peer.micActive === false;
-  const live = hasLiveVideo(stream) && !cameraOff;
+  const muteCycle = useRerenderOnVideoTrackMuteCycle(stream);
+  const live = hasRenderableRemoteVideo(stream) && !cameraOff;
+  const attachStream = live ? stream : null;
+  const attachKey = `${muteCycle}:${mediaStreamVideoAttachRevision(stream)}`;
 
   const label = peer.displayName?.trim() || `Peer ${peer.peerId.slice(0, 6)}`;
   const initials = useMemo(
@@ -38,7 +48,7 @@ export function RemoteParticipantTile({
     [label],
   );
 
-  useAttachMediaStream(videoRef, stream, live);
+  useAttachMediaStream(videoRef, attachStream, attachKey);
 
   return (
     <div

@@ -19,7 +19,8 @@ services:
     container_name: greetup_redis
     restart: unless-stopped
     ports:
-      - "16379:6379"
+      # Avoid 16379 on Windows: it often falls in Hyper-V excluded port ranges (no host bind).
+      - "26379:6379"
     volumes:
       - redis_data:/data
 

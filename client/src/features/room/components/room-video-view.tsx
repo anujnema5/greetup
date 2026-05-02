@@ -10,24 +10,34 @@
  * - Composes stage, overlays, HUD, toolbar, and right panel into a single responsive call layout.
  *
  * This component should stay as a UI coordinator; transport/signaling logic belongs upstream.
+ *
+ * Screen share vs activities: toasts block overlapping actions (no auto-stop). Only one in-call
+ * activity at a time: starting another requires ending the current one first (toasts + disabled tiles
+ * for other activities). Screen share uses toasts only — activity tiles stay tappable.
  */
-import { useCallback, useEffect, useState, useSyncExternalStore } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
+import { Maximize2, Minimize2 } from "lucide-react";
+import { toast } from "sonner";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { MOCK_MATCH } from "@/features/room/constants/mock-match";
 import { DIRECT_ROOM_ACTIVITIES } from "@/features/room/constants/direct-room-activities";
 import { useRoomVideoViewModel } from "@/features/room/hooks/use-room-video-view-model";
+import { useStageFullscreen } from "@/features/room/hooks/use-stage-fullscreen";
 import type { RoomVideoViewProps } from "@/features/room/types/room-video-view.types";
 import type { RoomActivityId } from "@/features/room/types/room-activity.types";
+import type { RoomCallRightPanelTab } from "@/features/room/types/room-call-panel.types";
+import { RoomCallParticipantsPanel } from "@/features/room/components/room-video/room-call-participants-panel";
 import { RoomVideoStage } from "@/features/room/components/room-video/room-video-stage";
 import { RoomCircleCallOptionsDialog } from "@/features/room/components/room-video/room-circle-call-options-dialog";
 import { RoomVideoHud } from "@/features/room/components/room-video/room-video-hud";
 import { RoomVideoToolbar } from "@/features/room/components/room-video/room-video-toolbar";
 import { RoomVideoStageOverlays } from "@/features/room/components/room-video/room-video-overlays";
 import { RoomVideoRightPanel } from "@/features/room/components/room-video/room-video-right-panel";
+import { cn } from "@/lib/utils";
+import { buildLocalPreviewStream } from "@/features/rtc/lib/direct-call-stage";
 
 export type { RoomVideoViewProps } from "@/features/room/types/room-video-view.types";
 
-type RightPanelTab = "chat" | "activities";
 type StageRatio = "16:9" | "1:1";
 
 function useLgBreakpoint() {
@@ -65,6 +75,8 @@ export function RoomVideoView({
   onSkip,
   onMinimize,
   localStream = null,
+  localCompositeStream = null,
+  localScreenTrackId = null,
   remoteStream = null,
   mainStageShowsScreen = false,
   remotePeerCameraStream = null,
@@ -106,10 +118,17 @@ export function RoomVideoView({
   roomId = null,
   circleDisplayTitle = null,
   circleCanEditTitle = false,
+  screenShareTiles = [],
+  focusedScreenShareKey = null,
+  onSelectScreenShare,
+  remoteTrackMediaSource = {},
 }: RoomVideoViewProps) {
   const lgUp = useLgBreakpoint();
   const mdDown = useSyncExternalStore(subscribeMdDown, snapshotMdDown, snapshotMdDownServer);
-  const [rightPanelTab, setRightPanelTab] = useState<RightPanelTab>("chat");
+  const stageShellRef = useRef<HTMLDivElement>(null);
+  const stageFullscreen = useStageFullscreen(stageShellRef);
+  const [rightPanelTab, setRightPanelTab] = useState<RoomCallRightPanelTab>("chat");
+  const prevShowPeopleTabRef = useRef(false);
   const [mobileChatSheetOpen, setMobileChatSheetOpen] = useState(false);
   const [activeActivity, setActiveActivity] = useState<RoomActivityId | null>(null);
   const [stageRatio, setStageRatio] = useState<StageRatio>(() =>
@@ -117,6 +136,78 @@ export function RoomVideoView({
   );
   const [isLive, setIsLive] = useState(false);
   const [circleOptionsOpen, setCircleOptionsOpen] = useState(false);
+
+  const activeChess = activeRealtimeActivity?.kind === "chess";
+  const stageActivity = activeChess ? "chess" : activeActivity;
+  const hasActivityOnStage = Boolean(stageActivity);
+  /** Local or remote share present — activities must not overlap the share stage. */
+  const screenShareBlocksActivities =
+    screenSharing || mainStageShowsScreen || screenShareTiles.length > 0;
+
+  const handleToggleScreenShare = useCallback(() => {
+    if (!screenSharing && hasActivityOnStage) {
+      toast.info("Leave or end the current activity before sharing your screen.");
+      return;
+    }
+    onToggleScreenShare?.();
+  }, [screenSharing, hasActivityOnStage, onToggleScreenShare]);
+
+  /** @returns whether the activity actually started (or already active); false = blocked, do not switch tabs. */
+  const tryBeginEmbeddedActivity = useCallback(
+    (activity: RoomActivityId): boolean => {
+      if (screenShareBlocksActivities) {
+        toast.info(
+          screenSharing
+            ? "Screen sharing should be off before starting this activity."
+            : "Screen sharing is active in this call. Wait until it ends before starting this activity.",
+        );
+        return false;
+      }
+      if (hasActivityOnStage) {
+        if (activeChess) {
+          toast.info("End the chess game before starting another activity.");
+          return false;
+        }
+        if (activeActivity === activity) {
+          return true;
+        }
+        toast.info("End the current activity before starting another one.");
+        return false;
+      }
+      setActiveActivity(activity);
+      return true;
+    },
+    [
+      screenShareBlocksActivities,
+      screenSharing,
+      hasActivityOnStage,
+      activeChess,
+      activeActivity,
+    ],
+  );
+
+  /** @returns false if invite was blocked (e.g. still screen sharing). */
+  const tryRequestChessInvite = useCallback((): boolean => {
+    if (screenShareBlocksActivities) {
+      toast.info(
+        screenSharing
+          ? "Screen sharing should be off before starting chess."
+          : "Screen sharing is active in this call. Wait until it ends before starting chess.",
+      );
+      return false;
+    }
+    if (hasActivityOnStage) {
+      if (activeChess) {
+        toast.info("A chess game is already in progress.");
+        return false;
+      }
+      toast.info("End the current activity before starting chess.");
+      return false;
+    }
+    onRequestChessInvite?.();
+    return true;
+  }, [screenShareBlocksActivities, screenSharing, hasActivityOnStage, activeChess, onRequestChessInvite]);
+
   const {
     remoteVideoRef,
     peerCameraInsetRef,
@@ -133,6 +224,7 @@ export function RoomVideoView({
     mediaBusy,
     elapsed,
     formatDuration,
+    screenShareMainLayout,
   } = useRoomVideoViewModel({
     remoteStream,
     remotePeerCameraOff,
@@ -148,9 +240,23 @@ export function RoomVideoView({
     onToggleMic,
     onToggleCamera,
     onToggleScreenShare,
+    screenShareTiles,
+    remoteTrackMediaSource,
   });
-  const activeChess = activeRealtimeActivity?.kind === "chess";
-  const stageActivity = activeChess ? "chess" : activeActivity;
+  /** Screen-share UI: stage may go full-bleed and the panel lists shares + cameras. */
+  const showScreenShareContext =
+    showScreenShare && (screenSharing || mainStageShowsScreen || screenShareTiles.length > 0);
+  /**
+   * Large viewports: the right dock shows chat / people / activities. While sharing, the People
+   * tab holds camera tiles so `RoomVideoStage` can devote the canvas to the shared screen only.
+   * Narrow viewports keep the in-stage rail / filmstrip so calls work without the dock.
+   */
+  const participantVideosInSidebar = Boolean(showScreenShareContext && lgUp);
+  const showStageFullscreenControl =
+    showScreenShare && (screenSharing || mainStageShowsScreen || screenShareTiles.length > 0);
+  /** People tab: during share, or while an in-call activity (chess, watch together, …) is on stage. */
+  const showPeopleTab = showScreenShareContext || hasActivityOnStage;
+
   const activeActivityMeta =
     DIRECT_ROOM_ACTIVITIES.find((activity) => activity.id === stageActivity) ?? null;
   const myInitial = myName.charAt(0).toUpperCase();
@@ -176,8 +282,35 @@ export function RoomVideoView({
     if (lgUp) setMobileChatSheetOpen(false);
   }, [lgUp]);
 
+  useEffect(() => {
+    if (rightPanelTab === "participants" && !showPeopleTab) {
+      setRightPanelTab("chat");
+    }
+  }, [rightPanelTab, showPeopleTab]);
+
+  useEffect(() => {
+    if (showPeopleTab && !prevShowPeopleTabRef.current) {
+      setRightPanelTab("participants");
+    }
+    prevShowPeopleTabRef.current = showPeopleTab;
+  }, [showPeopleTab]);
+
+  useEffect(() => {
+    return () => {
+      void stageFullscreen.exit();
+    };
+  }, [stageFullscreen.exit]);
+
+  // People tab “You”: camera+audio only while sharing; recompute when shares change so the stream re-attaches.
+  const localStreamPeopleTabSelf = useMemo(() => {
+    if (!screenSharing || !localCompositeStream || !localScreenTrackId) {
+      return localStream;
+    }
+    return buildLocalPreviewStream(localCompositeStream, localScreenTrackId) ?? localStream;
+  }, [screenSharing, localCompositeStream, localScreenTrackId, localStream, screenShareTiles]);
+
   const selectRightPanelTab = useCallback(
-    (tab: RightPanelTab) => {
+    (tab: RoomCallRightPanelTab) => {
       setRightPanelTab(tab);
       if (!lgUp) {
         /* Toolbar stays focused for part of the click frame; Radix then sets aria-hidden on RoomVideoLayer (z-100) and Chrome blocks it if focus is still inside. Blur, then open on the next paint. */
@@ -192,6 +325,28 @@ export function RoomVideoView({
     [lgUp],
   );
 
+  const participantsPanel = showPeopleTab ? (
+    <RoomCallParticipantsPanel
+      isGroupRoom={isGroupRoom}
+      myName={myName}
+      myAvatarUrl={myAvatarUrl}
+      micEnabled={micEnabled}
+      cameraEnabled={cameraEnabled}
+      screenSharing={screenSharing}
+      remotePeers={remotePeers}
+      directPeerLabel={peerLabel}
+      directPeerAvatarUrl={peerAvatarUrl}
+      remotePeerMicOff={remotePeerMicOff}
+      remotePeerCameraOff={remotePeerCameraOff}
+      screenShareTiles={screenShareTiles}
+      focusedScreenShareKey={focusedScreenShareKey ?? null}
+      onSelectScreenShare={onSelectScreenShare}
+      groupGalleryParticipants={groupGalleryParticipants}
+      localStream={localStreamPeopleTabSelf}
+      remotePeerCameraStream={remotePeerCameraStream}
+    />
+  ) : null;
+
   const rightPanelProps = {
     rightPanelTab,
     setRightPanelTab,
@@ -200,10 +355,13 @@ export function RoomVideoView({
     conversationId,
     searchingForNextCandidate: showSearchingState,
     activeActivity,
-    setActiveActivity,
+    setActiveActivity: tryBeginEmbeddedActivity,
     activeRealtimeActivity,
-    onRequestChessInvite,
+    onRequestChessInvite: tryRequestChessInvite,
     requestChessBusy,
+    showPeopleTab,
+    participantsPanel,
+    stageActivity,
   };
 
   const videoToolbarProps = {
@@ -214,7 +372,7 @@ export function RoomVideoView({
     mediaTogglesReady,
     showScreenShare,
     screenSharing,
-    onToggleScreenShare,
+    onToggleScreenShare: handleToggleScreenShare,
     conversationId,
     rightPanelTab,
     setRightPanelTab: selectRightPanelTab,
@@ -230,6 +388,7 @@ export function RoomVideoView({
     onEnd,
     elapsed,
     formatDuration,
+    showPeopleTab,
   };
 
   const openCircleChat = useCallback(() => {
@@ -249,8 +408,34 @@ export function RoomVideoView({
         <div className="flex min-h-0 min-w-0 flex-1 flex-col gap-2 overflow-hidden lg:flex-row lg:items-stretch lg:gap-3">
           {/* Stage + toolbar share one column on lg so the footer is only as wide as the stage (not under chat). */}
           <div className="flex min-h-0 min-w-0 flex-1 flex-col gap-2 lg:min-h-0">
-            <div className="relative flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden rounded-2xl bg-black/60 shadow-xl">
+            <div
+              ref={stageShellRef}
+              className={cn(
+                "relative flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden rounded-2xl bg-black/60 shadow-xl",
+                stageFullscreen.isLayoutImmersive &&
+                  "fixed inset-0 z-[300] m-0 max-h-[100dvh] rounded-none shadow-none",
+              )}
+            >
               <div className="relative min-h-0 min-w-0 flex-1 overflow-hidden">
+                {showStageFullscreenControl ? (
+                  <div className="pointer-events-none absolute inset-x-0 top-0 z-20 flex justify-end p-3 pt-[max(0.75rem,env(safe-area-inset-top))]">
+                    <button
+                      type="button"
+                      onClick={() => void stageFullscreen.toggle()}
+                      aria-label={
+                        stageFullscreen.isExpanded ? "Exit full screen" : "Full screen"
+                      }
+                      title={stageFullscreen.isExpanded ? "Exit full screen" : "Full screen"}
+                      className="pointer-events-auto inline-flex size-10 items-center justify-center rounded-full border border-white/25 bg-black/55 text-white shadow-lg backdrop-blur-md transition-colors hover:bg-black/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40"
+                    >
+                      {stageFullscreen.isExpanded ? (
+                        <Minimize2 size={18} className="shrink-0" />
+                      ) : (
+                        <Maximize2 size={18} className="shrink-0" />
+                      )}
+                    </button>
+                  </div>
+                ) : null}
                 <RoomVideoStage
                   isGroupRoom={isGroupRoom}
                   groupGalleryParticipants={groupGalleryParticipants}
@@ -283,6 +468,12 @@ export function RoomVideoView({
                   cameraEnabled={cameraEnabled}
                   remoteCameraOff={remotePeerCameraOff}
                   remoteMicOff={remotePeerMicOff}
+                  screenShareMainLayout={screenShareMainLayout}
+                  screenShareTiles={screenShareTiles}
+                  focusedScreenShareKey={focusedScreenShareKey}
+                  onSelectScreenShare={onSelectScreenShare}
+                  remotePeerCameraStream={remotePeerCameraStream}
+                  participantVideosInSidebar={participantVideosInSidebar}
                 />
 
                 <RoomVideoStageOverlays
@@ -310,6 +501,7 @@ export function RoomVideoView({
                   micEnabled={micEnabled}
                   cameraEnabled={cameraEnabled}
                   localStream={localStream}
+                  participantVideosInSidebar={participantVideosInSidebar}
                 />
 
                 {!isGroupRoom ? (
@@ -350,7 +542,7 @@ export function RoomVideoView({
               ].join(" ")}
               overlayClassName="z-240"
             >
-              <DialogTitle className="sr-only">Chat and activities</DialogTitle>
+              <DialogTitle className="sr-only">People, chat, and activities</DialogTitle>
               <div className="flex max-h-[min(88dvh,880px)] flex-col overflow-hidden pb-[env(safe-area-inset-bottom)]">
                 <RoomVideoRightPanel {...rightPanelProps} variant="sheet" />
               </div>

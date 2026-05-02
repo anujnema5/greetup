@@ -13,12 +13,15 @@ import {
   MessageCircle,
   Mic,
   MicOff,
+  Monitor,
+  MonitorOff,
   MoreHorizontal,
   MoreVertical,
   PhoneOff,
   Radio,
   SkipForward,
   UserPlus,
+  Users,
   Video,
   VideoOff,
 } from "lucide-react";
@@ -28,8 +31,7 @@ import {
   TOOLBAR_CONTROL_CAPTION_CLASS,
 } from "@/features/room/components/room-video/room-video-primitives";
 import { cn } from "@/lib/utils";
-
-type RightPanelTab = "chat" | "activities";
+import type { RoomCallRightPanelTab } from "@/features/room/types/room-call-panel.types";
 
 /** Tailwind `md` — pin Skip outside overflow on smaller viewports */
 const NARROW_TOOLBAR_MQ = "(max-width: 767px)";
@@ -82,9 +84,9 @@ export function RoomVideoToolbar({
   micEnabled,
   cameraEnabled,
   mediaTogglesReady,
-  showScreenShare: _showScreenShare,
-  screenSharing: _screenSharing,
-  onToggleScreenShare: _onToggleScreenShare,
+  showScreenShare,
+  screenSharing,
+  onToggleScreenShare,
   conversationId,
   rightPanelTab,
   setRightPanelTab,
@@ -100,6 +102,7 @@ export function RoomVideoToolbar({
   onEnd,
   elapsed: _elapsed,
   formatDuration: _formatDuration,
+  showPeopleTab = false,
 }: {
   onToggleMic?: () => void;
   onToggleCamera?: () => void;
@@ -110,8 +113,8 @@ export function RoomVideoToolbar({
   screenSharing: boolean;
   onToggleScreenShare?: () => void;
   conversationId: string | null;
-  rightPanelTab: RightPanelTab;
-  setRightPanelTab: (tab: RightPanelTab) => void;
+  rightPanelTab: RoomCallRightPanelTab;
+  setRightPanelTab: (tab: RoomCallRightPanelTab) => void;
   isGroupRoom: boolean;
   isLive: boolean;
   setIsLive: (value: (prev: boolean) => boolean) => void;
@@ -125,14 +128,16 @@ export function RoomVideoToolbar({
   onEnd: () => void;
   elapsed: number;
   formatDuration: (seconds: number) => string;
+  showPeopleTab?: boolean;
 }) {
   const rootRef = useRef<HTMLDivElement>(null);
   const mediaRef = useRef<HTMLDivElement>(null);
   const endRef = useRef<HTMLDivElement>(null);
 
   const secondaryActions = useMemo(() => {
-    type Id = "chat" | "activities" | "live" | "add" | "circleOptions" | "skip";
+    type Id = "chat" | "participants" | "activities" | "live" | "add" | "circleOptions" | "skip";
     const items: Id[] = [];
+    if (showPeopleTab) items.push("participants");
     if (conversationId) items.push("chat");
     if (!isGroupRoom) items.push("activities", "live");
     if (showAddToCircle && onOpenAddToCircle && !isGroupRoom) items.push("add");
@@ -148,6 +153,7 @@ export function RoomVideoToolbar({
     showCircleOptions,
     onOpenCircleOptions,
     showSkip,
+    showPeopleTab,
   ]);
 
   const narrowToolbar = useSyncExternalStore(
@@ -161,8 +167,8 @@ export function RoomVideoToolbar({
     () =>
       secondaryActions.filter((id) => {
         if (skipPinnedMobile && id === "skip") return false;
-        /* Direct room on phone: Activities opens from the media row; keep it out of the overflow strip. */
-        if (narrowToolbar && !isGroupRoom && id === "activities") return false;
+        /* Direct room on phone: Activities / People open from the media row; keep them out of the overflow strip. */
+        if (narrowToolbar && !isGroupRoom && (id === "activities" || id === "participants")) return false;
         return true;
       }),
     [secondaryActions, skipPinnedMobile, narrowToolbar, isGroupRoom],
@@ -223,6 +229,21 @@ export function RoomVideoToolbar({
             <MessageCircle
               size={18}
               className={rightPanelTab === "chat" ? "text-primary" : "text-white/75"}
+            />
+          </CircleToolbarButton>
+        );
+      case "participants":
+        return (
+          <CircleToolbarButton
+            key={id}
+            onClick={() => setRightPanelTab("participants")}
+            ariaLabel="Open people and shared screens"
+            caption="People"
+            isActive={rightPanelTab === "participants"}
+          >
+            <Users
+              size={18}
+              className={rightPanelTab === "participants" ? "text-primary" : "text-white/75"}
             />
           </CircleToolbarButton>
         );
@@ -302,6 +323,17 @@ export function RoomVideoToolbar({
           >
             <MessageCircle size={16} className={rightPanelTab === "chat" ? "text-primary" : undefined} />
             Chat
+          </DropdownMenuItem>
+        );
+      case "participants":
+        return (
+          <DropdownMenuItem
+            key={id}
+            onClick={() => setRightPanelTab("participants")}
+            className={rightPanelTab === "participants" ? "bg-accent/50" : undefined}
+          >
+            <Users size={16} className={rightPanelTab === "participants" ? "text-primary" : undefined} />
+            People
           </DropdownMenuItem>
         );
       case "activities":
@@ -388,6 +420,31 @@ export function RoomVideoToolbar({
             iconOff={<VideoOff size={18} className="text-amber-200/95" />}
           />
 
+          {showScreenShare && onToggleScreenShare ? (
+            <MediaControlButton
+              active={screenSharing}
+              onClick={onToggleScreenShare}
+              disabled={!mediaTogglesReady}
+              ariaLabel={screenSharing ? "Stop sharing screen" : "Share screen"}
+              caption={screenSharing ? "Sharing" : "Share"}
+              iconOn={<Monitor size={18} className="text-white/90" />}
+              iconOff={<MonitorOff size={18} className="text-amber-200/95" />}
+            />
+          ) : null}
+
+          {narrowToolbar && !isGroupRoom && showPeopleTab ? (
+            <CircleToolbarButton
+              onClick={() => setRightPanelTab("participants")}
+              ariaLabel="Open people and shared screens"
+              caption="People"
+              isActive={rightPanelTab === "participants"}
+            >
+              <Users
+                size={18}
+                className={rightPanelTab === "participants" ? "text-primary" : "text-white/75"}
+              />
+            </CircleToolbarButton>
+          ) : null}
           {narrowToolbar && !isGroupRoom ? (
             <CircleToolbarButton
               onClick={() => setRightPanelTab("activities")}
@@ -401,8 +458,6 @@ export function RoomVideoToolbar({
               />
             </CircleToolbarButton>
           ) : null}
-
-          {/* Screen share — restore when needed (re-add Monitor, MonitorOff imports). */}
 
           <div className="hidden h-7 w-px shrink-0 self-center bg-white/20 md:block" aria-hidden />
         </div>

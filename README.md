@@ -51,7 +51,7 @@ Monorepo for Greetup application services.
              ▼
 ┌────────────────────────┐
 │         REDIS          │
-│   localhost:16379      │
+│   localhost:26379      │
 │                        │
 │  - match state/locks   │
 │  - presence/cache      │
@@ -240,7 +240,7 @@ docker compose -f docker-compose.dev.yml up -d postgres redis
 Default exposed ports:
 
 - Postgres: `localhost:25432`
-- Redis: `localhost:16379`
+- Redis: `localhost:26379`
 
 ### 2) Start server
 

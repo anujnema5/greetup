@@ -1,14 +1,14 @@
 "use client";
 
+import type { ReactNode } from "react";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
 import { ChatPanel } from "@/features/chat/components/chat-panel";
 import { DIRECT_ROOM_ACTIVITIES } from "@/features/room/constants/direct-room-activities";
 import type { RoomActivityId } from "@/features/room/types/room-activity.types";
+import type { RoomCallRightPanelTab } from "@/features/room/types/room-call-panel.types";
 import type { RoomActiveActivity } from "@/lib/redux/types/room-slice.types";
-
-type RightPanelTab = "chat" | "activities";
 
 export type RoomVideoRightPanelVariant = "dock" | "sheet";
 
@@ -24,22 +24,32 @@ export function RoomVideoRightPanel({
   onRequestChessInvite,
   requestChessBusy,
   searchingForNextCandidate = false,
+  showPeopleTab = false,
+  participantsPanel = null,
+  /** Current activity on stage (including chess); used to disable other activity tiles. */
+  stageActivity = null,
   variant = "dock",
 }: {
-  rightPanelTab: RightPanelTab;
-  setRightPanelTab: (tab: RightPanelTab) => void;
+  rightPanelTab: RoomCallRightPanelTab;
+  setRightPanelTab: (tab: RoomCallRightPanelTab) => void;
   isGroupRoom: boolean;
   isLive: boolean;
   conversationId: string | null;
   activeActivity: RoomActivityId | null;
-  setActiveActivity: (activity: RoomActivityId) => void;
+  /** From activities grid only; returns whether the activity started — caller must not switch tabs on false. */
+  setActiveActivity: (activity: RoomActivityId) => boolean;
   activeRealtimeActivity: RoomActiveActivity | null;
-  onRequestChessInvite?: () => void;
+  onRequestChessInvite?: () => boolean;
   requestChessBusy?: boolean;
   searchingForNextCandidate?: boolean;
+  /** Screen share, circle chess, or direct in-room activity — People lists cameras (+ shares when present). */
+  showPeopleTab?: boolean;
+  participantsPanel?: ReactNode;
+  stageActivity?: RoomActivityId | null;
   variant?: RoomVideoRightPanelVariant;
 }) {
   const chessActive = activeRealtimeActivity?.kind === "chess";
+  const activityLockedOnStage = Boolean(stageActivity);
 
   return (
     <div
@@ -54,14 +64,23 @@ export function RoomVideoRightPanel({
       <Tabs
         value={rightPanelTab}
         onValueChange={(value) => {
-          if (value === "chat" || (!isGroupRoom && value === "activities")) {
-            setRightPanelTab(value);
+          if (
+            value === "chat" ||
+            (value === "participants" && showPeopleTab) ||
+            (!isGroupRoom && value === "activities")
+          ) {
+            setRightPanelTab(value as RoomCallRightPanelTab);
           }
         }}
         className="flex min-h-0 flex-1 flex-col gap-0"
       >
         <div className="flex shrink-0 items-center justify-between border-b border-border/70 px-3 py-2">
-          <TabsList className="h-auto rounded-md border border-border/60 bg-muted/70 p-0.5">
+          <TabsList className="h-auto max-w-full flex-wrap rounded-md border border-border/60 bg-muted/70 p-0.5">
+            {showPeopleTab ? (
+              <TabsTrigger value="participants" className="h-7 px-2.5 text-[12px] font-semibold">
+                people
+              </TabsTrigger>
+            ) : null}
             <TabsTrigger value="chat" className="h-7 px-2.5 text-[12px] font-semibold">
               chat
             </TabsTrigger>
@@ -77,6 +96,15 @@ export function RoomVideoRightPanel({
             </span>
           ) : null}
         </div>
+
+        {showPeopleTab ? (
+          <TabsContent
+            value="participants"
+            className="mt-0 flex min-h-0 flex-1 flex-col overflow-hidden data-[state=inactive]:hidden"
+          >
+            {participantsPanel}
+          </TabsContent>
+        ) : null}
 
         <TabsContent value="chat" className="mt-0 min-h-0 flex-1 overflow-y-auto">
           {conversationId ? (
@@ -107,10 +135,14 @@ export function RoomVideoRightPanel({
                       onRequestChessInvite?.();
                       return;
                     }
-                    setActiveActivity(activity.id);
-                    setRightPanelTab("chat");
+                    if (setActiveActivity(activity.id)) {
+                      setRightPanelTab("participants");
+                    }
                   }}
-                  disabled={(activity.id === "chess" && requestChessBusy) || chessActive}
+                  disabled={
+                    (activity.id === "chess" && (requestChessBusy || chessActive)) ||
+                    (activityLockedOnStage && activity.id !== stageActivity)
+                  }
                   className={cn(
                     "flex h-auto aspect-[1.3/1] flex-col items-center justify-center gap-1.5 rounded-xl border border-border bg-muted/35 p-2.5 text-center transition-all hover:bg-muted/60",
                     (activeActivity === activity.id || (activity.id === "chess" && chessActive)) &&

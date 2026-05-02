@@ -32,6 +32,7 @@ export function RoomVideoStageOverlays({
   micEnabled,
   cameraEnabled,
   localStream,
+  participantVideosInSidebar = false,
 }: {
   mediaBusy: boolean;
   mediaStatus: string;
@@ -57,6 +58,7 @@ export function RoomVideoStageOverlays({
   micEnabled?: boolean;
   cameraEnabled?: boolean;
   localStream?: MediaStream | null;
+  participantVideosInSidebar?: boolean;
 }) {
   return (
     <>
@@ -97,7 +99,7 @@ export function RoomVideoStageOverlays({
         </div>
       ) : null}
 
-      {!isGroupRoom && !activeActivity && stageRatio !== "1:1" ? (
+      {!isGroupRoom && !activeActivity && stageRatio !== "1:1" && !participantVideosInSidebar ? (
         <div
           className="pointer-events-none absolute z-20 overflow-hidden rounded-2xl border border-border/70 bg-card shadow-2xl"
           style={{
@@ -131,7 +133,12 @@ export function RoomVideoStageOverlays({
         </div>
       ) : null}
 
-      {!isGroupRoom && mainStageShowsScreen && peerCameraInsetStream && !activeActivity && stageRatio !== "1:1" ? (
+      {!isGroupRoom &&
+      mainStageShowsScreen &&
+      peerCameraInsetStream &&
+      !activeActivity &&
+      stageRatio !== "1:1" &&
+      !participantVideosInSidebar ? (
         <div
           className="pointer-events-none absolute z-20 overflow-hidden rounded-xl border border-white/20 bg-black/80 shadow-lg"
           style={{ bottom: "4.5rem", right: "10.5rem", width: "9rem" }}

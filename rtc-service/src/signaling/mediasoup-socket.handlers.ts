@@ -260,6 +260,7 @@ export function registerMediasoupSocketHandlers(socket: Socket, peers: PeerSessi
         type: result.type,
         producerPaused: result.producerPaused,
         paused: result.paused,
+        ...(result.mediaSource != null ? { mediaSource: result.mediaSource } : {}),
       });
     } catch (err) {
       logger.error("consume failed", { socketId: socket.id, err: String(err) });

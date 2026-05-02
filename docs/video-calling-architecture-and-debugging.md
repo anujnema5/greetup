@@ -9,6 +9,12 @@ It is written for manual code reading, bug-fixing, and quality review.
 
 ---
 
+## 0) SFU / signaling deep dive
+
+For a **line-by-line architecture** of JWT → Socket.IO → mediasoup Router/Transport/Producer/Consumer (including `consume` ack `mediaSource` and client hooks), see **`docs/rtc-webrtc-sfu-deep-dive.md`**.
+
+---
+
 ## 1) High-Level Mental Model
 
 The call system is layered:

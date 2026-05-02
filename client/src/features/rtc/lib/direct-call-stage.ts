@@ -6,9 +6,27 @@
  */
 
 import type { ProducerMediaSource } from "@/features/rtc/types/mediasoup-room.types";
-import { videoTrackActsAsScreenShare } from "@/features/rtc/lib/mediasoup-stream-helpers";
+import {
+  inferScreenCaptureFromTrack,
+  inboundVideoTrackIsSfuScreenShare,
+  pickPrimaryParticipantCameraVideoTrack,
+} from "@/features/rtc/lib/mediasoup-stream-helpers";
 
-function isDirectRoom(rtcRoomType: string | null | undefined): boolean {
+/** Classify local outbound video for PiP: known screen id + display-capture inference (covers stale ids). */
+function localPreviewTrackMediaSource(
+  videoTracks: MediaStreamTrack[],
+  localScreenTrackId: string | null,
+): Record<string, ProducerMediaSource> {
+  const rtm: Record<string, ProducerMediaSource> = {};
+  for (const t of videoTracks) {
+    const explicitScreen = localScreenTrackId != null && t.id === localScreenTrackId;
+    const inferredScreen = !explicitScreen && inferScreenCaptureFromTrack(t);
+    rtm[t.id] = explicitScreen || inferredScreen ? "screen" : "camera";
+  }
+  return rtm;
+}
+
+export function isDirectRoom(rtcRoomType: string | null | undefined): boolean {
   return (rtcRoomType ?? "direct") === "direct";
 }
 
@@ -44,7 +62,7 @@ export function buildDirectCallMainStageStream(input: {
   if (base) {
     const remoteVideos = base.getVideoTracks();
     const remoteScreen = remoteVideos.find((t) =>
-      videoTrackActsAsScreenShare(t, remoteTrackMediaSource[t.id]),
+      inboundVideoTrackIsSfuScreenShare(t, remoteTrackMediaSource[t.id]),
     );
     if (remoteScreen) return new MediaStream([remoteScreen, ...remoteAudios]);
   }
@@ -59,11 +77,10 @@ export function buildDirectCallMainStageStream(input: {
   if (base) {
     const remoteVideos = base.getVideoTracks();
     if (remoteVideos.length > 1) {
-      const cameras = remoteVideos.filter(
-        (t) => !videoTrackActsAsScreenShare(t, remoteTrackMediaSource[t.id]),
-      );
-      const chosen = cameras[0] ?? remoteVideos[0];
-      return new MediaStream([chosen!, ...remoteAudios]);
+      const chosen =
+        pickPrimaryParticipantCameraVideoTrack(remoteVideos, remoteTrackMediaSource) ??
+        remoteVideos[0]!;
+      return new MediaStream([chosen, ...remoteAudios]);
     }
     return base;
   }
@@ -84,7 +101,7 @@ export function directCallMainStageShowsScreen(input: {
   if (!primaryRemoteStream) return false;
   return primaryRemoteStream
     .getVideoTracks()
-    .some((t) => videoTrackActsAsScreenShare(t, remoteTrackMediaSource[t.id]));
+    .some((t) => inboundVideoTrackIsSfuScreenShare(t, remoteTrackMediaSource[t.id]));
 }
 
 /** Camera-only stream for sidebar/dock while the main stage shows a screen share. */
@@ -95,20 +112,42 @@ export function buildDirectCallRemotePeerCameraStream(input: {
 }): MediaStream | null {
   const { rtcRoomType, primaryRemoteStream: base, remoteTrackMediaSource } = input;
   if (!base || !isDirectRoom(rtcRoomType)) return null;
-  const cameras = base
-    .getVideoTracks()
-    .filter((t) => !videoTrackActsAsScreenShare(t, remoteTrackMediaSource[t.id]));
-  if (cameras.length === 0) return null;
-  return new MediaStream([cameras[0]!]);
+  const videos = base.getVideoTracks();
+  const cam = pickPrimaryParticipantCameraVideoTrack(videos, remoteTrackMediaSource);
+  if (!cam) return null;
+  return new MediaStream([cam]);
 }
 
-/** Hides the display-capture track in local PiP while screen-sharing. */
+/**
+ * Local self-view / PiP: never attach more than one video track — multiple tracks often render black.
+ * Uses the known screen track id, plus display-capture inference when the id is stale after re-share.
+ */
 export function buildLocalPreviewStream(
   localStream: MediaStream | null,
   localScreenTrackId: string | null,
 ): MediaStream | null {
   if (!localStream) return null;
-  if (localScreenTrackId == null) return localStream;
-  const tracks = localStream.getTracks().filter((t) => t.id !== localScreenTrackId);
-  return tracks.length > 0 ? new MediaStream(tracks) : localStream;
+  const audios = localStream.getAudioTracks();
+  const videos = localStream.getVideoTracks();
+  if (videos.length === 0) return audios.length > 0 ? new MediaStream(audios) : null;
+  if (videos.length === 1) return localStream;
+
+  const withoutKnownScreen =
+    localScreenTrackId != null
+      ? videos.filter((t) => t.id !== localScreenTrackId)
+      : videos;
+  if (withoutKnownScreen.length === 1) {
+    return new MediaStream([...audios, withoutKnownScreen[0]!]);
+  }
+  if (withoutKnownScreen.length === 0) {
+    const rtm = localPreviewTrackMediaSource(videos, null);
+    const cam = pickPrimaryParticipantCameraVideoTrack(videos, rtm);
+    if (!cam) return new MediaStream(audios);
+    return new MediaStream([...audios, cam]);
+  }
+
+  const rtm = localPreviewTrackMediaSource(videos, localScreenTrackId);
+  const cam = pickPrimaryParticipantCameraVideoTrack(withoutKnownScreen, rtm);
+  if (!cam) return new MediaStream(audios);
+  return new MediaStream([...audios, cam]);
 }
