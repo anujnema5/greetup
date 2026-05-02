@@ -1,7 +1,9 @@
 import type {
   MediasoupRoomStatus,
+  ProducerMediaSource,
   RemoteParticipant,
   RemotePeer,
+  ScreenShareTileInfo,
 } from "@/features/rtc";
 import type { RoomActiveActivity } from "@/lib/redux/types/room-slice.types";
 import type { RoomSessionType } from "@/shared/types/room-session";
@@ -71,4 +73,9 @@ export type RoomVideoViewProps = {
   circleDisplayTitle?: string | null;
   /** True when the signed-in user is the circle host (can rename). */
   circleCanEditTitle?: boolean;
+  /** Active screen-share surfaces — filmstrip + main stage when non-empty. */
+  screenShareTiles?: ScreenShareTileInfo[];
+  focusedScreenShareKey?: string | null;
+  onSelectScreenShare?: (key: string) => void;
+  remoteTrackMediaSource?: Record<string, ProducerMediaSource>;
 };

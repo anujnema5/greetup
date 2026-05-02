@@ -77,6 +77,10 @@ export function RoomVideoLayer({
     localMediaDeviceError,
     clearLocalMediaDeviceError,
     roomConversationId,
+    screenShareTiles,
+    focusedScreenShareKey,
+    setFocusedScreenShareKey,
+    remoteTrackMediaSource,
   } = useRtcSocketContext();
   const excludeAddIds = [
     session?.user?.id,
@@ -188,6 +192,10 @@ export function RoomVideoLayer({
         roomId={roomId}
         circleDisplayTitle={groupRoomTitle}
         circleCanEditTitle={circleCanEditTitle}
+        screenShareTiles={screenShareTiles}
+        focusedScreenShareKey={focusedScreenShareKey}
+        onSelectScreenShare={setFocusedScreenShareKey}
+        remoteTrackMediaSource={remoteTrackMediaSource}
       />
     </div>
   );

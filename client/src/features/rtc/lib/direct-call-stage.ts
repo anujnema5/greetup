@@ -8,7 +8,7 @@
 import type { ProducerMediaSource } from "@/features/rtc/types/mediasoup-room.types";
 import { videoTrackActsAsScreenShare } from "@/features/rtc/lib/mediasoup-stream-helpers";
 
-function isDirectRoom(rtcRoomType: string | null | undefined): boolean {
+export function isDirectRoom(rtcRoomType: string | null | undefined): boolean {
   return (rtcRoomType ?? "direct") === "direct";
 }
 

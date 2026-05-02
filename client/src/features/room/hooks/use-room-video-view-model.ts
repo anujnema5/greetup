@@ -8,9 +8,12 @@ import {
   hasLiveVideo,
   mergeGroupGalleryParticipants,
   type MediasoupRoomStatus,
+  type ProducerMediaSource,
   type RemoteParticipant,
   type RemotePeer,
+  type ScreenShareTileInfo,
 } from "@/features/rtc";
+import { cameraOnlyParticipantStream } from "@/features/rtc/lib/screen-share-stage";
 import { useAttachMediaStream } from "@/features/room/hooks/use-attach-media-stream";
 import { useCallElapsedSeconds } from "@/features/room/hooks/use-call-elapsed-seconds";
 import { formatCallDuration } from "@/features/room/lib/format-call-duration";
@@ -31,6 +34,8 @@ export type UseRoomVideoViewModelArgs = {
   onToggleMic?: () => void;
   onToggleCamera?: () => void;
   onToggleScreenShare?: () => void;
+  screenShareTiles?: ScreenShareTileInfo[];
+  remoteTrackMediaSource?: Record<string, ProducerMediaSource>;
 };
 
 export function useRoomVideoViewModel(p: UseRoomVideoViewModelArgs) {
@@ -40,7 +45,9 @@ export function useRoomVideoViewModel(p: UseRoomVideoViewModelArgs) {
 
   const elapsed = useCallElapsedSeconds(true);
 
-  const remoteVideoLive = hasLiveVideo(p.remoteStream) && !p.remotePeerCameraOff;
+  /** Partner camera-off must not hide the main stage when it is a screen share (or other non-camera video). */
+  const remoteVideoLive =
+    hasLiveVideo(p.remoteStream) && (!p.remotePeerCameraOff || p.mainStageShowsScreen);
   const remoteMediaLive = hasLiveMedia(p.remoteStream);
   const localVideoLive = hasLiveEnabledVideo(p.localStream);
 
@@ -75,10 +82,26 @@ export function useRoomVideoViewModel(p: UseRoomVideoViewModelArgs) {
     p.mediaStatus === "joining" ||
     p.mediaStatus === "negotiating";
 
+  const screenShareMainLayout = Boolean(
+    p.isGroupRoom && p.screenShareTiles && p.screenShareTiles.length > 0,
+  );
+
   const groupGalleryParticipants = useMemo(() => {
     if (!p.isGroupRoom) return p.remoteParticipants;
-    return mergeGroupGalleryParticipants(p.remotePeers, p.remoteParticipants);
-  }, [p.isGroupRoom, p.remotePeers, p.remoteParticipants]);
+    const merged = mergeGroupGalleryParticipants(p.remotePeers, p.remoteParticipants);
+    const rtm = p.remoteTrackMediaSource;
+    if (!screenShareMainLayout || !rtm) return merged;
+    return merged.map((part) => ({
+      ...part,
+      stream: cameraOnlyParticipantStream(part.stream, rtm),
+    }));
+  }, [
+    p.isGroupRoom,
+    p.remotePeers,
+    p.remoteParticipants,
+    screenShareMainLayout,
+    p.remoteTrackMediaSource,
+  ]);
 
   return {
     remoteVideoRef,
@@ -97,5 +120,6 @@ export function useRoomVideoViewModel(p: UseRoomVideoViewModelArgs) {
     mediaBusy,
     elapsed,
     formatDuration: formatCallDuration,
+    screenShareMainLayout,
   };
 }

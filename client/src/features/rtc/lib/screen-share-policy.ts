@@ -2,14 +2,12 @@ import type { RoomSessionType } from "@/shared/types/room-session";
 
 export type RtcRoomType = RoomSessionType;
 
-/** Client-side guard for screen share UX; server enforces single screen in direct rooms. */
+/** Client-side guard for screen share UX (server allows multiple concurrent screen producers). */
 export function canUseScreenShare(roomType: RtcRoomType | null | undefined): boolean {
   switch (roomType ?? "direct") {
     case "direct":
-      return true;
     case "circle":
-      // Host / role-based rules will plug in here later.
-      return false;
+      return true;
     default:
       return false;
   }

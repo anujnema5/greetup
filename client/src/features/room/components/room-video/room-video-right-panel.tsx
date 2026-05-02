@@ -1,14 +1,14 @@
 "use client";
 
+import type { ReactNode } from "react";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
 import { ChatPanel } from "@/features/chat/components/chat-panel";
 import { DIRECT_ROOM_ACTIVITIES } from "@/features/room/constants/direct-room-activities";
 import type { RoomActivityId } from "@/features/room/types/room-activity.types";
+import type { RoomCallRightPanelTab } from "@/features/room/types/room-call-panel.types";
 import type { RoomActiveActivity } from "@/lib/redux/types/room-slice.types";
-
-type RightPanelTab = "chat" | "activities";
 
 export type RoomVideoRightPanelVariant = "dock" | "sheet";
 
@@ -24,10 +24,12 @@ export function RoomVideoRightPanel({
   onRequestChessInvite,
   requestChessBusy,
   searchingForNextCandidate = false,
+  showPeopleTab = false,
+  participantsPanel = null,
   variant = "dock",
 }: {
-  rightPanelTab: RightPanelTab;
-  setRightPanelTab: (tab: RightPanelTab) => void;
+  rightPanelTab: RoomCallRightPanelTab;
+  setRightPanelTab: (tab: RoomCallRightPanelTab) => void;
   isGroupRoom: boolean;
   isLive: boolean;
   conversationId: string | null;
@@ -37,6 +39,9 @@ export function RoomVideoRightPanel({
   onRequestChessInvite?: () => void;
   requestChessBusy?: boolean;
   searchingForNextCandidate?: boolean;
+  /** Screen share, circle chess, or direct in-room activity — People lists cameras (+ shares when present). */
+  showPeopleTab?: boolean;
+  participantsPanel?: ReactNode;
   variant?: RoomVideoRightPanelVariant;
 }) {
   const chessActive = activeRealtimeActivity?.kind === "chess";
@@ -54,14 +59,23 @@ export function RoomVideoRightPanel({
       <Tabs
         value={rightPanelTab}
         onValueChange={(value) => {
-          if (value === "chat" || (!isGroupRoom && value === "activities")) {
-            setRightPanelTab(value);
+          if (
+            value === "chat" ||
+            (value === "participants" && showPeopleTab) ||
+            (!isGroupRoom && value === "activities")
+          ) {
+            setRightPanelTab(value as RoomCallRightPanelTab);
           }
         }}
         className="flex min-h-0 flex-1 flex-col gap-0"
       >
         <div className="flex shrink-0 items-center justify-between border-b border-border/70 px-3 py-2">
-          <TabsList className="h-auto rounded-md border border-border/60 bg-muted/70 p-0.5">
+          <TabsList className="h-auto max-w-full flex-wrap rounded-md border border-border/60 bg-muted/70 p-0.5">
+            {showPeopleTab ? (
+              <TabsTrigger value="participants" className="h-7 px-2.5 text-[12px] font-semibold">
+                people
+              </TabsTrigger>
+            ) : null}
             <TabsTrigger value="chat" className="h-7 px-2.5 text-[12px] font-semibold">
               chat
             </TabsTrigger>
@@ -77,6 +91,15 @@ export function RoomVideoRightPanel({
             </span>
           ) : null}
         </div>
+
+        {showPeopleTab ? (
+          <TabsContent
+            value="participants"
+            className="mt-0 flex min-h-0 flex-1 flex-col overflow-hidden data-[state=inactive]:hidden"
+          >
+            {participantsPanel}
+          </TabsContent>
+        ) : null}
 
         <TabsContent value="chat" className="mt-0 min-h-0 flex-1 overflow-y-auto">
           {conversationId ? (
@@ -108,7 +131,7 @@ export function RoomVideoRightPanel({
                       return;
                     }
                     setActiveActivity(activity.id);
-                    setRightPanelTab("chat");
+                    setRightPanelTab("participants");
                   }}
                   disabled={(activity.id === "chess" && requestChessBusy) || chessActive}
                   className={cn(

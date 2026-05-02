@@ -25,8 +25,10 @@ export type { RtcSocketContextValue } from "./providers/rtc-socket-provider";
 export { useMediasoupRoom } from "./hooks/use-mediasoup-room";
 export type {
   MediasoupRoomStatus,
+  ProducerMediaSource,
   RemotePeer,
   RemoteParticipant,
+  ScreenShareTileInfo,
   UseMediasoupRoomArgs,
   UseMediasoupRoomReturn,
 } from "./types/mediasoup-room.types";
