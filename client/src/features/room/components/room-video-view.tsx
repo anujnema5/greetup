@@ -247,11 +247,11 @@ export function RoomVideoView({
   const showScreenShareContext =
     showScreenShare && (screenSharing || mainStageShowsScreen || screenShareTiles.length > 0);
   /**
-   * Large viewports: the right dock shows chat / people / activities. While sharing, the People
-   * tab holds camera tiles so `RoomVideoStage` can devote the canvas to the shared screen only.
-   * Narrow viewports keep the in-stage rail / filmstrip so calls work without the dock.
+   * While sharing, camera tiles (and share picker on circle) live in the People tab so the stage
+   * stays full-bleed for the shared screen. Large viewports: docked panel; narrow: same layout via
+   * the bottom sheet — avoid duplicating participant UI on the stage on phones.
    */
-  const participantVideosInSidebar = Boolean(showScreenShareContext && lgUp);
+  const participantVideosInSidebar = Boolean(showScreenShareContext);
   const showStageFullscreenControl =
     showScreenShare && (screenSharing || mainStageShowsScreen || screenShareTiles.length > 0);
   /** People tab: during share, or while an in-call activity (chess, watch together, …) is on stage. */
