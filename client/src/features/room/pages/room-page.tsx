@@ -38,6 +38,7 @@ export function RoomPage() {
     goHome,
     room,
     rtcRoomType,
+    duplicateTabRedirect,
   } = useRoom();
 
   const myName = currentUserName ?? "You";
@@ -52,7 +53,11 @@ export function RoomPage() {
     }
     return false;
   })();
-  const shouldStartVideo = !loading && Boolean(room) && (isCircleRoom || Boolean(peerId));
+  const shouldStartVideo =
+    !duplicateTabRedirect &&
+    !loading &&
+    Boolean(room) &&
+    (isCircleRoom || Boolean(peerId));
 
   const { joinRoomError, joinRoomLoading } = useRoomJoinAndStartVideo({
     roomId,
@@ -65,7 +70,11 @@ export function RoomPage() {
   if (loading || joinRoomLoading || (shouldStartVideo && !sessionActive && !joinRoomError)) {
     return (
       <div className="flex h-dvh w-full items-center justify-center bg-background text-sm text-muted-foreground">
-        {joinRoomLoading ? "Joining room…" : "Connecting to room…"}
+        {duplicateTabRedirect
+          ? "Redirecting…"
+          : joinRoomLoading
+            ? "Joining room…"
+            : "Connecting to room…"}
       </div>
     );
   }
