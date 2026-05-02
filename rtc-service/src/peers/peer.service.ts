@@ -369,7 +369,7 @@ export class PeerSessionService {
         type: MediasoupTypes.ConsumerType;
         producerPaused: boolean;
         paused: boolean;
-        /** From producer `appData` — authoritative vs `newProducer` socket payload for UI track roles. */
+        /** Video only: from producer `appData` (UI labels camera vs screen). */
         mediaSource?: ProducerMediaSource;
       }
     | { ok: false; code: string }

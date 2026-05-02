@@ -1,11 +1,6 @@
 "use client";
 
-/**
- * People tab during screen share: full-width camera tiles + tap-to-focus when multiple shares.
- *
- * Self-view mirrors with CSS on a **single** `<video>` so Chrome still decodes (tiny/hidden
- * “sink” + {@link VideoMirror} often produced a black tile during screen share).
- */
+/** People tab: camera grid during share; self-view uses one mirrored `<video>`. */
 import Image from "next/image";
 import { useMemo, useRef } from "react";
 import { Monitor } from "lucide-react";
@@ -64,8 +59,7 @@ function ParticipantVideoTile({
     : Boolean(stream && hasRenderableRemoteVideo(stream) && !cameraOff);
   const attachStream = videoReady ? stream : null;
   const attachKey = `${muteCycle}:${videoReady ? 1 : 0}:${mediaStreamVideoAttachRevision(stream)}`;
-  // Remote tiles: use the consumer track directly. Cloning inbound video while many decoders are
-  // active (multi screen-share) has caused persistent black frames in Chromium.
+  // Self: clone for mirror playback; remote: direct consumer (fewer decoder issues with many shares).
   useAttachMediaStream(videoRef, attachStream, attachKey, {
     cloneVideoTracksForPlayback: Boolean(isSelf),
   });

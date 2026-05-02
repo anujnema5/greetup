@@ -80,7 +80,7 @@ export type UseMediasoupRoomReturn = {
   screenSharing: boolean;
   toggleScreenShare: () => void;
   localPreviewStream: MediaStream | null;
-  /** Inbound display-capture video track id while sharing — for camera-only UI built from {@link localStream}. */
+  /** Display-capture video track id while screen-sharing (camera-only UI uses {@link localStream} + this). */
   localScreenTrackId: string | null;
   remotePeerCameraStream: MediaStream | null;
   localMediaDeviceError: string | null;

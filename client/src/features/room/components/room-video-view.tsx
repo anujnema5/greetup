@@ -301,7 +301,7 @@ export function RoomVideoView({
     };
   }, [stageFullscreen.exit]);
 
-  /** People tab self tile: rebuild from composite when sharing. Include `screenShareTiles` in deps so the first sharer re-attaches after someone else shares (avoids a stuck black local tile). */
+  // People tab “You”: camera+audio only while sharing; recompute when shares change so the stream re-attaches.
   const localStreamPeopleTabSelf = useMemo(() => {
     if (!screenSharing || !localCompositeStream || !localScreenTrackId) {
       return localStream;

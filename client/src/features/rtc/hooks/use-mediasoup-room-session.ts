@@ -34,6 +34,12 @@ import type {
   MediasoupRoomSessionSetters,
 } from "@/features/rtc/types/mediasoup-hooks.types";
 
+/** Socket payloads use loose strings; consume ack overwrites with producer appData when present. */
+function producerMediaSourceFromSocket(kind: MediaKind, mediaSource: string | undefined): ProducerMediaSource {
+  if (kind !== "video") return "camera";
+  return typeof mediaSource === "string" && mediaSource.toLowerCase() === "screen" ? "screen" : "camera";
+}
+
 /**
  * Joins the JWT room over Socket.IO, creates recv/send WebRTC transports, and attaches consumers.
  * Does not call `getUserMedia` — that lives in {@link useMediasoupLocalMedia}.
@@ -281,13 +287,13 @@ export function useMediasoupRoomSession(options: MediasoupRoomSessionOptions): v
         throw new Error(isAckErr(raw) ? (raw.error?.code ?? "consume") : "consume");
       }
 
-      /** Prefer SFU producer `appData` from the consume ack over the `newProducer` event (avoids mis-tagged screen as camera). */
+      // Consume ack carries producer appData; socket `newProducer` alone can mis-tag screen as camera.
+      const ackMs =
+        kind === "video" && "mediaSource" in raw && raw.mediaSource != null && `${raw.mediaSource}`.length > 0
+          ? `${raw.mediaSource}`
+          : undefined;
       const resolvedVideoSource: ProducerMediaSource =
-        kind === "video" &&
-        "mediaSource" in raw &&
-        (raw.mediaSource === "screen" || raw.mediaSource === "camera")
-          ? raw.mediaSource
-          : mediaSource;
+        ackMs !== undefined ? producerMediaSourceFromSocket(kind, ackMs) : mediaSource;
 
       const consumer = await recvTransport.consume({
         id: raw.id,
@@ -368,11 +374,7 @@ export function useMediasoupRoomSession(options: MediasoupRoomSessionOptions): v
     }) => {
       if (cancelled || !data?.producerId || !data.kind || !data.peerId) return;
       if (data.kind !== "audio" && data.kind !== "video") return;
-      const ms = data.mediaSource;
-      const src: ProducerMediaSource =
-        data.kind === "video" && typeof ms === "string" && ms.toLowerCase() === "screen"
-          ? "screen"
-          : "camera";
+      const src = producerMediaSourceFromSocket(data.kind, data.mediaSource);
       // New producer → mark the peer's camera/mic active immediately.
       const pid = data.peerId;
       if (data.kind === "video" && src === "camera") {
@@ -412,7 +414,7 @@ export function useMediasoupRoomSession(options: MediasoupRoomSessionOptions): v
     }) => {
       if (cancelled || !data?.peerId || data.peerId === refs.localUserIdRef.current) return;
       const pid = data.peerId;
-      if (data.kind === "video" && data.mediaSource !== "screen") {
+      if (data.kind === "video" && producerMediaSourceFromSocket("video", data.mediaSource) === "camera") {
         set.setPeers((prev) => ({
           ...prev,
           [pid]: { ...(prev[pid] ?? { peerId: pid }), cameraActive: false },
@@ -433,7 +435,7 @@ export function useMediasoupRoomSession(options: MediasoupRoomSessionOptions): v
     }) => {
       if (cancelled || !data?.peerId || data.peerId === refs.localUserIdRef.current) return;
       const pid = data.peerId;
-      if (data.kind === "video" && data.mediaSource !== "screen") {
+      if (data.kind === "video" && producerMediaSourceFromSocket("video", data.mediaSource) === "camera") {
         set.setPeers((prev) => ({
           ...prev,
           [pid]: { ...(prev[pid] ?? { peerId: pid }), cameraActive: true },
@@ -544,8 +546,7 @@ export function useMediasoupRoomSession(options: MediasoupRoomSessionOptions): v
 
         for (const p of joinRes.existingProducers) {
           if (p.kind !== "audio" && p.kind !== "video") continue;
-          const src: ProducerMediaSource =
-            p.kind === "video" && p.mediaSource === "screen" ? "screen" : "camera";
+          const src = producerMediaSourceFromSocket(p.kind, p.mediaSource);
           try {
             await consumeRemoteProducer(p.producerId, p.kind, p.peerId, src);
           } catch (err) {

@@ -140,7 +140,6 @@ export function RtcSocketProvider({ children }: { children: React.ReactNode }) {
       mediasoupStatus: mediasoup.status,
       mediasoupError: mediasoup.error,
     localMediaStream: mediasoup.localPreviewStream,
-    /** Mic + camera + screen tracks — use with {@link localScreenTrackId} when a surface needs webcam-only video. */
     localCompositeStream: mediasoup.localStream,
     localScreenTrackId: mediasoup.localScreenTrackId,
     remoteMediaStream: mediasoup.remoteStream,

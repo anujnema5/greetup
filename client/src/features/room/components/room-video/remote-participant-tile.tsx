@@ -2,7 +2,11 @@
 
 import { useMemo, useRef } from "react";
 import Image from "next/image";
-import { hasLiveVideo, mediaStreamVideoAttachRevision, type RemoteParticipant } from "@/features/rtc";
+import {
+  hasRenderableRemoteVideo,
+  mediaStreamVideoAttachRevision,
+  type RemoteParticipant,
+} from "@/features/rtc";
 import {
   useAttachMediaStream,
   useRerenderOnVideoTrackMuteCycle,
@@ -28,7 +32,7 @@ export function RemoteParticipantTile({
   const cameraOff = peer.cameraActive === false;
   const micOff = peer.micActive === false;
   const muteCycle = useRerenderOnVideoTrackMuteCycle(stream);
-  const live = hasLiveVideo(stream) && !cameraOff;
+  const live = hasRenderableRemoteVideo(stream) && !cameraOff;
   const attachStream = live ? stream : null;
   const attachKey = `${muteCycle}:${mediaStreamVideoAttachRevision(stream)}`;
 
@@ -44,7 +48,7 @@ export function RemoteParticipantTile({
     [label],
   );
 
-  useAttachMediaStream(videoRef, attachStream, attachKey, { cloneVideoTracksForPlayback: true });
+  useAttachMediaStream(videoRef, attachStream, attachKey);
 
   return (
     <div

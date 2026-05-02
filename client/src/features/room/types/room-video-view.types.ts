@@ -14,7 +14,7 @@ export type RoomVideoViewProps = {
   /** Collapse to floating dock and return to the previous route. */
   onMinimize?: () => void;
   localStream?: MediaStream | null;
-  /** Mic + camera + screen — rebuild webcam-only view for People tab when sharing (see `localScreenTrackId`). */
+  /** Full local mediasoup stream (mic+cam+screen); with `localScreenTrackId` builds People-tab self view. */
   localCompositeStream?: MediaStream | null;
   localScreenTrackId?: string | null;
   remoteStream?: MediaStream | null;

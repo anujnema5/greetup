@@ -153,7 +153,6 @@ export function buildDirectPeerCameraInsetForScreenFocus(input: {
   primaryRemoteStream: MediaStream | null;
   remoteStreamsByPeerId: Record<string, MediaStream>;
   remoteTrackMediaSource: Record<string, ProducerMediaSource>;
-  /** When set, drop every video track that already appears as this peer's screen-share tile(s). */
   screenShareTiles?: ScreenShareTileInfo[];
 }): MediaStream | null {
   const {
@@ -195,11 +194,11 @@ export function buildDirectPeerCameraInsetForScreenFocus(input: {
 }
 
 export type CameraOnlyParticipantStreamOpts = {
-  /** Tracks already used for this peer's screen-share tile(s) in the UI — omit from camera tile. */
+  /** Video track ids reserved for screen-share UI for this peer (omit from camera stream). */
   excludeVideoTrackIds?: ReadonlySet<string>;
 };
 
-/** Gallery tile: show camera + audio only so the big stage owns screen shares. */
+/** One camera video + audio for roster/gallery; main stage keeps screen shares. */
 export function cameraOnlyParticipantStream(
   stream: MediaStream,
   remoteTrackMediaSource: Record<string, ProducerMediaSource>,
@@ -215,8 +214,7 @@ export function cameraOnlyParticipantStream(
   if (videos.length === 0) {
     return new MediaStream([...audios]);
   }
-  // Drop SFU-tagged screen first. If exactly one video remains, it must be the webcam — do not run
-  // display-surface heuristics that can wrongly exclude a real camera when multiple people share.
+  // After removing SFU `screen`, a single remaining track is the webcam (skip further heuristics).
   const withoutExplicitScreen = videos.filter((t) => remoteTrackMediaSource[t.id] !== "screen");
   const workset = withoutExplicitScreen.length > 0 ? withoutExplicitScreen : videos;
   let cam: MediaStreamTrack | null;

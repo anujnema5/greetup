@@ -94,17 +94,10 @@ export function useRoomVideoViewModel(p: UseRoomVideoViewModelArgs) {
     const merged = mergeGroupGalleryParticipants(p.remotePeers, p.remoteParticipants);
     const rtm = p.remoteTrackMediaSource ?? {};
     const tiles = p.screenShareTiles ?? [];
-    // Always camera+mic-only per peer for circle tiles. Exclude whatever we already show as a
-    // screen-share tile for that peer so metadata glitches cannot attach the screen track to the
-    // camera cell. `screenShareTiles` must be in deps — it used to be missing, so tiles never
-    // influenced this stream when only share state changed.
     return merged.map((part) => {
-      const exclude = new Set<string>();
-      if (tiles.length > 0) {
-        for (const id of videoTrackIdsFromScreenShareTilesForPeer(tiles, part.peer.peerId)) {
-          exclude.add(id);
-        }
-      }
+      const exclude = new Set<string>(
+        tiles.length > 0 ? videoTrackIdsFromScreenShareTilesForPeer(tiles, part.peer.peerId) : [],
+      );
       for (const t of part.stream.getVideoTracks()) {
         if (rtm[t.id] === "screen") exclude.add(t.id);
       }

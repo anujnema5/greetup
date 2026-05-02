@@ -7,9 +7,7 @@ import { useAttachMediaStream } from "@/features/room/hooks/use-attach-media-str
 import { hasLiveVideo, mediaStreamVideoAttachRevision } from "@/features/rtc";
 import { cn } from "@/lib/utils";
 
-/**
- * Sidebar-friendly list: each row names the share, shows a live thumb, and marks which one is on the main stage.
- */
+/** Screen-share picker: thumbs clone tracks so the main stage can use the same producer without decoder contention. */
 export function SharedScreensChooser({
   tiles,
   focusedKey,

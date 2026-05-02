@@ -71,16 +71,6 @@ export function trackEligibleForParticipantCameraTile(
   return !inferScreenCaptureFromTrack(track);
 }
 
-/** Prefer tracks that are already delivering frames (`muted` is false on receivers). */
-function sortVideoTracksForCameraPreference(tracks: MediaStreamTrack[]): MediaStreamTrack[] {
-  return [...tracks].sort((a, b) => {
-    const am = a.muted ? 1 : 0;
-    const bm = b.muted ? 1 : 0;
-    if (am !== bm) return am - bm;
-    return a.id.localeCompare(b.id);
-  });
-}
-
 function videoTrackPixelArea(t: MediaStreamTrack): number {
   try {
     const s = t.getSettings() as { width?: number; height?: number };
@@ -104,11 +94,8 @@ function sortVideoTracksForCameraTileWithAreaTieBreak(tracks: MediaStreamTrack[]
 }
 
 /**
- * One video track for a participant camera tile. When both camera and screen exist, attaching both
- * to a single {@link HTMLVideoElement} often renders black.
- *
- * Order: SFU-tagged `camera` (prefer unmuted) → sole non-`screen` track → not SFU/inferred screen
- * (prefer unmuted) → fallback by muted + id.
+ * Picks one inbound video track for a participant camera tile (never both camera+screen on one
+ * `<video>`). Strips SFU `screen`, then disambiguates with unmuted-first + smaller resolution.
  */
 export function pickPrimaryParticipantCameraVideoTrack(
   videoTracks: MediaStreamTrack[],
@@ -116,20 +103,14 @@ export function pickPrimaryParticipantCameraVideoTrack(
 ): MediaStreamTrack | null {
   if (videoTracks.length === 0) return null;
 
-  // Never attach SFU-labeled screen video to a participant camera tile.
   const noExplicitScreen = videoTracks.filter((t) => remoteTrackMediaSource[t.id] !== "screen");
   const work = noExplicitScreen.length > 0 ? noExplicitScreen : videoTracks;
   if (work.length === 1) return work[0]!;
 
   const taggedCameras = work.filter((t) => remoteTrackMediaSource[t.id] === "camera");
   if (taggedCameras.length >= 1) {
-    // Two "camera" labels can happen briefly around screen-share signaling; prefer a real webcam
-    // over anything that still looks like display capture.
     const noDisplaySurface = taggedCameras.filter((t) => !inferScreenCaptureFromTrack(t));
     const pool = noDisplaySurface.length >= 1 ? noDisplaySurface : taggedCameras;
-    // Inbound display capture often omits `displaySurface`, so both tracks can survive the filter
-    // above. Prefer unmuted, then smaller frame (webcam vs 4K share) — same rule as the
-    // multi-track branch below; mute+id alone used to pick the screen track and black the tile.
     return sortVideoTracksForCameraTileWithAreaTieBreak(pool)[0]!;
   }
 
