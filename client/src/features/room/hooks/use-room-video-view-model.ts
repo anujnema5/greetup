@@ -13,7 +13,10 @@ import {
   type RemotePeer,
   type ScreenShareTileInfo,
 } from "@/features/rtc";
-import { cameraOnlyParticipantStream } from "@/features/rtc/lib/screen-share-stage";
+import {
+  cameraOnlyParticipantStream,
+  videoTrackIdsFromScreenShareTilesForPeer,
+} from "@/features/rtc/lib/screen-share-stage";
 import { useAttachMediaStream } from "@/features/room/hooks/use-attach-media-stream";
 import { useCallElapsedSeconds } from "@/features/room/hooks/use-call-elapsed-seconds";
 import { formatCallDuration } from "@/features/room/lib/format-call-duration";
@@ -89,19 +92,30 @@ export function useRoomVideoViewModel(p: UseRoomVideoViewModelArgs) {
   const groupGalleryParticipants = useMemo(() => {
     if (!p.isGroupRoom) return p.remoteParticipants;
     const merged = mergeGroupGalleryParticipants(p.remotePeers, p.remoteParticipants);
-    const rtm = p.remoteTrackMediaSource;
-    if (!screenShareMainLayout || !rtm) return merged;
-    return merged.map((part) => ({
-      ...part,
-      stream: cameraOnlyParticipantStream(part.stream, rtm),
-    }));
-  }, [
-    p.isGroupRoom,
-    p.remotePeers,
-    p.remoteParticipants,
-    screenShareMainLayout,
-    p.remoteTrackMediaSource,
-  ]);
+    const rtm = p.remoteTrackMediaSource ?? {};
+    const tiles = p.screenShareTiles ?? [];
+    // Always camera+mic-only per peer for circle tiles. Exclude whatever we already show as a
+    // screen-share tile for that peer so metadata glitches cannot attach the screen track to the
+    // camera cell. `screenShareTiles` must be in deps — it used to be missing, so tiles never
+    // influenced this stream when only share state changed.
+    return merged.map((part) => {
+      const exclude = new Set<string>();
+      if (tiles.length > 0) {
+        for (const id of videoTrackIdsFromScreenShareTilesForPeer(tiles, part.peer.peerId)) {
+          exclude.add(id);
+        }
+      }
+      for (const t of part.stream.getVideoTracks()) {
+        if (rtm[t.id] === "screen") exclude.add(t.id);
+      }
+      return {
+        ...part,
+        stream: cameraOnlyParticipantStream(part.stream, rtm, {
+          excludeVideoTrackIds: exclude.size > 0 ? exclude : undefined,
+        }),
+      };
+    });
+  }, [p.isGroupRoom, p.remotePeers, p.remoteParticipants, p.remoteTrackMediaSource, p.screenShareTiles]);
 
   return {
     remoteVideoRef,

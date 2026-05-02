@@ -2,7 +2,11 @@
  * Multi-participant screen sharing: collect tiles, stable "latest" ordering, and main-stage composition.
  */
 
-import { videoTrackActsAsScreenShare } from "@/features/rtc/lib/mediasoup-stream-helpers";
+import {
+  inboundVideoTrackIsSfuScreenShare,
+  pickPrimaryParticipantCameraVideoTrack,
+  trackEligibleForParticipantCameraTile,
+} from "@/features/rtc/lib/mediasoup-stream-helpers";
 import type { ProducerMediaSource, RemotePeer, ScreenShareTileInfo } from "@/features/rtc/types/mediasoup-room.types";
 
 export const SCREEN_SHARE_LOCAL_PREFIX = "local:" as const;
@@ -30,7 +34,7 @@ function liveScreenTracks(
 ): MediaStreamTrack[] {
   return stream.getVideoTracks().filter(
     (t) =>
-      t.readyState === "live" && videoTrackActsAsScreenShare(t, remoteTrackMediaSource[t.id]),
+      t.readyState === "live" && inboundVideoTrackIsSfuScreenShare(t, remoteTrackMediaSource[t.id]),
   );
 }
 
@@ -83,6 +87,21 @@ export function collectScreenShareTiles(input: {
   return out;
 }
 
+/** Video track ids already routed to screen-share UI for this peer — never attach them to camera tiles. */
+export function videoTrackIdsFromScreenShareTilesForPeer(
+  tiles: ScreenShareTileInfo[],
+  peerId: string,
+): Set<string> {
+  const s = new Set<string>();
+  for (const tile of tiles) {
+    if (tile.peerId !== peerId) continue;
+    for (const t of tile.stream.getVideoTracks()) {
+      if (t.kind === "video") s.add(t.id);
+    }
+  }
+  return s;
+}
+
 /** Deterministic key list for set-diff when merging arrival order in the mediasoup room hook. */
 export function stableSortedScreenShareKeys(tiles: ScreenShareTileInfo[]): string[] {
   return tiles.map((t) => t.key).sort((a, b) => a.localeCompare(b));
@@ -115,54 +134,103 @@ export function buildMainStageStreamForScreenFocus(input: {
 /**
  * Direct call: camera inset beside a screen — whose camera depends on which screen share is focused.
  */
+function pickParticipantCameraVideoFromStream(
+  stream: MediaStream,
+  remoteTrackMediaSource: Record<string, ProducerMediaSource>,
+  excludeVideoTrackIds?: ReadonlySet<string>,
+): MediaStreamTrack | null {
+  let videos = stream.getVideoTracks();
+  if (videos.length === 0) return null;
+  if (excludeVideoTrackIds && excludeVideoTrackIds.size > 0) {
+    const kept = videos.filter((t) => !excludeVideoTrackIds.has(t.id));
+    if (kept.length > 0) videos = kept;
+  }
+  return pickPrimaryParticipantCameraVideoTrack(videos, remoteTrackMediaSource);
+}
+
 export function buildDirectPeerCameraInsetForScreenFocus(input: {
   focusedShareKey: string | null;
   primaryRemoteStream: MediaStream | null;
   remoteStreamsByPeerId: Record<string, MediaStream>;
   remoteTrackMediaSource: Record<string, ProducerMediaSource>;
+  /** When set, drop every video track that already appears as this peer's screen-share tile(s). */
+  screenShareTiles?: ScreenShareTileInfo[];
 }): MediaStream | null {
-  const { focusedShareKey, primaryRemoteStream, remoteStreamsByPeerId, remoteTrackMediaSource } =
-    input;
+  const {
+    focusedShareKey,
+    primaryRemoteStream,
+    remoteStreamsByPeerId,
+    remoteTrackMediaSource,
+    screenShareTiles = [],
+  } = input;
   if (!focusedShareKey) return null;
 
   const parsed = parseScreenShareKey(focusedShareKey);
   if (parsed.kind === "local") {
     if (!primaryRemoteStream) return null;
-    const cams = primaryRemoteStream
-      .getVideoTracks()
-      .filter((t) => !videoTrackActsAsScreenShare(t, remoteTrackMediaSource[t.id]));
-    return cams[0] ? new MediaStream([cams[0]]) : null;
+    const cam = pickParticipantCameraVideoFromStream(primaryRemoteStream, remoteTrackMediaSource);
+    return cam ? new MediaStream([cam]) : null;
+  }
+
+  let excludeVideo: Set<string> | undefined;
+  if (screenShareTiles.length > 0) {
+    excludeVideo = videoTrackIdsFromScreenShareTilesForPeer(screenShareTiles, parsed.peerId);
+  }
+  if ((!excludeVideo || excludeVideo.size === 0) && parsed.trackId) {
+    excludeVideo = new Set([parsed.trackId]);
   }
 
   const stream = remoteStreamsByPeerId[parsed.peerId];
   if (!stream) {
     if (!primaryRemoteStream) return null;
-    const cams = primaryRemoteStream
-      .getVideoTracks()
-      .filter((t) => !videoTrackActsAsScreenShare(t, remoteTrackMediaSource[t.id]));
-    return cams[0] ? new MediaStream([cams[0]]) : null;
+    const cam = pickParticipantCameraVideoFromStream(
+      primaryRemoteStream,
+      remoteTrackMediaSource,
+      excludeVideo,
+    );
+    return cam ? new MediaStream([cam]) : null;
   }
-  const cams = stream
-    .getVideoTracks()
-    .filter((t) => !videoTrackActsAsScreenShare(t, remoteTrackMediaSource[t.id]));
-  return cams[0] ? new MediaStream([cams[0]]) : null;
+  const cam = pickParticipantCameraVideoFromStream(stream, remoteTrackMediaSource, excludeVideo);
+  return cam ? new MediaStream([cam]) : null;
 }
+
+export type CameraOnlyParticipantStreamOpts = {
+  /** Tracks already used for this peer's screen-share tile(s) in the UI — omit from camera tile. */
+  excludeVideoTrackIds?: ReadonlySet<string>;
+};
 
 /** Gallery tile: show camera + audio only so the big stage owns screen shares. */
 export function cameraOnlyParticipantStream(
   stream: MediaStream,
   remoteTrackMediaSource: Record<string, ProducerMediaSource>,
+  opts?: CameraOnlyParticipantStreamOpts,
 ): MediaStream {
-  const tracks: MediaStreamTrack[] = [];
-  for (const t of stream.getTracks()) {
-    if (t.kind === "audio") {
-      tracks.push(t);
-      continue;
-    }
-    if (t.kind === "video" && !videoTrackActsAsScreenShare(t, remoteTrackMediaSource[t.id])) {
-      tracks.push(t);
-    }
+  const audios = stream.getAudioTracks();
+  let videos = stream.getVideoTracks();
+  const excludeIds = opts?.excludeVideoTrackIds;
+  if (excludeIds && excludeIds.size > 0) {
+    const kept = videos.filter((t) => !excludeIds.has(t.id));
+    if (kept.length > 0) videos = kept;
   }
+  if (videos.length === 0) {
+    return new MediaStream([...audios]);
+  }
+  // Drop SFU-tagged screen first. If exactly one video remains, it must be the webcam — do not run
+  // display-surface heuristics that can wrongly exclude a real camera when multiple people share.
+  const withoutExplicitScreen = videos.filter((t) => remoteTrackMediaSource[t.id] !== "screen");
+  const workset = withoutExplicitScreen.length > 0 ? withoutExplicitScreen : videos;
+  let cam: MediaStreamTrack | null;
+  if (workset.length === 1) {
+    cam = workset[0]!;
+  } else {
+    const candidates = workset.filter((t) =>
+      trackEligibleForParticipantCameraTile(t, remoteTrackMediaSource[t.id]),
+    );
+    const pool = candidates.length > 0 ? candidates : workset;
+    cam = pickPrimaryParticipantCameraVideoTrack(pool, remoteTrackMediaSource);
+  }
+  const tracks: MediaStreamTrack[] = [...audios];
+  if (cam) tracks.push(cam);
   return new MediaStream(tracks);
 }
 

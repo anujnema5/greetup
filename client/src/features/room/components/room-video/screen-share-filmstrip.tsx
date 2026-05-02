@@ -4,7 +4,7 @@ import { useRef } from "react";
 import { Monitor, Sparkles } from "lucide-react";
 import type { ScreenShareTileInfo } from "@/features/rtc/types/mediasoup-room.types";
 import { useAttachMediaStream } from "@/features/room/hooks/use-attach-media-stream";
-import { hasLiveVideo } from "@/features/rtc";
+import { hasLiveVideo, mediaStreamVideoAttachRevision } from "@/features/rtc";
 import { cn } from "@/lib/utils";
 
 /**
@@ -59,7 +59,12 @@ function SharedScreenChooserRow({
 }) {
   const ref = useRef<HTMLVideoElement>(null);
   const live = hasLiveVideo(tile.stream);
-  useAttachMediaStream(ref, tile.stream, live);
+  useAttachMediaStream(
+    ref,
+    tile.stream,
+    `${live ? 1 : 0}:${mediaStreamVideoAttachRevision(tile.stream)}`,
+    { cloneVideoTracksForPlayback: true },
+  );
 
   return (
     <button
@@ -192,7 +197,12 @@ function ScreenShareStripItem({
 }) {
   const ref = useRef<HTMLVideoElement>(null);
   const live = hasLiveVideo(tile.stream);
-  useAttachMediaStream(ref, tile.stream, live);
+  useAttachMediaStream(
+    ref,
+    tile.stream,
+    `${live ? 1 : 0}:${mediaStreamVideoAttachRevision(tile.stream)}`,
+    { cloneVideoTracksForPlayback: true },
+  );
 
   return (
     <button

@@ -3,18 +3,25 @@
 /**
  * People tab during screen share: full-width camera tiles + tap-to-focus when multiple shares.
  *
- * Self-view uses {@link VideoMirror}, which copies `srcObject` from a **source** `<video>` into
- * its own display element. That source must stay mounted — see `ParticipantVideoTile` (mirrored branch).
+ * Self-view mirrors with CSS on a **single** `<video>` so Chrome still decodes (tiny/hidden
+ * “sink” + {@link VideoMirror} often produced a black tile during screen share).
  */
 import Image from "next/image";
 import { useMemo, useRef } from "react";
 import { Monitor } from "lucide-react";
 import { sortPeerIds } from "@/features/rtc/lib/remote-participant-streams";
 import type { RemoteParticipant, RemotePeer, ScreenShareTileInfo } from "@/features/rtc/types/mediasoup-room.types";
-import { hasLiveVideo } from "@/features/rtc";
-import { useAttachMediaStream } from "@/features/room/hooks/use-attach-media-stream";
+import {
+  hasLiveEnabledVideo,
+  hasRenderableRemoteVideo,
+  mediaStreamVideoAttachRevision,
+} from "@/features/rtc";
+import {
+  useAttachMediaStream,
+  useRerenderOnVideoTrackMuteCycle,
+} from "@/features/room/hooks/use-attach-media-stream";
 import { SharedScreensChooser } from "@/features/room/components/room-video/screen-share-filmstrip";
-import { TileMediaStatus, TileNameBadge, TileSpeakingRings, VideoMirror } from "@/features/room/components/room-video/room-video-primitives";
+import { TileMediaStatus, TileNameBadge, TileSpeakingRings } from "@/features/room/components/room-video/room-video-primitives";
 import { getProfileImageUrl } from "@/lib/ui/profile-image";
 import { cn } from "@/lib/utils";
 
@@ -51,8 +58,17 @@ function ParticipantVideoTile({
   allowPickShareFromTile?: boolean;
 }) {
   const videoRef = useRef<HTMLVideoElement>(null);
-  const live = Boolean(stream && hasLiveVideo(stream) && !cameraOff);
-  useAttachMediaStream(videoRef, live ? stream : null, live);
+  const muteCycle = useRerenderOnVideoTrackMuteCycle(stream);
+  const videoReady = isSelf
+    ? Boolean(stream && hasLiveEnabledVideo(stream) && !cameraOff)
+    : Boolean(stream && hasRenderableRemoteVideo(stream) && !cameraOff);
+  const attachStream = videoReady ? stream : null;
+  const attachKey = `${muteCycle}:${videoReady ? 1 : 0}:${mediaStreamVideoAttachRevision(stream)}`;
+  // Remote tiles: use the consumer track directly. Cloning inbound video while many decoders are
+  // active (multi screen-share) has caused persistent black frames in Chromium.
+  useAttachMediaStream(videoRef, attachStream, attachKey, {
+    cloneVideoTracksForPlayback: Boolean(isSelf),
+  });
 
   const initials = useMemo(
     () =>
@@ -77,29 +93,25 @@ function ParticipantVideoTile({
   const inner = (
     <>
       {mirrored ? (
-        <>
-          {/*
-            VideoMirror only *reads* srcRef — it does not render that node. Without this hidden
-            element, videoRef.current stays null and the self preview stays black.
-          */}
-          <video
-            ref={videoRef}
-            playsInline
-            autoPlay
-            muted
-            className="pointer-events-none absolute h-px w-px opacity-0"
-            aria-hidden
-          />
-          <VideoMirror
-            srcRef={videoRef}
-            mirrored
-            className={cn("absolute inset-0 h-full w-full object-cover", !live && "opacity-0")}
-          />
-        </>
-      ) : live ? (
-        <video ref={videoRef} playsInline autoPlay className="absolute inset-0 h-full w-full object-cover" />
+        <video
+          ref={videoRef}
+          playsInline
+          autoPlay
+          muted
+          className={cn("absolute inset-0 h-full w-full object-cover", !videoReady && "opacity-0")}
+          style={{ transform: "scaleX(-1)" }}
+        />
+      ) : videoReady ? (
+        <video
+          key={attachKey}
+          ref={videoRef}
+          playsInline
+          autoPlay
+          muted
+          className="absolute inset-0 h-full w-full object-cover"
+        />
       ) : null}
-      {!live ? (
+      {!videoReady ? (
         <div className="absolute inset-0 flex items-center justify-center bg-muted/30">
           <TileSpeakingRings stream={micOff ? null : stream}>
             <div className="relative h-16 w-16 overflow-hidden rounded-full border border-border bg-muted shadow-sm">
@@ -228,6 +240,7 @@ export function RoomCallParticipantsPanel({
         </h3>
         <div className="flex flex-col gap-2.5">
           <ParticipantVideoTile
+            key={`self:${mediaStreamVideoAttachRevision(localStream)}`}
             label={`${myName} (you)`}
             stream={localStream}
             cameraOff={!cameraEnabled}
@@ -248,9 +261,10 @@ export function RoomCallParticipantsPanel({
                 const nm = p.displayName?.trim() || `Peer ${id.slice(0, 6)}`;
                 const stream = peerStreamById.get(id) ?? null;
                 const sk = shareTileKeyForPeer(screenShareTiles, id);
+                const videoKey = mediaStreamVideoAttachRevision(stream);
                 return (
                   <ParticipantVideoTile
-                    key={id}
+                    key={`${id}:${videoKey}`}
                     label={nm}
                     stream={stream}
                     cameraOff={p.cameraActive === false}

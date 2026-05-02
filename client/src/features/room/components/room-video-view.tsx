@@ -10,9 +10,14 @@
  * - Composes stage, overlays, HUD, toolbar, and right panel into a single responsive call layout.
  *
  * This component should stay as a UI coordinator; transport/signaling logic belongs upstream.
+ *
+ * Screen share vs activities: toasts block overlapping actions (no auto-stop). Only one in-call
+ * activity at a time: starting another requires ending the current one first (toasts + disabled tiles
+ * for other activities). Screen share uses toasts only — activity tiles stay tappable.
  */
-import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { Maximize2, Minimize2 } from "lucide-react";
+import { toast } from "sonner";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { MOCK_MATCH } from "@/features/room/constants/mock-match";
 import { DIRECT_ROOM_ACTIVITIES } from "@/features/room/constants/direct-room-activities";
@@ -29,6 +34,7 @@ import { RoomVideoToolbar } from "@/features/room/components/room-video/room-vid
 import { RoomVideoStageOverlays } from "@/features/room/components/room-video/room-video-overlays";
 import { RoomVideoRightPanel } from "@/features/room/components/room-video/room-video-right-panel";
 import { cn } from "@/lib/utils";
+import { buildLocalPreviewStream } from "@/features/rtc/lib/direct-call-stage";
 
 export type { RoomVideoViewProps } from "@/features/room/types/room-video-view.types";
 
@@ -69,6 +75,8 @@ export function RoomVideoView({
   onSkip,
   onMinimize,
   localStream = null,
+  localCompositeStream = null,
+  localScreenTrackId = null,
   remoteStream = null,
   mainStageShowsScreen = false,
   remotePeerCameraStream = null,
@@ -128,6 +136,78 @@ export function RoomVideoView({
   );
   const [isLive, setIsLive] = useState(false);
   const [circleOptionsOpen, setCircleOptionsOpen] = useState(false);
+
+  const activeChess = activeRealtimeActivity?.kind === "chess";
+  const stageActivity = activeChess ? "chess" : activeActivity;
+  const hasActivityOnStage = Boolean(stageActivity);
+  /** Local or remote share present — activities must not overlap the share stage. */
+  const screenShareBlocksActivities =
+    screenSharing || mainStageShowsScreen || screenShareTiles.length > 0;
+
+  const handleToggleScreenShare = useCallback(() => {
+    if (!screenSharing && hasActivityOnStage) {
+      toast.info("Leave or end the current activity before sharing your screen.");
+      return;
+    }
+    onToggleScreenShare?.();
+  }, [screenSharing, hasActivityOnStage, onToggleScreenShare]);
+
+  /** @returns whether the activity actually started (or already active); false = blocked, do not switch tabs. */
+  const tryBeginEmbeddedActivity = useCallback(
+    (activity: RoomActivityId): boolean => {
+      if (screenShareBlocksActivities) {
+        toast.info(
+          screenSharing
+            ? "Screen sharing should be off before starting this activity."
+            : "Screen sharing is active in this call. Wait until it ends before starting this activity.",
+        );
+        return false;
+      }
+      if (hasActivityOnStage) {
+        if (activeChess) {
+          toast.info("End the chess game before starting another activity.");
+          return false;
+        }
+        if (activeActivity === activity) {
+          return true;
+        }
+        toast.info("End the current activity before starting another one.");
+        return false;
+      }
+      setActiveActivity(activity);
+      return true;
+    },
+    [
+      screenShareBlocksActivities,
+      screenSharing,
+      hasActivityOnStage,
+      activeChess,
+      activeActivity,
+    ],
+  );
+
+  /** @returns false if invite was blocked (e.g. still screen sharing). */
+  const tryRequestChessInvite = useCallback((): boolean => {
+    if (screenShareBlocksActivities) {
+      toast.info(
+        screenSharing
+          ? "Screen sharing should be off before starting chess."
+          : "Screen sharing is active in this call. Wait until it ends before starting chess.",
+      );
+      return false;
+    }
+    if (hasActivityOnStage) {
+      if (activeChess) {
+        toast.info("A chess game is already in progress.");
+        return false;
+      }
+      toast.info("End the current activity before starting chess.");
+      return false;
+    }
+    onRequestChessInvite?.();
+    return true;
+  }, [screenShareBlocksActivities, screenSharing, hasActivityOnStage, activeChess, onRequestChessInvite]);
+
   const {
     remoteVideoRef,
     peerCameraInsetRef,
@@ -174,11 +254,9 @@ export function RoomVideoView({
   const participantVideosInSidebar = Boolean(showScreenShareContext && lgUp);
   const showStageFullscreenControl =
     showScreenShare && (screenSharing || mainStageShowsScreen || screenShareTiles.length > 0);
-  const activeChess = activeRealtimeActivity?.kind === "chess";
-  const stageActivity = activeChess ? "chess" : activeActivity;
-  const hasActivityOnStage = Boolean(stageActivity);
   /** People tab: during share, or while an in-call activity (chess, watch together, …) is on stage. */
   const showPeopleTab = showScreenShareContext || hasActivityOnStage;
+
   const activeActivityMeta =
     DIRECT_ROOM_ACTIVITIES.find((activity) => activity.id === stageActivity) ?? null;
   const myInitial = myName.charAt(0).toUpperCase();
@@ -223,6 +301,14 @@ export function RoomVideoView({
     };
   }, [stageFullscreen.exit]);
 
+  /** People tab self tile: rebuild from composite when sharing. Include `screenShareTiles` in deps so the first sharer re-attaches after someone else shares (avoids a stuck black local tile). */
+  const localStreamPeopleTabSelf = useMemo(() => {
+    if (!screenSharing || !localCompositeStream || !localScreenTrackId) {
+      return localStream;
+    }
+    return buildLocalPreviewStream(localCompositeStream, localScreenTrackId) ?? localStream;
+  }, [screenSharing, localCompositeStream, localScreenTrackId, localStream, screenShareTiles]);
+
   const selectRightPanelTab = useCallback(
     (tab: RoomCallRightPanelTab) => {
       setRightPanelTab(tab);
@@ -256,7 +342,7 @@ export function RoomVideoView({
       focusedScreenShareKey={focusedScreenShareKey ?? null}
       onSelectScreenShare={onSelectScreenShare}
       groupGalleryParticipants={groupGalleryParticipants}
-      localStream={localStream}
+      localStream={localStreamPeopleTabSelf}
       remotePeerCameraStream={remotePeerCameraStream}
     />
   ) : null;
@@ -269,12 +355,13 @@ export function RoomVideoView({
     conversationId,
     searchingForNextCandidate: showSearchingState,
     activeActivity,
-    setActiveActivity,
+    setActiveActivity: tryBeginEmbeddedActivity,
     activeRealtimeActivity,
-    onRequestChessInvite,
+    onRequestChessInvite: tryRequestChessInvite,
     requestChessBusy,
     showPeopleTab,
     participantsPanel,
+    stageActivity,
   };
 
   const videoToolbarProps = {
@@ -285,7 +372,7 @@ export function RoomVideoView({
     mediaTogglesReady,
     showScreenShare,
     screenSharing,
-    onToggleScreenShare,
+    onToggleScreenShare: handleToggleScreenShare,
     conversationId,
     rightPanelTab,
     setRightPanelTab: selectRightPanelTab,

@@ -281,6 +281,14 @@ export function useMediasoupRoomSession(options: MediasoupRoomSessionOptions): v
         throw new Error(isAckErr(raw) ? (raw.error?.code ?? "consume") : "consume");
       }
 
+      /** Prefer SFU producer `appData` from the consume ack over the `newProducer` event (avoids mis-tagged screen as camera). */
+      const resolvedVideoSource: ProducerMediaSource =
+        kind === "video" &&
+        "mediaSource" in raw &&
+        (raw.mediaSource === "screen" || raw.mediaSource === "camera")
+          ? raw.mediaSource
+          : mediaSource;
+
       const consumer = await recvTransport.consume({
         id: raw.id,
         producerId: raw.producerId,
@@ -291,7 +299,7 @@ export function useMediasoupRoomSession(options: MediasoupRoomSessionOptions): v
       consumers.set(producerId, consumer);
 
       // Sync camera/mic state from the producer's current pause status.
-      if (kind === "video" && mediaSource === "camera") {
+      if (kind === "video" && resolvedVideoSource === "camera") {
         set.setPeers((prev) => ({
           ...prev,
           [peerId]: { ...(prev[peerId] ?? { peerId }), cameraActive: !raw.producerPaused },
@@ -313,7 +321,7 @@ export function useMediasoupRoomSession(options: MediasoupRoomSessionOptions): v
 
       const refreshInboundVideoKind = () => {
         if (cancelled || kind !== "video") return;
-        const resolved = resolveInboundVideoMediaSource(consumer.track, mediaSource);
+        const resolved = resolveInboundVideoMediaSource(consumer.track, resolvedVideoSource);
         set.setRemoteTrackMediaSource((prev) => ({ ...prev, [consumer.track.id]: resolved }));
       };
 
@@ -360,8 +368,11 @@ export function useMediasoupRoomSession(options: MediasoupRoomSessionOptions): v
     }) => {
       if (cancelled || !data?.producerId || !data.kind || !data.peerId) return;
       if (data.kind !== "audio" && data.kind !== "video") return;
+      const ms = data.mediaSource;
       const src: ProducerMediaSource =
-        data.kind === "video" && data.mediaSource === "screen" ? "screen" : "camera";
+        data.kind === "video" && typeof ms === "string" && ms.toLowerCase() === "screen"
+          ? "screen"
+          : "camera";
       // New producer → mark the peer's camera/mic active immediately.
       const pid = data.peerId;
       if (data.kind === "video" && src === "camera") {

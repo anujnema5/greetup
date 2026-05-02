@@ -33,6 +33,8 @@ export type RtcSocketContextValue = RoomRtcState &
     mediasoupStatus: MediasoupRoomStatus;
     mediasoupError: string | null;
     localMediaStream: MediaStream | null;
+    localCompositeStream: MediaStream | null;
+    localScreenTrackId: string | null;
     remoteMediaStream: MediaStream | null;
     mainStageShowsScreen: boolean;
     remotePeerCameraStream: MediaStream | null;
@@ -137,8 +139,11 @@ export function RtcSocketProvider({ children }: { children: React.ReactNode }) {
       rtcRoomType,
       mediasoupStatus: mediasoup.status,
       mediasoupError: mediasoup.error,
-      localMediaStream: mediasoup.localPreviewStream,
-      remoteMediaStream: mediasoup.remoteStream,
+    localMediaStream: mediasoup.localPreviewStream,
+    /** Mic + camera + screen tracks — use with {@link localScreenTrackId} when a surface needs webcam-only video. */
+    localCompositeStream: mediasoup.localStream,
+    localScreenTrackId: mediasoup.localScreenTrackId,
+    remoteMediaStream: mediasoup.remoteStream,
       mainStageShowsScreen: mediasoup.mainStageShowsScreen,
       remotePeerCameraStream: mediasoup.remotePeerCameraStream,
       remoteParticipants: mediasoup.remoteParticipants,
@@ -169,8 +174,10 @@ export function RtcSocketProvider({ children }: { children: React.ReactNode }) {
       rtcRoomType,
       mediasoup.status,
       mediasoup.error,
-      mediasoup.localPreviewStream,
-      mediasoup.remoteStream,
+    mediasoup.localPreviewStream,
+    mediasoup.localStream,
+    mediasoup.localScreenTrackId,
+    mediasoup.remoteStream,
       mediasoup.mainStageShowsScreen,
       mediasoup.remotePeerCameraStream,
       mediasoup.remoteParticipants,

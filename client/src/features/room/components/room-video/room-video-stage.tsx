@@ -159,12 +159,12 @@ export function RoomVideoStage({
 
   return (
     <>
-      {/* --- Off-screen elements: mediasoup attaches streams here; visible layers use VideoMirror or extra refs --- */}
+      {/* --- Off-screen decode sinks: 1×1 videos are often throttled in Chrome → black mirrors/tiles --- */}
       <video
         ref={remoteVideoRef}
         playsInline
         autoPlay
-        className="pointer-events-none absolute h-px w-px opacity-0"
+        className="pointer-events-none fixed top-0 left-[-9999px] z-[-1] h-[180px] w-[320px] opacity-0"
         aria-hidden
       />
       <video
@@ -172,7 +172,7 @@ export function RoomVideoStage({
         playsInline
         autoPlay
         muted
-        className="pointer-events-none absolute h-px w-px opacity-0"
+        className="pointer-events-none fixed top-0 left-[-9999px] z-[-1] h-[180px] w-[320px] opacity-0"
         style={{ transform: "scaleX(-1)" }}
         aria-hidden
       />

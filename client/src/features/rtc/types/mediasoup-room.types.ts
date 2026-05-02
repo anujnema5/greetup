@@ -80,6 +80,8 @@ export type UseMediasoupRoomReturn = {
   screenSharing: boolean;
   toggleScreenShare: () => void;
   localPreviewStream: MediaStream | null;
+  /** Inbound display-capture video track id while sharing — for camera-only UI built from {@link localStream}. */
+  localScreenTrackId: string | null;
   remotePeerCameraStream: MediaStream | null;
   localMediaDeviceError: string | null;
   clearLocalMediaDeviceError: () => void;
@@ -142,6 +144,8 @@ export type ConsumeAck =
       paused: boolean;
       /** True when the remote producer is paused — peer's camera is off. */
       producerPaused: boolean;
+      /** Present for `kind: "video"` — from mediasoup producer `appData` (authoritative). */
+      mediaSource?: ProducerMediaSource;
     }
   | { ok: false; error?: { code?: string } };
 

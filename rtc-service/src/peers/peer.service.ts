@@ -369,6 +369,8 @@ export class PeerSessionService {
         type: MediasoupTypes.ConsumerType;
         producerPaused: boolean;
         paused: boolean;
+        /** From producer `appData` — authoritative vs `newProducer` socket payload for UI track roles. */
+        mediaSource?: ProducerMediaSource;
       }
     | { ok: false; code: string }
   > {
@@ -400,8 +402,8 @@ export class PeerSessionService {
 
     session.consumers.set(consumer.id, consumer);
 
-    return {
-      ok: true,
+    const base = {
+      ok: true as const,
       id: consumer.id,
       producerId: consumer.producerId,
       kind: consumer.kind,
@@ -410,6 +412,13 @@ export class PeerSessionService {
       producerPaused: consumer.producerPaused,
       paused: consumer.paused,
     };
+    if (consumer.kind === "video") {
+      return {
+        ...base,
+        mediaSource: mediaSourceFromProducerAppData(producer.appData),
+      };
+    }
+    return base;
   }
 
   async resumeConsumer(userId: string, consumerId: string): Promise<{ ok: true } | { ok: false; code: string }> {

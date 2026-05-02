@@ -39,7 +39,14 @@ export {
   remotePeerIdsStableKey,
   remotePeerCountFromStableKey,
 } from "./lib/remote-participant-streams";
-export { hasLiveEnabledVideo, hasLiveMedia, hasLiveVideo } from "./lib/media-stream-utils";
+export {
+  createPlaybackStreamWithClonedVideo,
+  hasLiveEnabledVideo,
+  hasLiveMedia,
+  hasLiveVideo,
+  hasRenderableRemoteVideo,
+  mediaStreamVideoAttachRevision,
+} from "./lib/media-stream-utils";
 export {
   RTC_CONNECTION_RECOVERY,
   ICE_RESTART_MIN_GAP_MS,

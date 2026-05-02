@@ -63,7 +63,7 @@ Verify they are up:
 ```bash
 docker ps
 # greetup_postgres   0.0.0.0:25432->5432/tcp
-# greetup_redis      0.0.0.0:16379->6379/tcp
+# greetup_redis      0.0.0.0:26379->6379/tcp
 ```
 
 ---
@@ -80,7 +80,7 @@ Open `server/env/.env.development` and fill in the required values:
 ```env
 PORT=5300
 DATABASE_URL=postgresql://postgres:postgres@localhost:25432/greetup_db
-REDIS_URL=redis://localhost:16379
+REDIS_URL=redis://localhost:26379
 BETTER_AUTH_URL=http://localhost:5300
 BETTER_AUTH_SECRET=change_me_to_a_random_32_char_string
 WEB_CLIENT_HOST=http://localhost:3000
@@ -132,7 +132,7 @@ Open `matching-service/env/.env.development` and set:
 
 ```env
 MATCHING_PORT=4020
-REDIS_URL=redis://localhost:16379
+REDIS_URL=redis://localhost:26379
 INTERNAL_API_KEY=change_me_to_a_shared_secret   # same value as server
 MATCH_WEBHOOK_URL=http://localhost:5300/internal/webhook/match-completed
 MATCHING_ROOM_MODE=mock
@@ -214,7 +214,7 @@ Greetup is a monorepo with four services:
 | `matching-service` | Bun / Hono | 4020 | Async matchmaking |
 | `rtc-service` | Node.js + mediasoup | 5370 | WebRTC SFU |
 
-Infrastructure: **PostgreSQL** on `localhost:25432`, **Redis** on `localhost:16379`.
+Infrastructure: **PostgreSQL** on `localhost:25432`, **Redis** on `localhost:26379`.
 
 ---
 
@@ -284,7 +284,7 @@ docker compose -f docker-compose.dev.yml up -d postgres redis
 | Service | Local address | Credentials |
 |---|---|---|
 | PostgreSQL | `localhost:25432` | `postgres` / `postgres` / DB: `greetup_db` |
-| Redis | `localhost:16379` | none |
+| Redis | `localhost:26379` | none |
 
 ### Step 2 — Server
 
@@ -349,7 +349,7 @@ npm run dev
 | `PORT` | `5300` | HTTP listen port |
 | `LISTEN_HOST` | `0.0.0.0` | Bind address (`localhost` by default in dev) |
 | `DATABASE_URL` | `postgresql://postgres:postgres@localhost:25432/greetup_db` | PostgreSQL connection string |
-| `REDIS_URL` | `redis://localhost:16379` | Redis connection string |
+| `REDIS_URL` | `redis://localhost:26379` | Redis connection string |
 | `BETTER_AUTH_URL` | `http://localhost:5300` | Canonical server URL used by Better Auth |
 | `BETTER_AUTH_SECRET` | _(random 32+ char string)_ | Session token signing key |
 | `WEB_CLIENT_HOST` | `http://localhost:3000` | Frontend origin (CORS) |
@@ -388,7 +388,7 @@ Enable **Phone** sign-in in Firebase Console → Authentication → Sign-in meth
 | `NODE_ENV` | `development` | |
 | `MATCHING_HOST` | `0.0.0.0` | Bind address |
 | `MATCHING_PORT` | `4020` | HTTP listen port |
-| `REDIS_URL` | `redis://127.0.0.1:6379` | Redis (use `localhost:16379` locally) |
+| `REDIS_URL` | `redis://127.0.0.1:6379` | Redis (use `localhost:26379` locally) |
 | `INTERNAL_API_KEY` | _(shared secret)_ | Must match server's `INTERNAL_API_KEY` |
 | `MATCHING_ROOM_MODE` | `mock` | `mock` (dev) or `http` (calls room service) |
 | `ROOM_SERVICE_URL` | `http://localhost:5300` | Only used when `MATCHING_ROOM_MODE=http` |
@@ -512,7 +512,7 @@ docker compose -f docker-compose.dev.yml up -d postgres redis
 | Container | Port mapping |
 |---|---|
 | `greetup_postgres` | `25432:5432` |
-| `greetup_redis` | `16379:6379` |
+| `greetup_redis` | `26379:6379` |
 | `greetup_server` | `5300:5300` |
 | `greetup_client` | `3000:3000` |
 

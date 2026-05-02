@@ -62,6 +62,8 @@ export function RoomVideoLayer({
     mediasoupStatus,
     mediasoupError,
     localMediaStream,
+    localCompositeStream,
+    localScreenTrackId,
     remoteMediaStream,
     mainStageShowsScreen,
     remotePeerCameraStream,
@@ -149,6 +151,8 @@ export function RoomVideoLayer({
         onSkip={video.handleSkip}
         onMinimize={video.handleMinimize}
         localStream={localMediaStream}
+        localCompositeStream={localCompositeStream}
+        localScreenTrackId={localScreenTrackId}
         remoteStream={remoteMediaStream}
         mainStageShowsScreen={mainStageShowsScreen}
         remotePeerCameraStream={remotePeerCameraStream}

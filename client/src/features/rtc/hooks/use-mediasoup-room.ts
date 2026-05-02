@@ -221,6 +221,7 @@ export function useMediasoupRoom(options: UseMediasoupRoomArgs): UseMediasoupRoo
         primaryRemoteStream,
         remoteStreamsByPeerId,
         remoteTrackMediaSource,
+        screenShareTiles,
       });
     }
     return buildDirectCallRemotePeerCameraStream({
@@ -373,6 +374,7 @@ export function useMediasoupRoom(options: UseMediasoupRoomArgs): UseMediasoupRoo
     screenSharing,
     toggleScreenShare,
     localPreviewStream,
+    localScreenTrackId,
     remotePeerCameraStream,
     localMediaDeviceError,
     clearLocalMediaDeviceError,

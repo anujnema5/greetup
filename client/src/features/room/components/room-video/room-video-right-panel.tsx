@@ -26,6 +26,8 @@ export function RoomVideoRightPanel({
   searchingForNextCandidate = false,
   showPeopleTab = false,
   participantsPanel = null,
+  /** Current activity on stage (including chess); used to disable other activity tiles. */
+  stageActivity = null,
   variant = "dock",
 }: {
   rightPanelTab: RoomCallRightPanelTab;
@@ -34,17 +36,20 @@ export function RoomVideoRightPanel({
   isLive: boolean;
   conversationId: string | null;
   activeActivity: RoomActivityId | null;
-  setActiveActivity: (activity: RoomActivityId) => void;
+  /** From activities grid only; returns whether the activity started — caller must not switch tabs on false. */
+  setActiveActivity: (activity: RoomActivityId) => boolean;
   activeRealtimeActivity: RoomActiveActivity | null;
-  onRequestChessInvite?: () => void;
+  onRequestChessInvite?: () => boolean;
   requestChessBusy?: boolean;
   searchingForNextCandidate?: boolean;
   /** Screen share, circle chess, or direct in-room activity — People lists cameras (+ shares when present). */
   showPeopleTab?: boolean;
   participantsPanel?: ReactNode;
+  stageActivity?: RoomActivityId | null;
   variant?: RoomVideoRightPanelVariant;
 }) {
   const chessActive = activeRealtimeActivity?.kind === "chess";
+  const activityLockedOnStage = Boolean(stageActivity);
 
   return (
     <div
@@ -130,10 +135,14 @@ export function RoomVideoRightPanel({
                       onRequestChessInvite?.();
                       return;
                     }
-                    setActiveActivity(activity.id);
-                    setRightPanelTab("participants");
+                    if (setActiveActivity(activity.id)) {
+                      setRightPanelTab("participants");
+                    }
                   }}
-                  disabled={(activity.id === "chess" && requestChessBusy) || chessActive}
+                  disabled={
+                    (activity.id === "chess" && (requestChessBusy || chessActive)) ||
+                    (activityLockedOnStage && activity.id !== stageActivity)
+                  }
                   className={cn(
                     "flex h-auto aspect-[1.3/1] flex-col items-center justify-center gap-1.5 rounded-xl border border-border bg-muted/35 p-2.5 text-center transition-all hover:bg-muted/60",
                     (activeActivity === activity.id || (activity.id === "chess" && chessActive)) &&
