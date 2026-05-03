@@ -15,6 +15,7 @@
  * Screen share vs activities: toasts block overlapping actions (no auto-stop). Only one in-call
  * activity at a time: starting another requires ending the current one first (toasts + disabled tiles
  * for other activities). Screen share uses toasts only — activity tiles stay tappable.
+ * Narrow + screen share: main stage shows share with cameras (direct: vertical stack; circle: 2×2 + pages).
  */
 import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { Maximize2, Minimize2 } from "lucide-react";
@@ -250,13 +251,16 @@ export function RoomVideoView({
   const showScreenShareContext =
     showScreenShare && (screenSharing || mainStageShowsScreen || screenShareTiles.length > 0);
   /**
-   * While sharing, camera tiles (and share picker on circle) live in the People tab so the stage
-   * stays full-bleed for the shared screen. Large viewports: docked panel; narrow: same layout via
-   * the bottom sheet — avoid duplicating participant UI on the stage on phones.
+   * During screen share, desktop/tablet (md+) keeps the stage full-bleed and puts cameras in the
+   * People panel. Below `md`, participants stay on the main stage (stacked with share for direct
+   * calls; 2×2 grid under share for circles) so users are not forced into the People tab.
    */
-  const participantVideosInSidebar = Boolean(showScreenShareContext);
+  const participantVideosInSidebar = Boolean(showScreenShareContext && !mdDown);
   const showStageFullscreenControl =
     showScreenShare && (screenSharing || mainStageShowsScreen || screenShareTiles.length > 0);
+  /** Narrow + share with on-stage cameras: expand/fill should zoom the share only (see `RoomVideoStage`). */
+  const shareStageImmersive =
+    stageFullscreen.isExpanded && showScreenShareContext && !participantVideosInSidebar;
   /** People tab: during share, or while an in-call activity (chess, watch together, …) is on stage. */
   const showPeopleTab = showScreenShareContext || hasActivityOnStage;
 
@@ -294,16 +298,18 @@ export function RoomVideoView({
   }, [rightPanelTab, showPeopleTab]);
 
   useEffect(() => {
-    if (showPeopleTab && !prevShowPeopleTabRef.current) {
+    if (showPeopleTab && !prevShowPeopleTabRef.current && !mdDown) {
       setRightPanelTab("participants");
     }
     prevShowPeopleTabRef.current = showPeopleTab;
-  }, [showPeopleTab]);
+  }, [showPeopleTab, mdDown]);
 
   useEffect(() => {
     return () => {
       void stageFullscreen.exit();
     };
+    // Unmount-only cleanup; `exit` is stable from `useStageFullscreen`.
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- intentionally only `exit`
   }, [stageFullscreen.exit]);
 
   // People tab “You”: camera+audio only while sharing; recompute when shares change so the stream re-attaches.
@@ -312,7 +318,7 @@ export function RoomVideoView({
       return localStream;
     }
     return buildLocalPreviewStream(localCompositeStream, localScreenTrackId) ?? localStream;
-  }, [screenSharing, localCompositeStream, localScreenTrackId, localStream, screenShareTiles]);
+  }, [screenSharing, localCompositeStream, localScreenTrackId, localStream]);
 
   const selectRightPanelTab = useCallback(
     (tab: RoomCallRightPanelTab) => {
@@ -431,7 +437,7 @@ export function RoomVideoView({
                         stageFullscreen.isExpanded ? "Exit full screen" : "Full screen"
                       }
                       title={stageFullscreen.isExpanded ? "Exit full screen" : "Full screen"}
-                      className="pointer-events-auto inline-flex size-10 items-center justify-center rounded-full border border-white/25 bg-black/55 text-white shadow-lg backdrop-blur-md transition-colors hover:bg-black/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40"
+                      className="pointer-events-auto inline-flex size-10 cursor-pointer items-center justify-center rounded-full border border-white/25 bg-black/55 text-white shadow-lg backdrop-blur-md transition-colors hover:bg-black/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40"
                     >
                       {stageFullscreen.isExpanded ? (
                         <Minimize2 size={18} className="shrink-0" />
@@ -479,6 +485,7 @@ export function RoomVideoView({
                   onSelectScreenShare={onSelectScreenShare}
                   remotePeerCameraStream={remotePeerCameraStream}
                   participantVideosInSidebar={participantVideosInSidebar}
+                  shareStageImmersive={shareStageImmersive}
                 />
 
                 <RoomVideoStageOverlays
@@ -507,6 +514,7 @@ export function RoomVideoView({
                   cameraEnabled={cameraEnabled}
                   localStream={localStream}
                   participantVideosInSidebar={participantVideosInSidebar}
+                  shareStageImmersive={shareStageImmersive}
                 />
 
                 {!isGroupRoom ? (

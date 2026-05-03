@@ -33,6 +33,7 @@ export function RoomVideoStageOverlays({
   cameraEnabled,
   localStream,
   participantVideosInSidebar = false,
+  shareStageImmersive = false,
 }: {
   mediaBusy: boolean;
   mediaStatus: string;
@@ -59,6 +60,8 @@ export function RoomVideoStageOverlays({
   cameraEnabled?: boolean;
   localStream?: MediaStream | null;
   participantVideosInSidebar?: boolean;
+  /** Share-only fullscreen on narrow — hide corner camera previews. */
+  shareStageImmersive?: boolean;
 }) {
   return (
     <>
@@ -99,7 +102,11 @@ export function RoomVideoStageOverlays({
         </div>
       ) : null}
 
-      {!isGroupRoom && !activeActivity && stageRatio !== "1:1" && !participantVideosInSidebar ? (
+      {!isGroupRoom &&
+      !activeActivity &&
+      stageRatio !== "1:1" &&
+      !participantVideosInSidebar &&
+      !shareStageImmersive ? (
         <div
           className="pointer-events-none absolute z-20 overflow-hidden rounded-2xl border border-border/70 bg-card shadow-2xl"
           style={{
@@ -138,7 +145,8 @@ export function RoomVideoStageOverlays({
       peerCameraInsetStream &&
       !activeActivity &&
       stageRatio !== "1:1" &&
-      !participantVideosInSidebar ? (
+      !participantVideosInSidebar &&
+      !shareStageImmersive ? (
         <div
           className="pointer-events-none absolute z-20 overflow-hidden rounded-xl border border-white/20 bg-black/80 shadow-lg"
           style={{ bottom: "4.5rem", right: "10.5rem", width: "9rem" }}
