@@ -107,6 +107,7 @@ export function AddToCircleDialog({
       <DialogContent
         className="z-200 sm:max-w-md"
         overlayClassName="z-199"
+        onOpenAutoFocus={(e) => e.preventDefault()}
       >
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
