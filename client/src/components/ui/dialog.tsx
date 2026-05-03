@@ -5,6 +5,10 @@ import * as DialogPrimitive from "@radix-ui/react-dialog"
 import { XIcon } from "lucide-react"
 
 import { cn } from "@/lib/utils"
+import {
+  dialogContentIsBottomAnchored,
+  useDialogVisualViewportStyle,
+} from "@/components/ui/use-dialog-visual-viewport-style"
 
 function Dialog({
   ...props
@@ -51,11 +55,18 @@ function DialogContent({
   children,
   showCloseButton = true,
   overlayClassName,
+  adaptVisualViewport = true,
+  style,
   ...props
 }: React.ComponentProps<typeof DialogPrimitive.Content> & {
   showCloseButton?: boolean
   overlayClassName?: string
+  /** When true (default), reposition / inset for `visualViewport` (mobile keyboard, iOS Safari). Set false to opt out. */
+  adaptVisualViewport?: boolean
 }) {
+  const anchor = dialogContentIsBottomAnchored(className) ? "bottom" : "center"
+  const visualViewportStyle = useDialogVisualViewportStyle(adaptVisualViewport, anchor)
+
   return (
     <DialogPortal data-slot="dialog-portal">
       <DialogOverlay className={overlayClassName} />
@@ -65,6 +76,7 @@ function DialogContent({
           "bg-background data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 fixed top-[50%] left-[50%] z-50 grid w-full max-w-[calc(100%-2rem)] translate-x-[-50%] translate-y-[-50%] gap-4 rounded-lg border p-6 shadow-lg duration-200 sm:max-w-lg",
           className
         )}
+        style={{ ...style, ...visualViewportStyle }}
         {...props}
       >
         {children}

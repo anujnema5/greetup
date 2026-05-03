@@ -5,6 +5,7 @@
  *
  * Purpose:
  * - Owns local UI state (right panel tab, stage ratio, active activity, mobile chat sheet).
+ * - Narrow viewports: bottom sheet for chat/people/activities is vertically resizable via drag handle.
  * - Circle calls: footer “Options” opens `RoomCircleCallOptionsDialog` (rename, link, invite, chat).
  * - Delegates media-derived values to `useRoomVideoViewModel`.
  * - Composes stage, overlays, HUD, toolbar, and right panel into a single responsive call layout.
@@ -32,7 +33,9 @@ import { RoomCircleCallOptionsDialog } from "@/features/room/components/room-vid
 import { RoomVideoHud } from "@/features/room/components/room-video/room-video-hud";
 import { RoomVideoToolbar } from "@/features/room/components/room-video/room-video-toolbar";
 import { RoomVideoStageOverlays } from "@/features/room/components/room-video/room-video-overlays";
+import { RoomMobileChatSheetDragHandle } from "@/features/room/components/room-video/room-mobile-chat-sheet-drag-handle";
 import { RoomVideoRightPanel } from "@/features/room/components/room-video/room-video-right-panel";
+import { useRoomMobileChatSheetHeight } from "@/features/room/hooks/use-room-mobile-chat-sheet-height";
 import { cn } from "@/lib/utils";
 import { buildLocalPreviewStream } from "@/features/rtc/lib/direct-call-stage";
 
@@ -281,6 +284,8 @@ export function RoomVideoView({
   useEffect(() => {
     if (lgUp) setMobileChatSheetOpen(false);
   }, [lgUp]);
+
+  const mobileChatSheetDrag = useRoomMobileChatSheetHeight(mobileChatSheetOpen && !lgUp);
 
   useEffect(() => {
     if (rightPanelTab === "participants" && !showPeopleTab) {
@@ -537,14 +542,30 @@ export function RoomVideoView({
               className={[
                 /* Above RoomVideoLayer (`z-100`) and in-room dialogs (e.g. `z-200`). */
                 "z-250 gap-0 border-x-0 border-b-0 p-0",
-                "fixed! inset-x-0! bottom-0! top-auto! left-0! right-0! max-h-[min(88dvh,880px)]! w-full! max-w-full!",
+                "fixed! inset-x-0! bottom-0! top-auto! left-0! right-0! w-full! max-w-full!",
                 "translate-x-0! translate-y-0! rounded-t-2xl rounded-b-none",
               ].join(" ")}
+              style={{ maxHeight: mobileChatSheetDrag.maxHeightPx }}
               overlayClassName="z-240"
             >
               <DialogTitle className="sr-only">People, chat, and activities</DialogTitle>
-              <div className="flex max-h-[min(88dvh,880px)] flex-col overflow-hidden pb-[env(safe-area-inset-bottom)]">
-                <RoomVideoRightPanel {...rightPanelProps} variant="sheet" />
+              <div
+                className="flex min-h-0 flex-col overflow-hidden pb-[env(safe-area-inset-bottom)]"
+                style={{ height: mobileChatSheetDrag.heightPx }}
+              >
+                <RoomMobileChatSheetDragHandle
+                  isDragging={mobileChatSheetDrag.isDragging}
+                  {...mobileChatSheetDrag.dragHandleProps}
+                />
+                <div
+                  className={cn(
+                    "flex min-h-0 flex-1 touch-pan-y flex-col overflow-hidden",
+                    mobileChatSheetDrag.isDragging && "touch-none select-none",
+                  )}
+                  {...mobileChatSheetDrag.sheetContentDragProps}
+                >
+                  <RoomVideoRightPanel {...rightPanelProps} variant="sheet" />
+                </div>
               </div>
             </DialogContent>
           </Dialog>

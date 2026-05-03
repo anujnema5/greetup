@@ -58,7 +58,7 @@ export function RoomVideoRightPanel({
         variant === "dock" &&
           "h-full min-h-0 w-full flex-1 rounded-2xl border border-border/70 bg-card/92 backdrop-blur-md lg:max-h-none lg:w-88",
         variant === "sheet" &&
-          "h-full max-h-[min(82dvh,800px)] w-full flex-1 rounded-none border-0 bg-card/95",
+          "min-h-0 w-full flex-1 rounded-none border-0 bg-card/95",
       )}
     >
       <Tabs
