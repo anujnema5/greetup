@@ -1,170 +1,205 @@
 "use client";
 
+/**
+ * Visual viewport integration for `DialogContent` (mobile keyboard, iOS Safari, bottom sheets).
+ *
+ * - **Centered dialogs:** Usually rely on Tailwind `top-[50%] left-[50%]` + `translate-*`. When the
+ *   visual viewport shrinks (keyboard, chrome), `%` is wrong for `position: fixed`; we then set pixel
+ *   `top`/`left` and `translate: -50% -50%` (longhand so `zoom-in-*` scale on `transform` still works).
+ * - **Bottom sheets:** Classnames often use `bottom-0!`, which beats normal inline `bottom`. The dialog
+ *   applies keyboard inset with `setProperty(..., 'important')` instead.
+ *
+ * One shared `useSyncExternalStore` subscription avoids per-dialog listeners and keeps snapshots stable.
+ */
+
 import { useCallback, useSyncExternalStore, type CSSProperties } from "react";
 
 const EMPTY_STYLE: CSSProperties = {};
 
-/** Space between the modal and the top of the keyboard / occluded area (px). */
+/** Exported so callers can tune spacing above the keyboard in one place. */
 export const DIALOG_VISUAL_VIEWPORT_KEYBOARD_GAP_PX = 12;
 
-const CENTER_VPAD_TOP = 16;
-const CENTER_VPAD_BOTTOM = 16;
+const CENTER_PAD_TOP_PX = 16;
+const CENTER_PAD_BOTTOM_PX = 16;
 
-/** Ignore transient 0×0-ish visualViewport reads during mobile keyboard transitions (avoids top-left snap). */
-const MIN_VISUAL_VIEWPORT_AXIS_PX = 48;
+/** Skip bogus geometry while the keyboard is animating (prevents a flash in the top-left). */
+const MIN_VV_AXIS_PX = 48;
 
-function computeKeyboardBottomInsetPx(): number {
+/** When pixel `top`/`left` is needed instead of `%` centering. */
+const NUDGE = {
+  minKeyboardInsetPx: 1,
+  minWidthLossPx: 4,
+  minHeightLossPx: 12,
+  heightLossNeedsOffsetTopPx: 2,
+  minOffsetTopOrLeftPx: 6,
+} as const;
+
+// ─── Geometry (read-only; safe to call from viewport event handlers) ─────────
+
+function keyboardBottomInsetPx(): number {
   if (typeof window === "undefined" || !window.visualViewport) return 0;
   const vv = window.visualViewport;
   const raw = window.innerHeight - vv.offsetTop - vv.height;
-  // Treat sub-pixel noise as 0; small real insets still count (avoid missing soft keyboard).
   if (raw <= 0.5) return 0;
   return Math.max(1, Math.round(raw));
 }
 
-/** True when layout / keyboard differs from “full window” — then CSS % centering is wrong for `fixed` dialogs. */
-function visualViewportNeedsPixelCentering(): boolean {
+function shouldUsePixelCentering(): boolean {
   if (typeof window === "undefined" || !window.visualViewport) return false;
   const vv = window.visualViewport;
-  const inset = computeKeyboardBottomInsetPx();
-  if (inset >= 1) return true;
+  const inset = keyboardBottomInsetPx();
+  if (inset >= NUDGE.minKeyboardInsetPx) return true;
 
-  const widthLoss = window.innerWidth - vv.width;
-  if (widthLoss > 4) return true;
+  if (window.innerWidth - vv.width > NUDGE.minWidthLossPx) return true;
 
   const heightLoss = window.innerHeight - vv.height;
-  if (heightLoss > 12 && vv.offsetTop > 2) return true;
+  if (heightLoss > NUDGE.minHeightLossPx && vv.offsetTop > NUDGE.heightLossNeedsOffsetTopPx) {
+    return true;
+  }
 
-  if (vv.offsetTop > 6 || vv.offsetLeft > 6) return true;
+  if (vv.offsetTop > NUDGE.minOffsetTopOrLeftPx || vv.offsetLeft > NUDGE.minOffsetTopOrLeftPx) {
+    return true;
+  }
 
   return false;
 }
 
-function stylesEqual(a: CSSProperties, b: CSSProperties): boolean {
+function cssPropsEqual(a: CSSProperties, b: CSSProperties): boolean {
   if (a === b) return true;
   const keys = new Set([...Object.keys(a), ...Object.keys(b)]);
   for (const k of keys) {
-    if ((a as Record<string, unknown>)[k] !== (b as Record<string, unknown>)[k]) {
-      return false;
-    }
+    if ((a as Record<string, unknown>)[k] !== (b as Record<string, unknown>)[k]) return false;
   }
   return true;
 }
 
-function computeCenterStyle(): CSSProperties {
+function centeredDialogStyle(): CSSProperties {
   if (typeof window === "undefined" || !window.visualViewport) return EMPTY_STYLE;
-  if (!visualViewportNeedsPixelCentering()) return EMPTY_STYLE;
+  if (!shouldUsePixelCentering()) return EMPTY_STYLE;
+
   const vv = window.visualViewport;
-  if (vv.width < MIN_VISUAL_VIEWPORT_AXIS_PX || vv.height < MIN_VISUAL_VIEWPORT_AXIS_PX) {
-    return EMPTY_STYLE;
-  }
-  const inset = computeKeyboardBottomInsetPx();
-  const bottomBreathing = inset >= 1 ? DIALOG_VISUAL_VIEWPORT_KEYBOARD_GAP_PX : 0;
-  const maxH = Math.max(
+  if (vv.width < MIN_VV_AXIS_PX || vv.height < MIN_VV_AXIS_PX) return EMPTY_STYLE;
+
+  const inset = keyboardBottomInsetPx();
+  const keyboardGap = inset >= 1 ? DIALOG_VISUAL_VIEWPORT_KEYBOARD_GAP_PX : 0;
+  const maxHeight = Math.max(
     120,
-    Math.round(vv.height - CENTER_VPAD_TOP - CENTER_VPAD_BOTTOM - bottomBreathing),
+    Math.round(vv.height - CENTER_PAD_TOP_PX - CENTER_PAD_BOTTOM_PX - keyboardGap),
   );
-  // Use the `translate` longhand so Tailwind `translate-x/y` and `zoom-in-*` (transform scale) can coexist.
+
   return {
     top: Math.round(vv.offsetTop + vv.height / 2),
     left: Math.round(vv.offsetLeft + vv.width / 2),
-    maxHeight: maxH,
+    maxHeight,
     translate: "-50% -50%",
   } as CSSProperties;
 }
 
-function computeBottomStyle(): CSSProperties {
+function bottomAnchoredInsetStyle(): CSSProperties {
   if (typeof window === "undefined" || !window.visualViewport) return EMPTY_STYLE;
-  const b = computeKeyboardBottomInsetPx();
-  if (b === 0) return EMPTY_STYLE;
-  return { bottom: b + DIALOG_VISUAL_VIEWPORT_KEYBOARD_GAP_PX };
+  const inset = keyboardBottomInsetPx();
+  if (inset === 0) return EMPTY_STYLE;
+  return { bottom: inset + DIALOG_VISUAL_VIEWPORT_KEYBOARD_GAP_PX };
 }
 
-// ─── External store: update only from viewport events (never during getSnapshot). ───
+// ─── Module-level store (updates only from viewport events, never in getSnapshot) ───
 
-let centerStyle: CSSProperties = EMPTY_STYLE;
-let bottomStyle: CSSProperties = EMPTY_STYLE;
-const listeners = new Set<() => void>();
-let attached = false;
+let snapshotCenter: CSSProperties = EMPTY_STYLE;
+let snapshotBottom: CSSProperties = EMPTY_STYLE;
+const storeListeners = new Set<() => void>();
+let viewportListenersAttached = false;
 
-function emitIfChanged() {
-  const nextCenter = computeCenterStyle();
-  const nextBottom = computeBottomStyle();
-  if (stylesEqual(centerStyle, nextCenter) && stylesEqual(bottomStyle, nextBottom)) {
+function recalculateViewportStyles() {
+  const nextCenter = centeredDialogStyle();
+  const nextBottom = bottomAnchoredInsetStyle();
+  if (cssPropsEqual(snapshotCenter, nextCenter) && cssPropsEqual(snapshotBottom, nextBottom)) {
     return;
   }
-  centerStyle = nextCenter;
-  bottomStyle = nextBottom;
-  listeners.forEach((l) => l());
+  snapshotCenter = nextCenter;
+  snapshotBottom = nextBottom;
+  storeListeners.forEach((notify) => notify());
 }
 
-function attachViewportListeners() {
-  if (attached || typeof window === "undefined") return;
+function attachGlobalViewportListeners() {
+  if (viewportListenersAttached || typeof window === "undefined") return;
   const vv = window.visualViewport;
   if (!vv) return;
-  attached = true;
-  vv.addEventListener("resize", emitIfChanged);
-  vv.addEventListener("scroll", emitIfChanged);
-  vv.addEventListener("geometrychange", emitIfChanged);
-  window.addEventListener("resize", emitIfChanged);
+  viewportListenersAttached = true;
+  vv.addEventListener("resize", recalculateViewportStyles);
+  vv.addEventListener("scroll", recalculateViewportStyles);
+  vv.addEventListener("geometrychange", recalculateViewportStyles);
+  window.addEventListener("resize", recalculateViewportStyles);
 }
 
-function detachViewportListeners() {
-  if (!attached) return;
+function detachGlobalViewportListeners() {
+  if (!viewportListenersAttached) return;
   const vv = window.visualViewport;
-  vv?.removeEventListener("resize", emitIfChanged);
-  vv?.removeEventListener("scroll", emitIfChanged);
-  vv?.removeEventListener("geometrychange", emitIfChanged);
-  window.removeEventListener("resize", emitIfChanged);
-  attached = false;
-  centerStyle = EMPTY_STYLE;
-  bottomStyle = EMPTY_STYLE;
+  vv?.removeEventListener("resize", recalculateViewportStyles);
+  vv?.removeEventListener("scroll", recalculateViewportStyles);
+  vv?.removeEventListener("geometrychange", recalculateViewportStyles);
+  window.removeEventListener("resize", recalculateViewportStyles);
+  viewportListenersAttached = false;
+  snapshotCenter = EMPTY_STYLE;
+  snapshotBottom = EMPTY_STYLE;
 }
 
-function subscribeViewport(onChange: () => void): () => void {
-  listeners.add(onChange);
-  if (listeners.size === 1) {
-    emitIfChanged();
-    attachViewportListeners();
+function subscribeToViewportStore(onStoreChange: () => void): () => void {
+  storeListeners.add(onStoreChange);
+  if (storeListeners.size === 1) {
+    recalculateViewportStyles();
+    attachGlobalViewportListeners();
   }
   return () => {
-    listeners.delete(onChange);
-    if (listeners.size === 0) {
-      detachViewportListeners();
-    }
+    storeListeners.delete(onStoreChange);
+    if (storeListeners.size === 0) detachGlobalViewportListeners();
   };
 }
 
-/**
- * Keeps `DialogContent` inside the visual viewport when the on-screen keyboard (or browser UI)
- * changes `visualViewport`. Bottom-anchored sheets get `bottom` inset; centered dialogs only
- * switch to pixel `top`/`left` when the visual viewport actually differs (otherwise Tailwind
- * `top-[50%] left-[50%]` stays correct).
- */
+// ─── Public API ───────────────────────────────────────────────────────────────
+
 export function useDialogVisualViewportStyle(
   enabled: boolean,
   anchor: "center" | "bottom",
 ): CSSProperties {
   const subscribe = useCallback(
-    (onStoreChange: () => void) => {
-      if (!enabled) return () => {};
-      return subscribeViewport(onStoreChange);
-    },
+    (onChange: () => void) => (enabled ? subscribeToViewportStore(onChange) : () => {}),
     [enabled],
   );
 
   const getSnapshot = useCallback(() => {
-    if (!enabled || typeof window === "undefined") {
-      return EMPTY_STYLE;
-    }
-    return anchor === "bottom" ? bottomStyle : centerStyle;
+    if (!enabled || typeof window === "undefined") return EMPTY_STYLE;
+    return anchor === "bottom" ? snapshotBottom : snapshotCenter;
   }, [enabled, anchor]);
 
   return useSyncExternalStore(subscribe, getSnapshot, () => EMPTY_STYLE);
 }
 
-/** Heuristic: callers that anchor the sheet with Tailwind `bottom-0` (often with `!`). */
+/** Bottom sheets pass `bottom-0` (often `!`); everything else is treated as centered. */
 export function dialogContentIsBottomAnchored(className: string | undefined): boolean {
-  if (!className) return false;
-  return className.includes("bottom-0");
+  return Boolean(className?.includes("bottom-0"));
+}
+
+/** Pixel centering is active → `DialogContent` must not add Tailwind `translate-x/y` (avoids double offset). */
+export function dialogContentHasPixelCenterOffset(
+  enabled: boolean,
+  anchor: "center" | "bottom",
+  style: CSSProperties,
+): boolean {
+  return enabled && anchor === "center" && typeof style.top === "number";
+}
+
+/** When set, `bottom` is applied with `!important` in `DialogContent` to beat `bottom-0!`. */
+export function dialogContentKeyboardBottomPx(
+  enabled: boolean,
+  anchor: "center" | "bottom",
+  style: CSSProperties,
+): number | undefined {
+  if (!enabled || anchor !== "bottom" || typeof style.bottom !== "number") return undefined;
+  return style.bottom;
+}
+
+/** `bottom` is handled separately for bottom sheets; merge the rest into `style`. */
+export function dialogViewportStyleForInlineMerge(style: CSSProperties): CSSProperties {
+  const { bottom: _omit, ...rest } = style;
+  return rest;
 }
