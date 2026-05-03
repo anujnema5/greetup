@@ -104,7 +104,6 @@ export function InviteFriendsDialog({
               placeholder="Search"
               className="h-10 border-border/80 bg-muted/20 pl-9"
               autoComplete="off"
-              autoFocus
             />
           </div>
         </div>

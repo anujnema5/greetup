@@ -60,19 +60,21 @@ const TOOLBAR_SHELL_CLASS =
 const HIDE_SCROLLBAR_CLASS =
   "[-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden";
 
-/** Caption columns use w-12 / ~3.25rem on sm+; keep estimate conservative for overflow math */
-const EST_ICON_PX = 52;
-const EST_GAP_PX = 8;
-
-function maxSecondaryInlineCount(availablePx: number, total: number): number {
+/** Matches `ToolbarButtonColumn` width (`w-18` mobile, `sm:w-16`) for overflow math */
+const EST_ICON_PX = 72;
+function maxSecondaryInlineCount(
+  availablePx: number,
+  total: number,
+  iconGapPx: number,
+): number {
   if (total <= 0 || availablePx <= 0) return 0;
   for (let k = total; k >= 0; k--) {
     let used = 0;
     if (k > 0) {
-      used = k * EST_ICON_PX + Math.max(0, k - 1) * EST_GAP_PX;
+      used = k * EST_ICON_PX + Math.max(0, k - 1) * iconGapPx;
     }
     if (k < total) {
-      used += (k > 0 ? EST_GAP_PX : 0) + EST_ICON_PX;
+      used += (k > 0 ? iconGapPx : 0) + EST_ICON_PX;
     }
     if (used <= availablePx) return k;
   }
@@ -147,8 +149,7 @@ export function RoomVideoToolbar({
     if (showPeopleTab) items.push("participants");
     if (conversationId) items.push("chat");
     if (!isGroupRoom) items.push("activities", "live");
-    if (showAddToCircle && onOpenAddToCircle && !isGroupRoom) items.push("add");
-    /* Circle: invite lives in options dialog; direct keeps quick-add in the bar. */
+    if (showAddToCircle && onOpenAddToCircle) items.push("add");
     if (showCircleOptions && onOpenCircleOptions) items.push("circleOptions");
     if (showSkip) items.push("skip");
     return items;
@@ -181,7 +182,17 @@ export function RoomVideoToolbar({
     [secondaryActions, skipPinnedMobile, narrowToolbar, isGroupRoom],
   );
 
-  const [inlineSecondaryCount, setInlineSecondaryCount] = useState(flowSecondaries.length);
+  /** Narrow: keep Chat + Add people at the front so they stay on the bar instead of “More”. */
+  const toolbarFlowSecondaries = useMemo(() => {
+    if (!narrowToolbar) return flowSecondaries;
+    const rest = flowSecondaries.filter((id) => id !== "chat" && id !== "add");
+    const front: typeof flowSecondaries = [];
+    if (flowSecondaries.includes("chat")) front.push("chat");
+    if (flowSecondaries.includes("add")) front.push("add");
+    return [...front, ...rest];
+  }, [flowSecondaries, narrowToolbar]);
+
+  const [inlineSecondaryCount, setInlineSecondaryCount] = useState(toolbarFlowSecondaries.length);
 
   // Fit as many secondary icons inline as width allows; rest go in the “more” menu.
   useLayoutEffect(() => {
@@ -196,7 +207,8 @@ export function RoomVideoToolbar({
       const rw = root.getBoundingClientRect().width;
       const mw = media.getBoundingClientRect().width;
       const ew = end.getBoundingClientRect().width;
-      const reservedForPinnedSkip = skipPinnedMobile ? EST_ICON_PX + EST_GAP_PX : 0;
+      const iconGapPx = narrowToolbar ? 6 : 10;
+      const reservedForPinnedSkip = skipPinnedMobile ? EST_ICON_PX + iconGapPx : 0;
       /** Narrow: [media][actions][end] + gap-1.5. Wide: + divider + gap-2. */
       const gapPx = narrowToolbar ? 6 : 8;
       const flexGaps = narrowToolbar ? 2 : 3;
@@ -204,20 +216,33 @@ export function RoomVideoToolbar({
       const rowGapsPx = gapPx * flexGaps + dividerPx;
       const available = rw - mw - ew - rowGapsPx - 4 - reservedForPinnedSkip;
 
-      setInlineSecondaryCount(maxSecondaryInlineCount(available, flowSecondaries.length));
+      const fitted = maxSecondaryInlineCount(
+        available,
+        toolbarFlowSecondaries.length,
+        iconGapPx,
+      );
+      const minInlineOnNarrow = narrowToolbar
+        ? toolbarFlowSecondaries.filter((id) => id === "chat" || id === "add").length
+        : 0;
+      setInlineSecondaryCount(
+        Math.min(
+          toolbarFlowSecondaries.length,
+          Math.max(fitted, minInlineOnNarrow),
+        ),
+      );
     };
 
     measure();
     const ro = new ResizeObserver(() => measure());
     ro.observe(root);
     return () => ro.disconnect();
-  }, [flowSecondaries.length, skipPinnedMobile, narrowToolbar]);
+  }, [toolbarFlowSecondaries, skipPinnedMobile, narrowToolbar]);
 
   if (!onToggleMic || !onToggleCamera) {
     return null;
   }
 
-  const overflowSecondaries = flowSecondaries.slice(inlineSecondaryCount);
+  const overflowSecondaries = toolbarFlowSecondaries.slice(inlineSecondaryCount);
   const showOverflowTrigger = overflowSecondaries.length > 0;
 
   type SecondaryId = (typeof secondaryActions)[number];
@@ -286,8 +311,10 @@ export function RoomVideoToolbar({
           <CircleToolbarButton
             key={id}
             onClick={onOpenAddToCircle}
-            ariaLabel="Add someone to your circle"
-            caption="Add"
+            ariaLabel={
+              isGroupRoom ? "Add people to this circle call" : "Add someone to your circle"
+            }
+            caption={isGroupRoom ? "Add people" : "Add"}
           >
             <UserPlus size={18} className="text-white/80" />
           </CircleToolbarButton>
@@ -365,7 +392,7 @@ export function RoomVideoToolbar({
         return onOpenAddToCircle ? (
           <DropdownMenuItem key={id} onClick={onOpenAddToCircle}>
             <UserPlus size={16} />
-            Add to circle
+            {isGroupRoom ? "Add people" : "Add to circle"}
           </DropdownMenuItem>
         ) : null;
       case "circleOptions":
@@ -393,10 +420,7 @@ export function RoomVideoToolbar({
         className={cn(
           "flex w-full min-w-0 items-center",
           narrowToolbar
-            ? cn(
-                "justify-start gap-1.5 overflow-x-auto overflow-y-visible overscroll-x-contain px-2.5",
-                HIDE_SCROLLBAR_CLASS,
-              )
+            ? "justify-start gap-1.5 overflow-y-visible px-2.5"
             : "justify-between gap-3 px-3 sm:gap-4 sm:px-5",
         )}
       >
@@ -471,15 +495,22 @@ export function RoomVideoToolbar({
 
         <div
           className={cn(
-            "flex min-w-0 shrink-0 items-center",
-            narrowToolbar ? "gap-1.5" : "flex-1 justify-center gap-2.5",
+            "flex min-w-0 items-center",
+            narrowToolbar
+              ? cn(
+                  "min-w-0 flex-1 gap-1.5 overflow-x-auto overflow-y-visible overscroll-x-contain",
+                  HIDE_SCROLLBAR_CLASS,
+                )
+              : "shrink-0 flex-1 justify-center gap-2.5",
           )}
         >
-          {flowSecondaries.slice(0, inlineSecondaryCount).map((id) => renderSecondaryButton(id))}
+          {toolbarFlowSecondaries
+            .slice(0, inlineSecondaryCount)
+            .map((id) => renderSecondaryButton(id))}
           {skipPinnedMobile ? renderSecondaryButton("skip") : null}
           {showOverflowTrigger ? (
             <DropdownMenu modal={false}>
-              <div className="flex w-12 shrink-0 flex-col items-center gap-1 sm:w-13">
+              <div className="flex w-18 min-w-18 shrink-0 flex-col items-center gap-1 sm:w-16 sm:min-w-16">
                 <DropdownMenuTrigger asChild>
                   <button
                     type="button"
@@ -525,7 +556,7 @@ export function RoomVideoToolbar({
             <div className="h-7 w-px shrink-0 self-center bg-white/18" aria-hidden />
           ) : null}
           {narrowToolbar ? (
-            <div className="flex w-12 shrink-0 flex-col items-center gap-1 sm:w-13">
+            <div className="flex w-18 min-w-18 shrink-0 flex-col items-center gap-1 sm:w-16 sm:min-w-16">
               <button
                 type="button"
                 onClick={onEnd}

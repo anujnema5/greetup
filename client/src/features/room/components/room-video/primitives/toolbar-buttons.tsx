@@ -17,8 +17,8 @@ const GLASS_BUTTON_STYLE = {
  * Exported so callers (e.g. the overflow "More" button) can match the style.
  */
 export const TOOLBAR_CONTROL_CAPTION_CLASS =
-  "pointer-events-none max-w-[4.5rem] text-center text-[11px] font-medium " +
-  "leading-snug tracking-wide text-white/55 sm:max-w-[5rem]";
+  "pointer-events-none w-full max-w-none text-center text-[11px] font-medium " +
+  "leading-snug tracking-wide text-white/55";
 
 // ─── Internal layout helpers ──────────────────────────────────────────────────
 
@@ -43,10 +43,10 @@ function ToolbarCaption({
   );
 }
 
-/** Fixed-width column that stacks a button above its caption. */
+/** Fixed-width column that stacks a button above its caption (wide enough for “Add people”). */
 function ToolbarButtonColumn({ children }: { children: ReactNode }) {
   return (
-    <div className="flex w-12 shrink-0 flex-col items-center gap-1 sm:w-13">
+    <div className="flex w-18 min-w-18 shrink-0 flex-col items-center gap-1 sm:w-16 sm:min-w-16">
       {children}
     </div>
   );
