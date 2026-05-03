@@ -22,9 +22,11 @@ function viewportHeightPx(): number {
 }
 
 function computeBounds(vh: number): { min: number; max: number } {
-  const min = Math.max(260, Math.round(vh * MIN_VH_FRACTION));
-  const maxUncapped = Math.round(vh * MAX_VH_FRACTION);
-  const max = Math.min(MAX_CAP_PX, Math.max(min + 100, maxUncapped));
+  const vhSafe = Math.max(0, vh);
+  const maxUncapped = Math.round(vhSafe * MAX_VH_FRACTION);
+  const max = Math.min(MAX_CAP_PX, Math.max(120, maxUncapped));
+  const minCandidate = Math.max(120, Math.round(vhSafe * MIN_VH_FRACTION));
+  const min = Math.min(minCandidate, max);
   return { min, max };
 }
 
