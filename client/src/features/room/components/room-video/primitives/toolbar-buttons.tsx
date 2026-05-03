@@ -43,10 +43,10 @@ function ToolbarCaption({
   );
 }
 
-/** Fixed-width column that stacks a button above its caption (wide enough for “Add people”). */
+/** Fixed-width column: stacks icon + caption; `w-16` keeps more controls on-screen on phones. */
 function ToolbarButtonColumn({ children }: { children: ReactNode }) {
   return (
-    <div className="flex w-18 min-w-18 shrink-0 flex-col items-center gap-1 sm:w-16 sm:min-w-16">
+    <div className="flex w-16 min-w-16 shrink-0 flex-col items-center gap-1">
       {children}
     </div>
   );

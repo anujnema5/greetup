@@ -11,6 +11,11 @@ const DEFAULT_VH_FRACTION = 0.56;
 
 const SSR_FALLBACK_HEIGHT = 520;
 
+/** Pixels before a surface touch becomes a sheet resize (lets taps / light moves pass through). */
+const SURFACE_DRAG_THRESHOLD_PX = 14;
+/** Vertical movement must dominate horizontal by this factor to resize (else treat as scroll). */
+const SURFACE_DRAG_DOMINANCE = 1.35;
+
 function viewportHeightPx(): number {
   if (typeof window === "undefined") return 640;
   return Math.round(window.visualViewport?.height ?? window.innerHeight);
@@ -46,6 +51,45 @@ function persistHeightPx(h: number): void {
   }
 }
 
+function isInteractiveTarget(t: EventTarget | null): boolean {
+  if (!(t instanceof Element)) return false;
+  return Boolean(
+    t.closest(
+      'input, textarea, select, button, a[href], [contenteditable="true"], [role="slider"], [role="textbox"]',
+    ),
+  );
+}
+
+/** Nearest ancestor that can scroll vertically (chat / tab lists). */
+function findVerticalScrollParent(el: Element | null): HTMLElement | null {
+  let cur: Element | null = el;
+  while (cur) {
+    if (cur instanceof HTMLElement) {
+      const st = getComputedStyle(cur);
+      const oy = st.overflowY;
+      if ((oy === "auto" || oy === "scroll" || oy === "overlay") && cur.scrollHeight > cur.clientHeight + 1) {
+        return cur;
+      }
+    }
+    cur = cur.parentElement;
+  }
+  return null;
+}
+
+type ResizeSession = {
+  pointerId: number;
+  startY: number;
+  startH: number;
+};
+
+type SurfacePending = {
+  pointerId: number;
+  startX: number;
+  startY: number;
+  startH: number;
+  target: EventTarget | null;
+};
+
 export type UseRoomMobileChatSheetHeightResult = {
   heightPx: number;
   minHeightPx: number;
@@ -57,15 +101,23 @@ export type UseRoomMobileChatSheetHeightResult = {
     onPointerUp: (e: React.PointerEvent<HTMLElement>) => void;
     onPointerCancel: (e: React.PointerEvent<HTMLElement>) => void;
   };
+  /** Attach to the panel body (tabs + chat). Drag up/down after a short vertical threshold resizes the sheet. */
+  sheetContentDragProps: {
+    onPointerDown: (e: React.PointerEvent<HTMLElement>) => void;
+    onPointerMove: (e: React.PointerEvent<HTMLElement>) => void;
+    onPointerUp: (e: React.PointerEvent<HTMLElement>) => void;
+    onPointerCancel: (e: React.PointerEvent<HTMLElement>) => void;
+  };
 };
 
 /**
- * Bottom-anchored room panel (chat / people / activities) on narrow viewports: vertical
- * resize by dragging the handle. Height is clamped to the viewport and persisted per tab session.
+ * Bottom-anchored room panel on narrow viewports: resize by dragging the handle, or by a vertical
+ * drag anywhere on the panel body (unless the gesture should scroll messages / hits a control).
  */
 export function useRoomMobileChatSheetHeight(open: boolean): UseRoomMobileChatSheetHeightResult {
   const boundsRef = useRef(computeBounds(viewportHeightPx()));
-  const dragRef = useRef<{ startY: number; startH: number } | null>(null);
+  const resizeSessionRef = useRef<ResizeSession | null>(null);
+  const surfacePendingRef = useRef<SurfacePending | null>(null);
   const heightRef = useRef(SSR_FALLBACK_HEIGHT);
 
   const [heightPx, setHeightPx] = useState(SSR_FALLBACK_HEIGHT);
@@ -80,8 +132,39 @@ export function useRoomMobileChatSheetHeight(open: boolean): UseRoomMobileChatSh
     return c;
   }, []);
 
+  const endResize = useCallback((e: React.PointerEvent<HTMLElement>) => {
+    const el = e.currentTarget;
+    surfacePendingRef.current = null;
+    if (!resizeSessionRef.current || resizeSessionRef.current.pointerId !== e.pointerId) {
+      return;
+    }
+    resizeSessionRef.current = null;
+    setIsDragging(false);
+    try {
+      el.releasePointerCapture(e.pointerId);
+    } catch {
+      /* ignore */
+    }
+    persistHeightPx(heightRef.current);
+  }, []);
+
+  const applyResizeFromEvent = useCallback(
+    (e: React.PointerEvent<HTMLElement>) => {
+      if (!resizeSessionRef.current || resizeSessionRef.current.pointerId !== e.pointerId) return;
+      e.preventDefault();
+      const { startY, startH } = resizeSessionRef.current;
+      applyHeight(startH + (startY - e.clientY));
+    },
+    [applyHeight],
+  );
+
   useLayoutEffect(() => {
-    if (!open) return;
+    if (!open) {
+      resizeSessionRef.current = null;
+      surfacePendingRef.current = null;
+      setIsDragging(false);
+      return;
+    }
 
     const syncBoundsOnly = () => {
       const vh = viewportHeightPx();
@@ -110,49 +193,89 @@ export function useRoomMobileChatSheetHeight(open: boolean): UseRoomMobileChatSh
     };
   }, [open, applyHeight]);
 
-  const onPointerDown = useCallback((e: React.PointerEvent<HTMLElement>) => {
+  const onHandlePointerDown = useCallback((e: React.PointerEvent<HTMLElement>) => {
     if (e.button !== 0) return;
     e.preventDefault();
+    surfacePendingRef.current = null;
     (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
-    dragRef.current = { startY: e.clientY, startH: heightRef.current };
+    resizeSessionRef.current = {
+      pointerId: e.pointerId,
+      startY: e.clientY,
+      startH: heightRef.current,
+    };
     setIsDragging(true);
   }, []);
 
-  const onPointerMove = useCallback(
-    (e: React.PointerEvent<HTMLElement>) => {
-      if (!dragRef.current) return;
-      e.preventDefault();
-      const { startY, startH } = dragRef.current;
-      const next = startH + (startY - e.clientY);
-      applyHeight(next);
-    },
-    [applyHeight],
-  );
-
-  const endDrag = useCallback((e: React.PointerEvent<HTMLElement>) => {
-    if (!dragRef.current) return;
-    dragRef.current = null;
-    setIsDragging(false);
-    try {
-      (e.currentTarget as HTMLElement).releasePointerCapture(e.pointerId);
-    } catch {
-      /* ignore */
-    }
-    persistHeightPx(heightRef.current);
+  const onSheetPointerDown = useCallback((e: React.PointerEvent<HTMLElement>) => {
+    if (e.button !== 0) return;
+    if (isInteractiveTarget(e.target)) return;
+    surfacePendingRef.current = {
+      pointerId: e.pointerId,
+      startX: e.clientX,
+      startY: e.clientY,
+      startH: heightRef.current,
+      target: e.target,
+    };
   }, []);
 
-  const onPointerUp = useCallback(
+  const onSheetPointerMove = useCallback(
     (e: React.PointerEvent<HTMLElement>) => {
-      endDrag(e);
+      if (resizeSessionRef.current?.pointerId === e.pointerId) {
+        applyResizeFromEvent(e);
+        return;
+      }
+
+      const p = surfacePendingRef.current;
+      if (!p || p.pointerId !== e.pointerId) return;
+
+      const dx = e.clientX - p.startX;
+      const dy = e.clientY - p.startY;
+      const absDx = Math.abs(dx);
+      const absDy = Math.abs(dy);
+
+      if (absDy < SURFACE_DRAG_THRESHOLD_PX && absDx < SURFACE_DRAG_THRESHOLD_PX) return;
+
+      if (absDx > absDy * SURFACE_DRAG_DOMINANCE && absDx > SURFACE_DRAG_THRESHOLD_PX) {
+        surfacePendingRef.current = null;
+        return;
+      }
+
+      if (absDy > absDx * SURFACE_DRAG_DOMINANCE && absDy > SURFACE_DRAG_THRESHOLD_PX) {
+        const dragUp = dy < 0;
+        if (dragUp && p.target instanceof Element) {
+          const sp = findVerticalScrollParent(p.target);
+          if (sp && sp.scrollTop > 8) {
+            surfacePendingRef.current = null;
+            return;
+          }
+        }
+
+        e.preventDefault();
+        (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+        resizeSessionRef.current = {
+          pointerId: e.pointerId,
+          startY: p.startY,
+          startH: p.startH,
+        };
+        surfacePendingRef.current = null;
+        setIsDragging(true);
+        applyHeight(p.startH + (p.startY - e.clientY));
+      }
     },
-    [endDrag],
+    [applyHeight, applyResizeFromEvent],
   );
 
-  const onPointerCancel = useCallback(
+  const onSheetPointerUpOrCancel = useCallback(
     (e: React.PointerEvent<HTMLElement>) => {
-      endDrag(e);
+      if (resizeSessionRef.current?.pointerId === e.pointerId) {
+        endResize(e);
+        return;
+      }
+      if (surfacePendingRef.current?.pointerId === e.pointerId) {
+        surfacePendingRef.current = null;
+      }
     },
-    [endDrag],
+    [endResize],
   );
 
   return {
@@ -161,10 +284,16 @@ export function useRoomMobileChatSheetHeight(open: boolean): UseRoomMobileChatSh
     maxHeightPx: bounds.max,
     isDragging,
     dragHandleProps: {
-      onPointerDown,
-      onPointerMove,
-      onPointerUp,
-      onPointerCancel,
+      onPointerDown: onHandlePointerDown,
+      onPointerMove: applyResizeFromEvent,
+      onPointerUp: endResize,
+      onPointerCancel: endResize,
+    },
+    sheetContentDragProps: {
+      onPointerDown: onSheetPointerDown,
+      onPointerMove: onSheetPointerMove,
+      onPointerUp: onSheetPointerUpOrCancel,
+      onPointerCancel: onSheetPointerUpOrCancel,
     },
   };
 }
