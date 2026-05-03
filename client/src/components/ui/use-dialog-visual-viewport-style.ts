@@ -10,6 +10,9 @@ export const DIALOG_VISUAL_VIEWPORT_KEYBOARD_GAP_PX = 12;
 const CENTER_VPAD_TOP = 16;
 const CENTER_VPAD_BOTTOM = 16;
 
+/** Ignore transient 0×0-ish visualViewport reads during mobile keyboard transitions (avoids top-left snap). */
+const MIN_VISUAL_VIEWPORT_AXIS_PX = 48;
+
 function computeKeyboardBottomInsetPx(): number {
   if (typeof window === "undefined" || !window.visualViewport) return 0;
   const vv = window.visualViewport;
@@ -52,18 +55,22 @@ function computeCenterStyle(): CSSProperties {
   if (typeof window === "undefined" || !window.visualViewport) return EMPTY_STYLE;
   if (!visualViewportNeedsPixelCentering()) return EMPTY_STYLE;
   const vv = window.visualViewport;
+  if (vv.width < MIN_VISUAL_VIEWPORT_AXIS_PX || vv.height < MIN_VISUAL_VIEWPORT_AXIS_PX) {
+    return EMPTY_STYLE;
+  }
   const inset = computeKeyboardBottomInsetPx();
   const bottomBreathing = inset >= 1 ? DIALOG_VISUAL_VIEWPORT_KEYBOARD_GAP_PX : 0;
   const maxH = Math.max(
     120,
     Math.round(vv.height - CENTER_VPAD_TOP - CENTER_VPAD_BOTTOM - bottomBreathing),
   );
+  // Use the `translate` longhand so Tailwind `translate-x/y` and `zoom-in-*` (transform scale) can coexist.
   return {
     top: Math.round(vv.offsetTop + vv.height / 2),
     left: Math.round(vv.offsetLeft + vv.width / 2),
     maxHeight: maxH,
-    transform: "translate(-50%, -50%)",
-  };
+    translate: "-50% -50%",
+  } as CSSProperties;
 }
 
 function computeBottomStyle(): CSSProperties {
