@@ -6,7 +6,10 @@ import { XIcon } from "lucide-react"
 
 import { cn } from "@/lib/utils"
 import {
+  dialogContentHasPixelCenterOffset,
   dialogContentIsBottomAnchored,
+  dialogContentKeyboardBottomPx,
+  dialogViewportStyleForInlineMerge,
   useDialogVisualViewportStyle,
 } from "@/components/ui/use-dialog-visual-viewport-style"
 
@@ -69,14 +72,14 @@ function DialogContent({
   const visualViewportStyle = useDialogVisualViewportStyle(adaptVisualViewport, anchor)
   const viewportRef = React.useRef<HTMLDivElement | null>(null)
 
-  const bottomInsetPx =
-    adaptVisualViewport &&
-    anchor === "bottom" &&
-    typeof visualViewportStyle.bottom === "number"
-      ? visualViewportStyle.bottom
-      : undefined
-
-  const { bottom: _vvBottomOmit, ...viewportStyleForInline } = visualViewportStyle
+  // Mobile keyboard / visualViewport: see use-dialog-visual-viewport-style.ts module doc.
+  const bottomInsetPx = dialogContentKeyboardBottomPx(adaptVisualViewport, anchor, visualViewportStyle)
+  const viewportStyleForInline = dialogViewportStyleForInlineMerge(visualViewportStyle)
+  const hasPixelCenterOffset = dialogContentHasPixelCenterOffset(
+    adaptVisualViewport,
+    anchor,
+    visualViewportStyle,
+  )
 
   const setContentRef = React.useCallback(
     (node: HTMLDivElement | null) => {
@@ -107,7 +110,8 @@ function DialogContent({
         ref={setContentRef}
         data-slot="dialog-content"
         className={cn(
-          "bg-background data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 fixed top-[50%] left-[50%] z-50 grid w-full max-w-[calc(100%-2rem)] translate-x-[-50%] translate-y-[-50%] gap-4 rounded-lg border p-6 shadow-lg duration-200 sm:max-w-lg",
+          "bg-background data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 fixed top-[50%] left-[50%] z-50 grid w-full max-w-[calc(100%-2rem)] gap-4 rounded-lg border p-6 shadow-lg duration-200 sm:max-w-lg",
+          !hasPixelCenterOffset && "translate-x-[-50%] translate-y-[-50%]",
           className
         )}
         style={{ ...style, ...viewportStyleForInline }}
