@@ -62,6 +62,8 @@ export function RoomVideoLayer({
     mediasoupStatus,
     mediasoupError,
     localMediaStream,
+    localCompositeStream,
+    localScreenTrackId,
     remoteMediaStream,
     mainStageShowsScreen,
     remotePeerCameraStream,
@@ -77,6 +79,10 @@ export function RoomVideoLayer({
     localMediaDeviceError,
     clearLocalMediaDeviceError,
     roomConversationId,
+    screenShareTiles,
+    focusedScreenShareKey,
+    setFocusedScreenShareKey,
+    remoteTrackMediaSource,
   } = useRtcSocketContext();
   const excludeAddIds = [
     session?.user?.id,
@@ -145,6 +151,8 @@ export function RoomVideoLayer({
         onSkip={video.handleSkip}
         onMinimize={video.handleMinimize}
         localStream={localMediaStream}
+        localCompositeStream={localCompositeStream}
+        localScreenTrackId={localScreenTrackId}
         remoteStream={remoteMediaStream}
         mainStageShowsScreen={mainStageShowsScreen}
         remotePeerCameraStream={remotePeerCameraStream}
@@ -188,6 +196,10 @@ export function RoomVideoLayer({
         roomId={roomId}
         circleDisplayTitle={groupRoomTitle}
         circleCanEditTitle={circleCanEditTitle}
+        screenShareTiles={screenShareTiles}
+        focusedScreenShareKey={focusedScreenShareKey}
+        onSelectScreenShare={setFocusedScreenShareKey}
+        remoteTrackMediaSource={remoteTrackMediaSource}
       />
     </div>
   );

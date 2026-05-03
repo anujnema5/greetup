@@ -120,7 +120,7 @@ Defined in `src/config/env.ts`:
 | `NODE_ENV` | Environment name | `development` |
 | `MATCHING_HOST` | HTTP bind host | `0.0.0.0` |
 | `MATCHING_PORT` | HTTP port | `5060` |
-| `REDIS_URL` | Redis connection URL | `redis://127.0.0.1:16379` |
+| `REDIS_URL` | Redis connection URL | `redis://127.0.0.1:26379` |
 | `REDIS_PING_TIMEOUT_MS` | Health check ping timeout | `800` |
 | `ROOM_SERVICE_URL` | Base URL for room API (optional) | unset |
 | `MATCHING_ROOM_MODE` | If `mock` or no URL, rooms are mocked | `mock` |

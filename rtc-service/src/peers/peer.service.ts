@@ -234,15 +234,6 @@ export class PeerSessionService {
 
     session.producers.set(producer.id, producer);
 
-    const roomType = session.socket.data.roomType;
-    if (
-      roomType === "direct" &&
-      payload.kind === "video" &&
-      mediaSourceFromProducerAppData(payload.appData) === "screen"
-    ) {
-      this.closeOtherScreenProducersInRoom(session.roomId, userId, producer.id, session.socket);
-    }
-
     await peerRepository.publishRoomMediaEvent(session.roomId, {
       type: "producer_added",
       roomId: session.roomId,
@@ -360,47 +351,6 @@ export class PeerSessionService {
     return { ok: true };
   }
 
-  /**
-   * Direct calls: only one screen share at a time room-wide (any peer).
-   * Circle rooms: skip — future host/permission rules will differ.
-   */
-  private closeOtherScreenProducersInRoom(
-    roomId: string,
-    keepUserId: string,
-    keepProducerId: string,
-    triggeringSocket: Socket,
-  ): void {
-    const members = this.roomMembers.get(roomId);
-    if (!members) return;
-
-    for (const uid of members) {
-      const victimSession = this.sessions.get(uid);
-      if (!victimSession) continue;
-
-      for (const p of [...victimSession.producers.values()]) {
-        if (p.kind !== "video") continue;
-        if (mediaSourceFromProducerAppData(p.appData) !== "screen") continue;
-        if (uid === keepUserId && p.id === keepProducerId) continue;
-
-        const producerId = p.id;
-        const peerId = victimSession.userId;
-        triggeringSocket.nsp.server.to(roomId).emit("producerClosed", { peerId, producerId });
-        try {
-          p.close();
-        } catch {
-          /* ignore */
-        }
-        victimSession.producers.delete(producerId);
-        void peerRepository.publishRoomMediaEvent(roomId, {
-          type: "producer_removed",
-          roomId,
-          peerId,
-          producerId,
-        });
-      }
-    }
-  }
-
   async consume(
     userId: string,
     payload: {
@@ -419,6 +369,8 @@ export class PeerSessionService {
         type: MediasoupTypes.ConsumerType;
         producerPaused: boolean;
         paused: boolean;
+        /** Video only: from producer `appData` (UI labels camera vs screen). */
+        mediaSource?: ProducerMediaSource;
       }
     | { ok: false; code: string }
   > {
@@ -450,8 +402,8 @@ export class PeerSessionService {
 
     session.consumers.set(consumer.id, consumer);
 
-    return {
-      ok: true,
+    const base = {
+      ok: true as const,
       id: consumer.id,
       producerId: consumer.producerId,
       kind: consumer.kind,
@@ -460,6 +412,13 @@ export class PeerSessionService {
       producerPaused: consumer.producerPaused,
       paused: consumer.paused,
     };
+    if (consumer.kind === "video") {
+      return {
+        ...base,
+        mediaSource: mediaSourceFromProducerAppData(producer.appData),
+      };
+    }
+    return base;
   }
 
   async resumeConsumer(userId: string, consumerId: string): Promise<{ ok: true } | { ok: false; code: string }> {

@@ -4,6 +4,7 @@ import { createContext, useContext, useEffect, useMemo } from "react";
 import { useSession } from "@/lib/auth-client";
 import { useAppDispatch, useAppSelector } from "@/lib/redux/hooks";
 import { useGetMyProfileQuery } from "@/features/profile-setup/components/profile-setup-api";
+import { useRoomTabLeaseRtcSync } from "@/features/room";
 import {
   selectActiveRoomId,
   selectIsVideoSessionActive,
@@ -14,7 +15,13 @@ import { deriveRoomRtcState } from "@/features/matching/utils/derive-room-rtc-st
 import { useGetRtcTokenQuery } from "../api/rtc-api";
 import { useRtcSocket } from "../hooks/use-rtc-socket";
 import { useMediasoupRoom } from "../hooks/use-mediasoup-room";
-import type { MediasoupRoomStatus, RemoteParticipant, RemotePeer } from "../types/mediasoup-room.types";
+import type {
+  MediasoupRoomStatus,
+  ProducerMediaSource,
+  RemoteParticipant,
+  RemotePeer,
+  ScreenShareTileInfo,
+} from "../types/mediasoup-room.types";
 import type { RoomRtcState } from "@/features/matching/types/room.types";
 import type { UseRtcSocketReturn } from "../hooks/use-rtc-socket";
 import type { RoomSessionType } from "@/shared/types/room-session";
@@ -27,6 +34,8 @@ export type RtcSocketContextValue = RoomRtcState &
     mediasoupStatus: MediasoupRoomStatus;
     mediasoupError: string | null;
     localMediaStream: MediaStream | null;
+    localCompositeStream: MediaStream | null;
+    localScreenTrackId: string | null;
     remoteMediaStream: MediaStream | null;
     mainStageShowsScreen: boolean;
     remotePeerCameraStream: MediaStream | null;
@@ -41,6 +50,10 @@ export type RtcSocketContextValue = RoomRtcState &
     rtcRoomType: RoomSessionType | null;
     localMediaDeviceError: string | null;
     clearLocalMediaDeviceError: () => void;
+    screenShareTiles: ScreenShareTileInfo[];
+    focusedScreenShareKey: string | null;
+    setFocusedScreenShareKey: (key: string | null) => void;
+    remoteTrackMediaSource: Record<string, ProducerMediaSource>;
   };
 
 const RtcSocketContext = createContext<RtcSocketContextValue | null>(null);
@@ -113,6 +126,12 @@ export function RtcSocketProvider({ children }: { children: React.ReactNode }) {
     dispatch(setMediaStatus(mapMediasoupToSliceStatus(sessionActive, mediasoup.status)));
   }, [dispatch, sessionActive, mediasoup.status]);
 
+  useRoomTabLeaseRtcSync({
+    activeRoomId,
+    sessionUserId: sessionUser?.id,
+    sessionActive,
+  });
+
   const value = useMemo<RtcSocketContextValue>(
     () => ({
       rtcToken: rtc.rtcToken,
@@ -127,8 +146,10 @@ export function RtcSocketProvider({ children }: { children: React.ReactNode }) {
       rtcRoomType,
       mediasoupStatus: mediasoup.status,
       mediasoupError: mediasoup.error,
-      localMediaStream: mediasoup.localPreviewStream,
-      remoteMediaStream: mediasoup.remoteStream,
+    localMediaStream: mediasoup.localPreviewStream,
+    localCompositeStream: mediasoup.localStream,
+    localScreenTrackId: mediasoup.localScreenTrackId,
+    remoteMediaStream: mediasoup.remoteStream,
       mainStageShowsScreen: mediasoup.mainStageShowsScreen,
       remotePeerCameraStream: mediasoup.remotePeerCameraStream,
       remoteParticipants: mediasoup.remoteParticipants,
@@ -141,6 +162,10 @@ export function RtcSocketProvider({ children }: { children: React.ReactNode }) {
       toggleScreenShare: mediasoup.toggleScreenShare,
       localMediaDeviceError: mediasoup.localMediaDeviceError,
       clearLocalMediaDeviceError: mediasoup.clearLocalMediaDeviceError,
+      screenShareTiles: mediasoup.screenShareTiles,
+      focusedScreenShareKey: mediasoup.focusedScreenShareKey,
+      setFocusedScreenShareKey: mediasoup.setFocusedScreenShareKey,
+      remoteTrackMediaSource: mediasoup.remoteTrackMediaSource,
     }),
     [
       rtc.rtcToken,
@@ -155,8 +180,10 @@ export function RtcSocketProvider({ children }: { children: React.ReactNode }) {
       rtcRoomType,
       mediasoup.status,
       mediasoup.error,
-      mediasoup.localPreviewStream,
-      mediasoup.remoteStream,
+    mediasoup.localPreviewStream,
+    mediasoup.localStream,
+    mediasoup.localScreenTrackId,
+    mediasoup.remoteStream,
       mediasoup.mainStageShowsScreen,
       mediasoup.remotePeerCameraStream,
       mediasoup.remoteParticipants,
@@ -169,6 +196,10 @@ export function RtcSocketProvider({ children }: { children: React.ReactNode }) {
       mediasoup.toggleScreenShare,
       mediasoup.localMediaDeviceError,
       mediasoup.clearLocalMediaDeviceError,
+      mediasoup.screenShareTiles,
+      mediasoup.focusedScreenShareKey,
+      mediasoup.setFocusedScreenShareKey,
+      mediasoup.remoteTrackMediaSource,
     ],
   );
 

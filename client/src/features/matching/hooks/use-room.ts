@@ -1,13 +1,14 @@
 "use client";
 
-import { useEffect, useLayoutEffect, useCallback, useMemo } from "react";
+import { useCallback, useMemo } from "react";
 import { useParams, useSearchParams, useRouter } from "next/navigation";
 import { useSession } from "@/lib/auth-client";
 import { getRtkQueryErrorMessage } from "@/lib/api/rtk-query-error";
 import { useAppDispatch } from "@/lib/redux/hooks";
-import { enterRoomPage, resetRoomState } from "@/lib/redux/slices/room-slice";
-import { clearRoomStorage, isRoomMinimizedMarked } from "@/features/room/lib/room-sync";
-import { useGetRoomQuery, useLeaveRoomMutation, leaveRoomKeepalive } from "@/features/room/api/room-api";
+import { resetRoomState } from "@/lib/redux/slices/room-slice";
+import { useRoomPageTabLease } from "@/features/room";
+import { clearRoomStorage } from "@/features/room/lib/room-sync";
+import { useGetRoomQuery, useLeaveRoomMutation } from "@/features/room/api/room-api";
 import { useRtcSocketContext } from "@/features/rtc";
 import { isCircleRoomData, type RoomData } from "../types/room.types";
 import { useGetMyProfileQuery } from "@/features/profile-setup/components/profile-setup-api";
@@ -30,6 +31,16 @@ export function useRoom() {
   const roomId = params.roomId as string;
   const peerIdFromUrl = searchParams.get("peer");
   const scoreFromUrl = searchParams.get("score");
+
+  const currentUserId = session?.user?.id ?? null;
+
+  const { duplicateTabRedirect, clearLeaseIfOwner } = useRoomPageTabLease({
+    roomId,
+    currentUserId,
+    sessionPending,
+    dispatch,
+    router,
+  });
 
   const skipRoomQuery = !roomId || sessionPending;
   const roomQuery = useGetRoomQuery(roomId, { skip: skipRoomQuery });
@@ -81,48 +92,6 @@ export function useRoom() {
     return getRtkQueryErrorMessage(roomQuery.error);
   }, [room, roomQuery.isError, roomQuery.error]);
 
-  /** Sync global room slice: current route room id (layout runs before paint so RTC provider sees `activeRoomId`). */
-  useLayoutEffect(() => {
-    if (!roomId) return;
-    dispatch(enterRoomPage({ roomId }));
-  }, [roomId, dispatch]);
-
-  const leaveRoomAndClear = useCallback(async () => {
-    try {
-      await leaveRoom().unwrap();
-    } catch {
-      /* best-effort */
-    }
-    clearRoomStorage();
-    dispatch(resetRoomState());
-  }, [leaveRoom, dispatch]);
-
-  useEffect(() => {
-    const onBeforeUnload = () => {
-      leaveRoomKeepalive();
-    };
-    const onPageHide = () => {
-      leaveRoomKeepalive();
-    };
-    window.addEventListener("beforeunload", onBeforeUnload);
-    window.addEventListener("pagehide", onPageHide);
-    return () => {
-      window.removeEventListener("beforeunload", onBeforeUnload);
-      window.removeEventListener("pagehide", onPageHide);
-    };
-  }, []);
-
-  useEffect(() => {
-    return () => {
-      // If the room page is left without minimizing, treat it as an intentional leave.
-      if (isRoomMinimizedMarked()) return;
-      leaveRoomKeepalive();
-      clearRoomStorage();
-      dispatch(resetRoomState());
-    };
-  }, [dispatch]);
-
-  const currentUserId = session?.user?.id;
   const sessionUser = session?.user as
     | { displayName?: string | null; name?: string | null }
     | undefined;
@@ -145,6 +114,17 @@ export function useRoom() {
     router.replace("/home");
   }, [router]);
 
+  const leaveRoomAndClear = useCallback(async () => {
+    clearLeaseIfOwner();
+    try {
+      await leaveRoom().unwrap();
+    } catch {
+      /* best-effort */
+    }
+    clearRoomStorage();
+    dispatch(resetRoomState());
+  }, [clearLeaseIfOwner, leaveRoom, dispatch]);
+
   const leaveAndGoHome = useCallback(() => {
     void leaveRoomAndClear().then(() => router.replace("/home"));
   }, [leaveRoomAndClear, router]);
@@ -156,7 +136,8 @@ export function useRoom() {
     error,
     peerId,
     score,
-    currentUserId,
+    currentUserId: currentUserId ?? undefined,
+    duplicateTabRedirect,
     currentUserName,
     goHome,
     leaveAndGoHome,

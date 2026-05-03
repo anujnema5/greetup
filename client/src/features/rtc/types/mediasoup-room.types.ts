@@ -37,6 +37,14 @@ export type RemoteParticipant = {
   stream: MediaStream;
 };
 
+/** One screen-share surface (local or remote) for stage + filmstrip UI. */
+export type ScreenShareTileInfo = {
+  key: string;
+  peerId: string | "local";
+  label: string;
+  stream: MediaStream;
+};
+
 export type UseMediasoupRoomArgs = {
   enabled: boolean;
   rtcSocket: Socket | null;
@@ -72,9 +80,17 @@ export type UseMediasoupRoomReturn = {
   screenSharing: boolean;
   toggleScreenShare: () => void;
   localPreviewStream: MediaStream | null;
+  /** Display-capture video track id while screen-sharing (camera-only UI uses {@link localStream} + this). */
+  localScreenTrackId: string | null;
   remotePeerCameraStream: MediaStream | null;
   localMediaDeviceError: string | null;
   clearLocalMediaDeviceError: () => void;
+  /** Active screen-share tiles (local + remotes). */
+  screenShareTiles: ScreenShareTileInfo[];
+  /** Which tile is on the main stage (`null` = follow latest). */
+  focusedScreenShareKey: string | null;
+  setFocusedScreenShareKey: (key: string | null) => void;
+  remoteTrackMediaSource: Record<string, ProducerMediaSource>;
 };
 
 export type ProducerMediaSource = "camera" | "screen";
@@ -128,6 +144,8 @@ export type ConsumeAck =
       paused: boolean;
       /** True when the remote producer is paused — peer's camera is off. */
       producerPaused: boolean;
+      /** Present for `kind: "video"` — from mediasoup producer `appData` (authoritative). */
+      mediaSource?: ProducerMediaSource;
     }
   | { ok: false; error?: { code?: string } };
 

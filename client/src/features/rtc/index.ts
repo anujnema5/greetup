@@ -8,8 +8,10 @@
  *   - `hooks/use-mediasoup-room-session.ts` — join, transports, consumers
  *   - `hooks/use-mediasoup-local-media.ts` — mic / camera / screen produce
  * - Pure helpers: `lib/rtc-signaling.ts`, `lib/mediasoup-transport-wiring.ts`,
- *   `lib/mediasoup-stream-helpers.ts`, `lib/remote-participant-streams.ts`,
+ *   `lib/mediasoup-stream-helpers.ts`, `lib/mediasoup-produce-config.ts`, `lib/mediasoup-local-capture-constraints.ts`,
+ *   `lib/rtc-mobile-profile.ts`, `lib/remote-participant-streams.ts`,
  *   `lib/direct-call-stage.ts` (1:1 main-tile stream math), `lib/media-stream-utils.ts`
+ * - Mobile Web UI flag: `hooks/use-mobile-web-rtc-ui.ts`
  * - Hook wiring types: `types/mediasoup-hooks.types.ts` (refs/setters passed between hooks)
  */
 
@@ -22,11 +24,14 @@ export {
   useRtcSocketContext,
 } from "./providers/rtc-socket-provider";
 export type { RtcSocketContextValue } from "./providers/rtc-socket-provider";
+export { useMobileWebRtcUi } from "./hooks/use-mobile-web-rtc-ui";
 export { useMediasoupRoom } from "./hooks/use-mediasoup-room";
 export type {
   MediasoupRoomStatus,
+  ProducerMediaSource,
   RemotePeer,
   RemoteParticipant,
+  ScreenShareTileInfo,
   UseMediasoupRoomArgs,
   UseMediasoupRoomReturn,
 } from "./types/mediasoup-room.types";
@@ -37,7 +42,14 @@ export {
   remotePeerIdsStableKey,
   remotePeerCountFromStableKey,
 } from "./lib/remote-participant-streams";
-export { hasLiveEnabledVideo, hasLiveMedia, hasLiveVideo } from "./lib/media-stream-utils";
+export {
+  createPlaybackStreamWithClonedVideo,
+  hasLiveEnabledVideo,
+  hasLiveMedia,
+  hasLiveVideo,
+  hasRenderableRemoteVideo,
+  mediaStreamVideoAttachRevision,
+} from "./lib/media-stream-utils";
 export {
   RTC_CONNECTION_RECOVERY,
   ICE_RESTART_MIN_GAP_MS,

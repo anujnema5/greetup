@@ -21,6 +21,8 @@ import {
   useRtcSocketContext,
 } from "@/features/rtc";
 import { canUseScreenShare } from "@/features/rtc/lib/screen-share-policy";
+import { useMobileWebRtcUi } from "@/features/rtc/hooks/use-mobile-web-rtc-ui";
+import { allowScreenShareCallControl } from "@/features/rtc/lib/rtc-mobile-profile";
 import { cn } from "@/lib/utils";
 import {
   Maximize2,
@@ -78,6 +80,9 @@ export function MinimizedRoomDock() {
 
   const mediaControlsReady = mediasoupStatus === "ready";
   const screenShareAllowed = canUseScreenShare(rtcRoomType);
+  const mobileWebCallUi = useMobileWebRtcUi();
+  const showScreenShareInDock =
+    screenShareAllowed && allowScreenShareCallControl(mobileWebCallUi, screenSharing);
   const remoteVideoRef = useRef<HTMLVideoElement>(null);
   const peerCameraInsetRef = useRef<HTMLVideoElement>(null);
   const localVideoRef = useRef<HTMLVideoElement>(null);
@@ -333,7 +338,7 @@ export function MinimizedRoomDock() {
                 <VideoOff size={15} strokeWidth={2} className="sm:h-4 sm:w-4 text-amber-200" />
               )}
             </button>
-            {screenShareAllowed ? (
+            {showScreenShareInDock ? (
               <button
                 type="button"
                 aria-label={screenSharing ? "Stop sharing" : "Share screen"}

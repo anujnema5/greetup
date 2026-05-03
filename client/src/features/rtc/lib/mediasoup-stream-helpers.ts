@@ -1,5 +1,7 @@
 /** Helpers for composing local/remote `MediaStream`s around mediasoup producers/consumers. */
 
+import type { ProducerMediaSource } from "@/features/rtc/types/mediasoup-room.types";
+
 /** True when the browser reports a captured display surface (post-`getDisplayMedia`). */
 export function inferScreenCaptureFromTrack(track: MediaStreamTrack): boolean {
   if (track.kind !== "video") return false;
@@ -27,12 +29,118 @@ export function videoTrackActsAsScreenShare(
   return inferScreenCaptureFromTrack(track);
 }
 
-/** Mirrors {@link videoTrackActsAsScreenShare} into stored per-track metadata after consume. */
-export function resolveInboundVideoMediaSource(
+/**
+ * Remote video counts as an SFU screen share (filmstrip / focus tiles). For unknown `signaled`,
+ * uses display-surface inference so a new screen producer still lists before metadata settles.
+ */
+export function inboundVideoTrackIsSfuScreenShare(
   track: MediaStreamTrack,
+  signaled?: ProducerMediaSource,
+): boolean {
+  if (track.kind !== "video") return false;
+  if (signaled === "screen") return true;
+  if (signaled === "camera") return false;
+  return inferScreenCaptureFromTrack(track);
+}
+
+/**
+ * Remote video should appear in participant camera UI (inset, People tab, gallery strip).
+ * Only excludes tracks the SFU marked as `screen` — avoids false-positive inference hiding camera
+ * when multiple video producers exist (e.g. both users sharing).
+ */
+export function inboundVideoTrackIsParticipantCamera(
+  track: MediaStreamTrack,
+  signaled?: ProducerMediaSource,
+): boolean {
+  if (track.kind !== "video") return false;
+  return signaled !== "screen";
+}
+
+/**
+ * Camera-tile eligibility: SFU `screen` is out; for unknown `signaled`, drop display-capture
+ * tracks so a delayed `mediaSource` update does not leave screen + camera competing (muted camera
+ * vs live screen used to pick the wrong track → black tile).
+ */
+export function trackEligibleForParticipantCameraTile(
+  track: MediaStreamTrack,
+  signaled: ProducerMediaSource | undefined,
+): boolean {
+  if (track.kind !== "video") return false;
+  if (signaled === "screen") return false;
+  if (signaled === "camera") return true;
+  return !inferScreenCaptureFromTrack(track);
+}
+
+function videoTrackPixelArea(t: MediaStreamTrack): number {
+  try {
+    const s = t.getSettings() as { width?: number; height?: number };
+    return (s.width ?? 0) * (s.height ?? 0);
+  } catch {
+    return 0;
+  }
+}
+
+/** When camera vs screen are still ambiguous, unmuted first, then smaller frame (webcam) before 4K capture. */
+function sortVideoTracksForCameraTileWithAreaTieBreak(tracks: MediaStreamTrack[]): MediaStreamTrack[] {
+  return [...tracks].sort((a, b) => {
+    const am = a.muted ? 1 : 0;
+    const bm = b.muted ? 1 : 0;
+    if (am !== bm) return am - bm;
+    const pa = videoTrackPixelArea(a);
+    const pb = videoTrackPixelArea(b);
+    if (pa !== pb) return pa - pb;
+    return a.id.localeCompare(b.id);
+  });
+}
+
+/**
+ * Picks one inbound video track for a participant camera tile (never both camera+screen on one
+ * `<video>`). Strips SFU `screen`, then disambiguates with unmuted-first + smaller resolution.
+ */
+export function pickPrimaryParticipantCameraVideoTrack(
+  videoTracks: MediaStreamTrack[],
+  remoteTrackMediaSource: Record<string, ProducerMediaSource>,
+): MediaStreamTrack | null {
+  if (videoTracks.length === 0) return null;
+
+  const noExplicitScreen = videoTracks.filter((t) => remoteTrackMediaSource[t.id] !== "screen");
+  const work = noExplicitScreen.length > 0 ? noExplicitScreen : videoTracks;
+  if (work.length === 1) return work[0]!;
+
+  const taggedCameras = work.filter((t) => remoteTrackMediaSource[t.id] === "camera");
+  if (taggedCameras.length >= 1) {
+    const noDisplaySurface = taggedCameras.filter((t) => !inferScreenCaptureFromTrack(t));
+    const pool = noDisplaySurface.length >= 1 ? noDisplaySurface : taggedCameras;
+    return sortVideoTracksForCameraTileWithAreaTieBreak(pool)[0]!;
+  }
+
+  const notSfuScreen = work.filter(
+    (t) => !inboundVideoTrackIsSfuScreenShare(t, remoteTrackMediaSource[t.id]),
+  );
+  if (notSfuScreen.length === 1) return notSfuScreen[0]!;
+  if (notSfuScreen.length > 1) {
+    const tagged = notSfuScreen.filter((t) => remoteTrackMediaSource[t.id] === "camera");
+    if (tagged.length >= 1) {
+      return sortVideoTracksForCameraTileWithAreaTieBreak(tagged)[0]!;
+    }
+    const nonCapture = notSfuScreen.filter((t) => !inferScreenCaptureFromTrack(t));
+    const pool = nonCapture.length >= 1 ? nonCapture : notSfuScreen;
+    return sortVideoTracksForCameraTileWithAreaTieBreak(pool)[0]!;
+  }
+
+  return sortVideoTracksForCameraTileWithAreaTieBreak(work)[0]!;
+}
+
+/**
+ * Store SFU `mediaSource` as the display role for this inbound track. Do not re-classify from
+ * `displaySurface` — that was flipping real camera tracks to "screen" and breaking camera tiles
+ * when a peer added screen share.
+ */
+export function resolveInboundVideoMediaSource(
+  _track: MediaStreamTrack,
   signaled: "camera" | "screen",
 ): "camera" | "screen" {
-  return videoTrackActsAsScreenShare(track, signaled) ? "screen" : "camera";
+  return signaled === "screen" ? "screen" : "camera";
 }
 
 export function copyStreamWithoutTrack(prev: MediaStream, track: MediaStreamTrack): MediaStream {

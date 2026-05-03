@@ -1,3 +1,10 @@
+/**
+ * Shared runtime constants for rtc-service.
+ *
+ * - `RTC_CONFIG.mediasoup`: worker ports + router codecs (Opus / VP8 / H264).
+ * - `RTC_CONFIG.webRtcTransport`: UDP/TCP listen addresses + bitrate caps for transports.
+ */
+
 import type { types as MediasoupTypes } from "mediasoup";
 import { env } from "@/config/env";
 
@@ -18,6 +25,12 @@ export const RTC_CONFIG = {
         mimeType: "audio/opus",
         clockRate: 48000,
         channels: 2,
+        // DTX: less bandwidth when quiet; FEC: helps lossy Wi‑Fi without extra RTX.
+        parameters: {
+          minptime: 10,
+          useinbandfec: 1,
+          usedtx: 1,
+        },
       },
       {
         kind: "video",
@@ -35,14 +48,15 @@ export const RTC_CONFIG = {
           "level-asymmetry-allowed": 1,
         },
       },
-    ] as MediasoupTypes.RtpCodecCapability[],
+    ] as unknown as MediasoupTypes.RtpCodecCapability[],
   },
   webRtcTransport: {
     listenInfos: [
       { protocol: "udp" as const, ip: env.webrtcListenIp, announcedAddress: env.webrtcAnnouncedIp },
       { protocol: "tcp" as const, ip: env.webrtcListenIp, announcedAddress: env.webrtcAnnouncedIp },
     ] as MediasoupTypes.TransportListenInfo[],
-    maxIncomingBitrate: 1_500_000,
-    initialAvailableOutgoingBitrate: 1_000_000,
+    // Room for simulcast + screen share; consumers still drop to lower layers on bad links.
+    maxIncomingBitrate: 3_000_000,
+    initialAvailableOutgoingBitrate: 2_500_000,
   },
 } as const;
