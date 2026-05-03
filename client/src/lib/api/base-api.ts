@@ -14,6 +14,7 @@ export const baseApi = createApi({
     'ActiveCircles',
     'RtcToken',
     'Room',
+    'RoomEmbeddedActivities',
     'PublicProfile',
     'Notifications',
     'MatchPrepPrompt',

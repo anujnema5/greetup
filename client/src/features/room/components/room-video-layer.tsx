@@ -10,7 +10,7 @@
  *
  * Keep this file focused on state composition + event wiring, not low-level tile rendering.
  */
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { useSession } from "@/lib/auth-client";
 import { useAppDispatch, useAppSelector } from "@/lib/redux/hooks";
@@ -29,6 +29,12 @@ import { RoomVideoView } from "@/features/room/components/room-video-view";
 import { useRoomPeerChrome } from "@/features/room/hooks/use-room-peer-chrome";
 import { useRoomVideo } from "@/features/room/hooks/use-room-video";
 import { getRtkMutationErrorMessage } from "@/lib/api/rtk-mutation-error";
+import {
+  resolveEmbeddedActivityCallPolicy,
+  toastMessageForBlockedInvite,
+  useRoomEmbeddedActivitiesCatalog,
+} from "@/features/room/embedded-activities";
+import type { RoomActivityId } from "@/features/room/types/room-activity.types";
 
 export type RoomVideoLayerProps = {
   roomId: string;
@@ -54,6 +60,8 @@ export function RoomVideoLayer({
   const roomPhase = useAppSelector(selectRoomPhase);
   const activeRealtimeActivity = useAppSelector(selectRoomActiveActivity);
   const [addCircleOpen, setAddCircleOpen] = useState(false);
+  const [embeddedStageActivityId, setEmbeddedStageActivityId] =
+    useState<RoomActivityId | null>(null);
   const [inviteToChess, { isLoading: requestingChess }] = useRoomChessInviteMutation();
   const [endChess, { isLoading: endingChess }] = useRoomChessEndMutation();
   const [offerDraw, { isLoading: offeringDraw }] = useRoomChessDrawOfferMutation();
@@ -84,13 +92,36 @@ export function RoomVideoLayer({
     setFocusedScreenShareKey,
     remoteTrackMediaSource,
   } = useRtcSocketContext();
+
+  /** DB-backed tiles + policy map; invite gating uses `embeddedStageActivityId` (can run ahead of Redux). */
+  const { directRoomActivities, embeddedCallPolicyLookup } = useRoomEmbeddedActivitiesCatalog();
+
   const excludeAddIds = [
     session?.user?.id,
     peerId,
     ...(isGroupRoom ? Object.keys(peers) : []),
   ].filter((x): x is string => Boolean(x));
-  /** Show invite action in both direct and circle rooms. */
-  const showAddToCircle = true;
+
+  const embeddedCallPolicy = useMemo(
+    () =>
+      resolveEmbeddedActivityCallPolicy({
+        stageActivityId: embeddedStageActivityId,
+        synchronizedActivity: activeRealtimeActivity ?? null,
+        policyByActivity: embeddedCallPolicyLookup,
+      }),
+    [embeddedStageActivityId, activeRealtimeActivity, embeddedCallPolicyLookup],
+  );
+
+  const showAddToCircle = !embeddedCallPolicy.blockParticipantInvites;
+
+  const openAddToCircle = useCallback(() => {
+    const msg = toastMessageForBlockedInvite(embeddedCallPolicy);
+    if (msg) {
+      toast.info(msg);
+      return;
+    }
+    setAddCircleOpen(true);
+  }, [embeddedCallPolicy]);
 
   const searchingForNextCandidate =
     !isGroupRoom && roomPhase === "searching";
@@ -138,6 +169,12 @@ export function RoomVideoLayer({
     dispatch(setDirectCallPeerLabel(isGroupRoom ? null : peerLabel));
   }, [dispatch, isGroupRoom, peerLabel]);
 
+  useEffect(() => {
+    if (!embeddedCallPolicy.blockParticipantInvites) return;
+    const id = requestAnimationFrame(() => setAddCircleOpen(false));
+    return () => cancelAnimationFrame(id);
+  }, [embeddedCallPolicy.blockParticipantInvites]);
+
   return (
     <div className="fixed inset-0 z-100 flex flex-col overflow-hidden bg-background">
       <AddToCircleDialog
@@ -181,7 +218,7 @@ export function RoomVideoLayer({
         remotePeerMicOff={remotePeerMicOff}
         conversationId={roomConversationId}
         showAddToCircle={showAddToCircle}
-        onOpenAddToCircle={() => setAddCircleOpen(true)}
+        onOpenAddToCircle={openAddToCircle}
         searchingForNextCandidate={searchingForNextCandidate}
         directCallMatchSearchFailed={directCallMatchSearchFailed}
         directCallMatchSearchError={
@@ -200,6 +237,9 @@ export function RoomVideoLayer({
         focusedScreenShareKey={focusedScreenShareKey}
         onSelectScreenShare={setFocusedScreenShareKey}
         remoteTrackMediaSource={remoteTrackMediaSource}
+        onEmbeddedStageActivityChange={setEmbeddedStageActivityId}
+        directRoomActivities={directRoomActivities}
+        embeddedCallPolicyLookup={embeddedCallPolicyLookup}
       />
     </div>
   );

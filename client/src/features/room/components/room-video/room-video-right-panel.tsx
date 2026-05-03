@@ -1,35 +1,22 @@
 "use client";
 
+/**
+ * Right-hand dock (lg) or sheet (narrow): People, Chat, and optionally Activities (direct calls only
+ * when `showActivitiesTab` — at least one `is_active` row in `room_embedded_activities`).
+ */
+
 import type { ReactNode } from "react";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
 import { ChatPanel } from "@/features/chat/components/chat-panel";
-import { DIRECT_ROOM_ACTIVITIES } from "@/features/room/constants/direct-room-activities";
-import type { RoomActivityId } from "@/features/room/types/room-activity.types";
+import type { RoomActivityId, RoomActivityMeta } from "@/features/room/types/room-activity.types";
 import type { RoomCallRightPanelTab } from "@/features/room/types/room-call-panel.types";
 import type { RoomActiveActivity } from "@/lib/redux/types/room-slice.types";
 
 export type RoomVideoRightPanelVariant = "dock" | "sheet";
 
-export function RoomVideoRightPanel({
-  rightPanelTab,
-  setRightPanelTab,
-  isGroupRoom,
-  isLive,
-  conversationId,
-  activeActivity,
-  setActiveActivity,
-  activeRealtimeActivity,
-  onRequestChessInvite,
-  requestChessBusy,
-  searchingForNextCandidate = false,
-  showPeopleTab = false,
-  participantsPanel = null,
-  /** Current activity on stage (including chess); used to disable other activity tiles. */
-  stageActivity = null,
-  variant = "dock",
-}: {
+export type RoomVideoRightPanelProps = {
   rightPanelTab: RoomCallRightPanelTab;
   setRightPanelTab: (tab: RoomCallRightPanelTab) => void;
   isGroupRoom: boolean;
@@ -45,9 +32,33 @@ export function RoomVideoRightPanel({
   /** Screen share, circle chess, or direct in-room activity — People lists cameras (+ shares when present). */
   showPeopleTab?: boolean;
   participantsPanel?: ReactNode;
+  /** Current activity on stage (including chess); used to disable other activity tiles. */
   stageActivity?: RoomActivityId | null;
+  /** Tiles for the Activities tab (`is_active` rows only). */
+  directRoomActivities: RoomActivityMeta[];
+  showActivitiesTab: boolean;
   variant?: RoomVideoRightPanelVariant;
-}) {
+};
+
+export function RoomVideoRightPanel({
+  rightPanelTab,
+  setRightPanelTab,
+  isGroupRoom,
+  isLive,
+  conversationId,
+  activeActivity,
+  setActiveActivity,
+  activeRealtimeActivity,
+  onRequestChessInvite,
+  requestChessBusy,
+  searchingForNextCandidate = false,
+  showPeopleTab = false,
+  participantsPanel = null,
+  stageActivity = null,
+  directRoomActivities,
+  showActivitiesTab,
+  variant = "dock",
+}: RoomVideoRightPanelProps) {
   const chessActive = activeRealtimeActivity?.kind === "chess";
   const activityLockedOnStage = Boolean(stageActivity);
 
@@ -67,7 +78,7 @@ export function RoomVideoRightPanel({
           if (
             value === "chat" ||
             (value === "participants" && showPeopleTab) ||
-            (!isGroupRoom && value === "activities")
+            (showActivitiesTab && value === "activities")
           ) {
             setRightPanelTab(value as RoomCallRightPanelTab);
           }
@@ -84,7 +95,7 @@ export function RoomVideoRightPanel({
             <TabsTrigger value="chat" className="h-7 px-2.5 text-[12px] font-semibold">
               chat
             </TabsTrigger>
-            {!isGroupRoom ? (
+            {!isGroupRoom && showActivitiesTab ? (
               <TabsTrigger value="activities" className="h-7 px-2.5 text-[12px] font-semibold">
                 activities
               </TabsTrigger>
@@ -121,10 +132,10 @@ export function RoomVideoRightPanel({
           )}
         </TabsContent>
 
-        {!isGroupRoom ? (
+        {!isGroupRoom && showActivitiesTab ? (
           <TabsContent value="activities" className="mt-0 min-h-0 flex-1 overflow-y-auto data-[state=inactive]:hidden">
             <div className="grid grid-cols-2 gap-2.5 p-3 sm:grid-cols-2 sm:gap-3">
-              {DIRECT_ROOM_ACTIVITIES.map((activity) => (
+              {directRoomActivities.map((activity) => (
                 <Button
                   key={activity.id}
                   type="button"

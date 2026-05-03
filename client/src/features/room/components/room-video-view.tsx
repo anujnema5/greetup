@@ -22,7 +22,6 @@ import { Maximize2, Minimize2 } from "lucide-react";
 import { toast } from "sonner";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { MOCK_MATCH } from "@/features/room/constants/mock-match";
-import { DIRECT_ROOM_ACTIVITIES } from "@/features/room/constants/direct-room-activities";
 import { useRoomVideoViewModel } from "@/features/room/hooks/use-room-video-view-model";
 import { useStageFullscreen } from "@/features/room/hooks/use-stage-fullscreen";
 import type { RoomVideoViewProps } from "@/features/room/types/room-video-view.types";
@@ -39,6 +38,12 @@ import { RoomVideoRightPanel } from "@/features/room/components/room-video/room-
 import { useRoomMobileChatSheetHeight } from "@/features/room/hooks/use-room-mobile-chat-sheet-height";
 import { cn } from "@/lib/utils";
 import { buildLocalPreviewStream } from "@/features/rtc/lib/direct-call-stage";
+import {
+  resolveActivityMetaForStage,
+  resolveEmbeddedActivityCallPolicy,
+  shouldShowDirectCallActivitiesTab,
+  shouldSuppressDuplicatePeopleCameras,
+} from "@/features/room/embedded-activities";
 
 export type { RoomVideoViewProps } from "@/features/room/types/room-video-view.types";
 
@@ -126,7 +131,13 @@ export function RoomVideoView({
   focusedScreenShareKey = null,
   onSelectScreenShare,
   remoteTrackMediaSource = {},
+  onEmbeddedStageActivityChange,
+  directRoomActivities: directRoomActivitiesProp,
+  embeddedCallPolicyLookup = null,
 }: RoomVideoViewProps) {
+  /** `is_active` catalog tiles from `RoomVideoLayer` (empty until loaded or when none enabled). */
+  const activeDirectRoomActivities = directRoomActivitiesProp ?? [];
+  const showActivitiesTab = shouldShowDirectCallActivitiesTab(isGroupRoom, activeDirectRoomActivities);
   const lgUp = useLgBreakpoint();
   const mdDown = useSyncExternalStore(subscribeMdDown, snapshotMdDown, snapshotMdDownServer);
   const stageShellRef = useRef<HTMLDivElement>(null);
@@ -144,6 +155,20 @@ export function RoomVideoView({
   const activeChess = activeRealtimeActivity?.kind === "chess";
   const stageActivity = activeChess ? "chess" : activeActivity;
   const hasActivityOnStage = Boolean(stageActivity);
+
+  const embeddedCallPolicy = useMemo(
+    () =>
+      resolveEmbeddedActivityCallPolicy({
+        stageActivityId: stageActivity,
+        synchronizedActivity: activeRealtimeActivity ?? null,
+        policyByActivity: embeddedCallPolicyLookup,
+      }),
+    [stageActivity, activeRealtimeActivity, embeddedCallPolicyLookup],
+  );
+
+  useEffect(() => {
+    onEmbeddedStageActivityChange?.(stageActivity);
+  }, [stageActivity, onEmbeddedStageActivityChange]);
   /** Local or remote share present — activities must not overlap the share stage. */
   const screenShareBlocksActivities =
     screenSharing || mainStageShowsScreen || screenShareTiles.length > 0;
@@ -261,11 +286,14 @@ export function RoomVideoView({
   /** Narrow + share with on-stage cameras: expand/fill should zoom the share only (see `RoomVideoStage`). */
   const shareStageImmersive =
     stageFullscreen.isExpanded && showScreenShareContext && !participantVideosInSidebar;
-  /** People tab: during share, or while an in-call activity (chess, watch together, …) is on stage. */
-  const showPeopleTab = showScreenShareContext || hasActivityOnStage;
+  /**
+   * People tab: screen share roster, or embedded activity that keeps roster in the side panel.
+   * Policy-driven (e.g. chess) can hide it when cameras only live in the activity shell.
+   */
+  const showPeopleTab =
+    !embeddedCallPolicy.hidePeopleTab && (showScreenShareContext || hasActivityOnStage);
 
-  const activeActivityMeta =
-    DIRECT_ROOM_ACTIVITIES.find((activity) => activity.id === stageActivity) ?? null;
+  const activeActivityMeta = resolveActivityMetaForStage(stageActivity, activeDirectRoomActivities);
   const myInitial = myName.charAt(0).toUpperCase();
   const isOneToOneStage = !isGroupRoom && !stageActivity && stageRatio === "1:1";
   const showSearchingState = !isGroupRoom && searchingForNextCandidate;
@@ -296,6 +324,12 @@ export function RoomVideoView({
       setRightPanelTab("chat");
     }
   }, [rightPanelTab, showPeopleTab]);
+
+  useEffect(() => {
+    if (rightPanelTab === "activities" && !showActivitiesTab) {
+      setRightPanelTab("chat");
+    }
+  }, [rightPanelTab, showActivitiesTab]);
 
   useEffect(() => {
     if (showPeopleTab && !prevShowPeopleTabRef.current && !mdDown) {
@@ -336,6 +370,13 @@ export function RoomVideoView({
     [lgUp],
   );
 
+  const suppressPeoplePanelCameras = shouldSuppressDuplicatePeopleCameras({
+    isGroupRoom,
+    hasActivityOnStage,
+    stageActivityId: stageActivity,
+    mergedPolicy: embeddedCallPolicy,
+  });
+
   const participantsPanel = showPeopleTab ? (
     <RoomCallParticipantsPanel
       isGroupRoom={isGroupRoom}
@@ -355,6 +396,7 @@ export function RoomVideoView({
       groupGalleryParticipants={groupGalleryParticipants}
       localStream={localStreamPeopleTabSelf}
       remotePeerCameraStream={remotePeerCameraStream}
+      suppressCameraTiles={suppressPeoplePanelCameras}
     />
   ) : null;
 
@@ -371,8 +413,10 @@ export function RoomVideoView({
     onRequestChessInvite: tryRequestChessInvite,
     requestChessBusy,
     showPeopleTab,
+    showActivitiesTab,
     participantsPanel,
     stageActivity,
+    directRoomActivities: activeDirectRoomActivities,
   };
 
   const videoToolbarProps = {
@@ -400,6 +444,7 @@ export function RoomVideoView({
     elapsed,
     formatDuration,
     showPeopleTab,
+    showActivitiesTab,
   };
 
   const openCircleChat = useCallback(() => {
@@ -556,7 +601,9 @@ export function RoomVideoView({
               style={{ maxHeight: mobileChatSheetDrag.maxHeightPx }}
               overlayClassName="z-240"
             >
-              <DialogTitle className="sr-only">People, chat, and activities</DialogTitle>
+              <DialogTitle className="sr-only">
+                {showActivitiesTab ? "People, chat, and activities" : "People and chat"}
+              </DialogTitle>
               <div
                 className="flex min-h-0 flex-col overflow-hidden pb-[env(safe-area-inset-bottom)]"
                 style={{ height: mobileChatSheetDrag.heightPx }}

@@ -71,6 +71,8 @@ export const API_ENDPOINTS = {
     REPORT:       '/chat/report',
   },
   ROOM: {
+    /** Config rows for in-call embedded activities (`room_embedded_activities`). */
+    EMBEDDED_ACTIVITIES: "/room/embedded-activities" as const,
     start: (roomId: string) => `/room/${roomId}/start` as const,
     get: (roomId: string) => `/room/${roomId}` as const,
     join: (roomId: string) => `/room/${roomId}/join` as const,

@@ -182,6 +182,7 @@ export function RoomCallParticipantsPanel({
   groupGalleryParticipants,
   localStream,
   remotePeerCameraStream,
+  suppressCameraTiles = false,
 }: {
   isGroupRoom: boolean;
   myName: string;
@@ -202,6 +203,11 @@ export function RoomCallParticipantsPanel({
   localStream: MediaStream | null;
   /** Direct: partner camera stream for the sidebar tile. */
   remotePeerCameraStream: MediaStream | null;
+  /**
+   * Direct call + embedded activity: `RoomActivityLayout` already shows camera tiles (chess also adds
+   * a strip under the board on phones). Skip the duplicate “Cameras” grid; keep “Shared screens” if any.
+   */
+  suppressCameraTiles?: boolean;
 }) {
   const remoteIds = sortPeerIds(Object.keys(remotePeers));
   /** Prefer the numbered list for switching; keep tile tap only for a single share. */
@@ -232,6 +238,12 @@ export function RoomCallParticipantsPanel({
       ) : null}
 
       <section className="flex min-h-0 flex-1 flex-col">
+        {suppressCameraTiles ? (
+          <p className="text-xs leading-relaxed text-muted-foreground">
+            Camera tiles are shown next to the activity. Use this tab for chat or shared screens.
+          </p>
+        ) : (
+          <>
         <h3 className="mb-2 shrink-0 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
           Cameras
         </h3>
@@ -324,6 +336,8 @@ export function RoomCallParticipantsPanel({
                   )
                 : null}
         </div>
+          </>
+        )}
       </section>
     </div>
   );

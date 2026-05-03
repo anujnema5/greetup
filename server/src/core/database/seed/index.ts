@@ -1,6 +1,7 @@
 import { db } from "@/core/database";
 import { upsertRoomCategories } from "./upsert-room-categories";
 import { upsertOnboardingLookups } from "./upsert-onboarding-lookups";
+import { upsertRoomEmbeddedActivities } from "./upsert-room-embedded-activities";
 
 async function seed() {
   console.log("🌱 Seeding database (idempotent upserts)...");
@@ -10,6 +11,9 @@ async function seed() {
 
   await upsertRoomCategories();
   console.log("✅ Upserted room categories");
+
+  await upsertRoomEmbeddedActivities();
+  console.log("✅ Upserted room_embedded_activities");
 }
 
 seed()
