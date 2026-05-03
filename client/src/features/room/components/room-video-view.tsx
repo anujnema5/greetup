@@ -557,7 +557,13 @@ export function RoomVideoView({
                   isDragging={mobileChatSheetDrag.isDragging}
                   {...mobileChatSheetDrag.dragHandleProps}
                 />
-                <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
+                <div
+                  className={cn(
+                    "flex min-h-0 flex-1 touch-pan-y flex-col overflow-hidden",
+                    mobileChatSheetDrag.isDragging && "touch-none select-none",
+                  )}
+                  {...mobileChatSheetDrag.sheetContentDragProps}
+                >
                   <RoomVideoRightPanel {...rightPanelProps} variant="sheet" />
                 </div>
               </div>
