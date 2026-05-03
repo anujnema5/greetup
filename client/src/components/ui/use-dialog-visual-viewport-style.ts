@@ -4,21 +4,36 @@ import { useCallback, useSyncExternalStore, type CSSProperties } from "react";
 
 const EMPTY_STYLE: CSSProperties = {};
 
+/** Space between the modal and the top of the keyboard / occluded area (px). */
+export const DIALOG_VISUAL_VIEWPORT_KEYBOARD_GAP_PX = 12;
+
+const CENTER_VPAD_TOP = 16;
+const CENTER_VPAD_BOTTOM = 16;
+
 function computeKeyboardBottomInsetPx(): number {
   if (typeof window === "undefined" || !window.visualViewport) return 0;
   const vv = window.visualViewport;
-  return Math.max(0, Math.round(window.innerHeight - vv.height - vv.offsetTop));
+  const raw = window.innerHeight - vv.offsetTop - vv.height;
+  // Treat sub-pixel noise as 0; small real insets still count (avoid missing soft keyboard).
+  if (raw <= 0.5) return 0;
+  return Math.max(1, Math.round(raw));
 }
 
 /** True when layout / keyboard differs from “full window” — then CSS % centering is wrong for `fixed` dialogs. */
 function visualViewportNeedsPixelCentering(): boolean {
   if (typeof window === "undefined" || !window.visualViewport) return false;
   const vv = window.visualViewport;
-  if (computeKeyboardBottomInsetPx() > 2) return true;
-  if (window.innerHeight - vv.height > 4) return true;
-  if (window.innerWidth - vv.width > 4) return true;
-  if (vv.offsetTop > 2) return true;
-  if (vv.offsetLeft > 2) return true;
+  const inset = computeKeyboardBottomInsetPx();
+  if (inset >= 1) return true;
+
+  const widthLoss = window.innerWidth - vv.width;
+  if (widthLoss > 4) return true;
+
+  const heightLoss = window.innerHeight - vv.height;
+  if (heightLoss > 12 && vv.offsetTop > 2) return true;
+
+  if (vv.offsetTop > 6 || vv.offsetLeft > 6) return true;
+
   return false;
 }
 
@@ -37,10 +52,16 @@ function computeCenterStyle(): CSSProperties {
   if (typeof window === "undefined" || !window.visualViewport) return EMPTY_STYLE;
   if (!visualViewportNeedsPixelCentering()) return EMPTY_STYLE;
   const vv = window.visualViewport;
+  const inset = computeKeyboardBottomInsetPx();
+  const bottomBreathing = inset >= 1 ? DIALOG_VISUAL_VIEWPORT_KEYBOARD_GAP_PX : 0;
+  const maxH = Math.max(
+    120,
+    Math.round(vv.height - CENTER_VPAD_TOP - CENTER_VPAD_BOTTOM - bottomBreathing),
+  );
   return {
     top: Math.round(vv.offsetTop + vv.height / 2),
     left: Math.round(vv.offsetLeft + vv.width / 2),
-    maxHeight: Math.max(120, Math.round(vv.height - 24)),
+    maxHeight: maxH,
     transform: "translate(-50%, -50%)",
   };
 }
@@ -48,7 +69,8 @@ function computeCenterStyle(): CSSProperties {
 function computeBottomStyle(): CSSProperties {
   if (typeof window === "undefined" || !window.visualViewport) return EMPTY_STYLE;
   const b = computeKeyboardBottomInsetPx();
-  return b === 0 ? EMPTY_STYLE : { bottom: b };
+  if (b === 0) return EMPTY_STYLE;
+  return { bottom: b + DIALOG_VISUAL_VIEWPORT_KEYBOARD_GAP_PX };
 }
 
 // ─── External store: update only from viewport events (never during getSnapshot). ───
@@ -76,6 +98,7 @@ function attachViewportListeners() {
   attached = true;
   vv.addEventListener("resize", emitIfChanged);
   vv.addEventListener("scroll", emitIfChanged);
+  vv.addEventListener("geometrychange", emitIfChanged);
   window.addEventListener("resize", emitIfChanged);
 }
 
@@ -84,6 +107,7 @@ function detachViewportListeners() {
   const vv = window.visualViewport;
   vv?.removeEventListener("resize", emitIfChanged);
   vv?.removeEventListener("scroll", emitIfChanged);
+  vv?.removeEventListener("geometrychange", emitIfChanged);
   window.removeEventListener("resize", emitIfChanged);
   attached = false;
   centerStyle = EMPTY_STYLE;
