@@ -28,7 +28,6 @@ const MIN_VV_AXIS_PX = 48;
 /** When pixel `top`/`left` is needed instead of `%` centering. */
 const NUDGE = {
   minKeyboardInsetPx: 1,
-  minWidthLossPx: 4,
   minHeightLossPx: 12,
   heightLossNeedsOffsetTopPx: 2,
   minOffsetTopOrLeftPx: 6,
@@ -50,7 +49,10 @@ function shouldUsePixelCentering(): boolean {
   const inset = keyboardBottomInsetPx();
   if (inset >= NUDGE.minKeyboardInsetPx) return true;
 
-  if (window.innerWidth - vv.width > NUDGE.minWidthLossPx) return true;
+  // Do not use `innerWidth - vv.width` here: a few px mismatch is common (scrollbars,
+  // browser chrome) and incorrectly enables pixel centering. That drops Tailwind
+  // translate classes and relies on the `translate` longhand — when that path misbehaves,
+  // dialogs jump toward the top-left on desktop and mobile.
 
   const heightLoss = window.innerHeight - vv.height;
   if (heightLoss > NUDGE.minHeightLossPx && vv.offsetTop > NUDGE.heightLossNeedsOffsetTopPx) {

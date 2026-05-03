@@ -327,7 +327,7 @@ export function RoomActivityLayout({
           className={[
             "min-h-0 flex-1 overflow-x-hidden md:overflow-hidden",
             chessMobileDocumentFlow
-              ? "flex flex-col max-md:flex-none max-md:overflow-visible max-md:min-h-0"
+              ? "flex flex-col max-md:flex-none max-md:overflow-visible max-md:min-h-0 touch-pan-y"
               : "overflow-y-auto [-webkit-overflow-scrolling:touch]",
           ]
             .filter(Boolean)

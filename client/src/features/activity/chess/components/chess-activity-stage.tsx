@@ -165,8 +165,12 @@ function PlayerBar({
 }
 
 /**
- * Direct-room chess: board + videos (mobile), match/score/moves/actions in the activity rail
- * or narrow scroll footer. Moves sync through `useRoomChessMoveMutation`.
+ * In-call chess stage (direct rooms; same `ActivityStage` shell for any embedded activity).
+ *
+ * - **Mobile (`max-md`):** Board (width capped to viewport), peer+you video strip under it,
+ *   then scrollable footer card (match, players, moves, resign/draw) via `RoomActivityLayout`.
+ * - **Desktop (`md+`):** Board + flex growth in the main pane; match/moves/actions in a scrollable
+ *   right aside (`lg`/`xl` widen the rail). Moves sync through `useRoomChessMoveMutation`.
  */
 export function ChessActivityStage({
   peerLabel,
@@ -356,7 +360,7 @@ export function ChessActivityStage({
   );
 
   const movesPanel = (
-    <div className="flex max-h-52 min-h-0 flex-col overflow-hidden rounded-xl border border-border/50 bg-card/40 shadow-sm sm:max-h-56 md:max-h-none md:flex-1">
+    <div className="flex max-h-52 min-h-0 flex-col overflow-hidden rounded-xl border border-border/50 bg-card/40 shadow-sm sm:max-h-56 md:max-h-[min(50vh,22rem)] md:min-h-30 lg:max-h-none lg:flex-1">
       <div className="flex shrink-0 items-center gap-2 border-b border-border/40 bg-muted/25 px-3 py-2 max-md:px-2 max-md:py-1.5">
         <svg
           className="h-3.5 w-3.5 shrink-0 text-muted-foreground"
@@ -439,8 +443,8 @@ export function ChessActivityStage({
 
   return (
     <RoomActivityLayout
-      title={undefined}
-      subtitle={undefined}
+      title="Chess"
+      subtitle="In-call game"
       peerLabel={peerLabel}
       myName={myName}
       peerInitials={peerInitials}
@@ -453,15 +457,15 @@ export function ChessActivityStage({
       narrowScrollFooter={chessMetaColumn}
       sidePanel={sidePanel}
     >
-      <div className="flex w-full min-w-0 flex-col overflow-x-hidden md:h-full md:min-h-0 md:flex-1 md:flex-row md:gap-3 md:overflow-hidden">
-        <div className="flex min-h-0 w-full min-w-0 flex-col gap-1.5 overflow-x-hidden md:min-h-0 md:flex-1 md:flex-row md:gap-3 md:overflow-hidden">
-          <div className="relative flex min-h-0 min-w-0 shrink-0 items-center justify-center overflow-x-hidden px-0 py-0 max-md:w-full md:min-w-0 md:flex-1 md:overflow-hidden">
+      <div className="flex w-full min-w-0 flex-col overflow-x-hidden md:h-full md:min-h-0 md:flex-1 md:flex-row md:gap-3 lg:gap-4 md:overflow-hidden">
+        <div className="flex min-h-0 w-full min-w-0 flex-col gap-1.5 overflow-x-hidden md:min-h-0 md:flex-1 md:flex-row md:gap-3 lg:gap-4 md:overflow-hidden">
+          <div className="relative flex min-h-0 min-w-0 shrink-0 items-center justify-center overflow-x-hidden px-0 py-0 max-md:w-full max-md:max-w-[min(100%,calc(100vw-1.25rem))] max-md:mx-auto md:min-w-0 md:flex-1 md:max-w-none md:overflow-hidden">
             <div
               className={cn(
                 "rounded-[14px] p-[3px] shadow-[0_0_0_1px_oklch(40%_0.04_102_/0.12)]",
                 "aspect-square max-h-full max-w-full",
-                "max-md:w-full max-md:max-w-full",
-                "sm:max-w-md",
+                "w-full max-md:max-w-full",
+                "sm:max-w-md sm:mx-auto md:mx-0",
                 "md:h-full md:max-h-full md:w-auto md:max-w-full",
               )}
             >
@@ -490,7 +494,7 @@ export function ChessActivityStage({
           </div>
 
           <div className="relative z-0 flex w-full min-w-0 flex-none flex-col overflow-hidden md:hidden">
-            <div className="box-border flex h-full min-h-0 w-full min-w-0 flex-col rounded-xl border border-border/70 bg-card/70 p-1 max-md:h-[min(34vw,28dvh,12rem)] max-md:min-h-29">
+            <div className="box-border flex h-full min-h-0 w-full min-w-0 flex-col rounded-xl border border-border/70 bg-card/70 p-1 max-md:h-[clamp(7.25rem,min(36vw,30dvh),13.5rem)] max-md:min-h-0">
               <RoomActivityVideoTiles
                 peerLabel={peerLabel}
                 myName={myName}
@@ -508,8 +512,16 @@ export function ChessActivityStage({
           </div>
         </div>
 
-        <aside className="hidden min-h-0 w-52 shrink-0 flex-col gap-2 rounded-xl border border-border/50 bg-card/45 p-2 shadow-sm backdrop-blur-[2px] supports-backdrop-filter:bg-card/35 sm:gap-2.5 sm:p-2.5 md:flex md:h-full md:overflow-y-auto">
-          {chessMetaColumn}
+        <aside
+          className={cn(
+            "hidden min-h-0 shrink-0 flex-col overflow-hidden rounded-xl border border-border/50 bg-card/45 shadow-sm backdrop-blur-[2px] supports-backdrop-filter:bg-card/35",
+            "md:flex md:h-full md:max-h-full md:w-52 md:min-w-50",
+            "lg:w-56 xl:min-w-60 xl:w-60",
+          )}
+        >
+          <div className="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto overflow-x-hidden overscroll-y-contain p-2 sm:gap-2.5 lg:p-2.5 [scrollbar-gutter:stable]">
+            {chessMetaColumn}
+          </div>
         </aside>
       </div>
     </RoomActivityLayout>
