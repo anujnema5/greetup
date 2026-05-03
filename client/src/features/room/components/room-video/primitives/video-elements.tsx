@@ -1,16 +1,22 @@
 "use client";
 
+/**
+ * Small video UI primitives for the room call (mirror stream, avatar fallback).
+ */
+
 import { useEffect, useRef, type RefObject } from "react";
 import Image from "next/image";
 import { cn } from "@/lib/utils";
 import { getProfileImageUrl } from "@/lib/ui/profile-image";
+import { isMobileRtcCaptureProfile } from "@/features/rtc/lib/rtc-mobile-profile";
 
 // ─── VideoMirror ──────────────────────────────────────────────────────────────
 
 /**
- * Displays a video stream from `srcRef` in a new <video> element.
- * Use `mirrored` for the local self-view — it flips the image horizontally
- * so it feels like looking in a mirror, which users expect from webcams.
+ * Renders the same `MediaStream` as a hidden “sink” `<video>` (`srcRef`) into a visible `<video>`.
+ * We poll `srcObject` because the sink is updated by other hooks; events alone do not always fire.
+ *
+ * Interval: slightly faster on touch devices so track swaps after reconnect feel less “stuck”.
  */
 export function VideoMirror({
   srcRef,
@@ -23,21 +29,20 @@ export function VideoMirror({
 }) {
   const displayRef = useRef<HTMLVideoElement>(null);
 
-  // Poll every 300 ms so we pick up stream changes (e.g. reconnects)
-  // without wiring a full event listener chain.
   useEffect(() => {
     const src = srcRef.current;
     const dst = displayRef.current;
     if (!src || !dst) return;
 
-    const sync = () => {
+    const syncSrcObject = () => {
       if (dst.srcObject !== src.srcObject) {
         dst.srcObject = src.srcObject;
       }
     };
 
-    sync();
-    const id = setInterval(sync, 300);
+    syncSrcObject();
+    const intervalMs = isMobileRtcCaptureProfile() ? 100 : 300;
+    const id = setInterval(syncSrcObject, intervalMs);
     return () => clearInterval(id);
   }, [srcRef]);
 
@@ -53,11 +58,10 @@ export function VideoMirror({
   );
 }
 
-// ─── CameraOffAvatar ──────────────────────────────────────────────────────────
+// ─── CameraOffAvatar ─────────────────────────────────────────────────────────
 
 /**
- * Circular avatar shown in place of a video feed when the camera is off.
- * Prefers the profile image; falls back to initials if none is set.
+ * Circular avatar when camera is off; profile image or initials.
  */
 export function CameraOffAvatar({
   name,

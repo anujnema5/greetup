@@ -1,8 +1,24 @@
 "use client";
 
+/**
+ * Local media for mediasoup: mic, camera, screen share.
+ *
+ * Flow:
+ * 1. `useMediasoupRoomSession` opens the send transport and joins the room.
+ * 2. This hook toggles tracks: pause/resume, first `getUserMedia` / `getDisplayMedia`, then `produce`.
+ * 3. Signaling (`pauseProducer` / `resumeProducer` / `closeProducer`) keeps remote UIs in sync.
+ *
+ * Capture tuning: `lib/mediasoup-local-capture-constraints.ts` (resolution / fps).
+ * Outbound layers: `lib/mediasoup-produce-config.ts` (simulcast + fallbacks).
+ */
+
 import { useCallback } from "react";
 import type { Producer, Transport } from "mediasoup-client/types";
 import { formatGetUserMediaError } from "@/features/rtc/lib/get-user-media-errors";
+import {
+  getCameraCaptureConstraints,
+  getScreenCaptureConstraints,
+} from "@/features/rtc/lib/mediasoup-local-capture-constraints";
 import {
   appendTrack,
   mergeLocalCameraTrack,
@@ -10,6 +26,12 @@ import {
   rebuildLocalStreamWithoutCameraVideo,
   rebuildLocalStreamWithoutKind,
 } from "@/features/rtc/lib/mediasoup-stream-helpers";
+import {
+  cameraSimulcastEncodingsForDevice,
+  produceOutboundVideo,
+  screenVideoEncodingsForDevice,
+  setVideoTrackContentHint,
+} from "@/features/rtc/lib/mediasoup-produce-config";
 import { canUseScreenShare } from "@/features/rtc/lib/screen-share-policy";
 import { emitRtcAck, isAckErr, isAckOk } from "@/features/rtc/lib/rtc-signaling";
 import type { SimpleAck } from "@/features/rtc/types/mediasoup-room.types";
@@ -18,22 +40,6 @@ import type {
   MediasoupLocalMediaSetters,
 } from "@/features/rtc/types/mediasoup-hooks.types";
 
-const CAMERA_VIDEO = {
-  facingMode: "user" as const,
-  width: { ideal: 1280 },
-  height: { ideal: 720 },
-};
-
-const SCREEN_VIDEO = {
-  frameRate: { ideal: 30 },
-  width: { ideal: 1920 },
-  height: { ideal: 1080 },
-};
-
-/**
- * Mic, camera, and screen-share: pause/resume, first-time `getUserMedia` / `getDisplayMedia`, and produce.
- * Expects {@link useMediasoupRoomSession} to have opened the send transport first.
- */
 export function useMediasoupLocalMedia(
   refs: MediasoupLocalMediaRefs,
   setters: MediasoupLocalMediaSetters,
@@ -70,6 +76,8 @@ export function useMediasoupLocalMedia(
     setLocalScreenTrackId,
     setLocalMediaDeviceError,
   } = setters;
+
+  // ─── Screen share teardown (track + producer + server closeProducer) ─────
 
   const cleanupLocalScreenShare = useCallback(() => {
     setLocalMediaDeviceError(null);
@@ -120,6 +128,8 @@ export function useMediasoupLocalMedia(
     socketRef,
   ]);
 
+  // ─── Microphone ────────────────────────────────────────────────────────────
+
   const toggleMic = useCallback(() => {
     if (statusRef.current !== "ready") return;
     void (async () => {
@@ -127,6 +137,7 @@ export function useMediasoupLocalMedia(
       const device = deviceRef.current;
       if (!send || !device) return;
 
+      // Turn off: pause producer + disable local track + tell SFU (remote tiles show “muted”).
       if (micEnabledRef.current) {
         setLocalMediaDeviceError(null);
         const producerId = audioProducerRef.current?.id;
@@ -140,7 +151,6 @@ export function useMediasoupLocalMedia(
         });
         setMicEnabled(false);
         micEnabledRef.current = false;
-        // Signal peers that our mic is muted.
         const sock = socketRef.current;
         if (producerId && sock) {
           void emitRtcAck<SimpleAck>(sock, "pauseProducer", { producerId }).catch(() => {});
@@ -148,6 +158,7 @@ export function useMediasoupLocalMedia(
         return;
       }
 
+      // Turn on: resume existing producer if track still alive.
       const existing = audioProducerRef.current;
       if (existing) {
         const tr = existing.track;
@@ -164,7 +175,6 @@ export function useMediasoupLocalMedia(
           });
           setMicEnabled(true);
           micEnabledRef.current = true;
-          // Signal peers that our mic is back on.
           const sock = socketRef.current;
           if (sock) {
             void emitRtcAck<SimpleAck>(sock, "resumeProducer", { producerId }).catch(() => {});
@@ -182,6 +192,7 @@ export function useMediasoupLocalMedia(
         setLocalStream(withoutAudio);
       }
 
+      // First open: new mic track + produce (Opus options align with router codec).
       if (!device.canProduce("audio") || acquiringMicRef.current) return;
       acquiringMicRef.current = true;
       try {
@@ -196,7 +207,14 @@ export function useMediasoupLocalMedia(
           setLocalMediaDeviceError("No microphone track available.");
           return;
         }
-        const producer = await send.produce({ track });
+        const producer = await send.produce({
+          track,
+          codecOptions: {
+            opusStereo: true,
+            opusDtx: true,
+            opusFec: true,
+          },
+        });
         audioProducerRef.current = producer;
         const merged = mergeLocalTrack(localStreamRef.current, track, "audio");
         localStreamRef.current = merged;
@@ -217,11 +235,14 @@ export function useMediasoupLocalMedia(
     localStreamRef,
     micEnabledRef,
     sendTransportRef,
+    socketRef,
     setLocalMediaDeviceError,
     setLocalStream,
     setMicEnabled,
     statusRef,
   ]);
+
+  // ─── Camera ────────────────────────────────────────────────────────────────
 
   const toggleCamera = useCallback(() => {
     if (statusRef.current !== "ready") return;
@@ -242,7 +263,6 @@ export function useMediasoupLocalMedia(
         if (cam) cam.enabled = false;
         setCameraEnabled(false);
         cameraEnabledRef.current = false;
-        // Signal peers that our camera is off.
         const sock = socketRef.current;
         if (producerId && sock) {
           void emitRtcAck<SimpleAck>(sock, "pauseProducer", { producerId }).catch(() => {});
@@ -264,7 +284,6 @@ export function useMediasoupLocalMedia(
           tr.enabled = true;
           setCameraEnabled(true);
           cameraEnabledRef.current = true;
-          // Signal peers that our camera is back on.
           const sock = socketRef.current;
           if (sock) {
             void emitRtcAck<SimpleAck>(sock, "resumeProducer", { producerId }).catch(() => {});
@@ -290,7 +309,7 @@ export function useMediasoupLocalMedia(
       try {
         const stream = await navigator.mediaDevices.getUserMedia({
           audio: false,
-          video: CAMERA_VIDEO,
+          video: getCameraCaptureConstraints(),
         });
         if (statusRef.current !== "ready") {
           stream.getTracks().forEach((t) => t.stop());
@@ -302,10 +321,13 @@ export function useMediasoupLocalMedia(
           setLocalMediaDeviceError("No camera track available.");
           return;
         }
-        const producer = await send.produce({
+        setVideoTrackContentHint(track, "motion");
+        const producer = await produceOutboundVideo(
+          send,
           track,
-          appData: { mediaSource: "camera" },
-        });
+          { mediaSource: "camera" },
+          cameraSimulcastEncodingsForDevice(),
+        );
         videoProducerRef.current = producer;
         const merged = mergeLocalCameraTrack(
           localStreamRef.current,
@@ -330,12 +352,15 @@ export function useMediasoupLocalMedia(
     localScreenTrackRef,
     localStreamRef,
     sendTransportRef,
+    socketRef,
     setLocalMediaDeviceError,
     setLocalStream,
     setCameraEnabled,
     statusRef,
     videoProducerRef,
   ]);
+
+  // ─── Screen share (room policy + display capture) ─────────────────────────
 
   const toggleScreenShare = useCallback(() => {
     if (statusRef.current !== "ready") return;
@@ -355,7 +380,7 @@ export function useMediasoupLocalMedia(
       acquiringScreenRef.current = true;
       try {
         const stream = await navigator.mediaDevices.getDisplayMedia({
-          video: SCREEN_VIDEO,
+          video: getScreenCaptureConstraints(),
           audio: false,
         });
         if (statusRef.current !== "ready") {
@@ -369,10 +394,13 @@ export function useMediasoupLocalMedia(
           return;
         }
 
-        const producer = await send.produce({
+        setVideoTrackContentHint(track, "detail");
+        const producer = await produceOutboundVideo(
+          send,
           track,
-          appData: { mediaSource: "screen" },
-        });
+          { mediaSource: "screen" },
+          screenVideoEncodingsForDevice(),
+        );
         screenProducerRef.current = producer;
         screenShareProducerIdRef.current = producer.id;
         localScreenTrackRef.current = track;

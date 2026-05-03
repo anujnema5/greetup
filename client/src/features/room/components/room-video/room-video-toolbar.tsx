@@ -1,6 +1,8 @@
 "use client";
 
 import { useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
+import { allowScreenShareCallControl } from "@/features/rtc/lib/rtc-mobile-profile";
+import { useMobileWebRtcUi } from "@/features/rtc/hooks/use-mobile-web-rtc-ui";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -133,6 +135,11 @@ export function RoomVideoToolbar({
   const rootRef = useRef<HTMLDivElement>(null);
   const mediaRef = useRef<HTMLDivElement>(null);
   const endRef = useRef<HTMLDivElement>(null);
+
+  const mobileWebCallUi = useMobileWebRtcUi();
+  const showScreenShareAction =
+    Boolean(showScreenShare && onToggleScreenShare) &&
+    allowScreenShareCallControl(mobileWebCallUi, screenSharing);
 
   const secondaryActions = useMemo(() => {
     type Id = "chat" | "participants" | "activities" | "live" | "add" | "circleOptions" | "skip";
@@ -420,10 +427,10 @@ export function RoomVideoToolbar({
             iconOff={<VideoOff size={18} className="text-amber-200/95" />}
           />
 
-          {showScreenShare && onToggleScreenShare ? (
+          {showScreenShareAction ? (
             <MediaControlButton
               active={screenSharing}
-              onClick={onToggleScreenShare}
+              onClick={() => onToggleScreenShare?.()}
               disabled={!mediaTogglesReady}
               ariaLabel={screenSharing ? "Stop sharing screen" : "Share screen"}
               caption={screenSharing ? "Sharing" : "Share"}
