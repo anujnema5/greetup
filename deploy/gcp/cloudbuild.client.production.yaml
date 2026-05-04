@@ -46,14 +46,21 @@ steps:
         if [ -z "$$VERIFY_FIREBASE_API_KEY" ] || [ -z "$$VERIFY_FIREBASE_AUTH_DOMAIN" ] || [ -z "$$VERIFY_FIREBASE_PROJECT_ID" ]; then
           echo ""
           echo "ERROR: Firebase client config is missing at Docker build time."
-          echo "On the Cloud Build trigger, add user-defined substitution variables whose names are EXACTLY:"
-          echo "  _NEXT_PUBLIC_FIREBASE_API_KEY"
-          echo "  _NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN"
-          echo "  _NEXT_PUBLIC_FIREBASE_PROJECT_ID"
-          echo "  _NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID"
-          echo "  _NEXT_PUBLIC_FIREBASE_APP_ID"
-          echo "(Leading underscore is required. Names like NEXT_PUBLIC_FIREBASE_API_KEY without _ are ignored.)"
-          echo "Cloud Run service env vars do not bake into the Next.js bundle — rebuild after fixing the trigger."
+          echo "Empty substitution check (length must be > 0):"
+          if [ -z "$$VERIFY_FIREBASE_API_KEY" ]; then echo "  _NEXT_PUBLIC_FIREBASE_API_KEY: EMPTY"; else echo "  _NEXT_PUBLIC_FIREBASE_API_KEY: ok"; fi
+          if [ -z "$$VERIFY_FIREBASE_AUTH_DOMAIN" ]; then echo "  _NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN: EMPTY"; else echo "  _NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN: ok"; fi
+          if [ -z "$$VERIFY_FIREBASE_PROJECT_ID" ]; then echo "  _NEXT_PUBLIC_FIREBASE_PROJECT_ID: EMPTY"; else echo "  _NEXT_PUBLIC_FIREBASE_PROJECT_ID: ok"; fi
+          echo ""
+          echo "Fix: Cloud Console -> Cloud Build -> Triggers -> (this trigger) -> Edit."
+          echo "  Open \"Show included\" / scroll to \"Substitution variables\"."
+          echo "  Add EACH name below (including the leading _) and paste values from Firebase Console"
+          echo "  -> Project settings -> Your apps -> Web app -> SDK setup:"
+          echo "    _NEXT_PUBLIC_FIREBASE_API_KEY"
+          echo "    _NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN"
+          echo "    _NEXT_PUBLIC_FIREBASE_PROJECT_ID"
+          echo "    _NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID"
+          echo "    _NEXT_PUBLIC_FIREBASE_APP_ID"
+          echo "Save trigger, then Run trigger (or push a commit). Cloud Run env vars are not enough."
           echo ""
           exit 1
         fi
