@@ -6,6 +6,8 @@ import {
   InputOTPSeparator,
   InputOTPSlot,
 } from "@/components/ui/input-otp";
+import { Loader2 } from "lucide-react";
+
 import { Button } from "@/components/ui/button";
 import { Form, FormControl, FormField, FormItem, FormMessage } from "@/components/ui/form";
 import { useOTPVerification } from "../hooks/use-otp-verification";
@@ -38,9 +40,11 @@ function OTPVerification({
 
   return (
     <div className="w-full">
-      <p className="text-center text-xl font-semibold mb-2">Verify OTP</p>
-      <p className="text-center text-sm text-muted-foreground mb-6">
-        Code sent to <span className="font-medium">{phoneNumber}</span>
+      <p className="text-center text-[13px] font-semibold leading-none tracking-tight text-foreground mb-1.5">
+        Verify OTP
+      </p>
+      <p className="text-center text-[12px] leading-snug text-muted-foreground mb-6">
+        Code sent to <span className="font-medium text-foreground">{phoneNumber}</span>
       </p>
 
       <Form {...form}>
@@ -71,10 +75,17 @@ function OTPVerification({
           />
 
           <Button type="submit" className="w-full" disabled={isLoading}>
-            {isLoading ? "Verifying..." : "Verify OTP"}
+            {isLoading ? (
+              <span className="inline-flex items-center gap-1.5">
+                <Loader2 className="size-4 shrink-0 animate-spin" aria-hidden />
+                Verifying...
+              </span>
+            ) : (
+              "Verify OTP"
+            )}
           </Button>
 
-          <p className="text-center text-sm">
+          <p className="text-center text-[12px] text-muted-foreground">
             Didn&apos;t receive the code?{" "}
             <button
               className="cursor-pointer underline"
@@ -85,7 +96,7 @@ function OTPVerification({
             </button>
           </p>
 
-          <p className="text-center text-xs text-muted-foreground">
+          <p className="text-center text-[11px] text-muted-foreground">
             Wrong number?{" "}
             <button type="button" className="cursor-pointer underline" onClick={onEditPhone}>
               Edit phone

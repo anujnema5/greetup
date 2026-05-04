@@ -41,7 +41,7 @@ export default function ResetPasswordPage() {
                     </div>
 
                     <div className="space-y-2 text-center">
-                        <h1 className="text-2xl font-bold">Password reset successful!</h1>
+                        <h1 className="text-xl font-bold tracking-tight">Password reset successful!</h1>
                         <p className="text-sm text-muted-foreground">
                             Your password has been successfully reset.
                         </p>
@@ -73,7 +73,7 @@ export default function ResetPasswordPage() {
                     </div>
 
                     <div className="space-y-2 text-center">
-                        <h1 className="text-2xl font-bold">Invalid Reset Link</h1>
+                        <h1 className="text-xl font-bold tracking-tight">Invalid Reset Link</h1>
                         <p className="text-sm text-muted-foreground">
                             This password reset link is invalid or has expired.
                         </p>
@@ -112,10 +112,10 @@ export default function ResetPasswordPage() {
                     </div>
 
                     <div className="space-y-2">
-                        <h1 className="text-2xl font-bold tracking-tight">
+                        <h1 className="text-xl font-bold tracking-tight">
                             Reset your password
                         </h1>
-                        <p className="text-sm text-muted-foreground">
+                        <p className="text-[13px] leading-snug text-muted-foreground">
                             Enter your new password below. Make sure it's at least 8 characters long.
                         </p>
                     </div>
@@ -203,14 +203,14 @@ export default function ResetPasswordPage() {
 
                         <Button
                             type="submit"
-                            className="w-full h-11 font-medium"
+                            className="w-full h-11 text-sm font-medium"
                             disabled={isLoading}
                         >
                             {isLoading ? (
-                                <>
-                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                <span className="inline-flex items-center gap-1.5">
+                                    <Loader2 className="size-4 shrink-0 animate-spin" aria-hidden />
                                     Resetting password...
-                                </>
+                                </span>
                             ) : (
                                 "Reset password"
                             )}

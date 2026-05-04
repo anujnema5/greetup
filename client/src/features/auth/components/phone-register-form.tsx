@@ -96,10 +96,10 @@ export default function PhoneRegisterForm({ onOTPSent }: PhoneRegisterFormProps)
 
         <Button type="submit" className="w-full" disabled={isSending}>
           {isSending ? (
-            <>
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            <span className="inline-flex items-center gap-1.5">
+              <Loader2 className="size-4 shrink-0 animate-spin" aria-hidden />
               Sending...
-            </>
+            </span>
           ) : (
             "Continue"
           )}

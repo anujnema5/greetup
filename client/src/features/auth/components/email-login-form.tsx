@@ -86,12 +86,12 @@ const EmailLoginForm = () => {
         </div>
 
         {/* Submit Button */}
-        <Button type="submit" className="w-full mt-4 flex items-center justify-center" disabled={isLoading}>
+        <Button type="submit" className="w-full mt-4" disabled={isLoading}>
           {isLoading ? (
-            <>
-              <Loader2 className="w-5 h-5 animate-spin" />
+            <span className="inline-flex items-center gap-1.5">
+              <Loader2 className="size-4 shrink-0 animate-spin" aria-hidden />
               Signing in...
-            </>
+            </span>
           ) : (
             "Continue with Email"
           )}

@@ -31,14 +31,14 @@ export default function AuthPageLayout({
                         <div className="flex flex-col items-center space-y-6">
                             <Logo className="scale-110" />
 
-                            <div className="text-center space-y-2">
-                                <h1 className="text-3xl font-bold tracking-tight">{title}</h1>
-                                <p className="text-base text-muted-foreground">{subtitle}</p>
+                            <div className="text-center space-y-1.5">
+                                <h1 className="text-xl font-bold tracking-tight sm:text-[1.35rem]">{title}</h1>
+                                <p className="text-[13px] leading-snug text-muted-foreground">{subtitle}</p>
                             </div>
                         </div>
 
                         {/* Auth Forms */}
-                        <div className="space-y-6 ">
+                        <div className="space-y-6 text-sm">
                             {children}
 
                             {/* Footer Link Section */}
@@ -76,15 +76,15 @@ export default function AuthPageLayout({
                         <div className="relative z-10 flex flex-col items-center justify-center h-full text-center px-12 space-y-8">
                             <div className="space-y-4">
                                 <div className="inline-flex h-20 w-20 items-center justify-center rounded-2xl bg-primary text-primary-foreground shadow-lg">
-                                    <span className="text-3xl font-black leading-none tracking-[-0.03em]" aria-hidden>
+                                    <span className="text-2xl font-black leading-none tracking-[-0.03em]" aria-hidden>
                                         G
                                     </span>
                                 </div>
 
-                                <h2 className="text-4xl font-bold tracking-tight">
+                                <h2 className="text-3xl font-bold tracking-tight">
                                     Greetup
                                 </h2>
-                                <p className="text-lg text-muted-foreground max-w-md mx-auto leading-relaxed">
+                                <p className="text-sm text-muted-foreground max-w-md mx-auto leading-relaxed">
                                     Connect, talk, and share in real time with your people.
                                     Experience seamless communication like never before.
                                 </p>
@@ -93,19 +93,19 @@ export default function AuthPageLayout({
                             {/* Feature highlights */}
                             <div className="grid grid-cols-3 gap-6 pt-8">
                                 <div className="space-y-2">
-                                    <div className="text-2xl font-bold text-primary">100K+</div>
+                                    <div className="text-lg font-bold text-primary">100K+</div>
                                     <div className="text-xs text-muted-foreground">
                                         Active Users
                                     </div>
                                 </div>
                                 <div className="space-y-2">
-                                    <div className="text-2xl font-bold text-primary">24/7</div>
+                                    <div className="text-lg font-bold text-primary">24/7</div>
                                     <div className="text-xs text-muted-foreground">
                                         Available
                                     </div>
                                 </div>
                                 <div className="space-y-2">
-                                    <div className="text-2xl font-bold text-primary">Secure</div>
+                                    <div className="text-lg font-bold text-primary">Secure</div>
                                     <div className="text-xs text-muted-foreground">
                                         Encrypted
                                     </div>
