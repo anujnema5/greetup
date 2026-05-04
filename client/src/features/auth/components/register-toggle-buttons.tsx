@@ -17,18 +17,18 @@ export default function RegisterToggleButtons({
                 type="button"
                 variant={currentView === "phone" ? "default" : "outline"}
                 onClick={() => currentView !== "phone" && onToggle()}
-                className="w-full"
+                className="w-full gap-1.5"
             >
-                <Phone className="mr-2 h-4 w-4" />
+                <Phone className="size-4 shrink-0" aria-hidden />
                 Phone
             </Button>
             <Button
                 type="button"
                 variant={currentView === "email" ? "default" : "outline"}
                 onClick={() => currentView !== "email" && onToggle()}
-                className="w-full"
+                className="w-full gap-1.5"
             >
-                <Mail className="mr-2 h-4 w-4" />
+                <Mail className="size-4 shrink-0" aria-hidden />
                 Email
             </Button>
         </div>

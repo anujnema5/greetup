@@ -81,9 +81,9 @@ function VerifyEmailContent() {
                         <Button
                             onClick={() => router.push('/register')}
                             variant="outline"
-                            className="w-full"
+                            className="w-full gap-1.5"
                         >
-                            <ArrowLeft className="w-4 h-4 mr-2" />
+                            <ArrowLeft className="size-4 shrink-0" />
                             Return to Sign Up
                         </Button>
                     </CardFooter>
@@ -100,10 +100,10 @@ function VerifyEmailContent() {
                         <Mail className="w-8 h-8 text-primary" />
                     </div>
                     <div className="space-y-2">
-                        <CardTitle className="text-2xl">
+                        <CardTitle className="text-xl font-semibold tracking-tight">
                             Verify Your Email Address
                         </CardTitle>
-                        <CardDescription className="leading-relaxed">
+                        <CardDescription className="text-[13px] leading-snug">
                             {fromRegister
                                 ? 'Thank you for signing up. To complete your registration, please verify your email address.'
                                 : 'Please verify your email address to access your account.'
@@ -137,10 +137,10 @@ function VerifyEmailContent() {
                             size="lg"
                         >
                             {resending ? (
-                                <>
-                                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                                    Sending Verification Email...
-                                </>
+                                <span className="inline-flex items-center gap-1.5">
+                                    <Loader2 className="size-4 shrink-0 animate-spin" aria-hidden />
+                                    Sending verification email...
+                                </span>
                             ) : (
                                 'Resend Verification Email'
                             )}

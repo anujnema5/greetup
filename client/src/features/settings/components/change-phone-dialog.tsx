@@ -252,8 +252,14 @@ export function ChangePhoneDialog({ open, onOpenChange, currentPhone }: ChangePh
                   Cancel
                 </Button>
                 <Button type="submit" className="flex-2" disabled={busy}>
-                  {busy && <Loader2 className="h-4 w-4 animate-spin" />}
-                  {busy ? "Sending…" : "Send code"}
+                  {busy ? (
+                    <span className="inline-flex items-center gap-1.5">
+                      <Loader2 className="size-4 shrink-0 animate-spin" aria-hidden />
+                      Sending…
+                    </span>
+                  ) : (
+                    "Send code"
+                  )}
                 </Button>
               </div>
             </form>
@@ -329,8 +335,14 @@ export function ChangePhoneDialog({ open, onOpenChange, currentPhone }: ChangePh
                   Back
                 </Button>
                 <Button type="submit" className="flex-2" disabled={busy}>
-                  {busy && <Loader2 className="h-4 w-4 animate-spin" />}
-                  {busy ? "Saving…" : "Verify & save"}
+                  {busy ? (
+                    <span className="inline-flex items-center gap-1.5">
+                      <Loader2 className="size-4 shrink-0 animate-spin" aria-hidden />
+                      Saving…
+                    </span>
+                  ) : (
+                    "Verify & save"
+                  )}
                 </Button>
               </div>
             </form>

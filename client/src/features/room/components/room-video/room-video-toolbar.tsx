@@ -74,6 +74,7 @@ export function RoomVideoToolbar({
   elapsed: _elapsed,
   formatDuration: _formatDuration,
   showPeopleTab = false,
+  showActivitiesTab = false,
 }: {
   onToggleMic?: () => void;
   onToggleCamera?: () => void;
@@ -100,6 +101,7 @@ export function RoomVideoToolbar({
   elapsed: number;
   formatDuration: (seconds: number) => string;
   showPeopleTab?: boolean;
+  showActivitiesTab?: boolean;
 }) {
   const rootRef = useRef<HTMLDivElement>(null);
   const mediaRef = useRef<HTMLDivElement>(null);
@@ -122,6 +124,7 @@ export function RoomVideoToolbar({
       onOpenCircleOptions,
       showSkip,
       showPeopleTab,
+      showActivitiesTab,
     },
   );
 
@@ -355,7 +358,7 @@ export function RoomVideoToolbar({
           />
         </CircleToolbarButton>
       ) : null}
-      {narrowToolbar && !isGroupRoom ? (
+      {narrowToolbar && !isGroupRoom && showActivitiesTab ? (
         <CircleToolbarButton
           onClick={() => setRightPanelTab("activities")}
           ariaLabel="Open activities panel"

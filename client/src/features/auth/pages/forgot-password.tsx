@@ -29,7 +29,7 @@ export default function ForgotPasswordPage() {
                     </div>
 
                     <div className="space-y-2 text-center">
-                        <h1 className="text-2xl font-bold">Check your email</h1>
+                        <h1 className="text-xl font-bold tracking-tight">Check your email</h1>
                         <p className="text-sm text-muted-foreground">
                             We've sent a password reset link to
                         </p>
@@ -44,19 +44,19 @@ export default function ForgotPasswordPage() {
                     <div className="space-y-3">
                         <Button
                             variant="outline"
-                            className="w-full"
+                            className="w-full gap-1.5"
                             onClick={resetEmailSent}
                         >
-                            <Mail className="mr-2 h-4 w-4" />
+                            <Mail className="size-4 shrink-0" />
                             Try another email
                         </Button>
 
                         <Button
                             variant="ghost"
-                            className="w-full"
+                            className="w-full gap-1.5"
                             onClick={() => window.location.href = "/login"}
                         >
-                            <ArrowLeft className="mr-2 h-4 w-4" />
+                            <ArrowLeft className="size-4 shrink-0" />
                             Back to login
                         </Button>
                     </div>
@@ -74,10 +74,10 @@ export default function ForgotPasswordPage() {
                     </div>
 
                     <div className="space-y-2">
-                        <h1 className="text-2xl my-3 font-bold tracking-tight">
+                        <h1 className="text-xl my-3 font-bold tracking-tight">
                             Forgot password?
                         </h1>
-                        <p className="text-sm text-muted-foreground">
+                        <p className="text-[13px] leading-snug text-muted-foreground">
                             No worries! Enter your email address and we'll send you a link to reset your password.
                         </p>
                     </div>
@@ -112,14 +112,14 @@ export default function ForgotPasswordPage() {
 
                         <Button
                             type="submit"
-                            className="w-full h-11 text-base font-medium"
+                            className="w-full h-11 text-sm font-medium"
                             disabled={isLoading}
                         >
                             {isLoading ? (
-                                <>
-                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                <span className="inline-flex items-center gap-1.5">
+                                    <Loader2 className="size-4 shrink-0 animate-spin" aria-hidden />
                                     Sending reset link...
-                                </>
+                                </span>
                             ) : (
                                 "Send reset link"
                             )}

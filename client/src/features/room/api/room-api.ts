@@ -12,6 +12,8 @@ import type {
   UpdateRoomTitleMutationResult,
   RoomApiEnvelope,
 } from "../types/room-api.types";
+import { parseListRoomEmbeddedActivitiesResponse } from "@/features/room/embedded-activities/parse-list-response";
+import type { RoomEmbeddedActivityDto } from "@/features/room/embedded-activities/types";
 
 const { MATCHING, ROOM } = API_ENDPOINTS;
 
@@ -79,6 +81,11 @@ function assertJoinRoomOk(response: JoinRoomApiResponse): void {
   }
 }
 
+const CACHE_ROOM_EMBEDDED_ACTIVITIES = {
+  type: "RoomEmbeddedActivities" as const,
+  id: "LIST" as const,
+};
+
 export const roomApi = baseApi.injectEndpoints({
   endpoints: (build) => ({
     leaveRoom: build.mutation<void, void>({
@@ -95,6 +102,12 @@ export const roomApi = baseApi.injectEndpoints({
       query: (roomId) => ({ url: ROOM.get(roomId) }),
       providesTags: (_result, _error, roomId) => [roomEntityTag(roomId)],
       transformResponse: toRoomData,
+    }),
+
+    getRoomEmbeddedActivities: build.query<RoomEmbeddedActivityDto[], void>({
+      query: () => ({ url: ROOM.EMBEDDED_ACTIVITIES }),
+      providesTags: [CACHE_ROOM_EMBEDDED_ACTIVITIES],
+      transformResponse: parseListRoomEmbeddedActivitiesResponse,
     }),
 
     /**
@@ -154,6 +167,7 @@ export const roomApi = baseApi.injectEndpoints({
 export const {
   useLeaveRoomMutation,
   useGetRoomQuery,
+  useGetRoomEmbeddedActivitiesQuery,
   useJoinRoomMutation,
   useRoomInviteMutation,
   useRoomInviteRespondMutation,

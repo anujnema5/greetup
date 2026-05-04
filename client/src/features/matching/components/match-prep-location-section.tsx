@@ -103,14 +103,15 @@ export function MatchPrepLocationSection({
               type="button"
               variant="outline"
               size="sm"
+              className="text-xs font-medium"
               onClick={onUseCurrentLocation}
               disabled={busy || isLocatingCurrent || isResolvingManualLocation}
             >
               {isLocatingCurrent ? (
-                <>
-                  <Loader2 className="mr-2 size-3.5 animate-spin" aria-hidden />
+                <span className="inline-flex items-center gap-1.5">
+                  <Loader2 className="size-3.5 shrink-0 animate-spin" aria-hidden />
                   Detecting...
-                </>
+                </span>
               ) : (
                 "Use current location"
               )}
@@ -146,8 +147,8 @@ export function MatchPrepLocationSection({
             {suggestionsOpen && manualLocationText.trim().length >= 2 && (
               <div className="w-full rounded-md border border-border bg-popover text-popover-foreground shadow-md">
                 {isFetchingSuggestions ? (
-                  <div className="flex items-center gap-2 px-3 py-2 text-xs text-muted-foreground">
-                    <Loader2 className="size-3 animate-spin" aria-hidden />
+                  <div className="flex items-center gap-1.5 px-3 py-2 text-xs text-muted-foreground">
+                    <Loader2 className="size-3 shrink-0 animate-spin" aria-hidden />
                     Searching locations...
                   </div>
                 ) : locationSuggestions.length > 0 ? (

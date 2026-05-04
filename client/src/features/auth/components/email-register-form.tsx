@@ -174,10 +174,10 @@ export default function EmailRegisterForm() {
 
                 <Button type="submit" className="w-full" disabled={isLoading}>
                     {isLoading ? (
-                        <>
-                            <Loader2 className="h-4 w-4 animate-spin" />
-                            Creating Account...
-                        </>
+                        <span className="inline-flex items-center gap-1.5">
+                            <Loader2 className="size-4 shrink-0 animate-spin" aria-hidden />
+                            Creating account...
+                        </span>
                     ) : (
                         "Create Account"
                     )}

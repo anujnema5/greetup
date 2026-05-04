@@ -9,8 +9,8 @@ import { useSearchUsersQuery } from "../api/user-search-api";
 import { ExploreDemoPeopleList } from "../components/explore-demo-people-list";
 import { ExploreSearchField } from "../components/explore-search-field";
 import { ExploreUserSearchResults } from "../components/explore-user-search-results";
-import { ExploreVibesSection } from "../components/explore-vibes-section";
-import { VIBES, PEOPLE } from "../constants/mock-data";
+import { ExploreTopicsSection } from "../components/explore-topics-section";
+import { BROWSE_TOPICS, PEOPLE } from "../constants/mock-data";
 import { useExploreSearch } from "../hooks/use-explore-search";
 
 const SEARCH_MIN_LENGTH = 2;
@@ -29,11 +29,11 @@ export function ExplorePage() {
   const liveResults = useMemo(() => searchData?.items ?? [], [searchData?.items]);
 
   const trimmed = query.trim();
-  const showVibesAndDemo = trimmed === "";
+  const showTopicsAndDemo = trimmed === "";
   const showShortHint = trimmed.length === 1;
   const sectionTitle = canSearch
     ? `Results for "${debouncedQuery}"`
-    : showVibesAndDemo
+    : showTopicsAndDemo
       ? "Suggested (demo)"
       : showShortHint
         ? "One more character…"
@@ -56,7 +56,7 @@ export function ExplorePage() {
         <div className="flex flex-col gap-6 px-4 md:px-8 py-5">
           <ExploreSearchField value={query} onChange={setQuery} />
 
-          {showVibesAndDemo && <ExploreVibesSection vibes={VIBES} />}
+          {showTopicsAndDemo && <ExploreTopicsSection topics={BROWSE_TOPICS} />}
 
           <section>
             <h2 className="text-sm font-semibold text-foreground mb-3">{sectionTitle}</h2>
@@ -74,7 +74,7 @@ export function ExplorePage() {
                 queryLabel={debouncedQuery}
               />
             ) : (
-              (showVibesAndDemo || showShortHint) && (
+              (showTopicsAndDemo || showShortHint) && (
                 <ExploreDemoPeopleList people={filtered} />
               )
             )}

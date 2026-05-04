@@ -2,6 +2,7 @@
  * Video call UI: `/circle/[roomId]`, minimized dock, cross-tab sync.
  *
  * - Constants: `constants/call-flow.ts`, `constants/direct-call-recovery.ts`, `constants/mock-match.ts`
+ * - Embedded activities (DB-backed): `embedded-activities/`
  * - Cross-tab single-tab lease: `lib/room-tab-lease.ts`, `hooks/use-room-page-tab-lease.ts`,
  *   `hooks/use-room-tab-lease-rtc-sync.ts`
  * - Partner drop (direct match): `components/direct-call-partner-disconnect-handler.tsx`
@@ -38,6 +39,7 @@ export {
   setLastChessOutcome,
   clearLastChessOutcome,
 } from "@/lib/redux/slices/room-activity-slice";
+export * from "./embedded-activities";
 export { MOCK_MATCH } from "./constants/mock-match";
 export { MATCHMAKING_HUB_PATH } from "./constants/call-flow";
 export {
@@ -58,6 +60,7 @@ export {
   leaveRoomKeepalive,
   useLeaveRoomMutation,
   useGetRoomQuery,
+  useGetRoomEmbeddedActivitiesQuery,
   useJoinRoomMutation,
   useRoomInviteMutation,
   useRoomInviteRespondMutation,

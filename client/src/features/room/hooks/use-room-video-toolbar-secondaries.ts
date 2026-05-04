@@ -20,6 +20,8 @@ type SecondariesInput = {
   onOpenCircleOptions?: () => void;
   showSkip: boolean;
   showPeopleTab: boolean;
+  /** Direct call: omit when the DB catalog has no `is_active` embedded activities. */
+  showActivitiesTab: boolean;
 };
 
 /**
@@ -39,7 +41,8 @@ export function useRoomVideoToolbarSecondaries(
     const items: RoomVideoToolbarSecondaryId[] = [];
     if (input.showPeopleTab) items.push("participants");
     if (input.conversationId) items.push("chat");
-    if (!input.isGroupRoom) items.push("activities", "live");
+    if (!input.isGroupRoom && input.showActivitiesTab) items.push("activities");
+    if (!input.isGroupRoom) items.push("live");
     if (input.showAddToCircle && input.onOpenAddToCircle) items.push("add");
     if (input.showCircleOptions && input.onOpenCircleOptions) items.push("circleOptions");
     if (input.showSkip) items.push("skip");
@@ -53,6 +56,7 @@ export function useRoomVideoToolbarSecondaries(
     input.onOpenCircleOptions,
     input.showSkip,
     input.showPeopleTab,
+    input.showActivitiesTab,
   ]);
 
   const flowSecondaries = useMemo(

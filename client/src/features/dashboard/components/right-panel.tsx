@@ -88,7 +88,7 @@ function RightPanelInner() {
       <div className="h-px bg-border" />
 
       <div>
-        <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">Trending Vibes</h3>
+        <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">Trending topics</h3>
         <div className="flex flex-wrap gap-1.5">
           {TRENDING_TAGS.map((tag) => (
             <span

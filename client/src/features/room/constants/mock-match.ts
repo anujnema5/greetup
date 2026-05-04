@@ -5,7 +5,7 @@ export const MOCK_MATCH = {
   gradFrom: "#7c3aed",
   gradTo: "#4f46e5",
   tagline: "Product designer · Startup founder",
-  vibes: ["design", "startups", "indie music"],
+  interests: ["design", "startups", "indie music"],
   mutual: 3,
-  vibeScore: 94,
+  matchScore: 94,
 } as const;

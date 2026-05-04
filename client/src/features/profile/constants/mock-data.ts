@@ -1,5 +1,3 @@
-export const VIBES = ["design", "startups", "indie music", "ai & ml", "travel", "coffee"] as const;
-
 /** Mock dashboard stats; labels/values are strings so completion % can replace a row. */
 export type ProfileStatRow = { label: string; value: string };
 
@@ -7,7 +5,7 @@ export const STATS: ProfileStatRow[] = [
   { label: "Matches", value: "47" },
   { label: "Connections", value: "128" },
   { label: "Circles", value: "12" },
-  { label: "Vibe Score", value: "87" },
+  { label: "Match score", value: "87" },
 ];
 
 export const RECENT_MATCHES = [

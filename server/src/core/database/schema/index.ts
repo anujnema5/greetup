@@ -35,6 +35,7 @@ export * from "./behavior";
 export * from "./connections";
 export * from "./blocks";
 export * from "./rooms";
+export * from "./room-embedded-activities";
 export * from "./notifications";
 export * from "./chat";
 export * from "./prompts";

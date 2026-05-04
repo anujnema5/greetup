@@ -229,8 +229,8 @@ export function MatchPrepDialog({
         <div ref={formScrollRef} className={scrollBodyClass}>
           <div className="space-y-5 pt-1">
             {prefsLoading && (
-              <div className="flex items-center justify-center gap-2 py-10 text-sm text-muted-foreground">
-                <Loader2 className="size-4 animate-spin" aria-hidden />
+              <div className="flex items-center justify-center gap-1.5 py-10 text-sm text-muted-foreground">
+                <Loader2 className="size-4 shrink-0 animate-spin" aria-hidden />
                 Loading…
               </div>
             )}
@@ -330,13 +330,14 @@ export function MatchPrepDialog({
           )}
         </div>
 
-        <DialogFooter className="shrink-0 flex-col gap-2 border-t border-border/40 bg-card/90 px-5 py-4 backdrop-blur-sm sm:flex-row sm:justify-end sm:gap-2 sm:px-6">
+        <DialogFooter className="shrink-0 flex-col gap-2 border-t border-border/40 bg-card/90 px-5 py-3 backdrop-blur-sm sm:flex-row sm:justify-end sm:gap-2 sm:px-6">
           {isEdit ? (
             <>
               <Button
                 type="button"
                 variant="ghost"
-                className="w-full text-muted-foreground sm:w-auto"
+                size="sm"
+                className="w-full text-xs font-medium text-muted-foreground sm:w-auto"
                 onClick={() => handleDialogOpenChange(false)}
                 disabled={busy}
               >
@@ -344,15 +345,16 @@ export function MatchPrepDialog({
               </Button>
               <Button
                 type="button"
-                className="w-full sm:w-auto"
+                size="sm"
+                className="w-full text-xs font-medium sm:w-auto"
                 onClick={() => void handleSave()}
                 disabled={prefsLoading || busy || !data}
               >
                 {isSaving ? (
-                  <>
-                    <Loader2 className="mr-2 size-4 animate-spin" aria-hidden />
+                  <span className="inline-flex items-center gap-1.5">
+                    <Loader2 className="size-4 shrink-0 animate-spin" aria-hidden />
                     Saving…
-                  </>
+                  </span>
                 ) : (
                   "Save"
                 )}
@@ -363,7 +365,8 @@ export function MatchPrepDialog({
               <Button
                 type="button"
                 variant="ghost"
-                className="w-full text-muted-foreground sm:w-auto"
+                size="sm"
+                className="w-full text-xs font-medium text-muted-foreground sm:w-auto"
                 onClick={() => void handleSkip()}
                 disabled={busy}
               >
@@ -371,15 +374,16 @@ export function MatchPrepDialog({
               </Button>
               <Button
                 type="button"
-                className="w-full sm:w-auto"
+                size="sm"
+                className="w-full text-xs font-medium sm:w-auto"
                 onClick={() => void handleSave()}
                 disabled={prefsLoading || busy || !data}
               >
                 {isSaving ? (
-                  <>
-                    <Loader2 className="mr-2 size-4 animate-spin" aria-hidden />
+                  <span className="inline-flex items-center gap-1.5">
+                    <Loader2 className="size-4 shrink-0 animate-spin" aria-hidden />
                     Saving…
-                  </>
+                  </span>
                 ) : (
                   "Save & find match"
                 )}

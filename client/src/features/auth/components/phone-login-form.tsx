@@ -61,12 +61,12 @@ const PhoneLoginForm = ({ onOTPSent }: PhoneLoginFormProps) => {
           )}
         />
 
-        <Button type="submit" className="w-full flex items-center justify-center" disabled={isSending}>
+        <Button type="submit" className="w-full" disabled={isSending}>
           {isSending ? (
-            <>
-              <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+            <span className="inline-flex items-center gap-1.5">
+              <Loader2 className="size-4 shrink-0 animate-spin" aria-hidden />
               Sending...
-            </>
+            </span>
           ) : (
             "Send OTP"
           )}

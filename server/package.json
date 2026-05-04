@@ -13,6 +13,7 @@
     "db:seed": "bun src/core/database/seed/index.ts",
     "db:seed:onboarding": "bun src/core/database/seed/seed-onboarding-lookups.ts",
     "db:seed:room-categories": "bun src/core/database/seed/seed-room-categories.ts",
+    "db:seed:room-embedded-activities": "bun src/core/database/seed/seed-room-embedded-activities.ts",
     "db:seed:dev-users": "bun src/core/database/seed/seed-dev-users.ts",
     "build": "tsc",
     "typecheck": "tsc --noEmit",

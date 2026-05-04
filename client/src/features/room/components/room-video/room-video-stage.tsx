@@ -11,8 +11,9 @@
  * - **Circle, cameras only** — Responsive grid of remote tiles + local “You” tile.
  * - **Direct** — 1:1 split (camera/camera or screen+rail), or 16:9 / activity scroll regions.
  *
- * `participantVideosInSidebar` is owned by `RoomVideoView` (People tab: dock on lg+, sheet on
- * narrow). When true, camera UI moves off-stage so the main area is only the shared screen.
+ * `participantVideosInSidebar` is owned by `RoomVideoView`: when true, cameras live only in the
+ * People panel and the stage is screen-only (typically desktop during share). Below `md`, it is
+ * false during share so participants stay on the main stage (stacked / grid — see compact layouts).
  */
 import { useRef, type RefObject } from "react";
 import { cn } from "@/lib/utils";
@@ -35,6 +36,7 @@ import type { RemoteParticipant, ScreenShareTileInfo } from "@/features/rtc";
 import { hasLiveEnabledVideo, hasLiveVideo } from "@/features/rtc";
 import { useAttachMediaStream } from "@/features/room/hooks/use-attach-media-stream";
 import { ScreenShareFilmstrip } from "@/features/room/components/room-video/screen-share-filmstrip";
+import { ScreenShareMobileParticipantGrid } from "@/features/room/components/room-video/screen-share-mobile-participant-grid";
 
 type StageRatio = "16:9" | "1:1";
 
@@ -95,6 +97,11 @@ export function RoomVideoStage({
   remotePeerCameraStream = null,
   /** Cameras live in People panel/sheet; stage is screen-only. */
   participantVideosInSidebar = false,
+  /**
+   * Fullscreen / immersive stage on narrow + screen share while cameras are still on-stage:
+   * show only the shared screen (not peer/local tiles beside or below it).
+   */
+  shareStageImmersive = false,
 }: {
   isGroupRoom: boolean;
   groupGalleryParticipants: RemoteParticipant[];
@@ -135,6 +142,7 @@ export function RoomVideoStage({
   /** Direct + screen share: partner camera-only stream for the side rail (not the main stage). */
   remotePeerCameraStream?: MediaStream | null;
   participantVideosInSidebar?: boolean;
+  shareStageImmersive?: boolean;
 }) {
   const stageActivity = activeRealtimeActivity?.kind === "chess" ? "chess" : activeActivity;
 
@@ -211,9 +219,19 @@ export function RoomVideoStage({
               </div>
             </div>
           ) : (
-            /* Circle + share (compact / undocked): share strip + participant grid below. */
-            <div className="absolute inset-0 flex min-h-0 flex-col gap-1.5 p-1 md:p-1.5">
-              <div className="relative min-h-[36%] flex-1 overflow-hidden rounded-xl border border-border/50 bg-black shadow-sm">
+            /* Circle + share (narrow / on-stage): shared screen + 2×2 participant grid (+ pages if 5+). */
+            <div
+              className={cn(
+                "absolute inset-0 flex min-h-0 flex-col gap-1.5 p-1 md:p-1.5",
+                shareStageImmersive && "gap-0 p-0",
+              )}
+            >
+              <div
+                className={cn(
+                  "relative min-h-0 overflow-hidden rounded-xl border border-border/50 bg-black shadow-sm",
+                  shareStageImmersive ? "flex-1 rounded-none border-0 shadow-none" : "flex-[1.12]",
+                )}
+              >
                 <VideoMirror
                   srcRef={remoteVideoRef}
                   className={cn(
@@ -239,40 +257,20 @@ export function RoomVideoStage({
                   />
                 ) : null}
               </div>
-              {/* Fixed-height horizontal filmstrip — all participants visible, no vertical scroll */}
-              <div className="flex h-22 md:h-25 shrink-0 gap-1 overflow-x-auto overflow-y-hidden">
-                <div className="relative aspect-video h-full flex-none overflow-hidden rounded-xl border border-border/50 shadow-sm">
-                  <VideoMirror
-                    srcRef={localVideoRef}
-                    mirrored
-                    className={cn(
-                      "absolute inset-0 h-full w-full object-cover",
-                      !localVideoLive && "opacity-0",
-                    )}
-                  />
-                  {!localVideoLive ? (
-                    <div className="flex h-full w-full flex-1 items-center justify-center bg-muted/20">
-                      <TileSpeakingRings stream={localStream}>
-                        <CameraOffAvatar
-                          name={myName}
-                          initials={myInitial}
-                          imageUrl={myAvatarUrl}
-                          sizeClass="h-10 w-10"
-                        />
-                      </TileSpeakingRings>
-                    </div>
-                  ) : null}
-                  <TileNameBadge>You</TileNameBadge>
-                  <TileMediaStatus micOn={micEnabled} cameraOn={cameraEnabled} />
-                </div>
-                {sideParticipants.map((participant) => (
-                  <RemoteParticipantTile
-                    key={participant.peer.peerId}
-                    participant={participant}
-                    className="aspect-video min-h-0! h-full flex-none"
-                  />
-                ))}
-              </div>
+              {!shareStageImmersive ? (
+                <ScreenShareMobileParticipantGrid
+                  localVideoRef={localVideoRef}
+                  localVideoLive={localVideoLive}
+                  localStream={localStream}
+                  myName={myName}
+                  myInitial={myInitial}
+                  myAvatarUrl={myAvatarUrl}
+                  micEnabled={micEnabled ?? true}
+                  cameraEnabled={cameraEnabled ?? true}
+                  remoteParticipants={sideParticipants}
+                  className="min-h-0"
+                />
+              ) : null}
             </div>
           )
         ) : groupTileCount > 6 ? (
@@ -346,7 +344,10 @@ export function RoomVideoStage({
           <>
             {/* Direct 1:1 primary layout (hidden while 16:9 or activity uses the scroll region below). */}
             <div
-              className="absolute inset-0 flex min-h-0 flex-col gap-2 overflow-hidden p-3 md:flex-row"
+              className={cn(
+                "absolute inset-0 flex min-h-0 flex-col gap-2 overflow-hidden p-3 md:flex-row",
+                shareStageImmersive && "max-md:p-0 max-md:gap-0",
+              )}
               style={{ display: stageRatio === "1:1" && !stageActivity ? "flex" : "none" }}
             >
               {directScreenShareSidebar ? (
@@ -376,6 +377,41 @@ export function RoomVideoStage({
                         </TileSpeakingRings>
                       </div>
                     )}
+                  </div>
+                ) : shareStageImmersive ? (
+                  <div className="relative order-1 min-h-0 min-w-0 flex-1 overflow-hidden rounded-2xl bg-black max-md:rounded-none">
+                    <VideoMirror
+                      srcRef={remoteVideoRef}
+                      mirrored={false}
+                      className={cn(
+                        "absolute inset-0 h-full w-full",
+                        remoteVideoLive
+                          ? mainStageShowsScreen
+                            ? "bg-black object-contain"
+                            : "object-cover"
+                          : "opacity-0",
+                      )}
+                    />
+                    {!remoteVideoLive && (
+                      <div className="absolute inset-0 flex items-center justify-center border border-border/60 bg-linear-to-br from-primary/15 via-muted/45 to-accent/20">
+                        <TileSpeakingRings stream={remoteMicOff ? null : remoteStream}>
+                          <CameraOffAvatar
+                            name={peerLabel}
+                            initials={peerInitials}
+                            imageUrl={peerAvatarUrl}
+                            sizeClass="h-20 w-20 md:h-24 md:w-24"
+                          />
+                        </TileSpeakingRings>
+                      </div>
+                    )}
+                    {onSelectScreenShare ? (
+                      <ScreenShareFilmstrip
+                        tiles={screenShareTiles}
+                        focusedKey={focusedScreenShareKey}
+                        onSelect={onSelectScreenShare}
+                        className="absolute bottom-2 left-2 right-2 z-10"
+                      />
+                    ) : null}
                   </div>
                 ) : (
                   <>
@@ -416,11 +452,17 @@ export function RoomVideoStage({
 
                     <div
                       className={cn(
-                        "order-2 flex min-h-0 w-full shrink-0 gap-2 md:w-40 md:flex-col md:gap-2 lg:w-44",
-                        "h-32 md:h-auto md:max-h-full",
+                        "order-2 flex min-h-0 w-full shrink-0 gap-2 max-md:flex-col max-md:h-auto",
+                        "md:h-auto md:w-40 md:flex-col md:gap-2 lg:w-44 md:max-h-full",
                       )}
                     >
-                      <div className="relative flex min-h-0 min-w-0 flex-1 overflow-hidden rounded-2xl border border-border/60 bg-card shadow-sm md:aspect-video md:max-h-[42%] md:flex-none lg:max-h-[45%]">
+                      <div
+                        className={cn(
+                          "relative flex min-h-0 min-w-0 overflow-hidden rounded-2xl border border-border/60 bg-card shadow-sm",
+                          "max-md:aspect-video max-md:w-full max-md:flex-none",
+                          "md:min-h-0 md:flex-1 md:max-h-[48%]",
+                        )}
+                      >
                         <video
                           ref={sidebarRemoteVideoRef}
                           playsInline
@@ -450,7 +492,13 @@ export function RoomVideoStage({
                           cameraOn={remoteCameraOff ? false : undefined}
                         />
                       </div>
-                      <div className="relative flex min-h-0 min-w-0 flex-1 overflow-hidden rounded-2xl border border-border/60 bg-card shadow-sm md:aspect-video md:max-h-[42%] md:flex-none lg:max-h-[45%]">
+                      <div
+                        className={cn(
+                          "relative flex min-h-0 min-w-0 overflow-hidden rounded-2xl border border-border/60 bg-card shadow-sm",
+                          "max-md:aspect-video max-md:w-full max-md:flex-none",
+                          "md:min-h-0 md:flex-1 md:max-h-[48%]",
+                        )}
+                      >
                         <video
                           ref={sidebarLocalVideoRef}
                           playsInline

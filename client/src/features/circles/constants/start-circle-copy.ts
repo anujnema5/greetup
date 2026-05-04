@@ -14,7 +14,7 @@ export const START_CIRCLE_COPY = {
   visibilityPrivate: "Private — share an invite code",
   descriptionLabel: "Description",
   descriptionOptional: "(optional)",
-  descriptionPlaceholder: "What’s the vibe?",
+  descriptionPlaceholder: "What is this circle about?",
   seatsLabel: "Seats",
   seatsHint: "2–100 (you count as the host)",
   whenLabel: "When",
