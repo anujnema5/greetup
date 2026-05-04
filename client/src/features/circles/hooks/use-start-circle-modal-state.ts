@@ -25,19 +25,6 @@ export type StartCircleShellValue = {
   isOpen: boolean;
 };
 
-/** Keeps the focused control visible inside the modal body when the mobile keyboard changes `visualViewport`. */
-function scrollFocusedIntoFormScroll(scrollEl: HTMLElement, pad = 16) {
-  const ae = document.activeElement;
-  if (!ae || !(ae instanceof HTMLElement) || !scrollEl.contains(ae)) return;
-  const s = scrollEl.getBoundingClientRect();
-  const a = ae.getBoundingClientRect();
-  if (a.bottom > s.bottom - pad) {
-    scrollEl.scrollTop += a.bottom - s.bottom + pad;
-  } else if (a.top < s.top + pad) {
-    scrollEl.scrollTop += a.top - s.top - pad;
-  }
-}
-
 export function useStartCircleModalState() {
   const [open, setOpen] = useState(false);
   const openModal = useCallback(() => setOpen(true), []);
@@ -76,7 +63,6 @@ export function useStartCircleModalState() {
   );
   const [inviteDialogOpen, setInviteDialogOpen] = useState(false);
 
-  const formScrollRef = useRef<HTMLDivElement>(null);
   const advancedSectionRef = useRef<HTMLDivElement>(null);
 
   const handleInviteConfirm = useCallback((ids: Set<string>) => {
@@ -94,55 +80,13 @@ export function useStartCircleModalState() {
   useEffect(() => {
     if (!advancedOpen) return;
     const id = window.requestAnimationFrame(() => {
-      window.requestAnimationFrame(() => {
-        const scrollEl = formScrollRef.current;
-        const anchor = advancedSectionRef.current;
-        if (!scrollEl || !anchor) return;
-        const s = scrollEl.getBoundingClientRect();
-        const a = anchor.getBoundingClientRect();
-        const pad = 12;
-        if (a.bottom > s.bottom - pad) {
-          scrollEl.scrollBy({
-            top: a.bottom - s.bottom + pad,
-            behavior: "smooth",
-          });
-        } else if (a.top < s.top + pad) {
-          scrollEl.scrollBy({
-            top: a.top - s.top - pad,
-            behavior: "smooth",
-          });
-        }
+      advancedSectionRef.current?.scrollIntoView({
+        behavior: "smooth",
+        block: "nearest",
       });
     });
     return () => window.cancelAnimationFrame(id);
   }, [advancedOpen]);
-
-  useEffect(() => {
-    if (!open) return;
-    const id = window.requestAnimationFrame(() => {
-      const el = formScrollRef.current;
-      if (el) el.scrollTop = 0;
-    });
-    return () => window.cancelAnimationFrame(id);
-  }, [open]);
-
-  useEffect(() => {
-    if (!open) return;
-    const vv = window.visualViewport;
-    if (!vv) return;
-    const onViewportChange = () => {
-      requestAnimationFrame(() => {
-        const scrollEl = formScrollRef.current;
-        if (scrollEl) scrollFocusedIntoFormScroll(scrollEl);
-      });
-    };
-    vv.addEventListener("resize", onViewportChange);
-    vv.addEventListener("scroll", onViewportChange);
-    return () => {
-      vv.removeEventListener("resize", onViewportChange);
-      vv.removeEventListener("scroll", onViewportChange);
-    };
-  }, [open]);
 
   const handleOpenChange = useCallback(
     (next: boolean) => {
@@ -216,7 +160,6 @@ export function useStartCircleModalState() {
     handleOpenChange,
     form,
     submitCreateCircle,
-    formScrollRef,
     advancedSectionRef,
     creating,
     categoriesLoading,

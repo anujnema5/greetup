@@ -114,6 +114,7 @@ function DialogContent({
           !hasPixelCenterOffset && "translate-x-[-50%] translate-y-[-50%]",
           className
         )}
+        // Consumer `style` first, then viewport — keyboard / inset wins on overlapping keys.
         style={{ ...style, ...viewportStyleForInline }}
         {...props}
       >
