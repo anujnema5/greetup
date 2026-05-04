@@ -13,6 +13,10 @@ type GenericActivityStageProps = {
   localVideoLive: boolean;
   remoteStream: MediaStream | null;
   localStream: MediaStream | null;
+  remoteMicOff?: boolean;
+  remoteCameraOff?: boolean;
+  micEnabled?: boolean;
+  cameraEnabled?: boolean;
 };
 
 export function GenericActivityStage({
@@ -25,6 +29,10 @@ export function GenericActivityStage({
   localVideoLive,
   remoteStream,
   localStream,
+  remoteMicOff = false,
+  remoteCameraOff = false,
+  micEnabled = true,
+  cameraEnabled = true,
 }: GenericActivityStageProps) {
   return (
     <RoomActivityLayout
@@ -37,6 +45,10 @@ export function GenericActivityStage({
       localVideoLive={localVideoLive}
       remoteStream={remoteStream}
       localStream={localStream}
+      remoteMicOff={remoteMicOff}
+      remoteCameraOff={remoteCameraOff}
+      micEnabled={micEnabled}
+      cameraEnabled={cameraEnabled}
       sidePanel={
         <div className="rounded-lg border border-border/60 bg-background/75 px-2 py-1.5">
           <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Status</p>

@@ -1,6 +1,38 @@
+/**
+ * Layout for embedded call activities (chess, etc.): video rail + main stage.
+ * Video subcomponents are `memo`’d so unrelated parent updates don’t re-render tiles.
+ */
 "use client";
 
-import { useEffect, useRef, type ReactNode } from "react";
+import { memo, useEffect, useRef, type ReactNode } from "react";
+import { Mic, MicOff, Video, VideoOff } from "lucide-react";
+
+/** Mic + camera pill (Meet-style): green icons when live, red when muted / camera off. */
+const ActivityVideoMediaPill = memo(function ActivityVideoMediaPill({
+  micLive,
+  cameraLive,
+}: {
+  micLive: boolean;
+  cameraLive: boolean;
+}) {
+  return (
+    <div
+      className="pointer-events-none absolute right-1.5 top-1.5 z-10 flex items-center gap-0.5 rounded-full border border-white/15 bg-black/52 px-1 py-0.5 shadow-sm backdrop-blur-[6px] sm:right-2 sm:top-2 sm:gap-1 sm:px-1.5 sm:py-0.5"
+      aria-hidden
+    >
+      {micLive ? (
+        <Mic className="size-2.5 text-emerald-300/95 sm:size-3" strokeWidth={2} />
+      ) : (
+        <MicOff className="size-2.5 text-red-400 sm:size-3" strokeWidth={2.2} />
+      )}
+      {cameraLive ? (
+        <Video className="size-2.5 text-emerald-300/95 sm:size-3" strokeWidth={2} />
+      ) : (
+        <VideoOff className="size-2.5 text-red-400 sm:size-3" strokeWidth={2.2} />
+      )}
+    </div>
+  );
+});
 
 type RoomActivityVideoTilesProps = {
   peerLabel: string;
@@ -10,6 +42,14 @@ type RoomActivityVideoTilesProps = {
   localVideoLive: boolean;
   remoteStream: MediaStream | null;
   localStream: MediaStream | null;
+  /** Peer mic not muted (when `false`, shows muted icon). */
+  peerMicLive?: boolean;
+  /** Local mic not muted. */
+  localMicLive?: boolean;
+  /** Peer camera producing video (usually same as `remoteVideoLive`). */
+  peerCameraLive?: boolean;
+  /** Local camera producing video (usually same as `localVideoLive`). */
+  localCameraLive?: boolean;
   /** On narrow screens, remote + local in one row (shared width). */
   narrowVideosSideBySide?: boolean;
   /** Stretch tiles to fill parent height on narrow (chess: video row flex-1). */
@@ -24,6 +64,19 @@ type RoomActivityVideoTilesProps = {
 type RoomActivityLayoutProps = {
   title?: string;
   subtitle?: string;
+  /**
+   * When true, the activity title/subtitle appear in the **left rail** top card (chess: frees main stage width).
+   * On phones (with `narrowScrollFooter`), the same title shows above the board; there is no room-status strip.
+   */
+  swapActivityHeaderWithRoomCard?: boolean;
+  /**
+   * Slightly narrows the video/score rail on `md+` so the main stage (board + side panel) gets more width.
+   */
+  compactVideoRail?: boolean;
+  remoteMicOff?: boolean;
+  remoteCameraOff?: boolean;
+  micEnabled?: boolean;
+  cameraEnabled?: boolean;
   peerLabel: string;
   myName: string;
   peerInitials: string;
@@ -49,7 +102,7 @@ type RoomActivityLayoutProps = {
   children: ReactNode;
 };
 
-export function RoomActivityStreamVideo({
+export const RoomActivityStreamVideo = memo(function RoomActivityStreamVideo({
   stream,
   muted = false,
   mirrored = false,
@@ -74,9 +127,9 @@ export function RoomActivityStreamVideo({
       style={mirrored ? { transform: "scaleX(-1)" } : undefined}
     />
   );
-}
+});
 
-export function RoomActivityVideoTiles({
+export const RoomActivityVideoTiles = memo(function RoomActivityVideoTiles({
   peerLabel,
   myName,
   peerInitials,
@@ -84,12 +137,18 @@ export function RoomActivityVideoTiles({
   localVideoLive,
   remoteStream,
   localStream,
+  peerMicLive = true,
+  localMicLive = true,
+  peerCameraLive,
+  localCameraLive,
   narrowVideosSideBySide = false,
   fillAvailableOnNarrow = false,
   narrowEmphasizePeer = false,
   narrowEmphasizeLocal = false,
   className = "",
 }: RoomActivityVideoTilesProps) {
+  const peerCam = peerCameraLive ?? remoteVideoLive;
+  const localCam = localCameraLive ?? localVideoLive;
   const narrowRowFill = narrowVideosSideBySide && fillAvailableOnNarrow;
   const peerWide = narrowVideosSideBySide && narrowEmphasizePeer;
   const localWide = narrowVideosSideBySide && narrowEmphasizeLocal && !narrowEmphasizePeer;
@@ -159,6 +218,7 @@ export function RoomActivityVideoTiles({
             {peerInitials}
           </div>
         )}
+        <ActivityVideoMediaPill micLive={peerMicLive} cameraLive={peerCam} />
         <div className="absolute inset-x-0 bottom-0 bg-linear-to-t from-black/70 to-transparent px-2 py-1">
           <p className="truncate text-[11px] font-medium text-white/90 sm:text-xs">{peerLabel}</p>
         </div>
@@ -208,13 +268,14 @@ export function RoomActivityVideoTiles({
             {myName.charAt(0).toUpperCase()}
           </div>
         )}
+        <ActivityVideoMediaPill micLive={localMicLive} cameraLive={localCam} />
         <div className="absolute inset-x-0 bottom-0 bg-linear-to-t from-black/70 to-transparent px-2 py-1">
           <p className="text-[11px] font-medium text-white/90 sm:text-xs">You</p>
         </div>
       </div>
     </div>
   );
-}
+});
 
 /**
  * Grid on md+: video/score rail + main stage. Chess on phones omits the rail and uses `narrowScrollFooter`.
@@ -222,6 +283,12 @@ export function RoomActivityVideoTiles({
 export function RoomActivityLayout({
   title,
   subtitle,
+  swapActivityHeaderWithRoomCard = false,
+  compactVideoRail = false,
+  remoteMicOff = false,
+  remoteCameraOff = false,
+  micEnabled = true,
+  cameraEnabled = true,
   peerLabel,
   myName,
   peerInitials,
@@ -239,6 +306,10 @@ export function RoomActivityLayout({
 }: RoomActivityLayoutProps) {
   /** Chess phones: document flow + bottom meta card; stage scroll is the parent `RoomVideoStage`. */
   const chessMobileDocumentFlow = omitNarrowRailVideos && Boolean(narrowScrollFooter);
+  const gridCols =
+    compactVideoRail
+      ? "md:grid-cols-[minmax(7.5rem,9.25rem)_minmax(0,1fr)] lg:grid-cols-[minmax(8.25rem,10.25rem)_minmax(0,1fr)]"
+      : "md:grid-cols-[minmax(10.5rem,13rem)_minmax(0,1fr)] lg:grid-cols-[minmax(11.5rem,14.5rem)_minmax(0,1fr)]";
 
   return (
     <div
@@ -248,8 +319,9 @@ export function RoomActivityLayout({
         chessMobileDocumentFlow
           ? "relative h-auto min-h-full w-full max-md:overflow-x-hidden max-md:overflow-y-visible max-md:gap-1.5 max-md:px-1.5 max-md:pt-1.5 max-md:pb-3 md:absolute md:inset-0 md:min-h-0 md:overflow-hidden"
           : "absolute inset-0 min-h-0 overflow-y-auto",
-        "md:grid md:grid-cols-[minmax(9.25rem,11.5rem)_minmax(0,1fr)] md:grid-rows-1 md:gap-3 md:overflow-hidden md:p-3 md:pb-3",
-        "lg:grid-cols-[minmax(10.5rem,13rem)_minmax(0,1fr)] lg:gap-4 lg:p-4",
+        "md:grid md:grid-rows-1 md:gap-3 md:overflow-hidden md:p-3 md:pb-3",
+        gridCols,
+        "lg:gap-4 lg:p-4",
       ]
         .filter(Boolean)
         .join(" ")}
@@ -263,20 +335,21 @@ export function RoomActivityLayout({
           .filter(Boolean)
           .join(" ")}
       >
-        <div
-          className={[
-            "rounded-xl border border-border/70 bg-card/75 p-2 sm:p-2.5 md:p-2.5",
-            omitNarrowRailVideos ? "max-md:p-1.5 max-md:py-1" : "",
-          ]
-            .filter(Boolean)
-            .join(" ")}
-        >
-          <p className="truncate text-xs font-semibold text-foreground md:text-sm">
-            Private Room
-            <span className="text-muted-foreground font-normal md:hidden"> · Connected</span>
-          </p>
-          <p className="hidden text-xs text-muted-foreground md:block">Connected</p>
-        </div>
+        {swapActivityHeaderWithRoomCard && (title || subtitle) ? (
+          <div
+            className={[
+              "rounded-xl border border-border/70 bg-card/75 p-2 sm:p-2.5 md:p-2.5",
+              omitNarrowRailVideos ? "max-md:p-1.5 max-md:py-1" : "",
+            ]
+              .filter(Boolean)
+              .join(" ")}
+          >
+            <div className="min-w-0">
+              {title ? <p className="truncate text-xs font-semibold text-foreground md:text-sm">{title}</p> : null}
+              {subtitle ? <p className="text-[11px] text-muted-foreground md:text-xs">{subtitle}</p> : null}
+            </div>
+          </div>
+        ) : null}
 
         <div
           className={[
@@ -295,6 +368,10 @@ export function RoomActivityLayout({
               localVideoLive={localVideoLive}
               remoteStream={remoteStream}
               localStream={localStream}
+              peerMicLive={!remoteMicOff}
+              peerCameraLive={remoteVideoLive && !remoteCameraOff}
+              localMicLive={micEnabled}
+              localCameraLive={localVideoLive && cameraEnabled}
               narrowVideosSideBySide={narrowVideosSideBySide}
               className="md:min-h-0 md:flex-1"
             />
@@ -306,7 +383,7 @@ export function RoomActivityLayout({
 
       <div
         className={[
-          "order-1 flex w-full flex-1 flex-col rounded-xl border border-border/70 bg-card/65 p-2.5 sm:p-3 md:order-2 md:min-h-0",
+          "order-1 flex w-full flex-1 flex-col rounded-xl border border-border/70 bg-card/65 p-2.5 sm:p-3 md:order-2 md:h-full md:max-h-full md:min-h-0",
           chessMobileDocumentFlow
             ? "max-md:flex-none max-md:overflow-visible max-md:px-1.5 max-md:pt-1.5 max-md:pb-1.5"
             : omitNarrowRailVideos
@@ -314,7 +391,14 @@ export function RoomActivityLayout({
               : "max-md:flex-none max-md:min-h-0 min-h-[min(48dvh,480px)]",
         ].join(" ")}
       >
-        {title || subtitle ? (
+        {swapActivityHeaderWithRoomCard && chessMobileDocumentFlow && (title || subtitle) ? (
+          <div className="mb-1.5 flex items-center justify-between gap-2 sm:mb-2 md:hidden">
+            <div className="min-w-0 flex-1">
+              {title ? <p className="truncate text-sm font-semibold text-foreground">{title}</p> : null}
+              {subtitle ? <p className="text-xs text-muted-foreground">{subtitle}</p> : null}
+            </div>
+          </div>
+        ) : !swapActivityHeaderWithRoomCard && (title || subtitle) ? (
           <div className="mb-2 flex items-center justify-between gap-2 sm:mb-3">
             <div className="min-w-0">
               {title ? <p className="truncate text-sm font-semibold text-foreground">{title}</p> : null}
@@ -337,7 +421,7 @@ export function RoomActivityLayout({
             className={[
               "min-h-0",
               omitNarrowRailVideos && narrowScrollFooter
-                ? "relative z-0 isolate max-md:overflow-x-visible md:flex-1 md:min-h-0 md:overflow-hidden"
+                ? "relative z-0 isolate max-md:overflow-x-visible md:flex-1 md:h-full md:min-h-0 md:overflow-hidden"
                 : "",
             ]
               .filter(Boolean)
@@ -356,13 +440,6 @@ export function RoomActivityLayout({
                 ].join(" ")}
               >
                 <div className="flex flex-col gap-2">{narrowScrollFooter}</div>
-
-                <div className="border-t border-border/45 pt-3">
-                  <p className="truncate text-xs font-semibold text-foreground">
-                    Private Room
-                    <span className="text-muted-foreground font-normal"> · Connected</span>
-                  </p>
-                </div>
 
                 <div className="border-t border-border/45 pt-3">{sidePanel}</div>
               </div>

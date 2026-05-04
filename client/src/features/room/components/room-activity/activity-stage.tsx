@@ -16,6 +16,10 @@ export type ActivityStageProps = {
   localVideoLive: boolean;
   remoteStream: MediaStream | null;
   localStream: MediaStream | null;
+  remoteMicOff?: boolean;
+  remoteCameraOff?: boolean;
+  micEnabled?: boolean;
+  cameraEnabled?: boolean;
   activeRealtimeActivity: RoomActiveActivity | null;
   onEndActiveGame?: () => void;
   onOfferDrawGame?: () => void;
@@ -32,6 +36,10 @@ export function ActivityStage({
   localVideoLive,
   remoteStream,
   localStream,
+  remoteMicOff = false,
+  remoteCameraOff = false,
+  micEnabled = true,
+  cameraEnabled = true,
   activeRealtimeActivity,
   onEndActiveGame,
   onOfferDrawGame,
@@ -47,6 +55,10 @@ export function ActivityStage({
         localVideoLive={localVideoLive}
         remoteStream={remoteStream}
         localStream={localStream}
+        remoteMicOff={remoteMicOff}
+        remoteCameraOff={remoteCameraOff}
+        micEnabled={micEnabled}
+        cameraEnabled={cameraEnabled}
         chessActivity={activeRealtimeActivity?.kind === "chess" ? activeRealtimeActivity : null}
         onEndGame={onEndActiveGame}
         onOfferDraw={onOfferDrawGame}
@@ -65,6 +77,10 @@ export function ActivityStage({
       localVideoLive={localVideoLive}
       remoteStream={remoteStream}
       localStream={localStream}
+      remoteMicOff={remoteMicOff}
+      remoteCameraOff={remoteCameraOff}
+      micEnabled={micEnabled}
+      cameraEnabled={cameraEnabled}
     />
   );
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import type { FocusEventHandler } from "react";
 
 import { Input } from "@/components/ui/input";
@@ -34,11 +34,14 @@ export function AgeDigitsInput({
   ...rest
 }: AgeDigitsInputProps) {
   const safe = Number.isFinite(value) ? value : min;
-  const [text, setText] = useState(() => String(safe));
+  const canonicalText = String(safe);
+  const [text, setText] = useState(() => canonicalText);
+  const [syncedFrom, setSyncedFrom] = useState(() => ({ value, min }));
 
-  useEffect(() => {
-    setText(String(Number.isFinite(value) ? value : min));
-  }, [value, min]);
+  if (syncedFrom.value !== value || syncedFrom.min !== min) {
+    setSyncedFrom({ value, min });
+    setText(canonicalText);
+  }
 
   const applyTyping = (raw: string) => {
     const digits = raw.replace(/\D/g, "").slice(0, 2);

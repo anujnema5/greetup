@@ -631,6 +631,10 @@ export function RoomVideoStage({
                       localVideoLive={localVideoLive}
                       remoteStream={remoteStream}
                       localStream={localStream}
+                      remoteMicOff={remoteMicOff}
+                      remoteCameraOff={remoteCameraOff}
+                      micEnabled={micEnabled}
+                      cameraEnabled={cameraEnabled}
                       activeRealtimeActivity={activeRealtimeActivity}
                       onEndActiveGame={onEndActiveGame}
                       onOfferDrawGame={onOfferDrawGame}
