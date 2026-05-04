@@ -79,17 +79,17 @@ export function StartCircleModalDialog(props: StartCircleModalDialogProps) {
       <DialogContent
         showCloseButton
         className={cn(
-          "flex! min-h-0 max-h-[min(92vh,760px)] flex-col! gap-0! overflow-hidden",
+          "flex! min-h-0 max-h-[min(92dvh,760px)] flex-col! gap-0! overflow-hidden",
           "border-border/60 bg-card p-0 shadow-2xl sm:max-w-2xl",
           "rounded-2xl",
         )}
       >
-        <div className="shrink-0 px-8 pt-8 pb-5">
+        <div className="shrink-0 px-6 pt-6 pb-3 sm:px-8 sm:pt-8 sm:pb-4">
           <DialogHeader className="space-y-1.5 text-left">
             <DialogTitle className="text-2xl font-semibold tracking-tight">
               {C.modalTitle}
             </DialogTitle>
-            <DialogDescription className="text-[15px] leading-relaxed text-muted-foreground">
+            <DialogDescription className="text-sm leading-snug text-muted-foreground sm:text-[15px] sm:leading-relaxed">
               {C.modalDescription}
             </DialogDescription>
           </DialogHeader>
@@ -100,36 +100,39 @@ export function StartCircleModalDialog(props: StartCircleModalDialogProps) {
             onSubmit={form.handleSubmit(submitCreateCircle)}
             className="flex min-h-0 flex-1 flex-col"
           >
+            {/* Name stays above the scroll region so it cannot be scrolled under the header when the mobile keyboard shrinks the viewport. */}
+            <div className="shrink-0 px-6 pb-3 sm:px-8 sm:pb-4">
+              <FormField
+                control={form.control}
+                name="title"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="text-sm font-medium">
+                      {C.titleLabel}
+                    </FormLabel>
+                    <FormControl>
+                      <Input
+                        placeholder={C.titlePlaceholder}
+                        maxLength={160}
+                        className="h-11 border-border/80 bg-background/50 px-3.5 text-sm transition-[border-color,box-shadow] focus-visible:border-border"
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+
             <div
               ref={formScrollRef}
               className={cn(
-                "min-h-0 flex-1 overflow-y-auto overscroll-contain px-8 pb-4",
+                "min-h-0 flex-1 overflow-y-auto overscroll-contain px-6 pb-4 sm:px-8",
                 "[overflow-anchor:none] [scrollbar-gutter:stable]",
-                "pr-7 [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-border [&::-webkit-scrollbar-track]:bg-transparent",
+                "pr-5 sm:pr-7 [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-border [&::-webkit-scrollbar-track]:bg-transparent",
               )}
             >
               <div className="space-y-6 pb-1">
-                <FormField
-                  control={form.control}
-                  name="title"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel className="text-sm font-medium">
-                        {C.titleLabel}
-                      </FormLabel>
-                      <FormControl>
-                        <Input
-                          placeholder={C.titlePlaceholder}
-                          maxLength={160}
-                          className="h-11 border-border/80 bg-background/50 px-3.5 text-sm transition-[border-color,box-shadow] focus-visible:border-border"
-                          {...field}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
                 <div className="grid items-stretch gap-5 sm:grid-cols-2 sm:gap-x-6">
                   <div className="flex min-h-0 flex-col gap-2 sm:min-w-0">
                     {categoriesLoading ? (

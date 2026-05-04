@@ -25,6 +25,19 @@ export type StartCircleShellValue = {
   isOpen: boolean;
 };
 
+/** Keeps the focused control visible inside the modal body when the mobile keyboard changes `visualViewport`. */
+function scrollFocusedIntoFormScroll(scrollEl: HTMLElement, pad = 16) {
+  const ae = document.activeElement;
+  if (!ae || !(ae instanceof HTMLElement) || !scrollEl.contains(ae)) return;
+  const s = scrollEl.getBoundingClientRect();
+  const a = ae.getBoundingClientRect();
+  if (a.bottom > s.bottom - pad) {
+    scrollEl.scrollTop += a.bottom - s.bottom + pad;
+  } else if (a.top < s.top + pad) {
+    scrollEl.scrollTop += a.top - s.top - pad;
+  }
+}
+
 export function useStartCircleModalState() {
   const [open, setOpen] = useState(false);
   const openModal = useCallback(() => setOpen(true), []);
@@ -103,6 +116,33 @@ export function useStartCircleModalState() {
     });
     return () => window.cancelAnimationFrame(id);
   }, [advancedOpen]);
+
+  useEffect(() => {
+    if (!open) return;
+    const id = window.requestAnimationFrame(() => {
+      const el = formScrollRef.current;
+      if (el) el.scrollTop = 0;
+    });
+    return () => window.cancelAnimationFrame(id);
+  }, [open]);
+
+  useEffect(() => {
+    if (!open) return;
+    const vv = window.visualViewport;
+    if (!vv) return;
+    const onViewportChange = () => {
+      requestAnimationFrame(() => {
+        const scrollEl = formScrollRef.current;
+        if (scrollEl) scrollFocusedIntoFormScroll(scrollEl);
+      });
+    };
+    vv.addEventListener("resize", onViewportChange);
+    vv.addEventListener("scroll", onViewportChange);
+    return () => {
+      vv.removeEventListener("resize", onViewportChange);
+      vv.removeEventListener("scroll", onViewportChange);
+    };
+  }, [open]);
 
   const handleOpenChange = useCallback(
     (next: boolean) => {
