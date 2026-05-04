@@ -83,7 +83,7 @@ export function RoomVideoRightPanel({
             setRightPanelTab(value as RoomCallRightPanelTab);
           }
         }}
-        className="flex min-h-0 flex-1 flex-col gap-0"
+        className="flex h-full min-h-0 flex-1 flex-col gap-0"
       >
         <div className="flex shrink-0 items-center justify-between border-b border-border/70 px-3 py-2">
           <TabsList className="h-auto max-w-full flex-wrap rounded-md border border-border/60 bg-muted/70 p-0.5">
@@ -111,7 +111,7 @@ export function RoomVideoRightPanel({
         {showPeopleTab ? (
           <TabsContent
             value="participants"
-            className="mt-0 flex min-h-0 flex-1 flex-col overflow-hidden data-[state=inactive]:hidden"
+            className="mt-0 flex h-full min-h-0 flex-1 flex-col overflow-hidden data-[state=inactive]:hidden"
           >
             {participantsPanel}
           </TabsContent>
