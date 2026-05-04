@@ -8,7 +8,7 @@
  * Local tile is always built first so it is not the last slot on a page.
  */
 import Image from "next/image";
-import { cloneElement, useMemo, useRef, useState, type ReactElement } from "react";
+import { cloneElement, useMemo, useRef, useState, type ComponentProps, type ReactElement } from "react";
 import { ChevronLeft, ChevronRight, Monitor } from "lucide-react";
 import { sortPeerIds } from "@/features/rtc/lib/remote-participant-streams";
 import type { RemoteParticipant, RemotePeer, ScreenShareTileInfo } from "@/features/rtc/types/mediasoup-room.types";
@@ -49,21 +49,6 @@ function bumpGridPage(raw: number, maxIdx: number, delta: -1 | 1): number {
 function cameraGridRowTemplate(tileCount: number): string {
   if (tileCount <= 2) return "grid-rows-[minmax(0,1fr)]";
   return "grid-rows-[minmax(0,1fr)_minmax(0,1fr)]";
-}
-
-type TilePropsPartial = { tileClassName?: string };
-
-/** Applies `col-span-2` for 3-up (bottom row) and single-tile pages; stretches cells to row height. */
-function withGridTileLayout(tiles: ReactElement[]): ReactElement[] {
-  const n = tiles.length;
-  return tiles.map((el, i) => {
-    const prevClass = (el.props as TilePropsPartial).tileClassName;
-    const spanThird = n === 3 && i === 2;
-    const spanSingle = n === 1;
-    return cloneElement(el, {
-      tileClassName: cn(prevClass, "h-full min-h-0 min-w-0", (spanThird || spanSingle) && "col-span-2"),
-    });
-  });
 }
 
 function ParticipantVideoTile({
@@ -209,6 +194,23 @@ function ParticipantVideoTile({
   return <div className={shellClass}>{inner}</div>;
 }
 
+type ParticipantVideoTileProps = ComponentProps<typeof ParticipantVideoTile>;
+
+/** Applies `col-span-2` for 3-up (bottom row) and single-tile pages; stretches cells to row height. */
+function withGridTileLayout(
+  tiles: ReactElement<ParticipantVideoTileProps>[],
+): ReactElement<ParticipantVideoTileProps>[] {
+  const n = tiles.length;
+  return tiles.map((el, i) => {
+    const prevClass = el.props.tileClassName;
+    const spanThird = n === 3 && i === 2;
+    const spanSingle = n === 1;
+    return cloneElement(el, {
+      tileClassName: cn(prevClass, "h-full min-h-0 min-w-0", (spanThird || spanSingle) && "col-span-2"),
+    });
+  });
+}
+
 type CameraTilesContext = {
   allowPickShareFromTile: boolean;
   cameraEnabled: boolean;
@@ -234,7 +236,7 @@ type CameraTilesContext = {
   stretchTilesInGrid: boolean;
 };
 
-function buildCameraTiles(p: CameraTilesContext): ReactElement[] {
+function buildCameraTiles(p: CameraTilesContext): ReactElement<ParticipantVideoTileProps>[] {
   const aspect = p.stretchTilesInGrid ? ("fill" as const) : ("video" as const);
   const base = {
     allowPickShareFromTile: p.allowPickShareFromTile,
@@ -244,7 +246,7 @@ function buildCameraTiles(p: CameraTilesContext): ReactElement[] {
   } as const;
 
   /** Local preview first so it never lands as the last tile in a 2×2 page. */
-  const tiles: ReactElement[] = [
+  const tiles: ReactElement<ParticipantVideoTileProps>[] = [
     <ParticipantVideoTile
       key={`self:${mediaStreamVideoAttachRevision(p.localStream)}`}
       label={`${p.myName} (you)`}
