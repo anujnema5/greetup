@@ -26,6 +26,32 @@ options:
   logging: CLOUD_LOGGING_ONLY
 
 steps:
+  # Fail fast if Firebase vars never reached Docker (trigger must define _NEXT_PUBLIC_FIREBASE_* — not Cloud Run env).
+  - name: gcr.io/google.com/cloudsdktool/cloud-sdk:slim
+    entrypoint: bash
+    env:
+      - "VERIFY_FIREBASE_API_KEY=${_NEXT_PUBLIC_FIREBASE_API_KEY}"
+      - "VERIFY_FIREBASE_AUTH_DOMAIN=${_NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN}"
+      - "VERIFY_FIREBASE_PROJECT_ID=${_NEXT_PUBLIC_FIREBASE_PROJECT_ID}"
+    args:
+      - -c
+      - |
+        set -euo pipefail
+        if [ -z "$$VERIFY_FIREBASE_API_KEY" ] || [ -z "$$VERIFY_FIREBASE_AUTH_DOMAIN" ] || [ -z "$$VERIFY_FIREBASE_PROJECT_ID" ]; then
+          echo ""
+          echo "ERROR: Firebase client config is missing at Docker build time."
+          echo "On the Cloud Build trigger, add user-defined substitution variables whose names are EXACTLY:"
+          echo "  _NEXT_PUBLIC_FIREBASE_API_KEY"
+          echo "  _NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN"
+          echo "  _NEXT_PUBLIC_FIREBASE_PROJECT_ID"
+          echo "  _NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID"
+          echo "  _NEXT_PUBLIC_FIREBASE_APP_ID"
+          echo "(Leading underscore is required. Names like NEXT_PUBLIC_FIREBASE_API_KEY without _ are ignored.)"
+          echo "Cloud Run service env vars do not bake into the Next.js bundle — rebuild after fixing the trigger."
+          echo ""
+          exit 1
+        fi
+
   - name: gcr.io/cloud-builders/docker
     dir: client
     args:
