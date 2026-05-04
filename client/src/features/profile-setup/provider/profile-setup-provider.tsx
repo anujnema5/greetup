@@ -191,12 +191,8 @@ export const ProfileSetupProvider: React.FC<ProfileSetupProviderProps> = ({
   // Update form when step changes
   useEffect(() => {
     if (currentStepData && isInitialized) {
-      // Get default values for current step
       const stepDefaults = getStepDefaultValues(currentStepData.fields)
-
-      // Merge with existing data
       const currentValues = { ...stepDefaults, ...allFormData }
-
       methods.reset(currentValues)
     }
   }, [currentStepData, currentStep, isInitialized])

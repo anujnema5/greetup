@@ -45,7 +45,7 @@ export function AgeDigitsInput({
     setText(digits);
     if (digits.length === 2) {
       const n = parseInt(digits, 10);
-      if (!Number.isNaN(n) && n >= min && n <= max) {
+      if (!Number.isNaN(n)) {
         onChange(n);
       }
     }
@@ -55,16 +55,18 @@ export function AgeDigitsInput({
     const digits = text.replace(/\D/g, "").slice(0, 2);
     if (digits === "") {
       setText(String(safe));
+      // Keep RHF in sync: reverting the UI to `safe` must update the form value too ("" would coerce to 0 in Zod).
+      onChange(safe);
       onBlurProp?.(e);
       return;
     }
     let n = parseInt(digits, 10);
     if (Number.isNaN(n)) {
       setText(String(safe));
+      onChange(safe);
       onBlurProp?.(e);
       return;
     }
-    n = Math.min(max, Math.max(min, n));
     setText(String(n));
     onChange(n);
     onBlurProp?.(e);
