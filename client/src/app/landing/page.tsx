@@ -1276,7 +1276,7 @@ function LandingPageInner() {
                 asChild
               >
                 <Link href={isLoggedIn ? "/home" : "/register"}>
-                  {isLoggedIn ? `Continue${firstName ? `, ${firstName}` : ""}` : "Join Greetup — it&apos;s free"} <ArrowRight className="size-5" />
+                  {isLoggedIn ? `Continue${firstName ? `, ${firstName}` : ""}` : "Join Greetup — it's free"} <ArrowRight className="size-5" />
                 </Link>
               </Button>
             </motion.div>
@@ -1301,7 +1301,7 @@ function LandingPageInner() {
               </motion.div>
             ))}
           </motion.div>
-          <motion.p variants={fadeIn} className="text-xs text-white/25">© 2025 Greetup. All rights reserved.</motion.p>
+          <motion.p variants={fadeIn} className="text-xs text-white/25">© 2026 Greetup. All rights reserved.</motion.p>
         </RevealSection>
       </footer>
     </div>
