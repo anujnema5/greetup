@@ -103,6 +103,9 @@ function DialogContent({
     }
   }, [bottomInsetPx])
 
+  // Merge: consumer `style` first, then viewport — keyboard / inset wins on overlapping keys.
+  const mergedStyle = { ...style, ...viewportStyleForInline }
+
   return (
     <DialogPortal data-slot="dialog-portal">
       <DialogOverlay className={overlayClassName} />
@@ -114,8 +117,7 @@ function DialogContent({
           !hasPixelCenterOffset && "translate-x-[-50%] translate-y-[-50%]",
           className
         )}
-        // Consumer `style` first, then viewport — keyboard / inset wins on overlapping keys.
-        style={{ ...style, ...viewportStyleForInline }}
+        style={mergedStyle}
         {...props}
       >
         {children}

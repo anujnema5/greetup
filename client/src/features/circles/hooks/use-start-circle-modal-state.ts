@@ -78,7 +78,7 @@ export function useStartCircleModalState() {
   }, [open, categories, form]);
 
   useEffect(() => {
-    if (!advancedOpen) return;
+    if (!open || !advancedOpen) return;
     const id = window.requestAnimationFrame(() => {
       advancedSectionRef.current?.scrollIntoView({
         behavior: "smooth",
@@ -86,7 +86,7 @@ export function useStartCircleModalState() {
       });
     });
     return () => window.cancelAnimationFrame(id);
-  }, [advancedOpen]);
+  }, [open, advancedOpen]);
 
   const handleOpenChange = useCallback(
     (next: boolean) => {
