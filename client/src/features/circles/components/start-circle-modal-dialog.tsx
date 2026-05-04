@@ -121,7 +121,7 @@ export function StartCircleModalDialog(props: StartCircleModalDialogProps) {
                         <Input
                           placeholder={C.titlePlaceholder}
                           maxLength={160}
-                          className="h-11 border-border/80 bg-background/50 text-base"
+                          className="h-11 border-border/80 bg-background/50 px-3.5 text-sm transition-[border-color,box-shadow] focus-visible:border-border"
                           {...field}
                         />
                       </FormControl>
@@ -130,13 +130,13 @@ export function StartCircleModalDialog(props: StartCircleModalDialogProps) {
                   )}
                 />
 
-                <div className="grid gap-5 sm:grid-cols-2 sm:gap-x-6">
-                  <div className="space-y-2 sm:min-w-0">
+                <div className="grid items-stretch gap-5 sm:grid-cols-2 sm:gap-x-6">
+                  <div className="flex min-h-0 flex-col gap-2 sm:min-w-0">
                     {categoriesLoading ? (
                       <>
                         <p className="text-sm font-medium">{C.categoryLabel}</p>
-                        <div className="flex h-11 items-center gap-2 text-sm text-muted-foreground">
-                          <Loader2 className="size-4 animate-spin" />
+                        <div className="flex h-11 items-center gap-2 rounded-md border border-border/60 bg-muted/20 px-3 text-sm text-muted-foreground">
+                          <Loader2 className="size-4 shrink-0 animate-spin" aria-hidden />
                           {C.categoriesLoading}
                         </div>
                       </>
@@ -179,7 +179,7 @@ export function StartCircleModalDialog(props: StartCircleModalDialogProps) {
                               value={field.value}
                             >
                               <FormControl>
-                                <SelectTrigger className="h-11 w-full cursor-pointer border-border/80 bg-background/50">
+                                <SelectTrigger className="h-11 w-full cursor-pointer border-border/80 bg-background/50 transition-[border-color,box-shadow] hover:bg-background/80">
                                   <SelectValue placeholder="Choose a category" />
                                 </SelectTrigger>
                               </FormControl>
@@ -188,7 +188,7 @@ export function StartCircleModalDialog(props: StartCircleModalDialogProps) {
                                   <SelectItem key={c.id} value={c.id}>
                                     <span className="flex items-center gap-2">
                                       {c.emoji ? (
-                                        <span className="text-base">
+                                        <span className="text-sm leading-none">
                                           {c.emoji}
                                         </span>
                                       ) : null}
@@ -218,7 +218,7 @@ export function StartCircleModalDialog(props: StartCircleModalDialogProps) {
                           value={field.value}
                         >
                           <FormControl>
-                            <SelectTrigger className="h-11 w-full cursor-pointer border-border/80 bg-background/50">
+                            <SelectTrigger className="h-11 w-full cursor-pointer border-border/80 bg-background/50 transition-[border-color,box-shadow] hover:bg-background/80">
                               <SelectValue />
                             </SelectTrigger>
                           </FormControl>
@@ -243,41 +243,43 @@ export function StartCircleModalDialog(props: StartCircleModalDialogProps) {
                   />
                 </div>
 
-                <div className="grid items-start gap-5 sm:grid-cols-2 sm:gap-x-6">
+                <div className="grid items-stretch gap-5 sm:grid-cols-2 sm:gap-x-6">
                   <FormField
                     control={form.control}
                     name="maxParticipants"
                     render={({ field }) => (
-                      <FormItem className="gap-1.5">
-                        <FormLabel
-                          htmlFor="max-p"
-                          className="text-sm font-medium"
-                        >
-                          {C.seatsLabel}
-                        </FormLabel>
-                        <FormControl>
-                          <Input
-                            id="max-p"
-                            type="number"
-                            min={2}
-                            max={100}
-                            className="h-11 max-w-full border-border/80 bg-background/50 sm:max-w-32"
-                            {...field}
-                            onChange={(e) =>
-                              field.onChange(
-                                Math.min(
-                                  100,
-                                  Math.max(2, Number(e.target.value) || 2),
-                                ),
-                              )
-                            }
-                            value={field.value}
-                          />
-                        </FormControl>
-                        <p className="text-xs text-muted-foreground">
+                      <FormItem className="grid gap-0">
+                        <div className="flex flex-col gap-2">
+                          <FormLabel
+                            htmlFor="max-p"
+                            className="text-sm font-medium"
+                          >
+                            {C.seatsLabel}
+                          </FormLabel>
+                          <FormControl>
+                            <Input
+                              id="max-p"
+                              type="number"
+                              min={2}
+                              max={100}
+                              className="h-11 w-full max-w-full border-border/80 bg-background/50 transition-[border-color,box-shadow] sm:max-w-36"
+                              {...field}
+                              onChange={(e) =>
+                                field.onChange(
+                                  Math.min(
+                                    100,
+                                    Math.max(2, Number(e.target.value) || 2),
+                                  ),
+                                )
+                              }
+                              value={field.value}
+                            />
+                          </FormControl>
+                        </div>
+                        <p className="mt-1.5 text-xs text-muted-foreground">
                           {C.seatsHint}
                         </p>
-                        <FormMessage />
+                        <FormMessage className="mt-1" />
                       </FormItem>
                     )}
                   />
@@ -286,42 +288,44 @@ export function StartCircleModalDialog(props: StartCircleModalDialogProps) {
                     control={form.control}
                     name="scheduleMode"
                     render={({ field }) => (
-                      <FormItem className="gap-1.5">
-                        <FormLabel className="text-sm font-medium">
-                          {C.whenLabel}
-                        </FormLabel>
-                        <Select
-                          onValueChange={field.onChange}
-                          value={field.value}
-                        >
-                          <FormControl>
-                            <SelectTrigger className="h-11 w-full cursor-pointer border-border/80 bg-background/50">
-                              <SelectValue />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            <SelectItem value="instant">
-                              {C.whenStartNow}
-                            </SelectItem>
-                            <SelectItem value="scheduled">
-                              {C.whenScheduleLater}
-                            </SelectItem>
-                          </SelectContent>
-                        </Select>
-                        <FormMessage />
+                      <FormItem className="grid gap-0">
+                        <div className="flex flex-col gap-2">
+                          <FormLabel className="text-sm font-medium">
+                            {C.whenLabel}
+                          </FormLabel>
+                          <Select
+                            onValueChange={field.onChange}
+                            value={field.value}
+                          >
+                            <FormControl>
+                              <SelectTrigger className="h-11 w-full cursor-pointer border-border/80 bg-background/50 transition-[border-color,box-shadow] hover:bg-background/80">
+                                <SelectValue />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              <SelectItem value="instant">
+                                {C.whenStartNow}
+                              </SelectItem>
+                              <SelectItem value="scheduled">
+                                {C.whenScheduleLater}
+                              </SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <FormMessage className="mt-1" />
                       </FormItem>
                     )}
                   />
                 </div>
 
                 {scheduleMode === "scheduled" && (
-                  <div className="flex flex-col gap-3 rounded-xl border border-border/50 bg-muted/20 p-4 sm:flex-row sm:items-end">
+                  <div className="flex flex-col gap-3 rounded-xl border border-border/50 bg-muted/20 p-4 sm:flex-row sm:items-end sm:gap-4">
                     <FormField
                       control={form.control}
                       name="scheduleDate"
                       render={({ field }) => (
-                        <FormItem className="min-w-0 flex-1 space-y-2">
-                          <FormLabel className="text-xs font-medium text-muted-foreground">
+                        <FormItem className="min-w-0 flex-1 space-y-1">
+                          <FormLabel className="text-xs font-medium leading-none text-muted-foreground">
                             {C.scheduleDateLabel}
                           </FormLabel>
                           <Popover>
@@ -330,9 +334,9 @@ export function StartCircleModalDialog(props: StartCircleModalDialogProps) {
                                 <Button
                                   type="button"
                                   variant="outline"
-                                  className="h-11 w-full cursor-pointer justify-start border-border/80 bg-background/80 text-left font-normal"
+                                  className="h-11 w-full cursor-pointer justify-start gap-2 border-border/80 bg-background/80 px-3.5 text-left text-sm font-normal transition-[border-color,box-shadow] hover:bg-background"
                                 >
-                                  <CalendarIcon className="mr-2 size-4 opacity-70" />
+                                  <CalendarIcon className="size-4 shrink-0 opacity-70" aria-hidden />
                                   {field.value ? (
                                     format(field.value, "PPP")
                                   ) : (
@@ -366,10 +370,10 @@ export function StartCircleModalDialog(props: StartCircleModalDialogProps) {
                       control={form.control}
                       name="scheduleTime"
                       render={({ field }) => (
-                        <FormItem className="w-full shrink-0 space-y-2 sm:w-40">
+                        <FormItem className="w-full shrink-0 space-y-1 sm:w-40">
                           <FormLabel
                             htmlFor="circle-schedule-time"
-                            className="text-xs font-medium text-muted-foreground"
+                            className="text-xs font-medium leading-none text-muted-foreground"
                           >
                             {C.scheduleTimeLabel}
                           </FormLabel>
@@ -377,7 +381,7 @@ export function StartCircleModalDialog(props: StartCircleModalDialogProps) {
                             <Input
                               id="circle-schedule-time"
                               type="time"
-                              className="h-11 border-border/80 bg-background/80"
+                              className="h-11 border-border/80 bg-background/80 transition-[border-color,box-shadow] focus-visible:border-border"
                               {...field}
                             />
                           </FormControl>
@@ -402,9 +406,9 @@ export function StartCircleModalDialog(props: StartCircleModalDialogProps) {
                       <FormControl>
                         <Textarea
                           placeholder={C.descriptionPlaceholder}
-                          rows={2}
+                          rows={3}
                           maxLength={2000}
-                          className="resize-none border-border/80 bg-background/50"
+                          className="min-h-22 resize-none border-border/80 bg-background/50 p-3.5 text-sm leading-relaxed transition-[border-color,box-shadow] focus-visible:border-border"
                           {...field}
                         />
                       </FormControl>
@@ -458,12 +462,12 @@ export function StartCircleModalDialog(props: StartCircleModalDialogProps) {
                   </div>
 
                   {advancedOpen && (
-                    <div className="space-y-4 rounded-xl border border-border/40 bg-muted/10 p-4">
+                    <div className="overflow-hidden rounded-xl border border-border/40 bg-muted/10">
                       <FormField
                         control={form.control}
                         name="advanced.shouldHostStartMeeting"
                         render={({ field }) => (
-                          <FormItem className="flex flex-row items-center justify-between gap-4 space-y-0 rounded-lg border border-transparent p-0">
+                          <FormItem className="flex flex-row items-center justify-between gap-4 space-y-0 border-b border-border/40 bg-background/30 px-4 py-3.5">
                             <div className="min-w-0 space-y-0.5">
                               <FormLabel className="text-base font-medium">
                                 Host starts meeting
@@ -485,7 +489,7 @@ export function StartCircleModalDialog(props: StartCircleModalDialogProps) {
                         control={form.control}
                         name="advanced.shouldMeetingAutoStart"
                         render={({ field }) => (
-                          <FormItem className="flex flex-row items-center justify-between gap-4 space-y-0">
+                          <FormItem className="flex flex-row items-center justify-between gap-4 space-y-0 border-b border-border/40 bg-background/30 px-4 py-3.5">
                             <div className="min-w-0 space-y-0.5">
                               <FormLabel className="text-base font-medium">
                                 Auto-start at scheduled time
@@ -507,7 +511,7 @@ export function StartCircleModalDialog(props: StartCircleModalDialogProps) {
                         control={form.control}
                         name="advanced.circleExpirationMinutes"
                         render={({ field }) => (
-                          <FormItem>
+                          <FormItem className="space-y-2 border-b border-border/40 bg-background/30 px-4 py-3.5">
                             <div className="space-y-0.5">
                               <FormLabel className="text-base font-medium">
                                 Cancel if not started (minutes)
@@ -521,7 +525,7 @@ export function StartCircleModalDialog(props: StartCircleModalDialogProps) {
                                 type="text"
                                 inputMode="numeric"
                                 placeholder="No limit"
-                                className="h-10 max-w-44 border-border/80 bg-background/50"
+                                className="h-11 max-w-full border-border/80 bg-background/80 transition-[border-color,box-shadow] sm:max-w-44"
                                 {...field}
                                 value={field.value}
                               />
@@ -534,7 +538,7 @@ export function StartCircleModalDialog(props: StartCircleModalDialogProps) {
                         control={form.control}
                         name="advanced.deleteCircleAfterCall"
                         render={({ field }) => (
-                          <FormItem className="flex flex-row items-center justify-between gap-4 space-y-0">
+                          <FormItem className="flex flex-row items-center justify-between gap-4 space-y-0 border-b border-border/40 bg-background/30 px-4 py-3.5">
                             <div className="min-w-0 space-y-0.5">
                               <FormLabel className="text-base font-medium">
                                 Delete after call
@@ -556,7 +560,7 @@ export function StartCircleModalDialog(props: StartCircleModalDialogProps) {
                         control={form.control}
                         name="advanced.hostControlsActiveSpeaker"
                         render={({ field }) => (
-                          <FormItem className="flex flex-row items-center justify-between gap-4 space-y-0">
+                          <FormItem className="flex flex-row items-center justify-between gap-4 space-y-0 bg-background/30 px-4 py-3.5">
                             <div className="min-w-0 space-y-0.5">
                               <FormLabel className="text-base font-medium">
                                 Host picks speaker
@@ -580,11 +584,11 @@ export function StartCircleModalDialog(props: StartCircleModalDialogProps) {
               </div>
             </div>
 
-            <DialogFooter className="shrink-0 gap-3 border-t border-border/40 bg-card/90 px-8 py-5 backdrop-blur-sm">
+            <DialogFooter className="shrink-0 flex-col-reverse gap-2 border-t border-border/40 bg-card/90 px-6 py-4 backdrop-blur-sm sm:flex-row sm:justify-end sm:gap-3 sm:px-8 sm:py-5">
               <Button
                 type="button"
                 variant="outline"
-                className="cursor-pointer"
+                className="w-full cursor-pointer sm:w-auto"
                 onClick={() => setOpen(false)}
               >
                 {C.cancel}
@@ -597,13 +601,13 @@ export function StartCircleModalDialog(props: StartCircleModalDialogProps) {
                   !categories.length ||
                   !categoryId
                 }
-                className="min-w-36 cursor-pointer gap-2 disabled:cursor-not-allowed"
+                className="w-full min-w-36 cursor-pointer disabled:cursor-not-allowed sm:w-auto"
               >
                 {creating ? (
-                  <>
-                    <Loader2 className="size-4 shrink-0 animate-spin" />
+                  <span className="inline-flex items-center gap-1.5">
+                    <Loader2 className="size-4 shrink-0 animate-spin" aria-hidden />
                     {C.submitWorking}
-                  </>
+                  </span>
                 ) : scheduleMode === "instant" ? (
                   C.submitGoLive
                 ) : (

@@ -574,7 +574,7 @@ export function ProfileConnectionsSection({
             placeholder="Search by name…"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="pl-9 rounded-xl bg-card w-full min-h-11 text-base sm:text-sm"
+            className="pl-9 rounded-xl bg-card w-full min-h-11 text-sm"
             autoComplete="off"
             enterKeyHint="search"
           />
