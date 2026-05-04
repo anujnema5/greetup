@@ -33,7 +33,7 @@ export type PublicProfileResult = {
   goals: Array<{ id: string; displayName: string }>;
   interests: Array<{ id: string; displayName: string; category: string }>;
   professions: Array<{ id: string; displayName: string; category: string }>;
-  /** Current session intent / vibe copy (not matching filters). */
+  /** Current session intent copy (not matching filters). */
   sessionGoal: string | null;
   moods: Array<{ displayName: string }>;
   photos: Array<{

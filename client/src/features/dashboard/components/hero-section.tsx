@@ -125,7 +125,7 @@ function HeroSectionInner({
         <span className="flex items-center gap-1.5">
           <Zap size={12} className="text-primary" />
           <span>
-            Vibe score <strong className="text-foreground">87</strong>
+            Match score <strong className="text-foreground">87</strong>
           </span>
         </span>
         <span className="h-3 w-px bg-border hidden sm:block" />

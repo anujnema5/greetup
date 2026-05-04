@@ -60,7 +60,7 @@ export default function LoginPage() {
     <FirebasePhoneAuthProvider>
       <AuthPageLayout
         title="Welcome back"
-        subtitle="Log in to continue to your vibe space"
+        subtitle="Log in to continue"
         footerText="New to Greetup?"
         footerLinkText="Create account"
         onFooterLinkClick={handleCreateAccount}

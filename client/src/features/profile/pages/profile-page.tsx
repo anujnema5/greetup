@@ -78,7 +78,7 @@ export function ProfilePage() {
   const stats = useMemo(() => {
     const rows = STATS.map((s) => ({ ...s }));
     if (completionRounded != null) {
-      const i = rows.findIndex((r) => r.label === "Vibe Score");
+      const i = rows.findIndex((r) => r.label === "Match score");
       if (i >= 0) {
         rows[i] = { label: "Complete", value: `${completionRounded}%` };
       }

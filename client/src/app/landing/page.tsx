@@ -488,7 +488,7 @@ export function LandingPageView() {
             </motion.div>
 
             <motion.h1 variants={fadeUp} className="text-4xl sm:text-6xl lg:text-7xl font-black tracking-tight leading-[1.05] mb-6">
-              Match your vibe.<br />
+              Match your interests.<br />
               <span className="bg-linear-to-r from-[oklch(88%_0.11_105)] via-[oklch(95%_0.08_90)] to-[oklch(80%_0.14_110)] bg-clip-text text-transparent">
                 Build your circles.
               </span>

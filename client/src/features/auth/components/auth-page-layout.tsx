@@ -85,7 +85,7 @@ export default function AuthPageLayout({
                                     Greetup
                                 </h2>
                                 <p className="text-lg text-muted-foreground max-w-md mx-auto leading-relaxed">
-                                    Connect, talk and share vibes in real time with your people.
+                                    Connect, talk, and share in real time with your people.
                                     Experience seamless communication like never before.
                                 </p>
                             </div>

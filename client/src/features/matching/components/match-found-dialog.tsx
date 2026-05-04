@@ -140,7 +140,7 @@ export function MatchFoundDialog({
             <div className="mb-2 flex items-center justify-between gap-2">
               <span className="flex items-center gap-1.5 text-[11px] font-medium text-zinc-500">
                 <Zap className="size-3.5 shrink-0" style={{ color: GOLD }} strokeWidth={2.2} />
-                Vibe alignment
+                Shared interests
               </span>
               <span className="text-sm font-bold tabular-nums" style={{ color: GOLD }}>
                 {scorePct}%

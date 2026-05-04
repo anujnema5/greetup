@@ -8,7 +8,7 @@ type DemoPerson = {
   initials: string;
   grad: string;
   online?: boolean;
-  vibeScore: number;
+  matchScore: number;
 };
 
 type Props = {
@@ -44,7 +44,7 @@ export function ExploreDemoPeopleList({ people }: Props) {
 
           <div className="flex items-center gap-1 shrink-0">
             <Zap size={11} className="text-primary" aria-hidden />
-            <span className="text-xs font-semibold text-primary">{p.vibeScore}%</span>
+            <span className="text-xs font-semibold text-primary">{p.matchScore}%</span>
           </div>
 
           <button

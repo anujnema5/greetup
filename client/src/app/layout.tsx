@@ -27,7 +27,7 @@ const plusJakartaSans = Plus_Jakarta_Sans({
 
 export const metadata: Metadata = {
   title: "Greetup",
-  description: "Your vibe finds your tribe.",
+  description: "Find people who get you.",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

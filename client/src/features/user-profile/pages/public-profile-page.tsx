@@ -336,7 +336,7 @@ export function PublicProfilePage({ username }: Props) {
               )}
 
               {(data.sessionGoal?.trim() || data.moods.length > 0) && (
-                <ProfileDetailSection title="Vibe right now" icon={<Smile className="h-4 w-4" />}>
+                <ProfileDetailSection title="Right now" icon={<Smile className="h-4 w-4" />}>
                   <div className="flex flex-col gap-2">
                     {data.sessionGoal?.trim() ? (
                       <p className="text-[13px] text-foreground leading-relaxed whitespace-pre-wrap">

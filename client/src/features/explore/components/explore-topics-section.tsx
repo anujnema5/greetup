@@ -2,7 +2,7 @@ import type { LucideIcon } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 
-export type ExploreVibeItem = {
+export type ExploreTopicItem = {
   icon: LucideIcon;
   label: string;
   count: number;
@@ -10,15 +10,15 @@ export type ExploreVibeItem = {
 };
 
 type Props = {
-  vibes: readonly ExploreVibeItem[];
+  topics: readonly ExploreTopicItem[];
 };
 
-export function ExploreVibesSection({ vibes }: Props) {
+export function ExploreTopicsSection({ topics }: Props) {
   return (
     <section>
-      <h2 className="text-sm font-semibold text-foreground mb-3">Browse by Vibe</h2>
+      <h2 className="text-sm font-semibold text-foreground mb-3">Browse by topic</h2>
       <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-        {vibes.map(({ icon: Icon, label, count, color }) => (
+        {topics.map(({ icon: Icon, label, count, color }) => (
           <button
             key={label}
             type="button"
