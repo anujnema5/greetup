@@ -91,8 +91,10 @@ export function useMediasoupRoomSession(options: MediasoupRoomSessionOptions): v
     set.setRemoteStreamsByPeerId({});
     set.setPeers({});
     set.setLocalMediaDeviceError(null);
-    refs.screenProducerRef.current = null;
-    refs.screenShareProducerIdRef.current = null;
+    refs.screenVideoProducerRef.current = null;
+    refs.screenVideoProducerIdRef.current = null;
+    refs.screenAudioProducerRef.current = null;
+    refs.screenAudioProducerIdRef.current = null;
     refs.localScreenTrackRef.current = null;
 
     const consumers = new Map<string, Consumer>();
@@ -398,7 +400,7 @@ export function useMediasoupRoomSession(options: MediasoupRoomSessionOptions): v
       if (
         data.peerId &&
         data.peerId === refs.localUserIdRef.current &&
-        data.producerId === refs.screenShareProducerIdRef.current
+        data.producerId === refs.screenVideoProducerIdRef.current
       ) {
         cleanupLocalScreenShareRef.current();
         return;
@@ -608,8 +610,10 @@ function wipeMediasoupRoomUiState(set: MediasoupRoomSessionSetters): void {
 function zeroMediasoupRefs(refs: MediasoupRoomSessionRefs): void {
   refs.localStreamRef.current = null;
   refs.videoProducerRef.current = null;
-  refs.screenProducerRef.current = null;
-  refs.screenShareProducerIdRef.current = null;
+  refs.screenVideoProducerRef.current = null;
+  refs.screenVideoProducerIdRef.current = null;
+  refs.screenAudioProducerRef.current = null;
+  refs.screenAudioProducerIdRef.current = null;
   refs.localScreenTrackRef.current = null;
   refs.audioProducerRef.current = null;
   refs.sendTransportRef.current = null;

@@ -1,9 +1,6 @@
 "use client";
 
-import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-
-type StageRatio = "16:9" | "1:1";
 
 /** Top overlay for direct calls only. Circle rooms use the footer “Options” control for circle settings. */
 export function RoomVideoHud({
@@ -12,10 +9,6 @@ export function RoomVideoHud({
   activeActivity,
   mainStageShowsScreen,
   peerLabel,
-  stageRatio,
-  setStageRatio,
-  showAspectRatioToggle,
-  searchingForNextCandidate,
   onMinimize,
 }: {
   isOneToOneStage: boolean;
@@ -23,10 +16,6 @@ export function RoomVideoHud({
   activeActivity: boolean;
   mainStageShowsScreen: boolean;
   peerLabel: string;
-  stageRatio: StageRatio;
-  setStageRatio: (ratio: StageRatio) => void;
-  showAspectRatioToggle: boolean;
-  searchingForNextCandidate: boolean;
   onMinimize?: () => void;
 }) {
   return (
@@ -52,38 +41,8 @@ export function RoomVideoHud({
         </div>
       </div>
 
-      <div className="pointer-events-auto ml-auto flex shrink-0 items-center gap-2.5 pl-2 max-[420px]:gap-1.5 max-[420px]:pl-1 sm:gap-2.5">
-        {showAspectRatioToggle && !searchingForNextCandidate ? (
-          <div className="flex shrink-0 items-center overflow-hidden rounded-full border border-white/20 bg-black/50 shadow-sm">
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              onClick={() => setStageRatio("16:9")}
-              className={cn(
-                "h-auto rounded-none px-2.5 py-1 text-[11px] font-semibold text-white/70 transition-colors max-[420px]:px-2",
-                stageRatio === "16:9" && "bg-white/15 text-white",
-              )}
-            >
-              16:9
-            </Button>
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              onClick={() => setStageRatio("1:1")}
-              className={cn(
-                "h-auto rounded-none px-2.5 py-1 text-[11px] font-semibold text-white/70 transition-colors max-[420px]:px-2",
-                stageRatio === "1:1" && "bg-white/15 text-white",
-              )}
-            >
-              1:1
-            </Button>
-          </div>
-        ) : null}
-        {/* Minimize control hidden for room UI. */}
-        {onMinimize ? null : null}
-      </div>
+      {/* Minimize control hidden for room UI. */}
+      {onMinimize ? null : null}
     </div>
   );
 }

@@ -68,8 +68,10 @@ export function useMediasoupRoom(options: UseMediasoupRoomArgs): UseMediasoupRoo
 
   const localStreamRef = useRef<MediaStream | null>(null);
   const videoProducerRef = useRef<Producer | null>(null);
-  const screenProducerRef = useRef<Producer | null>(null);
-  const screenShareProducerIdRef = useRef<string | null>(null);
+  const screenVideoProducerRef = useRef<Producer | null>(null);
+  const screenVideoProducerIdRef = useRef<string | null>(null);
+  const screenAudioProducerRef = useRef<Producer | null>(null);
+  const screenAudioProducerIdRef = useRef<string | null>(null);
   const localScreenTrackRef = useRef<MediaStreamTrack | null>(null);
   const audioProducerRef = useRef<Producer | null>(null);
   const sendTransportRef = useRef<Transport | null>(null);
@@ -219,8 +221,10 @@ export function useMediasoupRoom(options: UseMediasoupRoomArgs): UseMediasoupRoo
       deviceRef,
       localStreamRef,
       videoProducerRef,
-      screenProducerRef,
-      screenShareProducerIdRef,
+      screenVideoProducerRef,
+      screenVideoProducerIdRef,
+      screenAudioProducerRef,
+      screenAudioProducerIdRef,
       localScreenTrackRef,
       audioProducerRef,
       socketRef,
@@ -275,8 +279,10 @@ export function useMediasoupRoom(options: UseMediasoupRoomArgs): UseMediasoupRoo
     () => ({
       localStreamRef,
       videoProducerRef,
-      screenProducerRef,
-      screenShareProducerIdRef,
+      screenVideoProducerRef,
+      screenVideoProducerIdRef,
+      screenAudioProducerRef,
+      screenAudioProducerIdRef,
       localScreenTrackRef,
       audioProducerRef,
       sendTransportRef,
