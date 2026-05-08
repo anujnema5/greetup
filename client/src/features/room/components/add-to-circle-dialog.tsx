@@ -61,8 +61,14 @@ export function AddToCircleDialog({
     return ids.join("|");
   }, [items]);
 
-  const { data: statusMap, isFetching: statusLoading } = usePeersCallStatusQuery(peerIdsKey, {
+  const {
+    data: statusMap,
+    isFetching: statusLoading,
+    refetch: refetchStatuses,
+  } = usePeersCallStatusQuery(peerIdsKey, {
     skip: !open || peerIdsKey.length === 0,
+    // Always fetch fresh statuses whenever the dialog opens.
+    refetchOnMountOrArgChange: true,
   });
 
   const [sendRoomInvite] = useRoomInviteMutation();
@@ -74,13 +80,24 @@ export function AddToCircleDialog({
     return items.filter((i: ConnectionListItem) => peerLabel(i).toLowerCase().includes(q));
   }, [items, search]);
 
+  async function getLatestPeerStatus(userId: string) {
+    const current = statusMap?.[userId];
+    if (current?.isOnline) return current;
+    try {
+      const fresh = await refetchStatuses();
+      return fresh.data?.[userId] ?? current;
+    } catch {
+      return current;
+    }
+  }
+
   const onInvite = async (item: ConnectionListItem) => {
     const targetUserId = item.peer.userId;
     if (!targetUserId) {
       toast.error("Could not identify this person.");
       return;
     }
-    const st = statusMap?.[item.peer.userId];
+    const st = await getLatestPeerStatus(targetUserId);
     if (!st?.isOnline) {
       toast.error("This person is offline.");
       return;

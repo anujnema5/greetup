@@ -16,3 +16,12 @@ export type RtcTokenApiResponse = {
   data?: RtcTokenPayload;
   message?: string;
 };
+
+/** Normalized RTC token query state consumed by RTC provider/UI. */
+export type RoomRtcState = {
+  rtcToken: string | null;
+  rtcTokenExpiresInSec: number | null;
+  rtcTokenLoading: boolean;
+  rtcTokenError: string | null;
+  rtcTokenSkipped: boolean;
+};
