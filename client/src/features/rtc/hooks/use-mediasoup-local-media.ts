@@ -14,6 +14,7 @@
 
 import { useCallback } from "react";
 import type { Producer, Transport } from "mediasoup-client/types";
+import type { Socket } from "socket.io-client";
 import { formatGetUserMediaError } from "@/features/rtc/lib/get-user-media-errors";
 import {
   getCameraCaptureConstraints,
@@ -39,6 +40,30 @@ import type {
   MediasoupLocalMediaRefs,
   MediasoupLocalMediaSetters,
 } from "@/features/rtc/types/mediasoup-hooks.types";
+
+function setTracksEnabled(tracks: MediaStreamTrack[], enabled: boolean): void {
+  tracks.forEach((track) => {
+    track.enabled = enabled;
+  });
+}
+
+function signalProducer(
+  socket: Socket | null,
+  event: "pauseProducer" | "resumeProducer" | "closeProducer",
+  producerId: string,
+  context: string,
+): void {
+  if (!socket || !producerId) return;
+  void emitRtcAck<SimpleAck>(socket, event, { producerId })
+    .then((ack) => {
+      if (!isAckOk(ack)) {
+        console.warn(`[RTC] ${context} ack`, isAckErr(ack) ? ack.error?.code : "nack");
+      }
+    })
+    .catch((err) => {
+      console.warn(`[RTC] ${context}`, err);
+    });
+}
 
 export function useMediasoupLocalMedia(
   refs: MediasoupLocalMediaRefs,
@@ -105,17 +130,7 @@ export function useMediasoupLocalMedia(
       setLocalStream(next);
     }
     const sock = socketRef.current;
-    if (screenPid && sock) {
-      void emitRtcAck<SimpleAck>(sock, "closeProducer", { producerId: screenPid })
-        .then((r) => {
-          if (!isAckOk(r)) {
-            console.warn("[RTC] closeProducer ack", isAckErr(r) ? r.error?.code : "nack");
-          }
-        })
-        .catch((e) => {
-          console.warn("[RTC] closeProducer", e);
-        });
-    }
+    signalProducer(sock, "closeProducer", screenPid ?? "", "closeProducer");
   }, [
     localScreenTrackRef,
     localStreamRef,
@@ -146,15 +161,10 @@ export function useMediasoupLocalMedia(
         } catch {
           /* ignore */
         }
-        localStreamRef.current?.getAudioTracks().forEach((t) => {
-          t.enabled = false;
-        });
+        setTracksEnabled(localStreamRef.current?.getAudioTracks() ?? [], false);
         setMicEnabled(false);
         micEnabledRef.current = false;
-        const sock = socketRef.current;
-        if (producerId && sock) {
-          void emitRtcAck<SimpleAck>(sock, "pauseProducer", { producerId }).catch(() => {});
-        }
+        signalProducer(socketRef.current, "pauseProducer", producerId ?? "", "pauseProducer");
         return;
       }
 
@@ -170,15 +180,10 @@ export function useMediasoupLocalMedia(
           } catch {
             /* ignore */
           }
-          localStreamRef.current?.getAudioTracks().forEach((t) => {
-            t.enabled = true;
-          });
+          setTracksEnabled(localStreamRef.current?.getAudioTracks() ?? [], true);
           setMicEnabled(true);
           micEnabledRef.current = true;
-          const sock = socketRef.current;
-          if (sock) {
-            void emitRtcAck<SimpleAck>(sock, "resumeProducer", { producerId }).catch(() => {});
-          }
+          signalProducer(socketRef.current, "resumeProducer", producerId, "resumeProducer");
           return;
         }
         try {
@@ -265,7 +270,7 @@ export function useMediasoupLocalMedia(
         cameraEnabledRef.current = false;
         const sock = socketRef.current;
         if (producerId && sock) {
-          void emitRtcAck<SimpleAck>(sock, "pauseProducer", { producerId }).catch(() => {});
+          signalProducer(sock, "pauseProducer", producerId, "pauseProducer");
         }
         return;
       }
@@ -284,10 +289,7 @@ export function useMediasoupLocalMedia(
           tr.enabled = true;
           setCameraEnabled(true);
           cameraEnabledRef.current = true;
-          const sock = socketRef.current;
-          if (sock) {
-            void emitRtcAck<SimpleAck>(sock, "resumeProducer", { producerId }).catch(() => {});
-          }
+          signalProducer(socketRef.current, "resumeProducer", producerId, "resumeProducer");
           return;
         }
         try {

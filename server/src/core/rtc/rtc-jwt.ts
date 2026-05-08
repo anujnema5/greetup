@@ -4,7 +4,7 @@ import type { RoomSessionType } from "@/shared/types/room-session";
 
 const ALG = "HS256";
 
-/** Alias for JWT claim `roomType` — same as `RoomSessionType`. */
+/** Kept as semantic alias for external call-sites and future docs. */
 export type RtcJwtRoomType = RoomSessionType;
 
 function getSecret(): Uint8Array {

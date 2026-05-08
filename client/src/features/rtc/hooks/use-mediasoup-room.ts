@@ -6,6 +6,7 @@ import type { Device } from "mediasoup-client";
 import type { Socket } from "socket.io-client";
 import { useMediasoupLocalMedia } from "@/features/rtc/hooks/use-mediasoup-local-media";
 import { useMediasoupRoomSession } from "@/features/rtc/hooks/use-mediasoup-room-session";
+import { useScreenShareFocusOrdering } from "@/features/rtc/hooks/use-screen-share-focus-ordering";
 import {
   buildDirectCallMainStageStream,
   buildDirectCallRemotePeerCameraStream,
@@ -16,9 +17,7 @@ import {
   buildDirectPeerCameraInsetForScreenFocus,
   buildMainStageStreamForScreenFocus,
   collectScreenShareTiles,
-  effectiveScreenShareFocusKey,
   mainStageIsScreenShareVideo,
-  stableSortedScreenShareKeys,
 } from "@/features/rtc/lib/screen-share-stage";
 import { pickPrimaryRemoteStream, remoteParticipantsFromRecord } from "@/features/rtc/lib/remote-participant-streams";
 import type { RtcRoomType } from "@/features/rtc/lib/screen-share-policy";
@@ -64,10 +63,6 @@ export function useMediasoupRoom(options: UseMediasoupRoomArgs): UseMediasoupRoo
     Record<string, ProducerMediaSource>
   >({});
   const [localMediaDeviceError, setLocalMediaDeviceError] = useState<string | null>(null);
-  const [screenSharePin, setScreenSharePin] = useState<{ key: string | null; gen: number }>({
-    key: null,
-    gen: -1,
-  });
 
   const localStreamRef = useRef<MediaStream | null>(null);
   const videoProducerRef = useRef<Producer | null>(null);
@@ -131,42 +126,10 @@ export function useMediasoupRoom(options: UseMediasoupRoomArgs): UseMediasoupRoo
     ],
   );
 
-  const shareLayoutRef = useRef<{ order: string[]; activeKeySet: Set<string> }>({
-    order: [],
-    activeKeySet: new Set(),
-  });
-  const screenShareLayoutGenRef = useRef(0);
-
-  /* Screen-share “latest” order is merged across renders; eslint-plugin-react-hooks forbids ref access during render, but a ref is the minimal way to preserve arrival order without an extra layout pass. */
-  /* eslint-disable react-hooks/refs */
-  const orderedScreenKeys = useMemo(() => {
-    const keys = stableSortedScreenShareKeys(screenShareTiles);
-    const prev = shareLayoutRef.current;
-    const hasNew = keys.some((k) => !prev.activeKeySet.has(k));
-    if (hasNew) screenShareLayoutGenRef.current += 1;
-
-    if (keys.length === 0) {
-      shareLayoutRef.current = { order: [], activeKeySet: new Set() };
-      return [];
-    }
-
-    const active = new Set(keys);
-    const kept = prev.order.filter((k) => active.has(k));
-    const keptSet = new Set(kept);
-    const brandNew = keys.filter((k) => !keptSet.has(k));
-    const order = [...kept, ...brandNew];
-    shareLayoutRef.current = { order, activeKeySet: active };
-    return order;
-  }, [screenShareTiles]);
-
-  const userPinnedScreenKey =
-    screenSharePin.gen === screenShareLayoutGenRef.current ? screenSharePin.key : null;
-  /* eslint-enable react-hooks/refs */
-
-  const effectiveScreenShareKey = effectiveScreenShareFocusKey(
-    userPinnedScreenKey,
-    orderedScreenKeys,
-  );
+  const {
+    focusedScreenShareKey: effectiveScreenShareKey,
+    setFocusedScreenShareKey,
+  } = useScreenShareFocusOrdering(screenShareTiles);
 
   const remoteStream = useMemo(() => {
     if (screenShareTiles.length > 0 && effectiveScreenShareKey) {
@@ -237,10 +200,6 @@ export function useMediasoupRoom(options: UseMediasoupRoomArgs): UseMediasoupRoo
     remoteTrackMediaSource,
     rtcRoomType,
   ]);
-
-  const setFocusedScreenShareKey = useCallback((key: string | null) => {
-    setScreenSharePin({ key, gen: screenShareLayoutGenRef.current });
-  }, []);
 
   const localPreviewStream = useMemo(
     () => buildLocalPreviewStream(localStream, localScreenTrackId),

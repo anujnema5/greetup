@@ -11,7 +11,7 @@ import {
   selectRtcPrimaryRemoteUserId,
 } from "@/lib/redux/selectors/room-selectors";
 import { setMediaStatus } from "@/lib/redux/slices/room-slice";
-import { deriveRoomRtcState } from "@/features/matching/utils/derive-room-rtc-state";
+import { deriveRoomRtcState } from "@/features/rtc/lib/derive-room-rtc-state";
 import { useGetRtcTokenQuery } from "../api/rtc-api";
 import { useRtcSocket } from "../hooks/use-rtc-socket";
 import { useMediasoupRoom } from "../hooks/use-mediasoup-room";
@@ -22,7 +22,7 @@ import type {
   RemotePeer,
   ScreenShareTileInfo,
 } from "../types/mediasoup-room.types";
-import type { RoomRtcState } from "@/features/matching/types/room.types";
+import type { RoomRtcState } from "../types/rtc-api.types";
 import type { UseRtcSocketReturn } from "../hooks/use-rtc-socket";
 import type { RoomSessionType } from "@/shared/types/room-session";
 

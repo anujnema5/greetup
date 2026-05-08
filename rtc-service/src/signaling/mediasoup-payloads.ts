@@ -94,9 +94,7 @@ export function parseResumeConsumerPayload(payload: unknown): string | null {
 }
 
 export function parseCloseProducerPayload(payload: unknown): string | null {
-  const body = payload as { producerId?: unknown } | undefined;
-  if (!body || typeof body.producerId !== "string") return null;
-  return body.producerId;
+  return parsePauseResumeProducerPayload(payload);
 }
 
 /** Shared by `pauseProducer` and `resumeProducer` — both only need a producerId. */

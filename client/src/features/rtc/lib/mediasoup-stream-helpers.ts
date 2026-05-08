@@ -143,6 +143,7 @@ export function resolveInboundVideoMediaSource(
   return signaled === "screen" ? "screen" : "camera";
 }
 
+/** Utility kept for possible future track-by-track stream editing. */
 export function copyStreamWithoutTrack(prev: MediaStream, track: MediaStreamTrack): MediaStream {
   const next = new MediaStream();
   for (const t of prev.getTracks()) {
@@ -233,7 +234,6 @@ export function mergeLocalTrack(
   return new MediaStream(out);
 }
 
-/** Stops and drops all tracks of `kind`; returns a stream with remaining tracks or null. */
 /** Stops `track` and returns a stream without it (or null if empty). */
 export function stopAndRemoveTrackFromStream(
   prev: MediaStream | null,
@@ -250,6 +250,7 @@ export function stopAndRemoveTrackFromStream(
   return remaining.length > 0 ? next : null;
 }
 
+/** Replaces existing screen track with a new one while preserving other tracks. */
 export function mergeLocalScreenIntoStream(
   prev: MediaStream | null,
   newScreenTrack: MediaStreamTrack,

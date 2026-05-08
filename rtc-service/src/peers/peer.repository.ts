@@ -34,6 +34,7 @@ export async function clearUserActiveRtcRoomIfMatches(userId: string, roomId: st
   }
 }
 
+/** Kept for operational debugging/future admin flows. */
 export async function getPeer(peerId: string): Promise<PeerRecord | null> {
   const redis = getRedis();
   const h = await redis.hgetall(Keys.peer(peerId));
@@ -48,6 +49,7 @@ export async function getPeer(peerId: string): Promise<PeerRecord | null> {
   };
 }
 
+/** Kept for room diagnostics and moderation tooling. */
 export async function listPeerIdsInRoom(roomId: string): Promise<string[]> {
   return getRedis().smembers(Keys.roomPeers(roomId));
 }
