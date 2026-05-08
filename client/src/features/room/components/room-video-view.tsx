@@ -346,7 +346,10 @@ export function RoomVideoView({
 
   const activeActivityMeta = resolveActivityMetaForStage(stageActivity, activeDirectRoomActivities);
   const myInitial = myName.charAt(0).toUpperCase();
-  /** Camera-only direct stage: no share UI — layout stays 1:1 (16:9 is used only while screen sharing). */
+  /**
+   * Camera-only direct HUD: no share chrome. On `lg+` desktop, screen sharing uses 16:9; on mobile/tablet
+   * the stage stays 1:1 even during share (see stage-ratio effect).
+   */
   const isOneToOneStage = !isGroupRoom && !stageActivity && !showScreenShareContext;
   const showSearchingState = !isGroupRoom && searchingForNextCandidate;
   const retryDirectMatch =
@@ -359,12 +362,17 @@ export function RoomVideoView({
 
   useEffect(() => {
     if (isGroupRoom) return;
+    /* Mobile + tablet (`lg` breakpoint): always 1:1. Desktop: 16:9 only while screen sharing. */
+    if (!lgUp) {
+      if (stageRatio !== "1:1") setStageRatio("1:1");
+      return;
+    }
     if (showScreenShareContext) {
       if (stageRatio !== "16:9") setStageRatio("16:9");
     } else if (stageRatio !== "1:1") {
       setStageRatio("1:1");
     }
-  }, [isGroupRoom, showScreenShareContext, stageRatio]);
+  }, [isGroupRoom, lgUp, showScreenShareContext, stageRatio]);
 
   useEffect(() => {
     if (!mainStageShowsScreen) setScreenShareAudioMuted(false);
