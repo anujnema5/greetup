@@ -17,8 +17,15 @@
  * for other activities). Screen share uses toasts only — activity tiles stay tappable.
  * Narrow + screen share: main stage shows share with cameras (direct: vertical stack; circle: 2×2 + pages).
  */
-import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
-import { Maximize2, Minimize2 } from "lucide-react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  useSyncExternalStore,
+} from "react";
+import { Maximize2, Minimize2, Volume2, VolumeX } from "lucide-react";
 import { toast } from "sonner";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { MOCK_MATCH } from "@/features/room/constants/mock-match";
@@ -61,7 +68,7 @@ function useLgBreakpoint() {
   return lgUp;
 }
 
-/** Tailwind `md` — direct rooms lock to 1:1 layout below this width */
+/** Tailwind `md` breakpoint (viewport narrower than `md`). */
 const MD_DOWN_MQ = "(max-width: 767px)";
 
 function subscribeMdDown(onChange: () => void) {
@@ -76,6 +83,43 @@ function snapshotMdDown() {
 
 function snapshotMdDownServer() {
   return false;
+}
+
+/** True while the stream has at least one audio track that has not ended. */
+function useRemoteStreamHasAudioTrack(stream: MediaStream | null): boolean {
+  const subscribe = useCallback(
+    (onStoreChange: () => void) => {
+      if (!stream) return () => {};
+      const trackEndHandlers = new Map<MediaStreamTrack, () => void>();
+      const ensureTrackEndedListeners = () => {
+        for (const t of stream.getAudioTracks()) {
+          if (trackEndHandlers.has(t)) continue;
+          const onEnd = () => onStoreChange();
+          t.addEventListener("ended", onEnd);
+          trackEndHandlers.set(t, onEnd);
+        }
+      };
+      const onStreamTracksChange = () => {
+        onStoreChange();
+        ensureTrackEndedListeners();
+      };
+      onStreamTracksChange();
+      stream.addEventListener("addtrack", onStreamTracksChange);
+      stream.addEventListener("removetrack", onStreamTracksChange);
+      return () => {
+        stream.removeEventListener("addtrack", onStreamTracksChange);
+        stream.removeEventListener("removetrack", onStreamTracksChange);
+        trackEndHandlers.forEach((fn, t) => t.removeEventListener("ended", fn));
+        trackEndHandlers.clear();
+      };
+    },
+    [stream],
+  );
+  const getSnapshot = useCallback(
+    () => Boolean(stream?.getAudioTracks().some((t) => t.readyState !== "ended")),
+    [stream],
+  );
+  return useSyncExternalStore(subscribe, getSnapshot, () => false);
 }
 
 /** Video stage + HUD + toolbar; chat as dock (lg) or sheet (narrow). */
@@ -151,6 +195,8 @@ export function RoomVideoView({
   );
   const [isLive, setIsLive] = useState(false);
   const [circleOptionsOpen, setCircleOptionsOpen] = useState(false);
+  /** Local-only mute for inbound screen/tab audio (remote `MediaStream` audio tracks). */
+  const [screenShareAudioMuted, setScreenShareAudioMuted] = useState(false);
 
   const activeChess = activeRealtimeActivity?.kind === "chess";
   const stageActivity = activeChess ? "chess" : activeActivity;
@@ -283,6 +329,11 @@ export function RoomVideoView({
   const participantVideosInSidebar = Boolean(showScreenShareContext && !mdDown);
   const showStageFullscreenControl =
     showScreenShare && (screenSharing || mainStageShowsScreen || screenShareTiles.length > 0);
+  const screenShareRemoteStreamForAudio = mainStageShowsScreen ? remoteStream : null;
+  const remoteScreenShareHasLiveAudio = useRemoteStreamHasAudioTrack(screenShareRemoteStreamForAudio);
+  /** `mainStageShowsScreen` is authoritative (SFU + layout); do not infer from track labels — those are often blank on receivers. */
+  const showScreenShareAudioButton =
+    Boolean(mainStageShowsScreen) && remoteScreenShareHasLiveAudio;
   /** Narrow + share with on-stage cameras: expand/fill should zoom the share only (see `RoomVideoStage`). */
   const shareStageImmersive =
     stageFullscreen.isExpanded && showScreenShareContext && !participantVideosInSidebar;
@@ -295,23 +346,40 @@ export function RoomVideoView({
 
   const activeActivityMeta = resolveActivityMetaForStage(stageActivity, activeDirectRoomActivities);
   const myInitial = myName.charAt(0).toUpperCase();
-  const isOneToOneStage = !isGroupRoom && !stageActivity && stageRatio === "1:1";
+  /** Camera-only direct stage: no share UI — layout stays 1:1 (16:9 is used only while screen sharing). */
+  const isOneToOneStage = !isGroupRoom && !stageActivity && !showScreenShareContext;
   const showSearchingState = !isGroupRoom && searchingForNextCandidate;
   const retryDirectMatch =
     onRetryDirectCallMatchSearch ?? (() => {});
   const activeActivityLabel = activeActivityMeta ? `${activeActivityMeta.label} activity` : null;
-  const showDirectAspectRatioToggle =
-    !isGroupRoom && !Boolean(stageActivity) && !mdDown;
 
   /** Circle route always has `roomId` when `isGroupRoom`; narrows types for options UI. */
   const circleRoomId = isGroupRoom && roomId ? roomId : null;
   const circleTitle = circleDisplayTitle?.trim() || "Circle";
 
   useEffect(() => {
-    if (!isGroupRoom && mdDown && stageRatio === "16:9") {
+    if (isGroupRoom) return;
+    if (showScreenShareContext) {
+      if (stageRatio !== "16:9") setStageRatio("16:9");
+    } else if (stageRatio !== "1:1") {
       setStageRatio("1:1");
     }
-  }, [isGroupRoom, mdDown, stageRatio]);
+  }, [isGroupRoom, showScreenShareContext, stageRatio]);
+
+  useEffect(() => {
+    if (!mainStageShowsScreen) setScreenShareAudioMuted(false);
+  }, [mainStageShowsScreen]);
+
+  useEffect(() => {
+    if (!showScreenShareAudioButton) setScreenShareAudioMuted(false);
+  }, [showScreenShareAudioButton]);
+
+  useEffect(() => {
+    if (!remoteStream) return;
+    remoteStream.getAudioTracks().forEach((t) => {
+      t.enabled = !screenShareAudioMuted;
+    });
+  }, [screenShareAudioMuted, remoteStream]);
 
   useEffect(() => {
     if (lgUp) setMobileChatSheetOpen(false);
@@ -473,23 +541,46 @@ export function RoomVideoView({
               )}
             >
               <div className="relative min-h-0 min-w-0 flex-1 overflow-hidden">
-                {showStageFullscreenControl ? (
+                {showStageFullscreenControl || showScreenShareAudioButton ? (
                   <div className="pointer-events-none absolute inset-x-0 top-0 z-20 flex justify-end p-3 pt-[max(0.75rem,env(safe-area-inset-top))]">
-                    <button
-                      type="button"
-                      onClick={() => void stageFullscreen.toggle()}
-                      aria-label={
-                        stageFullscreen.isExpanded ? "Exit full screen" : "Full screen"
-                      }
-                      title={stageFullscreen.isExpanded ? "Exit full screen" : "Full screen"}
-                      className="pointer-events-auto inline-flex size-10 cursor-pointer items-center justify-center rounded-full border border-white/25 bg-black/55 text-white shadow-lg backdrop-blur-md transition-colors hover:bg-black/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40"
-                    >
-                      {stageFullscreen.isExpanded ? (
-                        <Minimize2 size={18} className="shrink-0" />
-                      ) : (
-                        <Maximize2 size={18} className="shrink-0" />
-                      )}
-                    </button>
+                    <div className="pointer-events-auto flex shrink-0 items-center gap-2">
+                      {showStageFullscreenControl ? (
+                        <button
+                          type="button"
+                          onClick={() => void stageFullscreen.toggle()}
+                          aria-label={
+                            stageFullscreen.isExpanded ? "Exit full screen" : "Full screen"
+                          }
+                          title={stageFullscreen.isExpanded ? "Exit full screen" : "Full screen"}
+                          className="inline-flex size-10 cursor-pointer items-center justify-center rounded-full border border-white/25 bg-black/55 text-white shadow-lg backdrop-blur-md transition-colors hover:bg-black/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40"
+                        >
+                          {stageFullscreen.isExpanded ? (
+                            <Minimize2 size={18} className="shrink-0" />
+                          ) : (
+                            <Maximize2 size={18} className="shrink-0" />
+                          )}
+                        </button>
+                      ) : null}
+                      {showScreenShareAudioButton ? (
+                        <button
+                          type="button"
+                          onClick={() => setScreenShareAudioMuted((m) => !m)}
+                          aria-label={
+                            screenShareAudioMuted ? "Unmute screen audio" : "Mute screen audio"
+                          }
+                          title={
+                            screenShareAudioMuted ? "Unmute screen audio" : "Mute screen audio"
+                          }
+                          className="inline-flex size-10 cursor-pointer items-center justify-center rounded-full border border-white/25 bg-black/55 text-white shadow-lg backdrop-blur-md transition-colors hover:bg-black/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40"
+                        >
+                          {screenShareAudioMuted ? (
+                            <VolumeX size={18} className="shrink-0" />
+                          ) : (
+                            <Volume2 size={18} className="shrink-0" />
+                          )}
+                        </button>
+                      ) : null}
+                    </div>
                   </div>
                 ) : null}
                 <RoomVideoStage
@@ -569,10 +660,6 @@ export function RoomVideoView({
                     activeActivity={Boolean(stageActivity)}
                     mainStageShowsScreen={mainStageShowsScreen}
                     peerLabel={peerLabel}
-                    stageRatio={stageRatio}
-                    setStageRatio={setStageRatio}
-                    showAspectRatioToggle={showDirectAspectRatioToggle}
-                    searchingForNextCandidate={showSearchingState}
                     onMinimize={onMinimize}
                   />
                 ) : null}

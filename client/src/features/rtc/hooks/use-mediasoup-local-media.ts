@@ -80,8 +80,10 @@ export function useMediasoupLocalMedia(
     deviceRef,
     localStreamRef,
     videoProducerRef,
-    screenProducerRef,
-    screenShareProducerIdRef,
+    screenVideoProducerRef,
+    screenVideoProducerIdRef,
+    screenAudioProducerRef,
+    screenAudioProducerIdRef,
     localScreenTrackRef,
     audioProducerRef,
     socketRef,
@@ -106,14 +108,23 @@ export function useMediasoupLocalMedia(
 
   const cleanupLocalScreenShare = useCallback(() => {
     setLocalMediaDeviceError(null);
-    const screenPid = screenShareProducerIdRef.current;
+    const screenPid = screenVideoProducerIdRef.current;
+    const screenAudioPid = screenAudioProducerIdRef.current;
     try {
-      screenProducerRef.current?.close();
+      screenVideoProducerRef.current?.close();
     } catch {
       /* ignore */
     }
-    screenProducerRef.current = null;
-    screenShareProducerIdRef.current = null;
+    try {
+      screenAudioProducerRef.current?.track?.stop();
+      screenAudioProducerRef.current?.close();
+    } catch {
+      /* ignore */
+    }
+    screenVideoProducerRef.current = null;
+    screenVideoProducerIdRef.current = null;
+    screenAudioProducerRef.current = null;
+    screenAudioProducerIdRef.current = null;
     const screenTrack = localScreenTrackRef.current;
     localScreenTrackRef.current = null;
     setLocalScreenTrackId(null);
@@ -131,11 +142,16 @@ export function useMediasoupLocalMedia(
     }
     const sock = socketRef.current;
     signalProducer(sock, "closeProducer", screenPid ?? "", "closeProducer");
+    if (screenAudioPid) {
+      signalProducer(sock, "closeProducer", screenAudioPid, "closeProducer screenAudio");
+    }
   }, [
     localScreenTrackRef,
     localStreamRef,
-    screenProducerRef,
-    screenShareProducerIdRef,
+    screenVideoProducerRef,
+    screenVideoProducerIdRef,
+    screenAudioProducerRef,
+    screenAudioProducerIdRef,
     setLocalMediaDeviceError,
     setLocalScreenTrackId,
     setLocalStream,
@@ -373,7 +389,7 @@ export function useMediasoupLocalMedia(
       const device = deviceRef.current;
       if (!send || !device) return;
 
-      if (screenProducerRef.current || localScreenTrackRef.current) {
+      if (screenVideoProducerRef.current || localScreenTrackRef.current) {
         cleanupLocalScreenShare();
         return;
       }
@@ -383,7 +399,7 @@ export function useMediasoupLocalMedia(
       try {
         const stream = await navigator.mediaDevices.getDisplayMedia({
           video: getScreenCaptureConstraints(),
-          audio: false,
+          audio: true,
         });
         if (statusRef.current !== "ready") {
           stream.getTracks().forEach((t) => t.stop());
@@ -403,8 +419,8 @@ export function useMediasoupLocalMedia(
           { mediaSource: "screen" },
           screenVideoEncodingsForDevice(),
         );
-        screenProducerRef.current = producer;
-        screenShareProducerIdRef.current = producer.id;
+        screenVideoProducerRef.current = producer;
+        screenVideoProducerIdRef.current = producer.id;
         localScreenTrackRef.current = track;
         setLocalScreenTrackId(track.id);
         setScreenSharing(true);
@@ -412,6 +428,21 @@ export function useMediasoupLocalMedia(
         localStreamRef.current = merged;
         setLocalStream(merged);
         setLocalMediaDeviceError(null);
+
+        // Produce system audio if the browser captured it (optional — user may decline).
+        const audioTrack = stream.getAudioTracks()[0];
+        if (audioTrack && device.canProduce("audio")) {
+          try {
+            const audioProducer = await send.produce({
+              track: audioTrack,
+              codecOptions: { opusStereo: true, opusDtx: true, opusFec: true },
+            });
+            screenAudioProducerRef.current = audioProducer;
+            screenAudioProducerIdRef.current = audioProducer.id;
+          } catch {
+            audioTrack.stop();
+          }
+        }
 
         track.addEventListener("ended", () => {
           if (localScreenTrackRef.current !== track) return;
@@ -430,8 +461,10 @@ export function useMediasoupLocalMedia(
     localScreenTrackRef,
     localStreamRef,
     rtcRoomTypeRef,
-    screenProducerRef,
-    screenShareProducerIdRef,
+    screenVideoProducerRef,
+    screenVideoProducerIdRef,
+    screenAudioProducerRef,
+    screenAudioProducerIdRef,
     sendTransportRef,
     setLocalMediaDeviceError,
     setLocalScreenTrackId,

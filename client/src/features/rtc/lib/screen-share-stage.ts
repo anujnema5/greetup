@@ -127,7 +127,8 @@ export function buildMainStageStreamForScreenFocus(input: {
   if (!tile) return null;
   const v = tile.stream.getVideoTracks()[0];
   if (!v || v.readyState !== "live") return null;
-  const audios = audioSourceStream?.getAudioTracks().filter((a) => a.readyState === "live") ?? [];
+  /* Match direct-call merging: any non-ended inbound audio (tab audio can sit in `new` briefly). */
+  const audios = audioSourceStream?.getAudioTracks().filter((a) => a.readyState !== "ended") ?? [];
   return new MediaStream([v, ...audios]);
 }
 

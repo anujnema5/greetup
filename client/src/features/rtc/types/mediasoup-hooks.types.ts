@@ -19,8 +19,10 @@ import type { RtcSocketState } from "@/features/rtc/hooks/use-rtc-socket";
 export type MediasoupRoomSessionRefs = {
   localStreamRef: MutableRefObject<MediaStream | null>;
   videoProducerRef: MutableRefObject<Producer | null>;
-  screenProducerRef: MutableRefObject<Producer | null>;
-  screenShareProducerIdRef: MutableRefObject<string | null>;
+  screenVideoProducerRef: MutableRefObject<Producer | null>;
+  screenVideoProducerIdRef: MutableRefObject<string | null>;
+  screenAudioProducerRef: MutableRefObject<Producer | null>;
+  screenAudioProducerIdRef: MutableRefObject<string | null>;
   localScreenTrackRef: MutableRefObject<MediaStreamTrack | null>;
   audioProducerRef: MutableRefObject<Producer | null>;
   sendTransportRef: MutableRefObject<Transport | null>;
@@ -65,8 +67,10 @@ export type MediasoupLocalMediaRefs = {
   deviceRef: MutableRefObject<Device | null>;
   localStreamRef: MutableRefObject<MediaStream | null>;
   videoProducerRef: MutableRefObject<Producer | null>;
-  screenProducerRef: MutableRefObject<Producer | null>;
-  screenShareProducerIdRef: MutableRefObject<string | null>;
+  screenVideoProducerRef: MutableRefObject<Producer | null>;
+  screenVideoProducerIdRef: MutableRefObject<string | null>;
+  screenAudioProducerRef: MutableRefObject<Producer | null>;
+  screenAudioProducerIdRef: MutableRefObject<string | null>;
   localScreenTrackRef: MutableRefObject<MediaStreamTrack | null>;
   audioProducerRef: MutableRefObject<Producer | null>;
   socketRef: MutableRefObject<Socket | null>;
