@@ -178,20 +178,27 @@ function ParticipantVideoTile({
     </>
   );
 
-  if (canPickShare) {
-    return (
-      <button
-        type="button"
-        className={cn(shellClass, "block w-full border-0 bg-transparent p-0 text-left")}
-        onClick={() => shareTileKey && onSelectShare?.(shareTileKey)}
-        aria-label={`Show ${label}'s screen on the main stage`}
-      >
-        {inner}
-      </button>
-    );
-  }
-
-  return <div className={shellClass}>{inner}</div>;
+  return (
+    <div
+      className={shellClass}
+      {...(canPickShare
+        ? {
+            role: "button" as const,
+            tabIndex: 0,
+            onClick: () => shareTileKey && onSelectShare?.(shareTileKey),
+            onKeyDown: (e) => {
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                shareTileKey && onSelectShare?.(shareTileKey);
+              }
+            },
+            "aria-label": `Show ${label}'s screen on the main stage`,
+          }
+        : {})}
+    >
+      {inner}
+    </div>
+  );
 }
 
 type ParticipantVideoTileProps = ComponentProps<typeof ParticipantVideoTile>;

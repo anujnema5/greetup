@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { toast } from "sonner";
 import type { Producer, Transport } from "mediasoup-client/types";
 import type { Device } from "mediasoup-client";
 import type { Socket } from "socket.io-client";
@@ -20,6 +21,7 @@ import {
   mainStageIsScreenShareVideo,
 } from "@/features/rtc/lib/screen-share-stage";
 import { pickPrimaryRemoteStream, remoteParticipantsFromRecord } from "@/features/rtc/lib/remote-participant-streams";
+import { MAX_CONCURRENT_SCREEN_SHARES } from "@/features/rtc/lib/screen-share-policy";
 import type { RtcRoomType } from "@/features/rtc/lib/screen-share-policy";
 import type {
   MediasoupLocalMediaRefs,
@@ -251,10 +253,18 @@ export function useMediasoupRoom(options: UseMediasoupRoomArgs): UseMediasoupRoo
     ],
   );
 
-  const { toggleMic, toggleCamera, toggleScreenShare, cleanupLocalScreenShare } = useMediasoupLocalMedia(
+  const { toggleMic, toggleCamera, toggleScreenShare: _toggleScreenShare, cleanupLocalScreenShare } = useMediasoupLocalMedia(
     localMediaRefs,
     localMediaSetters,
   );
+
+  const toggleScreenShare = useCallback(() => {
+    if (!screenSharing && screenShareTiles.length >= MAX_CONCURRENT_SCREEN_SHARES) {
+      toast.error(`Can't share ${MAX_CONCURRENT_SCREEN_SHARES} screens are already being shared.`);
+      return;
+    }
+    _toggleScreenShare();
+  }, [screenSharing, screenShareTiles, _toggleScreenShare]);
 
   const cleanupLocalScreenShareRef = useRef(cleanupLocalScreenShare);
   useEffect(() => {
