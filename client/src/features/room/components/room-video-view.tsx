@@ -56,17 +56,20 @@ export type { RoomVideoViewProps } from "@/features/room/types/room-video-view.t
 
 type StageRatio = "16:9" | "1:1";
 
-function useLgBreakpoint() {
-  const [lgUp, setLgUp] = useState(false);
+/** Tailwind `xl` — docked right panel + 16:9 share mode; below this, full-width stacked stage (iPad Pro portrait is 1024px). */
+function useXlBreakpoint() {
+  const [xlUp, setXlUp] = useState(false);
   useEffect(() => {
-    const mq = window.matchMedia("(min-width: 1024px)");
-    const apply = () => setLgUp(mq.matches);
+    const mq = window.matchMedia("(min-width: 1280px)");
+    const apply = () => setXlUp(mq.matches);
     apply();
     mq.addEventListener("change", apply);
     return () => mq.removeEventListener("change", apply);
   }, []);
-  return lgUp;
+  return xlUp;
 }
+
+
 
 /** Tailwind `md` breakpoint (viewport narrower than `md`). */
 const MD_DOWN_MQ = "(max-width: 767px)";
@@ -182,7 +185,8 @@ export function RoomVideoView({
   /** `is_active` catalog tiles from `RoomVideoLayer` (empty until loaded or when none enabled). */
   const activeDirectRoomActivities = directRoomActivitiesProp ?? [];
   const showActivitiesTab = shouldShowDirectCallActivitiesTab(isGroupRoom, activeDirectRoomActivities);
-  const lgUp = useLgBreakpoint();
+  const xlUp = useXlBreakpoint();
+
   const mdDown = useSyncExternalStore(subscribeMdDown, snapshotMdDown, snapshotMdDownServer);
   const stageShellRef = useRef<HTMLDivElement>(null);
   const stageFullscreen = useStageFullscreen(stageShellRef);
@@ -325,11 +329,11 @@ export function RoomVideoView({
   const showScreenShareContext =
     showScreenShare && (screenSharing || mainStageShowsScreen || screenShareTiles.length > 0);
   /**
-   * During screen share, desktop/tablet (md+) keeps the stage full-bleed and puts cameras in the
-   * People panel. Below `md`, participants stay on the main stage (stacked with share for direct
+   * During screen share, `xl+` keeps a wide 16:9 stage and puts cameras in the People panel. Below
+   * `xl`, participants stay on the main stage (stacked with share for direct
    * calls; 2×2 grid under share for circles) so users are not forced into the People tab.
    */
-  const participantVideosInSidebar = Boolean(showScreenShareContext && lgUp);
+  const participantVideosInSidebar = false;
   const showStageFullscreenControl =
     showScreenShare && (screenSharing || mainStageShowsScreen || screenShareTiles.length > 0);
   const screenShareRemoteStreamForAudio = mainStageShowsScreen ? remoteStream : null;
@@ -350,8 +354,8 @@ export function RoomVideoView({
   const activeActivityMeta = resolveActivityMetaForStage(stageActivity, activeDirectRoomActivities);
   const myInitial = myName.charAt(0).toUpperCase();
   /**
-   * Camera-only direct HUD: no share chrome. On `lg+` desktop, screen sharing uses 16:9; on mobile/tablet
-   * the stage stays 1:1 even during share (see stage-ratio effect).
+   * Camera-only direct HUD: no share chrome. At `xl+`, screen sharing uses 16:9 + docked panel; below
+   * `xl` the stage stays 1:1 with stacked share + cameras (e.g. iPad Pro portrait).
    */
   const isOneToOneStage = !isGroupRoom && !stageActivity && !showScreenShareContext;
   const showSearchingState = !isGroupRoom && searchingForNextCandidate;
@@ -365,8 +369,8 @@ export function RoomVideoView({
 
   useEffect(() => {
     if (isGroupRoom) return;
-    /* Mobile + tablet (`lg` breakpoint): always 1:1. Desktop: 16:9 only while screen sharing. */
-    if (!lgUp) {
+    /* Below `xl`: stacked stage + 1:1 share layout. At `xl+`: 16:9 share + docked panel. */
+    if (!xlUp) {
       if (stageRatio !== "1:1") setStageRatio("1:1");
       return;
     }
@@ -375,7 +379,7 @@ export function RoomVideoView({
     } else if (stageRatio !== "1:1") {
       setStageRatio("1:1");
     }
-  }, [isGroupRoom, lgUp, showScreenShareContext, stageRatio]);
+  }, [isGroupRoom, xlUp, showScreenShareContext, stageRatio]);
 
   useEffect(() => {
     if (!mainStageShowsScreen) setScreenShareAudioMutedByKey({});
@@ -393,10 +397,10 @@ export function RoomVideoView({
   }, [screenShareAudioMuted, remoteStream]);
 
   useEffect(() => {
-    if (lgUp) setMobileChatSheetOpen(false);
-  }, [lgUp]);
+    if (xlUp) setMobileChatSheetOpen(false);
+  }, [xlUp]);
 
-  const mobileChatSheetDrag = useRoomMobileChatSheetHeight(mobileChatSheetOpen && !lgUp);
+  const mobileChatSheetDrag = useRoomMobileChatSheetHeight(mobileChatSheetOpen && !xlUp);
 
   useEffect(() => {
     if (rightPanelTab === "participants" && !showPeopleTab) {
@@ -411,11 +415,11 @@ export function RoomVideoView({
   }, [rightPanelTab, showActivitiesTab]);
 
   useEffect(() => {
-    if (showPeopleTab && !prevShowPeopleTabRef.current && lgUp) {
-        setRightPanelTab("participants");
+    if (showPeopleTab && !prevShowPeopleTabRef.current && xlUp) {
+      setRightPanelTab("participants");
     }
     prevShowPeopleTabRef.current = showPeopleTab;
-  }, [showPeopleTab, lgUp]);
+  }, [showPeopleTab, xlUp]);
 
   useEffect(() => {
     return () => {
@@ -436,7 +440,7 @@ export function RoomVideoView({
   const selectRightPanelTab = useCallback(
     (tab: RoomCallRightPanelTab) => {
       setRightPanelTab(tab);
-      if (!lgUp) {
+      if (!xlUp) {
         /* Toolbar stays focused for part of the click frame; Radix then sets aria-hidden on RoomVideoLayer (z-100) and Chrome blocks it if focus is still inside. Blur, then open on the next paint. */
         (document.activeElement as HTMLElement | null)?.blur();
         requestAnimationFrame(() => {
@@ -446,7 +450,7 @@ export function RoomVideoView({
         });
       }
     },
-    [lgUp],
+    [xlUp],
   );
 
   const suppressPeoplePanelCameras = shouldSuppressDuplicatePeopleCameras({
@@ -540,9 +544,9 @@ export function RoomVideoView({
       />
 
       <div className="relative flex min-h-0 min-w-0 flex-1 flex-col gap-2 p-2 md:gap-3 md:p-3">
-        <div className="flex min-h-0 min-w-0 flex-1 flex-col gap-2 overflow-hidden lg:flex-row lg:items-stretch lg:gap-3">
-          {/* Stage + toolbar share one column on lg so the footer is only as wide as the stage (not under chat). */}
-          <div className="flex min-h-0 min-w-0 flex-1 flex-col gap-2 lg:min-h-0">
+        <div className="flex min-h-0 min-w-0 flex-1 flex-col gap-2 overflow-hidden xl:flex-row xl:items-stretch xl:gap-3">
+          {/* Stage + toolbar share one column on xl so the footer is only as wide as the stage (not under chat). */}
+          <div className="flex min-h-0 min-w-0 flex-1 flex-col gap-2 xl:min-h-0">
             <div
               ref={stageShellRef}
               className={cn(
@@ -686,12 +690,12 @@ export function RoomVideoView({
             <RoomVideoToolbar {...videoToolbarProps} />
           </div>
 
-          <aside className="hidden min-h-0 w-full min-w-0 shrink-0 lg:flex lg:w-88 lg:flex-col">
+          <aside className="hidden min-h-0 w-full min-w-0 shrink-0 xl:flex xl:w-88 xl:flex-col">
             <RoomVideoRightPanel {...rightPanelProps} variant="dock" />
           </aside>
         </div>
 
-        {!lgUp ? (
+        {!xlUp ? (
           <Dialog open={mobileChatSheetOpen} onOpenChange={setMobileChatSheetOpen}>
             <DialogContent
               showCloseButton

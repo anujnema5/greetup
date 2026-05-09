@@ -109,7 +109,7 @@ export function RoomVideoStageOverlays({
       !participantVideosInSidebar &&
       !shareStageImmersive ? (
         <div
-          className="pointer-events-none absolute z-20 overflow-hidden rounded-2xl border border-border/70 bg-card shadow-[0_10px_30px_rgba(10,12,20,0.22)] bottom-[5.5rem] right-2 w-60 aspect-video"
+          className="pointer-events-none absolute z-20 overflow-hidden rounded-2xl border border-border/70 bg-card shadow-[0_10px_30px_rgba(10,12,20,0.22)] bottom-[5.5rem] right-2 w-60 aspect-video xl:hidden"
         >
           {localVideoLive ? (
             <VideoMirror
@@ -144,6 +144,7 @@ export function RoomVideoStageOverlays({
           className={cn(
             "pointer-events-none absolute z-20 overflow-hidden rounded-xl border border-white/20 bg-black/80 shadow-lg bottom-[4.5rem] right-[10.5rem] w-36",
             shareStageImmersive && "hidden",
+            "xl:hidden",
           )}
         >
           {peerCameraInsetLive ? (
