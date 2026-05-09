@@ -15,7 +15,11 @@ export * from "./lib/room-return-path";
 export { useRoomUi } from "./hooks/use-room-ui";
 export { useRoomVideo } from "./hooks/use-room-video";
 export { useMinimizedDockMainStage } from "./hooks/use-minimized-dock-main-stage";
-export type { MinimizedDockMainStage } from "./hooks/use-minimized-dock-main-stage";
+export type {
+  MinimizedDockMainStage,
+  MinimizedDockSideStrip,
+  UseMinimizedDockMainStageArgs,
+} from "./types/minimized-dock-main-stage.types";
 export { useRoomPageTabLease } from "./hooks/use-room-page-tab-lease";
 export type { RoomPageLeaseRouter } from "./hooks/use-room-page-tab-lease";
 export { useRoomTabLeaseRtcSync } from "./hooks/use-room-tab-lease-rtc-sync";

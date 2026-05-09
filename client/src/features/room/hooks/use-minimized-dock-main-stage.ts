@@ -10,13 +10,16 @@
  *
  * Direct (1:1) uses the same stack as circle (dominant when not pinned). An “always show remote”
  * shortcut would simplify tile changes but was intentionally not applied so behavior matches group calls.
+ *
+ * Dominant / silence: {@link minimizedDockSilenceReducer} — one batched update per `dominantSpeakerPeerId`
+ * change (microtask), plus a sticky timer. Debounce stays separate (delayed `setTimeout`).
  */
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useReducer, useState } from "react";
 import { hasLiveEnabledVideo, hasLiveMedia, hasLiveVideo } from "@/features/rtc";
 import type {
-  ProducerMediaSource,
-  RemoteParticipant,
-} from "@/features/rtc/types/mediasoup-room.types";
+  MinimizedDockMainStage,
+  UseMinimizedDockMainStageArgs,
+} from "@/features/room/types/minimized-dock-main-stage.types";
 import {
   firstRemoteParticipantExcluding,
   MINIMIZED_DOCK_DOMINANT_DEBOUNCE_MS,
@@ -25,45 +28,10 @@ import {
   playbackStreamForDockVideo,
   resolveFocusedRemoteParticipant,
 } from "@/features/room/lib/minimized-dock-focus";
-
-export type MinimizedDockMainStage = {
-  /** Big preview area — screen-share composite or camera / avatar focus. */
-  mainStream: MediaStream | null;
-  /** True when a visible video surface should cover the stage (else avatar + optional audio sink). */
-  mainVideoLive: boolean;
-  /** Mount a hidden sink when true so remote audio still plays (camera off / video muted). */
-  mainHasPlayableMedia: boolean;
-  /** Local preview on main must stay muted to avoid feedback. */
-  mainVideoMuted: boolean;
-  mainStageShowsScreen: boolean;
-  headerLabel: string;
-  stageBadge: "video" | "sharing";
-  /** Right strip: local “You” or a remote thumbnail when main is self. */
-  sideStrip: {
-    stream: MediaStream | null;
-    videoLive: boolean;
-    label: string;
-    /** Mirror local camera preview. */
-    mirrorVideo: boolean;
-    /** Set when the strip shows a remote peer (main stage is local); null for “You”. */
-    remotePeer: RemoteParticipant | null;
-  };
-  mainFocusPeerId: string | null;
-  mainParticipant: RemoteParticipant | null;
-};
-
-type Args = {
-  mainStageShowsScreen: boolean;
-  remoteMediaStream: MediaStream | null;
-  remoteParticipants: RemoteParticipant[];
-  remoteTrackMediaSource: Record<string, ProducerMediaSource>;
-  dominantSpeakerPeerId: string | null;
-  rtcPrimaryRemoteUserId: string | null;
-  currentUserId: string | null | undefined;
-  localMediaStream: MediaStream | null;
-  /** 1:1 display name from Redux when roster is thin. */
-  directCallPeerLabel: string | null;
-};
+import {
+  initialMinimizedDockSilenceState,
+  minimizedDockSilenceReducer,
+} from "@/features/room/lib/minimized-dock-main-stage-silence";
 
 export function useMinimizedDockMainStage({
   mainStageShowsScreen,
@@ -75,40 +43,34 @@ export function useMinimizedDockMainStage({
   currentUserId,
   localMediaStream,
   directCallPeerLabel,
-}: Args): MinimizedDockMainStage {
+}: UseMinimizedDockMainStageArgs): MinimizedDockMainStage {
   const pinned = rtcPrimaryRemoteUserId;
   const uid = currentUserId ?? null;
 
-  const [lastNonNullDominant, setLastNonNullDominant] = useState<string | null>(null);
+  const [silence, dispatchSilence] = useReducer(
+    minimizedDockSilenceReducer,
+    initialMinimizedDockSilenceState,
+  );
+
   useEffect(() => {
-    if (dominantSpeakerPeerId !== null) setLastNonNullDominant(dominantSpeakerPeerId);
+    queueMicrotask(() => {
+      dispatchSilence({ type: "apply_dominant", peerId: dominantSpeakerPeerId });
+    });
   }, [dominantSpeakerPeerId]);
 
-  const [silenceStartedAt, setSilenceStartedAt] = useState<number | null>(null);
   useEffect(() => {
-    if (dominantSpeakerPeerId !== null) {
-      setSilenceStartedAt(null);
-      return;
-    }
-    if (lastNonNullDominant === null) return;
-    setSilenceStartedAt((prev) => (prev === null ? Date.now() : prev));
-  }, [dominantSpeakerPeerId, lastNonNullDominant]);
-
-  const [stickyGeneration, setStickyGeneration] = useState(0);
-  useEffect(() => {
-    if (silenceStartedAt === null) return;
-    const t = window.setTimeout(
-      () => setStickyGeneration((g) => g + 1),
-      MINIMIZED_DOCK_SILENCE_STICKY_MS,
-    );
+    if (silence.silenceStartedAt === null) return;
+    const t = window.setTimeout(() => {
+      dispatchSilence({ type: "sticky_timer_fire" });
+    }, MINIMIZED_DOCK_SILENCE_STICKY_MS);
     return () => window.clearTimeout(t);
-  }, [silenceStartedAt]);
+  }, [silence.silenceStartedAt]);
 
   const [debouncedDominant, setDebouncedDominant] = useState<string | null>(null);
   useEffect(() => {
     if (pinned) return;
     if (dominantSpeakerPeerId === null) {
-      setDebouncedDominant(null);
+      queueMicrotask(() => setDebouncedDominant(null));
       return;
     }
     const t = window.setTimeout(() => {
@@ -123,21 +85,14 @@ export function useMinimizedDockMainStage({
       return debouncedDominant ?? dominantSpeakerPeerId;
     }
     if (
-      silenceStartedAt !== null &&
-      lastNonNullDominant !== null &&
-      Date.now() - silenceStartedAt < MINIMIZED_DOCK_SILENCE_STICKY_MS
+      silence.silenceStartedAt !== null &&
+      silence.lastNonNullDominant !== null &&
+      silence.silenceStickyLive
     ) {
-      return lastNonNullDominant;
+      return silence.lastNonNullDominant;
     }
     return null;
-  }, [
-    pinned,
-    dominantSpeakerPeerId,
-    debouncedDominant,
-    silenceStartedAt,
-    lastNonNullDominant,
-    stickyGeneration,
-  ]);
+  }, [pinned, dominantSpeakerPeerId, debouncedDominant, silence]);
 
   const dockFocusPeerId = useMemo(() => {
     if (pinned) return pinned;

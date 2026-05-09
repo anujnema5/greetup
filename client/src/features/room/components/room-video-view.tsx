@@ -37,7 +37,10 @@ import type { RoomCallRightPanelTab } from "@/features/room/types/room-call-pane
 import { RoomCallParticipantsPanel } from "@/features/room/components/room-video/room-call-participants-panel";
 import { RoomVideoStage } from "@/features/room/components/room-video/room-video-stage";
 import { RoomCircleCallOptionsDialog } from "@/features/room/components/room-video/room-circle-call-options-dialog";
-import { RoomVideoHud } from "@/features/room/components/room-video/room-video-hud";
+import {
+  RoomVideoHud,
+  ROOM_VIDEO_STAGE_CHROME_BTN_CLASS,
+} from "@/features/room/components/room-video/room-video-hud";
 import { RoomVideoToolbar } from "@/features/room/components/room-video/room-video-toolbar";
 import { RoomVideoStageOverlays } from "@/features/room/components/room-video/room-video-overlays";
 import { RoomMobileChatSheetDragHandle } from "@/features/room/components/room-video/room-mobile-chat-sheet-drag-handle";
@@ -555,54 +558,6 @@ export function RoomVideoView({
               )}
             >
               <div className="relative min-h-0 min-w-0 flex-1 overflow-hidden">
-                {showStageFullscreenControl || showScreenShareAudioButton ? (
-                  <div className="pointer-events-none absolute inset-x-0 top-0 z-20 flex justify-end p-3 pt-[max(0.75rem,env(safe-area-inset-top))]">
-                    <div className="pointer-events-auto flex shrink-0 items-center gap-2">
-                      {showStageFullscreenControl ? (
-                        <button
-                          type="button"
-                          onClick={() => void stageFullscreen.toggle()}
-                          aria-label={
-                            stageFullscreen.isExpanded ? "Exit full screen" : "Full screen"
-                          }
-                          title={stageFullscreen.isExpanded ? "Exit full screen" : "Full screen"}
-                          className="inline-flex size-10 cursor-pointer items-center justify-center rounded-full border border-white/25 bg-black/55 text-white shadow-lg backdrop-blur-md transition-colors hover:bg-black/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40"
-                        >
-                          {stageFullscreen.isExpanded ? (
-                            <Minimize2 size={18} className="shrink-0" />
-                          ) : (
-                            <Maximize2 size={18} className="shrink-0" />
-                          )}
-                        </button>
-                      ) : null}
-                      {showScreenShareAudioButton ? (
-                        <button
-                          type="button"
-                          onClick={() => {
-                            if (!focusedScreenShareKey) return;
-                            setScreenShareAudioMutedByKey((prev) => ({
-                              ...prev,
-                              [focusedScreenShareKey]: !(prev[focusedScreenShareKey] ?? false),
-                            }));
-                          }}
-                          aria-label={
-                            screenShareAudioMuted ? "Unmute screen audio" : "Mute screen audio"
-                          }
-                          title={
-                            screenShareAudioMuted ? "Unmute screen audio" : "Mute screen audio"
-                          }
-                          className="inline-flex size-10 cursor-pointer items-center justify-center rounded-full border border-white/25 bg-black/55 text-white shadow-lg backdrop-blur-md transition-colors hover:bg-black/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40"
-                        >
-                          {screenShareAudioMuted ? (
-                            <VolumeX size={18} className="shrink-0" />
-                          ) : (
-                            <Volume2 size={18} className="shrink-0" />
-                          )}
-                        </button>
-                      ) : null}
-                    </div>
-                  </div>
-                ) : null}
                 <RoomVideoStage
                   isGroupRoom={isGroupRoom}
                   groupGalleryParticipants={groupGalleryParticipants}
@@ -681,6 +636,56 @@ export function RoomVideoView({
                   mainStageShowsScreen={mainStageShowsScreen}
                   peerLabel={peerLabel}
                   onMinimize={onMinimize}
+                  stageTrailingActions={
+                    showStageFullscreenControl || showScreenShareAudioButton ? (
+                      <>
+                        {showStageFullscreenControl ? (
+                          <button
+                            type="button"
+                            onClick={() => void stageFullscreen.toggle()}
+                            aria-label={
+                              stageFullscreen.isExpanded ? "Exit full screen" : "Full screen"
+                            }
+                            title={
+                              stageFullscreen.isExpanded ? "Exit full screen" : "Full screen"
+                            }
+                            className={ROOM_VIDEO_STAGE_CHROME_BTN_CLASS}
+                          >
+                            {stageFullscreen.isExpanded ? (
+                              <Minimize2 size={18} className="shrink-0" />
+                            ) : (
+                              <Maximize2 size={18} className="shrink-0" />
+                            )}
+                          </button>
+                        ) : null}
+                        {showScreenShareAudioButton ? (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              if (!focusedScreenShareKey) return;
+                              setScreenShareAudioMutedByKey((prev) => ({
+                                ...prev,
+                                [focusedScreenShareKey]: !(prev[focusedScreenShareKey] ?? false),
+                              }));
+                            }}
+                            aria-label={
+                              screenShareAudioMuted ? "Unmute screen audio" : "Mute screen audio"
+                            }
+                            title={
+                              screenShareAudioMuted ? "Unmute screen audio" : "Mute screen audio"
+                            }
+                            className={ROOM_VIDEO_STAGE_CHROME_BTN_CLASS}
+                          >
+                            {screenShareAudioMuted ? (
+                              <VolumeX size={18} className="shrink-0" />
+                            ) : (
+                              <Volume2 size={18} className="shrink-0" />
+                            )}
+                          </button>
+                        ) : null}
+                      </>
+                    ) : undefined
+                  }
                 />
               </div>
             </div>

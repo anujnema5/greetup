@@ -46,6 +46,7 @@ All paths below are from the **repository root** (`docs/...`).
 | [design/room-activities-and-chess.md](design/room-activities-and-chess.md) | Room activities & chess lifecycle |
 | [design/authentication.md](design/authentication.md) | Better Auth, Firebase Phone, cookies, Next ↔ Hono |
 | [design/minimized-room-dock-plan.md](design/minimized-room-dock-plan.md) | Minimized call dock: dominant vs pin vs screen share, tasks for implementation |
+| [design/minimized-room-dock-hinglish-guide.md](design/minimized-room-dock-hinglish-guide.md) | **A–Z Hinglish:** full dock feature, flows, Redux/RTC, problems + fixes (beginner-friendly) |
 
 ## Reference & exports
 

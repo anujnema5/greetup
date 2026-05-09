@@ -60,12 +60,11 @@ function displayInitials(name: string): string {
     .join("");
 }
 
-export function MinimizedRoomDock() {
+/** Heavy RTC + dock logic — only mounted when {@link MinimizedRoomDock} gate says minimized + off /circle. */
+function MinimizedRoomDockPanel() {
   const router = useRouter();
-  const pathname = usePathname();
   const dispatch = useAppDispatch();
   const isActive = useAppSelector(selectIsVideoSessionActive);
-  const isMinimized = useAppSelector(selectIsRoomMinimized);
   const activeRoomId = useAppSelector(selectActiveRoomId);
   const rtcPrimaryRemoteUserId = useAppSelector(selectRtcPrimaryRemoteUserId);
   const directCallPeerLabel = useAppSelector(selectDirectCallPeerLabel);
@@ -169,14 +168,11 @@ export function MinimizedRoomDock() {
     };
   }, [dockStage.mainParticipant, dockStage.headerLabel, micEnabled, localMediaStream]);
 
-  const isFullRoom = pathname.startsWith("/circle/");
-  const visible = isActive && isMinimized && !isFullRoom;
-
   const cardRef = useRef<HTMLDivElement>(null);
-  const elapsed = useCallElapsedSeconds(visible);
+  const elapsed = useCallElapsedSeconds(true);
   const { onDragPointerDown, onDragPointerMove, onDragPointerUp } = useMinimizedDockDrag(
     cardRef,
-    visible,
+    true,
     elapsed,
   );
 
@@ -210,8 +206,6 @@ export function MinimizedRoomDock() {
     clearDockOffset();
     roomHandleSkip();
   }, [roomHandleSkip, clearDockOffset]);
-
-  if (!visible) return null;
 
   const tileShell =
     "relative flex min-h-0 min-w-0 flex-col overflow-hidden rounded-xl bg-zinc-950/90 ring-1 ring-white/12 shadow-inner shadow-black/40";
@@ -514,4 +508,16 @@ export function MinimizedRoomDock() {
       </div>
     </div>
   );
+}
+
+/**
+ * Floating call UI when the session is minimized. Cheap gate: no dock hooks on `/circle/...` full room.
+ */
+export function MinimizedRoomDock() {
+  const pathname = usePathname();
+  const isActive = useAppSelector(selectIsVideoSessionActive);
+  const isMinimized = useAppSelector(selectIsRoomMinimized);
+  const isFullRoom = pathname.startsWith("/circle/");
+  if (!isActive || !isMinimized || isFullRoom) return null;
+  return <MinimizedRoomDockPanel />;
 }
