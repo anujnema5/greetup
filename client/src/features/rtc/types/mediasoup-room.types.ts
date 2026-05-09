@@ -91,6 +91,8 @@ export type UseMediasoupRoomReturn = {
   focusedScreenShareKey: string | null;
   setFocusedScreenShareKey: (key: string | null) => void;
   remoteTrackMediaSource: Record<string, ProducerMediaSource>;
+  /** SFU active speaker (user id); highlights that participant's tile. */
+  dominantSpeakerPeerId: string | null;
 };
 
 export type ProducerMediaSource = "camera" | "screen";

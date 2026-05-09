@@ -15,7 +15,7 @@
 11. [Architecture & Data Flow](#architecture--data-flow)
 12. [Security Model](#security-model)
 
-**Authentication (Better Auth, Firebase Phone, cookies, Next proxy):** [authentication.md](./authentication.md)
+**Authentication (Better Auth, Firebase Phone, cookies, Next proxy):** [authentication.md](../design/authentication.md)
 
 ---
 
@@ -263,7 +263,7 @@ greetup/
     src/
       rooms/, peers/, signaling/, mediasoup/, auth/
     env/
-  docs/                       # Design and developer notes
+  docs/                       # See docs/README.md (getting-started, realtime, design, …)
   docker-compose.dev.yml
 ```
 

@@ -18,13 +18,17 @@ import {
   TileMediaStatus,
   TileSpeakingRings,
 } from "@/features/room/components/room-video/room-video-primitives";
+import { DOMINANT_SPEAKER_TILE_RING } from "@/features/room/lib/dominant-speaker-tile";
 
 export function RemoteParticipantTile({
   participant,
   className,
+  isDominantSpeaker = false,
 }: {
   participant: RemoteParticipant;
   className?: string;
+  /** From rtc-service `dominantSpeaker` (mic level + silence clears). */
+  isDominantSpeaker?: boolean;
 }) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const { peer, stream } = participant;
@@ -54,6 +58,7 @@ export function RemoteParticipantTile({
     <div
       className={cn(
         "relative flex min-h-22 min-w-0 flex-col overflow-hidden rounded-xl border border-border/50 shadow-sm",
+        isDominantSpeaker && DOMINANT_SPEAKER_TILE_RING,
         className,
       )}
     >

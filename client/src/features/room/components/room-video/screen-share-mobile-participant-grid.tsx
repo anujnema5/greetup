@@ -13,6 +13,11 @@ import { cn } from "@/lib/utils";
 import type { RemoteParticipant } from "@/features/rtc";
 import { RemoteParticipantTile } from "@/features/room/components/room-video/remote-participant-tile";
 import {
+  DOMINANT_SPEAKER_TILE_RING,
+  isDominantSpeakerLocalUser,
+  isDominantSpeakerPeer,
+} from "@/features/room/lib/dominant-speaker-tile";
+import {
   CameraOffAvatar,
   TileMediaStatus,
   TileNameBadge,
@@ -34,6 +39,8 @@ export type ScreenShareMobileParticipantGridProps = {
   cameraEnabled: boolean;
   remoteParticipants: RemoteParticipant[];
   className?: string;
+  currentUserId?: string | null;
+  dominantSpeakerPeerId?: string | null;
 };
 
 type LocalPreviewProps = Omit<
@@ -50,12 +57,16 @@ function LocalCameraPreview({
   myAvatarUrl,
   micEnabled,
   cameraEnabled,
+  currentUserId = null,
+  dominantSpeakerPeerId = null,
   className,
 }: LocalPreviewProps & { className?: string }) {
+  const localDominant = isDominantSpeakerLocalUser(dominantSpeakerPeerId, currentUserId);
   return (
     <div
       className={cn(
         "relative flex min-h-0 min-w-0 overflow-hidden rounded-xl border border-border/50 shadow-sm",
+        localDominant && DOMINANT_SPEAKER_TILE_RING,
         className,
       )}
     >
@@ -92,14 +103,22 @@ function localPreviewProps(p: ScreenShareMobileParticipantGridProps): LocalPrevi
 
 /** You + exactly two remotes: [peer][peer] / [You full width]. */
 function ThreeParticipantShareGrid(props: ScreenShareMobileParticipantGridProps) {
-  const { className, remoteParticipants } = props;
+  const { className, remoteParticipants, dominantSpeakerPeerId = null } = props;
   const [leftRemote, rightRemote] = remoteParticipants;
 
   return (
     <div className={cn(SHELL_CLASS, className)}>
       <div className="grid min-h-0 min-w-0 flex-1 grid-cols-2 grid-rows-[minmax(0,1fr)_minmax(0,1.12fr)] gap-1">
-        <RemoteParticipantTile participant={leftRemote} className="min-h-0 min-w-0" />
-        <RemoteParticipantTile participant={rightRemote} className="min-h-0 min-w-0" />
+        <RemoteParticipantTile
+          participant={leftRemote}
+          className="min-h-0 min-w-0"
+          isDominantSpeaker={isDominantSpeakerPeer(dominantSpeakerPeerId, leftRemote.peer.peerId)}
+        />
+        <RemoteParticipantTile
+          participant={rightRemote}
+          className="min-h-0 min-w-0"
+          isDominantSpeaker={isDominantSpeakerPeer(dominantSpeakerPeerId, rightRemote.peer.peerId)}
+        />
         <LocalCameraPreview
           {...localPreviewProps(props)}
           className="col-span-2 min-h-0"
@@ -110,7 +129,7 @@ function ThreeParticipantShareGrid(props: ScreenShareMobileParticipantGridProps)
 }
 
 function PaginatedFourUpGrid(props: ScreenShareMobileParticipantGridProps) {
-  const { className, remoteParticipants } = props;
+  const { className, remoteParticipants, dominantSpeakerPeerId = null } = props;
   const total = remoteParticipants.length + 1;
   const totalPages = Math.ceil(total / TILES_PER_PAGE);
   const maxPage = Math.max(0, totalPages - 1);
@@ -146,6 +165,7 @@ function PaginatedFourUpGrid(props: ScreenShareMobileParticipantGridProps) {
               key={participant.peer.peerId}
               participant={participant}
               className="min-h-0 min-w-0"
+              isDominantSpeaker={isDominantSpeakerPeer(dominantSpeakerPeerId, participant.peer.peerId)}
             />
           );
         })}

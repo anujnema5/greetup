@@ -12,6 +12,11 @@ import { cn } from "@/lib/utils";
 import type { RemoteParticipant } from "@/features/rtc";
 import { RemoteParticipantTile } from "@/features/room/components/room-video/remote-participant-tile";
 import {
+  DOMINANT_SPEAKER_TILE_RING,
+  isDominantSpeakerLocalUser,
+  isDominantSpeakerPeer,
+} from "@/features/room/lib/dominant-speaker-tile";
+import {
   CameraOffAvatar,
   TileMediaStatus,
   TileNameBadge,
@@ -33,6 +38,8 @@ export function CircleGalleryGrid({
   myAvatarUrl,
   micEnabled,
   cameraEnabled,
+  currentUserId = null,
+  dominantSpeakerPeerId = null,
 }: {
   participants: RemoteParticipant[];
   localVideoRef: RefObject<HTMLVideoElement | null>;
@@ -43,7 +50,10 @@ export function CircleGalleryGrid({
   myAvatarUrl?: string | null;
   micEnabled?: boolean;
   cameraEnabled?: boolean;
+  currentUserId?: string | null;
+  dominantSpeakerPeerId?: string | null;
 }) {
+  const localDominant = isDominantSpeakerLocalUser(dominantSpeakerPeerId, currentUserId);
   // Flat tile order: index 0 = local "You", 1..n = remotes
   const total = participants.length + 1;
   const totalPages = Math.ceil(total / TILES_PER_PAGE);
@@ -92,6 +102,7 @@ export function CircleGalleryGrid({
                 key="local"
                 className={cn(
                   "relative flex min-h-0 min-w-0 flex-col overflow-hidden rounded-xl border border-border/50 shadow-sm",
+                  localDominant && DOMINANT_SPEAKER_TILE_RING,
                   spanClass,
                 )}
               >
@@ -127,6 +138,7 @@ export function CircleGalleryGrid({
               key={participant.peer.peerId}
               participant={participant}
               className={spanClass}
+              isDominantSpeaker={isDominantSpeakerPeer(dominantSpeakerPeerId, participant.peer.peerId)}
             />
           );
         })}

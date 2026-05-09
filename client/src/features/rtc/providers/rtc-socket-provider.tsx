@@ -54,6 +54,7 @@ export type RtcSocketContextValue = RoomRtcState &
     focusedScreenShareKey: string | null;
     setFocusedScreenShareKey: (key: string | null) => void;
     remoteTrackMediaSource: Record<string, ProducerMediaSource>;
+    dominantSpeakerPeerId: string | null;
   };
 
 const RtcSocketContext = createContext<RtcSocketContextValue | null>(null);
@@ -166,6 +167,7 @@ export function RtcSocketProvider({ children }: { children: React.ReactNode }) {
       focusedScreenShareKey: mediasoup.focusedScreenShareKey,
       setFocusedScreenShareKey: mediasoup.setFocusedScreenShareKey,
       remoteTrackMediaSource: mediasoup.remoteTrackMediaSource,
+      dominantSpeakerPeerId: mediasoup.dominantSpeakerPeerId,
     }),
     [
       rtc.rtcToken,
@@ -200,6 +202,7 @@ export function RtcSocketProvider({ children }: { children: React.ReactNode }) {
       mediasoup.focusedScreenShareKey,
       mediasoup.setFocusedScreenShareKey,
       mediasoup.remoteTrackMediaSource,
+      mediasoup.dominantSpeakerPeerId,
     ],
   );
 

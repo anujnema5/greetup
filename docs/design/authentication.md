@@ -86,7 +86,7 @@ Implications:
 
 ## 6. Environment variables (auth-related)
 
-**Server** (`server/env/.env.development` — see also `development-run.md`):
+**Server** (`server/env/.env.development` — see also `docs/getting-started/development-run.md`):
 
 - `BETTER_AUTH_URL`, `BETTER_AUTH_SECRET`, `SERVER_URL`, `WEB_CLIENT_HOST`
 - `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`
@@ -129,4 +129,4 @@ Implications:
 | `client/src/features/auth/types/` | Auth-related TS types (e.g. Firebase session exchange) |
 | `client/src/features/auth/schemas/auth.schemas.ts` | Zod schemas including phone OTP |
 
-For local runbooks and full env tables, see **[development-run.md](./development-run.md)**.
+For local runbooks and full env tables, see **[getting-started/development-run.md](../getting-started/development-run.md)**.

@@ -436,6 +436,7 @@ export function useMediasoupLocalMedia(
             const audioProducer = await send.produce({
               track: audioTrack,
               codecOptions: { opusStereo: true, opusDtx: true, opusFec: true },
+              appData: { mediaSource: "screen" },
             });
             screenAudioProducerRef.current = audioProducer;
             screenAudioProducerIdRef.current = audioProducer.id;

@@ -332,8 +332,8 @@ This layer **does not** call mediasoup; it **re-slices `MediaStream`s** already 
 
 ### Related docs
 
-- `docs/webrtc-direct-and-circle-call-flow.md` — UX-oriented direct vs circle.  
-- `docs/video-calling-architecture-and-debugging.md` — Redux, skip/end, broader file map.  
+- `docs/realtime/webrtc-direct-and-circle-call-flow.md` — UX-oriented direct vs circle.
+- `docs/realtime/video-calling-architecture-and-debugging.md` — Redux, skip/end, broader file map.
 - `matching-service/MATCHING_ENGINE.md` — how users get a **`roomId`**.
 
 ### File index (bookmark)

@@ -37,6 +37,12 @@ import { hasLiveEnabledVideo, hasLiveVideo } from "@/features/rtc";
 import { useAttachMediaStream } from "@/features/room/hooks/use-attach-media-stream";
 import { ScreenShareFilmstrip } from "@/features/room/components/room-video/screen-share-filmstrip";
 import { ScreenShareMobileParticipantGrid } from "@/features/room/components/room-video/screen-share-mobile-participant-grid";
+import {
+  DOMINANT_SPEAKER_TILE_RING,
+  isDirectCallRemoteSideDominant,
+  isDominantSpeakerLocalUser,
+  isDominantSpeakerPeer,
+} from "@/features/room/lib/dominant-speaker-tile";
 
 type StageRatio = "16:9" | "1:1";
 
@@ -102,6 +108,7 @@ export function RoomVideoStage({
    * show only the shared screen (not peer/local tiles beside or below it).
    */
   shareStageImmersive = false,
+  dominantSpeakerPeerId = null,
 }: {
   isGroupRoom: boolean;
   groupGalleryParticipants: RemoteParticipant[];
@@ -143,8 +150,17 @@ export function RoomVideoStage({
   remotePeerCameraStream?: MediaStream | null;
   participantVideosInSidebar?: boolean;
   shareStageImmersive?: boolean;
+  /** SFU mic-dominant user id (rtc-service `dominantSpeaker`). */
+  dominantSpeakerPeerId?: string | null;
 }) {
   const stageActivity = activeRealtimeActivity?.kind === "chess" ? "chess" : activeActivity;
+
+  const localDominant = isDominantSpeakerLocalUser(dominantSpeakerPeerId, currentUserId ?? null);
+  const directRemoteDominant = isDirectCallRemoteSideDominant(
+    isGroupRoom,
+    dominantSpeakerPeerId,
+    currentUserId ?? null,
+  );
 
   /** Direct 1:1 while a screen share exists: main tile is the share; rail shows cameras unless they moved to the sidebar. */
   const directScreenShareSidebar =
@@ -162,8 +178,16 @@ export function RoomVideoStage({
   const sidebarLocalLive = directScreenShareSidebar && hasLiveEnabledVideo(localStream);
 
   const sidebarAttachKey = `${sidebarRemoteLive}-${shareStageImmersive}`;
+  const localSidebarAttachKey = `${sidebarLocalLive}-${shareStageImmersive}`;
+  const directScreenShareFilmstripSelect = participantVideosInSidebar
+    ? undefined
+    : onSelectScreenShare;
   useAttachMediaStream(sidebarRemoteVideoRef, sidebarRemoteStream, sidebarAttachKey);
-  useAttachMediaStream(sidebarLocalVideoRef, directScreenShareSidebar ? localStream : null, `${sidebarLocalLive}-${shareStageImmersive}`);
+  useAttachMediaStream(
+    sidebarLocalVideoRef,
+    directScreenShareSidebar ? localStream : null,
+    localSidebarAttachKey,
+  );
 
   const groupTileCount = groupGalleryParticipants.length + 1;
   const featuredParticipant =
@@ -197,85 +221,63 @@ export function RoomVideoStage({
       {/* --- Circle rooms --- */}
       {isGroupRoom ? (
         screenShareMainLayout ? (
-          /* Circle + share: full-bleed stage when cameras are in the People panel/sheet. */
-          participantVideosInSidebar ? (
-            <div className="absolute inset-0 flex min-h-0 flex-col p-0 md:p-1 md:pt-1">
-              <div className="relative min-h-0 flex-1 overflow-hidden rounded-none border-0 bg-black shadow-none md:rounded-xl md:border md:border-border/50 md:shadow-sm">
-                <VideoMirror
-                  srcRef={remoteVideoRef}
-                  className={cn(
-                    "absolute inset-0 h-full w-full",
-                    remoteVideoLive
-                      ? mainStageShowsScreen
-                        ? "bg-black object-contain"
-                        : "object-cover"
-                      : "opacity-0",
-                  )}
-                />
-                {!remoteVideoLive ? (
-                  <div className="flex h-full items-center justify-center text-sm text-white/60">
-                    Waiting for screen…
-                  </div>
-                ) : null}
-              </div>
-            </div>
-          ) : (
-            /* Circle + share (narrow / on-stage): shared screen + 2×2 participant grid (+ pages if 5+). */
+          /* Circle + share: shared screen on top, 2×2 participant grid below. Grid hides on xl+ (cameras in People panel). */
+          <div
+            className={cn(
+              "absolute inset-0 flex min-h-0 flex-col gap-1.5 p-1 md:p-1.5 xl:gap-0 xl:p-0",
+              shareStageImmersive && "gap-0 p-0",
+            )}
+          >
             <div
               className={cn(
-                "absolute inset-0 flex min-h-0 flex-col gap-1.5 p-1 md:p-1.5",
-                shareStageImmersive && "gap-0 p-0",
+                "relative min-h-0 overflow-hidden rounded-xl border border-border/50 bg-black shadow-sm",
+                shareStageImmersive
+                  ? "flex-1 rounded-none border-0 shadow-none"
+                  : "flex-[1.12] xl:flex-1 xl:rounded-none xl:border-0 xl:shadow-none",
               )}
             >
-              <div
+              <VideoMirror
+                srcRef={remoteVideoRef}
                 className={cn(
-                  "relative min-h-0 overflow-hidden rounded-xl border border-border/50 bg-black shadow-sm",
-                  shareStageImmersive
-                    ? "flex-1 rounded-none border-0 shadow-none"
-                    : "flex-[1.12] md:flex-none md:basis-[40%] md:shrink-0 md:max-lg:max-h-[46%]",
+                  "absolute inset-0 h-full w-full",
+                  remoteVideoLive
+                    ? mainStageShowsScreen
+                      ? "bg-black object-contain"
+                      : "object-cover"
+                    : "opacity-0",
                 )}
-              >
-                <VideoMirror
-                  srcRef={remoteVideoRef}
-                  className={cn(
-                    "absolute inset-0 h-full w-full",
-                    remoteVideoLive
-                      ? mainStageShowsScreen
-                        ? "bg-black object-contain"
-                        : "object-cover"
-                      : "opacity-0",
-                  )}
-                />
-                {!remoteVideoLive ? (
-                  <div className="flex h-full items-center justify-center text-sm text-white/60">
-                    Waiting for screen…
-                  </div>
-                ) : null}
-                {onSelectScreenShare ? (
-                  <ScreenShareFilmstrip
-                    tiles={screenShareTiles}
-                    focusedKey={focusedScreenShareKey}
-                    onSelect={onSelectScreenShare}
-                    className="absolute bottom-2 left-2 right-2 z-10 max-h-[40%]"
-                  />
-                ) : null}
-              </div>
-              {!shareStageImmersive ? (
-                <ScreenShareMobileParticipantGrid
-                  localVideoRef={localVideoRef}
-                  localVideoLive={localVideoLive}
-                  localStream={localStream}
-                  myName={myName}
-                  myInitial={myInitial}
-                  myAvatarUrl={myAvatarUrl}
-                  micEnabled={micEnabled ?? true}
-                  cameraEnabled={cameraEnabled ?? true}
-                  remoteParticipants={sideParticipants}
-                  className="min-h-0 md:flex-1 md:min-h-0"
+              />
+              {!remoteVideoLive ? (
+                <div className="flex h-full items-center justify-center text-sm text-white/60">
+                  Waiting for screen…
+                </div>
+              ) : null}
+              {onSelectScreenShare ? (
+                <ScreenShareFilmstrip
+                  tiles={screenShareTiles}
+                  focusedKey={focusedScreenShareKey}
+                  onSelect={onSelectScreenShare}
+                  className="absolute bottom-2 left-2 right-2 z-10 max-h-[40%]"
                 />
               ) : null}
             </div>
-          )
+            {!shareStageImmersive ? (
+              <ScreenShareMobileParticipantGrid
+                localVideoRef={localVideoRef}
+                localVideoLive={localVideoLive}
+                localStream={localStream}
+                myName={myName}
+                myInitial={myInitial}
+                myAvatarUrl={myAvatarUrl}
+                micEnabled={micEnabled ?? true}
+                cameraEnabled={cameraEnabled ?? true}
+                remoteParticipants={sideParticipants}
+                className="min-h-0 md:flex-1 md:min-h-0 xl:hidden"
+                currentUserId={currentUserId ?? null}
+                dominantSpeakerPeerId={dominantSpeakerPeerId}
+              />
+            ) : null}
+          </div>
         ) : groupTileCount > 6 ? (
           /* 7+ participants: paginated gallery — no Y-scroll, left/right pages */
           <CircleGalleryGrid
@@ -288,15 +290,29 @@ export function RoomVideoStage({
             myAvatarUrl={myAvatarUrl}
             micEnabled={micEnabled}
             cameraEnabled={cameraEnabled}
+            currentUserId={currentUserId ?? null}
+            dominantSpeakerPeerId={dominantSpeakerPeerId}
           />
         ) : (
           /* 1–6 participants: adaptive single-page grid (featured layout for 3, 2×2 for 4, etc.) */
           <div className="absolute inset-0 overflow-y-auto p-1 md:p-1.5">
             <div className={cn("grid h-full min-h-0 auto-rows-fr gap-1 md:gap-1", groupGridClass)}>
               {featuredParticipant ? (
-                <RemoteParticipantTile participant={featuredParticipant} className="md:row-span-2" />
+                <RemoteParticipantTile
+                  participant={featuredParticipant}
+                  className="md:row-span-2"
+                  isDominantSpeaker={isDominantSpeakerPeer(
+                    dominantSpeakerPeerId,
+                    featuredParticipant.peer.peerId,
+                  )}
+                />
               ) : null}
-              <div className="relative flex min-h-22 min-w-0 flex-col overflow-hidden rounded-xl border border-border/50 shadow-sm">
+              <div
+                className={cn(
+                  "relative flex min-h-22 min-w-0 flex-col overflow-hidden rounded-xl border border-border/50 shadow-sm",
+                  localDominant && DOMINANT_SPEAKER_TILE_RING,
+                )}
+              >
                 <VideoMirror
                   srcRef={localVideoRef}
                   mirrored
@@ -325,6 +341,10 @@ export function RoomVideoStage({
                   key={participant.peer.peerId}
                   participant={participant}
                   className={groupTileCount === 3 && idx < 2 ? "min-h-0 md:min-h-22" : undefined}
+                  isDominantSpeaker={isDominantSpeakerPeer(
+                    dominantSpeakerPeerId,
+                    participant.peer.peerId,
+                  )}
                 />
               ))}
             </div>
@@ -348,44 +368,14 @@ export function RoomVideoStage({
             {/* Direct 1:1 primary layout (hidden while 16:9 or activity uses the scroll region below). */}
             <div
               className={cn(
-                "absolute inset-0 min-h-0 gap-2 overflow-hidden p-3",
-                /* Tablet wireframe: camera-only = two-up side-by-side from `md`; share = column (screen top, cameras below) until `lg` desktop rail. */
-                directScreenShareSidebar
-                  ? "flex flex-col lg:flex-row"
-                  : "flex max-md:flex-col md:flex-row",
+                "absolute inset-0 min-h-0 flex-col gap-2 overflow-hidden p-3",
+                directScreenShareSidebar ? "flex" : "flex max-md:flex-col md:flex-row",
                 shareStageImmersive && "max-md:p-0 max-md:gap-0",
                 stageRatio === "1:1" && !stageActivity ? "flex" : "hidden",
               )}
             >
               {directScreenShareSidebar ? (
-                participantVideosInSidebar ? (
-                  <div className="relative order-1 min-h-0 min-w-0 flex-1 overflow-hidden rounded-2xl bg-black">
-                    <VideoMirror
-                      srcRef={remoteVideoRef}
-                      mirrored={false}
-                      className={cn(
-                        "absolute inset-0 h-full w-full",
-                        remoteVideoLive
-                          ? mainStageShowsScreen
-                            ? "bg-black object-contain"
-                            : "object-cover"
-                          : "opacity-0",
-                      )}
-                    />
-                    {!remoteVideoLive && (
-                      <div className="absolute inset-0 flex items-center justify-center border border-border/60 bg-linear-to-br from-primary/15 via-muted/45 to-accent/20">
-                        <TileSpeakingRings stream={remoteMicOff ? null : remoteStream}>
-                          <CameraOffAvatar
-                            name={peerLabel}
-                            initials={peerInitials}
-                            imageUrl={peerAvatarUrl}
-                            sizeClass="h-20 w-20 md:h-24 md:w-24"
-                          />
-                        </TileSpeakingRings>
-                      </div>
-                    )}
-                  </div>
-                ) : shareStageImmersive ? (
+                shareStageImmersive ? (
                   <div className="relative order-1 min-h-0 min-w-0 flex-1 overflow-hidden rounded-2xl bg-black max-md:rounded-none">
                     <VideoMirror
                       srcRef={remoteVideoRef}
@@ -425,10 +415,10 @@ export function RoomVideoStage({
                     <div
                       className={cn(
                         "relative order-1 min-h-0 min-w-0 overflow-hidden rounded-2xl bg-black",
-                        /* Phone: share grows; tablet portrait wireframe: ~upper 40% screen, lower band for cameras. */
+                        /* Phone: share grows; tablet / iPad portrait (up to `xl`): ~upper 40% stage, cameras below full width. */
                         "flex-1 max-md:min-h-0",
-                        "md:max-lg:flex-none md:max-lg:basis-[42%] md:max-lg:shrink-0",
-                        "lg:flex-1 lg:min-h-0",
+                        "md:max-xl:flex-none md:max-xl:basis-[42%] md:max-xl:shrink-0",
+                        "xl:flex-1 xl:min-h-0 xl:rounded-none xl:border-0 xl:shadow-none",
                       )}
                     >
                       <VideoMirror
@@ -468,17 +458,19 @@ export function RoomVideoStage({
                     <div
                       className={cn(
                         "order-2 flex min-h-0 w-full gap-2 max-md:flex-col max-md:h-auto max-md:shrink-0",
-                        /* Tablet under shared screen: consume remaining stage height so camera tiles aren’t capped at 144px (`md:max-h-36`). */
-                        "md:flex-row md:items-stretch md:max-lg:flex-1 md:max-lg:min-h-0",
-                        "lg:h-auto lg:w-40 lg:shrink-0 lg:flex-col lg:gap-2 xl:w-44 lg:max-h-full",
+                        /* Under shared screen: remaining stage height; at `xl+` use docked People panel instead of this row. */
+                        "md:flex-row md:items-stretch md:max-xl:flex-1 md:max-xl:min-h-0",
+                        "xl:h-auto xl:w-40 xl:shrink-0 xl:flex-col xl:gap-2 xl:max-h-full",
+                        "xl:hidden",
                       )}
                     >
                       <div
                         className={cn(
                           "relative flex min-h-0 min-w-0 overflow-hidden rounded-2xl border border-border/60 bg-card shadow-sm",
                           "max-md:aspect-video max-md:w-full max-md:flex-none",
-                          "md:max-lg:flex-1 md:max-lg:min-h-0 md:max-lg:self-stretch",
-                          "lg:min-h-0 lg:flex-1 lg:max-h-[48%]",
+                          "md:max-xl:flex-1 md:max-xl:min-h-0 md:max-xl:self-stretch",
+                          "xl:min-h-0 xl:flex-1 xl:max-h-[48%]",
+                          directRemoteDominant && DOMINANT_SPEAKER_TILE_RING,
                         )}
                       >
                         <video
@@ -514,8 +506,9 @@ export function RoomVideoStage({
                         className={cn(
                           "relative flex min-h-0 min-w-0 overflow-hidden rounded-2xl border border-border/60 bg-card shadow-sm",
                           "max-md:aspect-video max-md:w-full max-md:flex-none",
-                          "md:max-lg:flex-1 md:max-lg:min-h-0 md:max-lg:self-stretch",
-                          "lg:min-h-0 lg:flex-1 lg:max-h-[48%]",
+                          "md:max-xl:flex-1 md:max-xl:min-h-0 md:max-xl:self-stretch",
+                          "xl:min-h-0 xl:flex-1 xl:max-h-[48%]",
+                          localDominant && DOMINANT_SPEAKER_TILE_RING,
                         )}
                       >
                         <video
@@ -549,7 +542,12 @@ export function RoomVideoStage({
                 )
               ) : (
                 <>
-                  <div className="relative min-h-0 min-w-0 flex-1 basis-0 overflow-hidden rounded-2xl bg-black">
+                  <div
+                    className={cn(
+                      "relative min-h-0 min-w-0 flex-1 basis-0 overflow-hidden rounded-2xl bg-black",
+                      directRemoteDominant && DOMINANT_SPEAKER_TILE_RING,
+                    )}
+                  >
                     <VideoMirror
                       srcRef={remoteVideoRef}
                       mirrored={false}
@@ -581,17 +579,22 @@ export function RoomVideoStage({
                       micOn={remoteMicOff ? false : undefined}
                       cameraOn={remoteCameraOff ? false : undefined}
                     />
-                    {onSelectScreenShare && !participantVideosInSidebar ? (
+                    {directScreenShareFilmstripSelect ? (
                       <ScreenShareFilmstrip
                         tiles={screenShareTiles}
                         focusedKey={focusedScreenShareKey}
-                        onSelect={onSelectScreenShare}
+                        onSelect={directScreenShareFilmstripSelect}
                         className="absolute bottom-2 left-2 right-2 z-10"
                       />
                     ) : null}
                   </div>
 
-                  <div className="relative min-h-0 min-w-0 flex-1 basis-0 overflow-hidden rounded-2xl border border-border/60 bg-card">
+                  <div
+                    className={cn(
+                      "relative min-h-0 min-w-0 flex-1 basis-0 overflow-hidden rounded-2xl border border-border/60 bg-card",
+                      localDominant && DOMINANT_SPEAKER_TILE_RING,
+                    )}
+                  >
                     <VideoMirror
                       srcRef={localVideoRef}
                       mirrored
@@ -690,11 +693,11 @@ export function RoomVideoStage({
                       micOn={remoteMicOff ? false : undefined}
                       cameraOn={remoteCameraOff ? false : undefined}
                     />
-                    {onSelectScreenShare && !participantVideosInSidebar ? (
+                    {directScreenShareFilmstripSelect ? (
                       <ScreenShareFilmstrip
                         tiles={screenShareTiles}
                         focusedKey={focusedScreenShareKey}
-                        onSelect={onSelectScreenShare}
+                        onSelect={directScreenShareFilmstripSelect}
                         className="absolute bottom-3 left-3 right-3 z-10"
                       />
                     ) : null}

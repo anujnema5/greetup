@@ -23,6 +23,11 @@ import {
 } from "@/features/room/hooks/use-attach-media-stream";
 import { SharedScreensChooser } from "@/features/room/components/room-video/screen-share-filmstrip";
 import { TileMediaStatus, TileNameBadge, TileSpeakingRings } from "@/features/room/components/room-video/room-video-primitives";
+import {
+  DOMINANT_SPEAKER_TILE_RING,
+  isDominantSpeakerLocalUser,
+  isDominantSpeakerPeer,
+} from "@/features/room/lib/dominant-speaker-tile";
 import { getProfileImageUrl } from "@/lib/ui/profile-image";
 import { cn } from "@/lib/utils";
 
@@ -66,6 +71,7 @@ function ParticipantVideoTile({
   allowPickShareFromTile = true,
   tileClassName,
   tileAspect = "video",
+  isDominantSpeaker = false,
 }: {
   label: string;
   stream: MediaStream | null;
@@ -82,6 +88,7 @@ function ParticipantVideoTile({
   tileClassName?: string;
   /** `fill` = stretch with grid `1fr` rows; `square` = 1:1; `video` = 16:9 column strip. */
   tileAspect?: "video" | "square" | "fill";
+  isDominantSpeaker?: boolean;
 }) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const muteCycle = useRerenderOnVideoTrackMuteCycle(stream);
@@ -113,6 +120,7 @@ function ParticipantVideoTile({
     tileAspect === "square" && "aspect-square",
     tileAspect === "video" && "aspect-video",
     shareIsFocused && "ring-2 ring-primary ring-offset-2 ring-offset-background",
+    isDominantSpeaker && DOMINANT_SPEAKER_TILE_RING,
     canPickShare && "cursor-pointer transition-[box-shadow,transform] hover:ring-2 hover:ring-primary/50",
     tileClassName,
   );
@@ -241,6 +249,8 @@ type CameraTilesContext = {
   screenSharing: boolean;
   /** When true (3+ roster), tiles use `fill` to grow with grid `1fr` rows; else 16:9 column strip. */
   stretchTilesInGrid: boolean;
+  currentUserId: string | null;
+  dominantSpeakerPeerId: string | null;
 };
 
 function buildCameraTiles(p: CameraTilesContext): ReactElement<ParticipantVideoTileProps>[] {
@@ -253,6 +263,8 @@ function buildCameraTiles(p: CameraTilesContext): ReactElement<ParticipantVideoT
   } as const;
 
   /** Local preview first so it never lands as the last tile in a 2×2 page. */
+  const selfDominant = isDominantSpeakerLocalUser(p.dominantSpeakerPeerId, p.currentUserId);
+
   const tiles: ReactElement<ParticipantVideoTileProps>[] = [
     <ParticipantVideoTile
       key={`self:${mediaStreamVideoAttachRevision(p.localStream)}`}
@@ -266,6 +278,7 @@ function buildCameraTiles(p: CameraTilesContext): ReactElement<ParticipantVideoT
       sharingScreen={p.screenSharing}
       shareTileKey={p.localShareKey}
       shareIsFocused={Boolean(p.localShareKey && p.focusedScreenShareKey === p.localShareKey)}
+      isDominantSpeaker={selfDominant}
       {...base}
     />,
   ];
@@ -287,6 +300,7 @@ function buildCameraTiles(p: CameraTilesContext): ReactElement<ParticipantVideoT
           sharingScreen={p.screenShareTiles.some((t) => t.peerId === id)}
           shareTileKey={shareKey}
           shareIsFocused={Boolean(shareKey && p.focusedScreenShareKey === shareKey)}
+          isDominantSpeaker={isDominantSpeakerPeer(p.dominantSpeakerPeerId, id)}
           {...base}
         />,
       );
@@ -310,6 +324,7 @@ function buildCameraTiles(p: CameraTilesContext): ReactElement<ParticipantVideoT
           sharingScreen={p.screenShareTiles.some((t) => t.peerId === id)}
           shareTileKey={shareKey}
           shareIsFocused={Boolean(shareKey && p.focusedScreenShareKey === shareKey)}
+          isDominantSpeaker={isDominantSpeakerPeer(p.dominantSpeakerPeerId, id)}
           {...base}
         />,
       );
@@ -319,6 +334,7 @@ function buildCameraTiles(p: CameraTilesContext): ReactElement<ParticipantVideoT
 
   if (p.directPeerLabel.trim()) {
     const remoteShare = p.screenShareTiles.find((t) => t.peerId !== "local");
+    const fallbackPeerId = p.remoteIds[0] ?? null;
     tiles.push(
       <ParticipantVideoTile
         key="direct-fallback"
@@ -330,6 +346,9 @@ function buildCameraTiles(p: CameraTilesContext): ReactElement<ParticipantVideoT
         sharingScreen={Boolean(remoteShare)}
         shareTileKey={remoteShare?.key ?? null}
         shareIsFocused={Boolean(remoteShare && p.focusedScreenShareKey === remoteShare.key)}
+        isDominantSpeaker={Boolean(
+          fallbackPeerId && isDominantSpeakerPeer(p.dominantSpeakerPeerId, fallbackPeerId),
+        )}
         {...base}
       />,
     );
@@ -401,6 +420,8 @@ export function RoomCallParticipantsPanel({
   remotePeerCameraStream,
   /** When true, hide camera tiles (e.g. activity layout already shows them). */
   suppressCameraTiles = false,
+  currentUserId = null,
+  dominantSpeakerPeerId = null,
 }: {
   isGroupRoom: boolean;
   myName: string;
@@ -420,6 +441,8 @@ export function RoomCallParticipantsPanel({
   localStream: MediaStream | null;
   remotePeerCameraStream: MediaStream | null;
   suppressCameraTiles?: boolean;
+  currentUserId?: string | null;
+  dominantSpeakerPeerId?: string | null;
 }) {
   const remoteIds = sortPeerIds(Object.keys(remotePeers));
   const allowPickShareFromTile = screenShareTiles.length <= 1;
@@ -466,6 +489,8 @@ export function RoomCallParticipantsPanel({
         screenShareTiles,
         screenSharing,
         stretchTilesInGrid,
+        currentUserId,
+        dominantSpeakerPeerId,
       }),
     [
       allowPickShareFromTile,
@@ -489,6 +514,8 @@ export function RoomCallParticipantsPanel({
       screenShareTiles,
       screenSharing,
       stretchTilesInGrid,
+      currentUserId,
+      dominantSpeakerPeerId,
     ],
   );
 
