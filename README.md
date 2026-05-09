@@ -207,7 +207,7 @@ greetup/
   server/               # Hono/Bun backend
   matching-service/     # Bun matchmaking microservice
   rtc-service/          # mediasoup SFU
-  docs/                 # Design + dev docs
+  docs/                 # Index: docs/README.md
   docker-compose.dev.yml
 ```
 
@@ -352,10 +352,16 @@ Create local `.env` files before starting services and fill required secrets.
 
 ---
 
+## Contributing
+
+See **[CONTRIBUTING.md](CONTRIBUTING.md)** (AI-assisted workflow, review expectations, security).
+
 ## Additional docs
 
-- `docs/DEV.md` — developer setup details
-- `docs/MATCHING_SYSTEM_DESIGN.md` — matching design notes
+Index: **`docs/README.md`**.
+
+- **`docs/getting-started/development-run.md`** — local dev (Docker, env, running services)
+- **`docs/design/matching-system-design.md`** — matching design notes
 
 ---
 

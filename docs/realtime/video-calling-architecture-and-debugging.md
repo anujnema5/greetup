@@ -11,7 +11,7 @@ It is written for manual code reading, bug-fixing, and quality review.
 
 ## 0) SFU / signaling deep dive
 
-For a **line-by-line architecture** of JWT → Socket.IO → mediasoup Router/Transport/Producer/Consumer (including `consume` ack `mediaSource` and client hooks), see **`docs/rtc-webrtc-sfu-deep-dive.md`**.
+For a **line-by-line architecture** of JWT → Socket.IO → mediasoup Router/Transport/Producer/Consumer (including `consume` ack `mediaSource` and client hooks), see **`docs/realtime/rtc-webrtc-sfu-deep-dive.md`**.
 
 ---
 

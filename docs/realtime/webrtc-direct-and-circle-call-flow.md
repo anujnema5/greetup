@@ -105,6 +105,6 @@ If direct/circle UI looks wrong:
 
 ## 7) Related docs
 
-- `docs/rtc-webrtc-sfu-deep-dive.md` — **WebRTC + mediasoup (SFU) end-to-end**, JWT → Socket.IO → join → transports → produce/consume, function-level
-- `docs/video-calling-architecture-and-debugging.md` (client architecture, Redux, debugging)
-- `docs/room-activities-and-chess.md` (activity lifecycle in room UI)
+- `docs/realtime/rtc-webrtc-sfu-deep-dive.md` — **WebRTC + mediasoup (SFU) end-to-end**, JWT → Socket.IO → join → transports → produce/consume, function-level
+- `docs/realtime/video-calling-architecture-and-debugging.md` (client architecture, Redux, debugging)
+- `docs/design/room-activities-and-chess.md` (activity lifecycle in room UI)

@@ -47,10 +47,7 @@ export class PeerSessionService {
   private readonly sessions = new Map<string, PeerSession>();
   private readonly roomMembers = new Map<string, Set<string>>();
 
-  // -------------------------------------------------------------------------
-  // Dominant speaker (AudioLevelObserver → coordinator → Socket `dominantSpeaker`)
-  // -------------------------------------------------------------------------
-
+  /** Dominant mic highlight: AudioLevelObserver → {@link DominantSpeakerCoordinator} → Socket `dominantSpeaker`. */
   private readonly dominantSpeaker = new DominantSpeakerCoordinator(
     this.emitDominantSpeakerToMediasoupRoom.bind(this),
   );
@@ -536,10 +533,6 @@ export class PeerSessionService {
     }
     return null;
   }
-
-  // -------------------------------------------------------------------------
-  // Dominant speaker — private helpers (used only by coordinator + removeSession)
-  // -------------------------------------------------------------------------
 
   /** Map loudest audio producer in the room to the peer who owns it. */
   private findPeerIdOwningProducer(roomId: string, producerId: string): string | null {

@@ -7,10 +7,6 @@ import type { LocalRoom } from "@/rooms/room-registry";
 import { logger } from "@/core/logger";
 import { mediaSourceFromProducerAppData } from "@/peers/media-source.util";
 
-// ---------------------------------------------------------------------------
-// Public contract (event name, payload, helpers for peer.service + clients)
-// ---------------------------------------------------------------------------
-
 export const DOMINANT_SPEAKER_SOCKET_EVENT = "dominantSpeaker" as const;
 
 export type DominantSpeakerSocketPayload = { peerId: string | null };
@@ -30,10 +26,6 @@ export function isMicProducerForDominantUI(producer: MediasoupTypes.Producer): b
   return mediaSourceFromProducerAppData(producer.appData) !== "screen";
 }
 
-// ---------------------------------------------------------------------------
-// Internal: AudioLevelObserver volume samples
-// ---------------------------------------------------------------------------
-
 type VolumeSample = { producer: MediasoupTypes.Producer; volume: number };
 
 function producerIdOfLoudestVolume(volumes: VolumeSample[]): string | null {
@@ -46,17 +38,7 @@ function producerIdOfLoudestVolume(volumes: VolumeSample[]): string | null {
   return top.producer.id;
 }
 
-// ---------------------------------------------------------------------------
-// Coordinator: observer wiring + de-duplicated broadcasts
-// ---------------------------------------------------------------------------
-
-/**
- * Watches mic levels and decides **who** should be highlighted.
- *
- * 1. mediasoup `AudioLevelObserver` fires (`volumes` / `silence`).
- * 2. We map loudest producer → `peerId` (mic only; screen audio excluded earlier).
- * 3. If that `peerId` changed vs last time, we call `notifyRoom` (wired to Socket.IO in peer service).
- */
+/** AudioLevelObserver → loudest mic peerId; calls `notifyRoom` only when the id changes (see peer.service Socket emit). */
 export class DominantSpeakerCoordinator {
   private readonly lastPeerIdByRoom = new Map<string, string | null>();
 
@@ -105,8 +87,6 @@ export class DominantSpeakerCoordinator {
     }
   }
 
-  // --- Coalesced Socket payload (only when peerId changes) ---
-
   broadcastIfChanged(roomId: string, peerId: string | null): void {
     const prev = this.lastPeerIdByRoom.get(roomId) ?? null;
     if (prev === peerId) return;
@@ -120,8 +100,6 @@ export class DominantSpeakerCoordinator {
       this.broadcastIfChanged(roomId, null);
     }
   }
-
-  // --- Bookkeeping ---
 
   /** Current highlight target (for mute/leave edge cases). */
   currentHighlightedPeerId(roomId: string): string | null {
