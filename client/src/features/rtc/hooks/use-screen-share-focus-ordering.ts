@@ -57,10 +57,16 @@ export function useScreenShareFocusOrdering(screenShareTiles: ScreenShareTileInf
   }, [layout.generation]);
 
   const userPinnedScreenKey = pin.generation === layout.generation ? pin.key : null;
-  const focusedScreenShareKey = useMemo(
-    () => effectiveScreenShareFocusKey(userPinnedScreenKey, layout.order),
-    [layout.order, userPinnedScreenKey],
-  );
+  /**
+   * `layout.order` is filled in an effect — first paint after tiles appear it can be `[]` while
+   * `sortedKeys` already lists shares. Without a fallback, `focusedScreenShareKey` stays null, the
+   * room hook skips `buildMainStageStreamForScreenFocus`, and the main tile can briefly (or
+   * persistently if ids drift) show the camera instead of the screen on narrow devices.
+   */
+  const focusedScreenShareKey = useMemo(() => {
+    const orderedKeys = layout.order.length > 0 ? layout.order : sortedKeys;
+    return effectiveScreenShareFocusKey(userPinnedScreenKey, orderedKeys);
+  }, [layout.order, sortedKeys, userPinnedScreenKey]);
 
   return {
     orderedScreenKeys: layout.order,

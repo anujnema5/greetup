@@ -329,7 +329,7 @@ export function RoomVideoView({
    * People panel. Below `md`, participants stay on the main stage (stacked with share for direct
    * calls; 2×2 grid under share for circles) so users are not forced into the People tab.
    */
-  const participantVideosInSidebar = Boolean(showScreenShareContext && !mdDown);
+  const participantVideosInSidebar = Boolean(showScreenShareContext && lgUp);
   const showStageFullscreenControl =
     showScreenShare && (screenSharing || mainStageShowsScreen || screenShareTiles.length > 0);
   const screenShareRemoteStreamForAudio = mainStageShowsScreen ? remoteStream : null;
@@ -411,11 +411,11 @@ export function RoomVideoView({
   }, [rightPanelTab, showActivitiesTab]);
 
   useEffect(() => {
-    if (showPeopleTab && !prevShowPeopleTabRef.current && !mdDown) {
-      setRightPanelTab("participants");
+    if (showPeopleTab && !prevShowPeopleTabRef.current && lgUp) {
+        setRightPanelTab("participants");
     }
     prevShowPeopleTabRef.current = showPeopleTab;
-  }, [showPeopleTab, mdDown]);
+  }, [showPeopleTab, lgUp]);
 
   useEffect(() => {
     return () => {

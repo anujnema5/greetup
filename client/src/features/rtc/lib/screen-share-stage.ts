@@ -2,6 +2,7 @@
  * Multi-participant screen sharing: collect tiles, stable "latest" ordering, and main-stage composition.
  */
 
+import { pickLiveLocalScreenShareVideoTrack } from "@/features/rtc/lib/direct-call-stage";
 import {
   inboundVideoTrackIsSfuScreenShare,
   pickPrimaryParticipantCameraVideoTrack,
@@ -58,9 +59,9 @@ export function collectScreenShareTiles(input: {
     peers,
   } = input;
 
-  if (screenSharing && localStream && localScreenTrackId) {
-    const t = localStream.getVideoTracks().find((x) => x.id === localScreenTrackId);
-    if (t && t.readyState === "live") {
+  if (screenSharing && localStream) {
+    const t = pickLiveLocalScreenShareVideoTrack(localStream, localScreenTrackId);
+    if (t) {
       out.push({
         key: makeLocalScreenShareKey(t.id),
         peerId: "local",
