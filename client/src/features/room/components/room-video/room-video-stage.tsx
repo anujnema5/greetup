@@ -161,8 +161,9 @@ export function RoomVideoStage({
     Boolean(sidebarRemoteStream) && hasLiveVideo(sidebarRemoteStream) && !remoteCameraOff;
   const sidebarLocalLive = directScreenShareSidebar && hasLiveEnabledVideo(localStream);
 
-  useAttachMediaStream(sidebarRemoteVideoRef, sidebarRemoteStream, sidebarRemoteLive);
-  useAttachMediaStream(sidebarLocalVideoRef, directScreenShareSidebar ? localStream : null, sidebarLocalLive);
+  const sidebarAttachKey = `${sidebarRemoteLive}-${shareStageImmersive}`;
+  useAttachMediaStream(sidebarRemoteVideoRef, sidebarRemoteStream, sidebarAttachKey);
+  useAttachMediaStream(sidebarLocalVideoRef, directScreenShareSidebar ? localStream : null, `${sidebarLocalLive}-${shareStageImmersive}`);
 
   const groupTileCount = groupGalleryParticipants.length + 1;
   const featuredParticipant =
@@ -189,8 +190,7 @@ export function RoomVideoStage({
         playsInline
         autoPlay
         muted
-        className="pointer-events-none fixed top-0 left-[-9999px] z-[-1] h-[180px] w-[320px] opacity-0"
-        style={{ transform: "scaleX(-1)" }}
+        className="pointer-events-none fixed top-0 left-[-9999px] z-[-1] h-[180px] w-[320px] opacity-0 -scale-x-100"
         aria-hidden
       />
 
@@ -230,7 +230,9 @@ export function RoomVideoStage({
               <div
                 className={cn(
                   "relative min-h-0 overflow-hidden rounded-xl border border-border/50 bg-black shadow-sm",
-                  shareStageImmersive ? "flex-1 rounded-none border-0 shadow-none" : "flex-[1.12]",
+                  shareStageImmersive
+                    ? "flex-1 rounded-none border-0 shadow-none"
+                    : "flex-[1.12] md:flex-none md:basis-[40%] md:shrink-0 md:max-lg:max-h-[46%]",
                 )}
               >
                 <VideoMirror
@@ -269,7 +271,7 @@ export function RoomVideoStage({
                   micEnabled={micEnabled ?? true}
                   cameraEnabled={cameraEnabled ?? true}
                   remoteParticipants={sideParticipants}
-                  className="min-h-0"
+                  className="min-h-0 md:flex-1 md:min-h-0"
                 />
               ) : null}
             </div>
@@ -346,10 +348,14 @@ export function RoomVideoStage({
             {/* Direct 1:1 primary layout (hidden while 16:9 or activity uses the scroll region below). */}
             <div
               className={cn(
-                "absolute inset-0 flex min-h-0 flex-col gap-2 overflow-hidden p-3 md:flex-row",
+                "absolute inset-0 min-h-0 gap-2 overflow-hidden p-3",
+                /* Tablet wireframe: camera-only = two-up side-by-side from `md`; share = column (screen top, cameras below) until `lg` desktop rail. */
+                directScreenShareSidebar
+                  ? "flex flex-col lg:flex-row"
+                  : "flex max-md:flex-col md:flex-row",
                 shareStageImmersive && "max-md:p-0 max-md:gap-0",
+                stageRatio === "1:1" && !stageActivity ? "flex" : "hidden",
               )}
-              style={{ display: stageRatio === "1:1" && !stageActivity ? "flex" : "none" }}
             >
               {directScreenShareSidebar ? (
                 participantVideosInSidebar ? (
@@ -416,7 +422,15 @@ export function RoomVideoStage({
                   </div>
                 ) : (
                   <>
-                    <div className="relative order-1 min-h-0 min-w-0 flex-1 overflow-hidden rounded-2xl bg-black">
+                    <div
+                      className={cn(
+                        "relative order-1 min-h-0 min-w-0 overflow-hidden rounded-2xl bg-black",
+                        /* Phone: share grows; tablet portrait wireframe: ~upper 40% screen, lower band for cameras. */
+                        "flex-1 max-md:min-h-0",
+                        "md:max-lg:flex-none md:max-lg:basis-[42%] md:max-lg:shrink-0",
+                        "lg:flex-1 lg:min-h-0",
+                      )}
+                    >
                       <VideoMirror
                         srcRef={remoteVideoRef}
                         mirrored={false}
@@ -453,15 +467,18 @@ export function RoomVideoStage({
 
                     <div
                       className={cn(
-                        "order-2 flex min-h-0 w-full shrink-0 gap-2 max-md:flex-col max-md:h-auto",
-                        "md:h-auto md:w-40 md:flex-col md:gap-2 lg:w-44 md:max-h-full",
+                        "order-2 flex min-h-0 w-full gap-2 max-md:flex-col max-md:h-auto max-md:shrink-0",
+                        /* Tablet under shared screen: consume remaining stage height so camera tiles aren’t capped at 144px (`md:max-h-36`). */
+                        "md:flex-row md:items-stretch md:max-lg:flex-1 md:max-lg:min-h-0",
+                        "lg:h-auto lg:w-40 lg:shrink-0 lg:flex-col lg:gap-2 xl:w-44 lg:max-h-full",
                       )}
                     >
                       <div
                         className={cn(
                           "relative flex min-h-0 min-w-0 overflow-hidden rounded-2xl border border-border/60 bg-card shadow-sm",
                           "max-md:aspect-video max-md:w-full max-md:flex-none",
-                          "md:min-h-0 md:flex-1 md:max-h-[48%]",
+                          "md:max-lg:flex-1 md:max-lg:min-h-0 md:max-lg:self-stretch",
+                          "lg:min-h-0 lg:flex-1 lg:max-h-[48%]",
                         )}
                       >
                         <video
@@ -497,7 +514,8 @@ export function RoomVideoStage({
                         className={cn(
                           "relative flex min-h-0 min-w-0 overflow-hidden rounded-2xl border border-border/60 bg-card shadow-sm",
                           "max-md:aspect-video max-md:w-full max-md:flex-none",
-                          "md:min-h-0 md:flex-1 md:max-h-[48%]",
+                          "md:max-lg:flex-1 md:max-lg:min-h-0 md:max-lg:self-stretch",
+                          "lg:min-h-0 lg:flex-1 lg:max-h-[48%]",
                         )}
                       >
                         <video
@@ -508,8 +526,8 @@ export function RoomVideoStage({
                           className={cn(
                             "absolute inset-0 h-full w-full object-cover",
                             !sidebarLocalLive && "opacity-0",
+                            "-scale-x-100",
                           )}
-                          style={{ transform: "scaleX(-1)" }}
                         />
                         {!sidebarLocalLive && (
                           <div className="absolute inset-0 flex items-center justify-center border border-border/60 bg-linear-to-br from-primary/15 via-muted/45 to-accent/20">
@@ -531,7 +549,7 @@ export function RoomVideoStage({
                 )
               ) : (
                 <>
-                  <div className="relative min-h-0 w-full flex-1 basis-0 overflow-hidden rounded-2xl bg-black">
+                  <div className="relative min-h-0 min-w-0 flex-1 basis-0 overflow-hidden rounded-2xl bg-black">
                     <VideoMirror
                       srcRef={remoteVideoRef}
                       mirrored={false}
@@ -573,7 +591,7 @@ export function RoomVideoStage({
                     ) : null}
                   </div>
 
-                  <div className="relative min-h-0 w-full flex-1 basis-0 overflow-hidden rounded-2xl border border-border/60 bg-card">
+                  <div className="relative min-h-0 min-w-0 flex-1 basis-0 overflow-hidden rounded-2xl border border-border/60 bg-card">
                     <VideoMirror
                       srcRef={localVideoRef}
                       mirrored
@@ -603,8 +621,10 @@ export function RoomVideoStage({
 
             {/* Direct 16:9, chess, and other activities: single scroll surface. */}
             <div
-              className="absolute inset-0 overflow-x-hidden overflow-y-auto overscroll-y-contain rounded-[1.2rem] md:overflow-hidden"
-              style={{ display: stageRatio === "1:1" && !stageActivity ? "none" : "block" }}
+              className={cn(
+                "absolute inset-0 overflow-x-hidden overflow-y-auto overscroll-y-contain rounded-[1.2rem] md:overflow-hidden",
+                stageRatio === "1:1" && !stageActivity && "hidden",
+              )}
             >
               {/*
                 One scroll surface: padding lives inside the scroll flow so the toolbar

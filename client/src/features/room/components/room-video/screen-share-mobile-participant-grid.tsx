@@ -152,33 +152,39 @@ function PaginatedFourUpGrid(props: ScreenShareMobileParticipantGridProps) {
       </div>
 
       {totalPages > 1 ? (
-        <div className="flex shrink-0 items-center justify-between gap-2 px-0.5">
+        <div className="flex w-full shrink-0 items-center justify-between gap-2 px-0.5 md:px-1">
           <button
             type="button"
             onClick={prev}
             disabled={viewPage === 0}
-            aria-label="Previous participants"
+            aria-label={`Previous participants, page ${viewPage + 1} of ${totalPages}`}
             className={cn(
-              "flex h-8 w-8 items-center justify-center rounded-full bg-white/10 text-white transition hover:bg-white/20",
+              "flex h-8 min-w-8 items-center justify-center rounded-md border border-white/15 bg-white/10 px-2 text-[11px] font-medium text-white transition hover:bg-white/20 md:h-9",
               viewPage === 0 && "pointer-events-none opacity-30",
             )}
           >
-            <ChevronLeft size={18} />
+            <span className="inline-flex items-center gap-0.5">
+              <ChevronLeft size={18} className="shrink-0" />
+              <span className="hidden sm:inline">Prev</span>
+            </span>
           </button>
-          <span className="text-[11px] tabular-nums text-white/70">
-            {viewPage + 1} / {totalPages}
+          <span className="sr-only">
+            Page {viewPage + 1} of {totalPages}
           </span>
           <button
             type="button"
             onClick={next}
             disabled={viewPage >= maxPage}
-            aria-label="Next participants"
+            aria-label={`Next participants, page ${viewPage + 1} of ${totalPages}`}
             className={cn(
-              "flex h-8 w-8 items-center justify-center rounded-full bg-white/10 text-white transition hover:bg-white/20",
+              "flex h-8 min-w-8 items-center justify-center rounded-md border border-white/15 bg-white/10 px-2 text-[11px] font-medium text-white transition hover:bg-white/20 md:h-9",
               viewPage >= maxPage && "pointer-events-none opacity-30",
             )}
           >
-            <ChevronRight size={18} />
+            <span className="inline-flex items-center gap-0.5">
+              <span className="hidden sm:inline">Next</span>
+              <ChevronRight size={18} className="shrink-0" />
+            </span>
           </button>
         </div>
       ) : null}

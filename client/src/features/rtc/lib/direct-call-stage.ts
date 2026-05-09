@@ -26,6 +26,20 @@ function localPreviewTrackMediaSource(
   return rtm;
 }
 
+/** Live display-capture track for the main tile / filmstrip while sharing (handles stale `localScreenTrackId`). */
+export function pickLiveLocalScreenShareVideoTrack(
+  localStream: MediaStream,
+  localScreenTrackId: string | null,
+): MediaStreamTrack | null {
+  const videos = localStream.getVideoTracks();
+  const rtm = localPreviewTrackMediaSource(videos, localScreenTrackId);
+  return (
+    videos.find((t) => t.readyState === "live" && rtm[t.id] === "screen") ??
+    videos.find((t) => t.readyState === "live" && inferScreenCaptureFromTrack(t)) ??
+    null
+  );
+}
+
 export function isDirectRoom(rtcRoomType: string | null | undefined): boolean {
   return (rtcRoomType ?? "direct") === "direct";
 }
@@ -67,9 +81,9 @@ export function buildDirectCallMainStageStream(input: {
     if (remoteScreen) return new MediaStream([remoteScreen, ...remoteAudios]);
   }
 
-  if (screenSharing && localStream && localScreenTrackId) {
-    const localScreen = localStream.getVideoTracks().find((t) => t.id === localScreenTrackId);
-    if (localScreen && localScreen.readyState === "live") {
+  if (screenSharing && localStream) {
+    const localScreen = pickLiveLocalScreenShareVideoTrack(localStream, localScreenTrackId);
+    if (localScreen) {
       return new MediaStream([localScreen, ...remoteAudios]);
     }
   }

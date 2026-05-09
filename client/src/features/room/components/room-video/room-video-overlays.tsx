@@ -3,6 +3,7 @@
 import type { RefObject } from "react";
 import { Zap } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 import { CameraOffAvatar, TileMediaStatus, TileNameBadge, TileSpeakingRings, VideoMirror } from "@/features/room/components/room-video/room-video-primitives";
 
 type StageRatio = "16:9" | "1:1";
@@ -108,14 +109,7 @@ export function RoomVideoStageOverlays({
       !participantVideosInSidebar &&
       !shareStageImmersive ? (
         <div
-          className="pointer-events-none absolute z-20 overflow-hidden rounded-2xl border border-border/70 bg-card shadow-2xl"
-          style={{
-            bottom: "5.5rem",
-            right: "0.5rem",
-            width: "15rem",
-            aspectRatio: "16/9",
-            boxShadow: "0 10px 30px rgba(10, 12, 20, 0.22)",
-          }}
+          className="pointer-events-none absolute z-20 overflow-hidden rounded-2xl border border-border/70 bg-card shadow-[0_10px_30px_rgba(10,12,20,0.22)] bottom-[5.5rem] right-2 w-60 aspect-video"
         >
           {localVideoLive ? (
             <VideoMirror
@@ -145,11 +139,12 @@ export function RoomVideoStageOverlays({
       peerCameraInsetStream &&
       !activeActivity &&
       stageRatio !== "1:1" &&
-      !participantVideosInSidebar &&
-      !shareStageImmersive ? (
+      !participantVideosInSidebar ? (
         <div
-          className="pointer-events-none absolute z-20 overflow-hidden rounded-xl border border-white/20 bg-black/80 shadow-lg"
-          style={{ bottom: "4.5rem", right: "10.5rem", width: "9rem" }}
+          className={cn(
+            "pointer-events-none absolute z-20 overflow-hidden rounded-xl border border-white/20 bg-black/80 shadow-lg bottom-[4.5rem] right-[10.5rem] w-36",
+            shareStageImmersive && "hidden",
+          )}
         >
           {peerCameraInsetLive ? (
             <video
@@ -169,8 +164,7 @@ export function RoomVideoStageOverlays({
             </div>
           )}
           <div
-            className="absolute bottom-1.5 left-1.5 rounded px-1.5 py-0.5 text-[10px] font-semibold text-white/90"
-            style={{ background: "rgba(0,0,0,0.6)", backdropFilter: "blur(4px)" }}
+            className="absolute bottom-1.5 left-1.5 rounded px-1.5 py-0.5 text-[10px] font-semibold text-white/90 bg-black/60 backdrop-blur-[4px]"
           >
             {peerLabel}
           </div>
@@ -179,15 +173,10 @@ export function RoomVideoStageOverlays({
 
       {scoreLabel != null ? (
         <div
-          className="pointer-events-none absolute bottom-16 left-4 z-10 flex items-center gap-1.5 rounded-full px-2.5 py-1"
-          style={{
-            background: "rgba(0,0,0,0.4)",
-            border: "1px solid oklch(88% 0.11 105 / 0.2)",
-            backdropFilter: "blur(8px)",
-          }}
+          className="pointer-events-none absolute bottom-16 left-4 z-10 flex items-center gap-1.5 rounded-full bg-black/40 backdrop-blur-[8px] px-2.5 py-1 border border-[oklch(88%_0.11_105_/_0.2)]"
         >
-          <Zap size={11} style={{ color: "oklch(88% 0.11 105)" }} />
-          <span className="text-[11px] font-semibold" style={{ color: "oklch(88% 0.11 105)" }}>
+          <Zap size={11} className="text-[oklch(88%_0.11_105)]" />
+          <span className="text-[11px] font-semibold text-[oklch(88%_0.11_105)]">
             {scoreLabel}
           </span>
         </div>
