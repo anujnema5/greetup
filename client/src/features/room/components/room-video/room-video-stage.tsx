@@ -162,8 +162,16 @@ export function RoomVideoStage({
   const sidebarLocalLive = directScreenShareSidebar && hasLiveEnabledVideo(localStream);
 
   const sidebarAttachKey = `${sidebarRemoteLive}-${shareStageImmersive}`;
+  const localSidebarAttachKey = `${sidebarLocalLive}-${shareStageImmersive}`;
+  const directScreenShareFilmstripSelect = participantVideosInSidebar
+    ? undefined
+    : onSelectScreenShare;
   useAttachMediaStream(sidebarRemoteVideoRef, sidebarRemoteStream, sidebarAttachKey);
-  useAttachMediaStream(sidebarLocalVideoRef, directScreenShareSidebar ? localStream : null, `${sidebarLocalLive}-${shareStageImmersive}`);
+  useAttachMediaStream(
+    sidebarLocalVideoRef,
+    directScreenShareSidebar ? localStream : null,
+    localSidebarAttachKey,
+  );
 
   const groupTileCount = groupGalleryParticipants.length + 1;
   const featuredParticipant =
@@ -528,11 +536,11 @@ export function RoomVideoStage({
                       micOn={remoteMicOff ? false : undefined}
                       cameraOn={remoteCameraOff ? false : undefined}
                     />
-                    {onSelectScreenShare && !participantVideosInSidebar ? (
+                    {directScreenShareFilmstripSelect ? (
                       <ScreenShareFilmstrip
                         tiles={screenShareTiles}
                         focusedKey={focusedScreenShareKey}
-                        onSelect={onSelectScreenShare}
+                        onSelect={directScreenShareFilmstripSelect}
                         className="absolute bottom-2 left-2 right-2 z-10"
                       />
                     ) : null}
@@ -637,11 +645,11 @@ export function RoomVideoStage({
                       micOn={remoteMicOff ? false : undefined}
                       cameraOn={remoteCameraOff ? false : undefined}
                     />
-                    {onSelectScreenShare && !participantVideosInSidebar ? (
+                    {directScreenShareFilmstripSelect ? (
                       <ScreenShareFilmstrip
                         tiles={screenShareTiles}
                         focusedKey={focusedScreenShareKey}
-                        onSelect={onSelectScreenShare}
+                        onSelect={directScreenShareFilmstripSelect}
                         className="absolute bottom-3 left-3 right-3 z-10"
                       />
                     ) : null}

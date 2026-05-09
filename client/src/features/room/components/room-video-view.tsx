@@ -69,8 +69,6 @@ function useXlBreakpoint() {
   return xlUp;
 }
 
-
-
 /** Tailwind `md` breakpoint (viewport narrower than `md`). */
 const MD_DOWN_MQ = "(max-width: 767px)";
 
@@ -223,7 +221,7 @@ export function RoomVideoView({
     onEmbeddedStageActivityChange?.(stageActivity);
   }, [stageActivity, onEmbeddedStageActivityChange]);
   /** Local or remote share present — activities must not overlap the share stage. */
-  const screenShareBlocksActivities =
+  const screenShareActiveInCall =
     screenSharing || mainStageShowsScreen || screenShareTiles.length > 0;
 
   const handleToggleScreenShare = useCallback(() => {
@@ -237,7 +235,7 @@ export function RoomVideoView({
   /** @returns whether the activity actually started (or already active); false = blocked, do not switch tabs. */
   const tryBeginEmbeddedActivity = useCallback(
     (activity: RoomActivityId): boolean => {
-      if (screenShareBlocksActivities) {
+      if (screenShareActiveInCall) {
         toast.info(
           screenSharing
             ? "Screen sharing should be off before starting this activity."
@@ -260,7 +258,7 @@ export function RoomVideoView({
       return true;
     },
     [
-      screenShareBlocksActivities,
+      screenShareActiveInCall,
       screenSharing,
       hasActivityOnStage,
       activeChess,
@@ -270,7 +268,7 @@ export function RoomVideoView({
 
   /** @returns false if invite was blocked (e.g. still screen sharing). */
   const tryRequestChessInvite = useCallback((): boolean => {
-    if (screenShareBlocksActivities) {
+    if (screenShareActiveInCall) {
       toast.info(
         screenSharing
           ? "Screen sharing should be off before starting chess."
@@ -288,7 +286,7 @@ export function RoomVideoView({
     }
     onRequestChessInvite?.();
     return true;
-  }, [screenShareBlocksActivities, screenSharing, hasActivityOnStage, activeChess, onRequestChessInvite]);
+  }, [screenShareActiveInCall, screenSharing, hasActivityOnStage, activeChess, onRequestChessInvite]);
 
   const {
     remoteVideoRef,
@@ -326,16 +324,14 @@ export function RoomVideoView({
     remoteTrackMediaSource,
   });
   /** Screen-share UI: stage may go full-bleed and the panel lists shares + cameras. */
-  const showScreenShareContext =
-    showScreenShare && (screenSharing || mainStageShowsScreen || screenShareTiles.length > 0);
+  const showScreenShareContext = showScreenShare && screenShareActiveInCall;
   /**
    * During screen share, `xl+` keeps a wide 16:9 stage and puts cameras in the People panel. Below
    * `xl`, participants stay on the main stage (stacked with share for direct
    * calls; 2×2 grid under share for circles) so users are not forced into the People tab.
    */
   const participantVideosInSidebar = false;
-  const showStageFullscreenControl =
-    showScreenShare && (screenSharing || mainStageShowsScreen || screenShareTiles.length > 0);
+  const showStageFullscreenControl = showScreenShareContext;
   const screenShareRemoteStreamForAudio = mainStageShowsScreen ? remoteStream : null;
   const remoteScreenShareHasLiveAudio = useRemoteStreamHasAudioTrack(screenShareRemoteStreamForAudio);
   /** `mainStageShowsScreen` is authoritative (SFU + layout); do not infer from track labels — those are often blank on receivers. */
@@ -552,7 +548,7 @@ export function RoomVideoView({
               className={cn(
                 "relative flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden rounded-2xl bg-black/60 shadow-xl",
                 stageFullscreen.isLayoutImmersive &&
-                  "fixed inset-0 z-[300] m-0 max-h-[100dvh] rounded-none shadow-none",
+                  "fixed inset-0 z-300 m-0 max-h-dvh rounded-none shadow-none",
               )}
             >
               <div className="relative min-h-0 min-w-0 flex-1 overflow-hidden">

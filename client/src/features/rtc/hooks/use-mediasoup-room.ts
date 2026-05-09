@@ -20,7 +20,10 @@ import {
   collectScreenShareTiles,
   mainStageIsScreenShareVideo,
 } from "@/features/rtc/lib/screen-share-stage";
-import { pickPrimaryRemoteStream, remoteParticipantsFromRecord } from "@/features/rtc/lib/remote-participant-streams";
+import {
+  pickPrimaryRemoteStream,
+  remoteParticipantsFromRecord,
+} from "@/features/rtc/lib/remote-participant-streams";
 import { MAX_CONCURRENT_SCREEN_SHARES } from "@/features/rtc/lib/screen-share-policy";
 import type { RtcRoomType } from "@/features/rtc/lib/screen-share-policy";
 import type {
@@ -49,7 +52,7 @@ export function useMediasoupRoom(options: UseMediasoupRoomArgs): UseMediasoupRoo
     localUserId,
     localDisplayName,
     localProfileImageUrl,
-    preferredRemotePeerId
+    preferredRemotePeerId,
   } = options;
 
   const [status, setStatus] = useState<MediasoupRoomStatus>("idle");
@@ -257,18 +260,20 @@ export function useMediasoupRoom(options: UseMediasoupRoomArgs): UseMediasoupRoo
     ],
   );
 
-  const { toggleMic, toggleCamera, toggleScreenShare: _toggleScreenShare, cleanupLocalScreenShare } = useMediasoupLocalMedia(
-    localMediaRefs,
-    localMediaSetters,
-  );
+  const {
+    toggleMic,
+    toggleCamera,
+    toggleScreenShare: toggleScreenShareInternal,
+    cleanupLocalScreenShare,
+  } = useMediasoupLocalMedia(localMediaRefs, localMediaSetters);
 
   const toggleScreenShare = useCallback(() => {
     if (!screenSharing && screenShareTiles.length >= MAX_CONCURRENT_SCREEN_SHARES) {
       toast.error(`Can't share ${MAX_CONCURRENT_SCREEN_SHARES} screens are already being shared.`);
       return;
     }
-    _toggleScreenShare();
-  }, [screenSharing, screenShareTiles, _toggleScreenShare]);
+    toggleScreenShareInternal();
+  }, [screenSharing, screenShareTiles, toggleScreenShareInternal]);
 
   const cleanupLocalScreenShareRef = useRef(cleanupLocalScreenShare);
   useEffect(() => {
