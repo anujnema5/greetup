@@ -62,8 +62,8 @@ export function useMediasoupRoomSession(options: MediasoupRoomSessionOptions): v
     rtcSocket,
     rtcSocketState,
     rtcRoomId,
-    localDisplayName,
-    localProfileImageUrl,
+    localDisplayNameRef,
+    localProfileImageUrlRef,
     cleanupLocalScreenShareRef,
     refs,
     set,
@@ -474,8 +474,8 @@ export function useMediasoupRoomSession(options: MediasoupRoomSessionOptions): v
     void (async () => {
       try {
         const joinRes = await emitRtcAck<JoinAck>(socket, "join", {
-          displayName: localDisplayName ?? undefined,
-          image: localProfileImageUrl ?? undefined,
+          displayName: localDisplayNameRef.current ?? undefined,
+          image: localProfileImageUrlRef.current ?? undefined,
         });
         if (cancelled) return;
 
@@ -593,17 +593,7 @@ export function useMediasoupRoomSession(options: MediasoupRoomSessionOptions): v
       zeroMediasoupRefs(refs);
       wipeMediasoupRoomUiState(set);
     };
-  }, [
-    enabled,
-    localDisplayName,
-    localProfileImageUrl,
-    rtcSocket,
-    rtcSocketState,
-    rtcRoomId,
-    cleanupLocalScreenShareRef,
-    set,
-    refs,
-  ]);
+  }, [enabled, rtcSocket, rtcSocketState, rtcRoomId, cleanupLocalScreenShareRef, set, refs]);
 }
 
 function wipeMediasoupRoomUiState(set: MediasoupRoomSessionSetters): void {

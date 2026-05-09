@@ -53,10 +53,12 @@ export type MediasoupRoomSessionOptions = {
   rtcSocket: Socket | null;
   rtcSocketState: RtcSocketState;
   rtcRoomId: string | null;
-  /** Current user's display name — sent to the rtc-service on join so peers can see it. */
-  localDisplayName?: string | null;
-  /** Current user's profile image URL — sent to rtc-service for peer fallback avatars. */
-  localProfileImageUrl?: string | null;
+  /**
+   * Latest display name for `join` — must be refs so profile/session hydration does **not**
+   * re-run this effect (full reconnect would reset mic/camera UI state).
+   */
+  localDisplayNameRef: MutableRefObject<string | null | undefined>;
+  localProfileImageUrlRef: MutableRefObject<string | null | undefined>;
   cleanupLocalScreenShareRef: MutableRefObject<() => void>;
   refs: MediasoupRoomSessionRefs;
   set: MediasoupRoomSessionSetters;

@@ -674,16 +674,14 @@ export function RoomVideoView({
                   shareStageImmersive={shareStageImmersive}
                 />
 
-                {!isGroupRoom ? (
-                  <RoomVideoHud
-                    isOneToOneStage={isOneToOneStage}
-                    activeActivityLabel={activeActivityLabel}
-                    activeActivity={Boolean(stageActivity)}
-                    mainStageShowsScreen={mainStageShowsScreen}
-                    peerLabel={peerLabel}
-                    onMinimize={onMinimize}
-                  />
-                ) : null}
+                <RoomVideoHud
+                  isOneToOneStage={isOneToOneStage}
+                  activeActivityLabel={activeActivityLabel}
+                  activeActivity={Boolean(stageActivity)}
+                  mainStageShowsScreen={mainStageShowsScreen}
+                  peerLabel={peerLabel}
+                  onMinimize={onMinimize}
+                />
               </div>
             </div>
 

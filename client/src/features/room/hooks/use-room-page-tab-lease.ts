@@ -41,8 +41,11 @@ export function useRoomPageTabLease({
   const duplicateToastSentRef = useRef(false);
   const userIdRef = useRef<string | null>(null);
   const tabIdRef = useRef<string>(getOrCreateTabInstanceId());
+  const roomIdRef = useRef(roomId);
+  const pendingLeaveCleanupRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useLayoutEffect(() => {
+    roomIdRef.current = roomId;
     userIdRef.current = currentUserId;
     if (!roomId || sessionPending || !currentUserId) return;
 
@@ -94,16 +97,44 @@ export function useRoomPageTabLease({
   }, []);
 
   useEffect(() => {
+    if (pendingLeaveCleanupRef.current != null) {
+      clearTimeout(pendingLeaveCleanupRef.current);
+      pendingLeaveCleanupRef.current = null;
+    }
+
     return () => {
       if (blockedAsDuplicateTabRef.current) return;
       if (isRoomMinimizedMarked()) return;
+
       const uid = userIdRef.current;
-      if (uid) clearRoomTabLeaseIfOwner(uid, tabIdRef.current);
-      leaveRoomKeepalive();
-      clearRoomStorage();
-      dispatch(resetRoomState());
+      const tabId = tabIdRef.current;
+
+      if (pendingLeaveCleanupRef.current != null) {
+        clearTimeout(pendingLeaveCleanupRef.current);
+      }
+
+      pendingLeaveCleanupRef.current = setTimeout(() => {
+        pendingLeaveCleanupRef.current = null;
+        if (blockedAsDuplicateTabRef.current) return;
+        if (isRoomMinimizedMarked()) return;
+
+        try {
+          const path = window.location.pathname;
+          const rid = roomIdRef.current;
+          if (path === `/circle/${rid}` || path.startsWith(`/circle/${rid}/`)) {
+            return;
+          }
+        } catch {
+          /* ignore */
+        }
+
+        if (uid) clearRoomTabLeaseIfOwner(uid, tabId);
+        leaveRoomKeepalive();
+        clearRoomStorage();
+        dispatch(resetRoomState());
+      }, 0);
     };
-  }, [dispatch]);
+  }, [dispatch, roomId]);
 
   return { duplicateTabRedirect, clearLeaseIfOwner };
 }

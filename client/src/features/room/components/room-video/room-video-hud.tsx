@@ -1,8 +1,12 @@
 "use client";
 
+import { PictureInPicture2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-/** Top overlay for direct calls only. Circle rooms use the footer “Options” control for circle settings. */
+/**
+ * Top overlay: stage title (when not 1:1 tile-only layout) + **Minimize call** (dock / keep session).
+ * Circle rooms use the footer “Options” for rename/invite; minimize is still available here.
+ */
 export function RoomVideoHud({
   isOneToOneStage,
   activeActivityLabel,
@@ -41,8 +45,19 @@ export function RoomVideoHud({
         </div>
       </div>
 
-      {/* Minimize control hidden for room UI. */}
-      {onMinimize ? null : null}
+      {onMinimize ? (
+        <div className="pointer-events-auto shrink-0">
+          <button
+            type="button"
+            onClick={onMinimize}
+            aria-label="Minimize to floating call"
+            title="Minimize to floating call"
+            className="inline-flex size-10 cursor-pointer items-center justify-center rounded-full border border-white/25 bg-black/55 text-white shadow-lg backdrop-blur-md transition-colors hover:bg-black/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40"
+          >
+            <PictureInPicture2 size={18} className="shrink-0" aria-hidden />
+          </button>
+        </div>
+      ) : null}
     </div>
   );
 }
