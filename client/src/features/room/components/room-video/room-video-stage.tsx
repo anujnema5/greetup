@@ -180,6 +180,7 @@ export function RoomVideoStage({
         ref={remoteVideoRef}
         playsInline
         autoPlay
+        muted
         className="pointer-events-none fixed top-0 left-[-9999px] z-[-1] h-[180px] w-[320px] opacity-0"
         aria-hidden
       />

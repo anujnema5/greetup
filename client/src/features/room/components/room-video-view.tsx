@@ -195,8 +195,11 @@ export function RoomVideoView({
   );
   const [isLive, setIsLive] = useState(false);
   const [circleOptionsOpen, setCircleOptionsOpen] = useState(false);
-  /** Local-only mute for inbound screen/tab audio (remote `MediaStream` audio tracks). */
-  const [screenShareAudioMuted, setScreenShareAudioMuted] = useState(false);
+  /** Per-screen-share-key local mute state for inbound audio. */
+  const [screenShareAudioMutedByKey, setScreenShareAudioMutedByKey] = useState<Record<string, boolean>>({});
+  const screenShareAudioMuted = focusedScreenShareKey
+    ? (screenShareAudioMutedByKey[focusedScreenShareKey] ?? false)
+    : false;
 
   const activeChess = activeRealtimeActivity?.kind === "chess";
   const stageActivity = activeChess ? "chess" : activeActivity;
@@ -375,11 +378,11 @@ export function RoomVideoView({
   }, [isGroupRoom, lgUp, showScreenShareContext, stageRatio]);
 
   useEffect(() => {
-    if (!mainStageShowsScreen) setScreenShareAudioMuted(false);
+    if (!mainStageShowsScreen) setScreenShareAudioMutedByKey({});
   }, [mainStageShowsScreen]);
 
   useEffect(() => {
-    if (!showScreenShareAudioButton) setScreenShareAudioMuted(false);
+    if (!showScreenShareAudioButton) setScreenShareAudioMutedByKey({});
   }, [showScreenShareAudioButton]);
 
   useEffect(() => {
@@ -572,7 +575,13 @@ export function RoomVideoView({
                       {showScreenShareAudioButton ? (
                         <button
                           type="button"
-                          onClick={() => setScreenShareAudioMuted((m) => !m)}
+                          onClick={() => {
+                            if (!focusedScreenShareKey) return;
+                            setScreenShareAudioMutedByKey((prev) => ({
+                              ...prev,
+                              [focusedScreenShareKey]: !(prev[focusedScreenShareKey] ?? false),
+                            }));
+                          }}
                           aria-label={
                             screenShareAudioMuted ? "Unmute screen audio" : "Mute screen audio"
                           }
