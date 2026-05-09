@@ -91,6 +91,7 @@ export function RoomVideoLayer({
     focusedScreenShareKey,
     setFocusedScreenShareKey,
     remoteTrackMediaSource,
+    dominantSpeakerPeerId,
   } = useRtcSocketContext();
 
   /** DB-backed tiles + policy map; invite gating uses `embeddedStageActivityId` (can run ahead of Redux). */
@@ -240,6 +241,7 @@ export function RoomVideoLayer({
         onEmbeddedStageActivityChange={setEmbeddedStageActivityId}
         directRoomActivities={directRoomActivities}
         embeddedCallPolicyLookup={embeddedCallPolicyLookup}
+        dominantSpeakerPeerId={dominantSpeakerPeerId}
       />
     </div>
   );

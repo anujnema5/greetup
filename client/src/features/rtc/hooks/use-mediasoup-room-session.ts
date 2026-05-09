@@ -96,6 +96,7 @@ export function useMediasoupRoomSession(options: MediasoupRoomSessionOptions): v
     set.setScreenSharing(false);
     set.setLocalScreenTrackId(null);
     set.setRemoteTrackMediaSource({});
+    set.setDominantSpeakerPeerId(null);
     refs.micEnabledRef.current = false;
     refs.cameraEnabledRef.current = false;
     set.setLocalStream(null);
@@ -166,9 +167,16 @@ export function useMediasoupRoomSession(options: MediasoupRoomSessionOptions): v
       });
     };
 
+    const onDominantSpeaker = (data: { peerId?: string | null }) => {
+      if (cancelled) return;
+      const pid = data?.peerId;
+      set.setDominantSpeakerPeerId(typeof pid === "string" && pid.length > 0 ? pid : null);
+    };
+
     const onPeerLeft = (data: { peerId?: string }) => {
       if (cancelled || !data?.peerId) return;
       const pid = data.peerId;
+      set.setDominantSpeakerPeerId((prev) => (prev === pid ? null : prev));
       set.setPeers((prev) => {
         if (!(pid in prev)) return prev;
         const next = { ...prev };
@@ -193,6 +201,7 @@ export function useMediasoupRoomSession(options: MediasoupRoomSessionOptions): v
       socket.off("producerResumed", onProducerResumed);
       socket.off("peerJoined", onPeerJoined);
       socket.off("peerLeft", onPeerLeft);
+      socket.off("dominantSpeaker", onDominantSpeaker);
       for (const c of consumers.values()) {
         try {
           c.close();
@@ -455,6 +464,7 @@ export function useMediasoupRoomSession(options: MediasoupRoomSessionOptions): v
 
     socket.on("peerJoined", onPeerJoined);
     socket.on("peerLeft", onPeerLeft);
+    socket.on("dominantSpeaker", onDominantSpeaker);
     socket.on("producerPaused", onProducerPaused);
     socket.on("producerResumed", onProducerResumed);
 
@@ -608,6 +618,7 @@ function wipeMediasoupRoomUiState(set: MediasoupRoomSessionSetters): void {
   set.setLocalScreenTrackId(null);
   set.setRemoteTrackMediaSource({});
   set.setLocalMediaDeviceError(null);
+  set.setDominantSpeakerPeerId(null);
 }
 
 function zeroMediasoupRefs(refs: MediasoupRoomSessionRefs): void {

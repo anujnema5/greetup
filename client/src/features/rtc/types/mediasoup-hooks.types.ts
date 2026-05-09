@@ -45,6 +45,7 @@ export type MediasoupRoomSessionSetters = {
   setLocalScreenTrackId: (id: string | null) => void;
   setRemoteTrackMediaSource: (u: SetStateAction<Record<string, ProducerMediaSource>>) => void;
   setLocalMediaDeviceError: (msg: string | null) => void;
+  setDominantSpeakerPeerId: (u: SetStateAction<string | null>) => void;
 };
 
 export type MediasoupRoomSessionOptions = {

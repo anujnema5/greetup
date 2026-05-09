@@ -8,8 +8,6 @@ import { connectRedis, disconnectRedis } from "@/redis/client";
 import { initializeMediasoup } from "@/mediasoup/mediasoup.service";
 import { registerRtcSocketAuth } from "@/auth/socket-jwt.middleware";
 import { registerSignalingHandlers } from "@/signaling/signaling.handler";
-import { registerChessHandlers } from "@/games/chess/chess.handler";
-import { registerLudoHandlers } from "@/games/ludo/ludo.handler";
 import { healthHandler } from "@/controllers/health.controller";
 import { handleRoomRoomType } from "@/controllers/internal.controller";
 import { registerInternalPeers } from "@/internal/internal-peers.registry";
@@ -49,8 +47,6 @@ const bootstrap = async (): Promise<void> => {
   registerRtcSocketAuth(io);
   const peers = registerSignalingHandlers(io);
   registerInternalPeers(peers);
-  registerChessHandlers(io);
-  registerLudoHandlers(io);
 
   setupShutdownHooks(io);
 

@@ -179,6 +179,7 @@ export function RoomVideoView({
   onEmbeddedStageActivityChange,
   directRoomActivities: directRoomActivitiesProp,
   embeddedCallPolicyLookup = null,
+  dominantSpeakerPeerId = null,
 }: RoomVideoViewProps) {
   /** `is_active` catalog tiles from `RoomVideoLayer` (empty until loaded or when none enabled). */
   const activeDirectRoomActivities = directRoomActivitiesProp ?? [];
@@ -476,6 +477,8 @@ export function RoomVideoView({
       localStream={localStreamPeopleTabSelf}
       remotePeerCameraStream={remotePeerCameraStream}
       suppressCameraTiles={suppressPeoplePanelCameras}
+      currentUserId={currentUserId ?? null}
+      dominantSpeakerPeerId={dominantSpeakerPeerId}
     />
   ) : null;
 
@@ -639,6 +642,7 @@ export function RoomVideoView({
                   remotePeerCameraStream={remotePeerCameraStream}
                   participantVideosInSidebar={participantVideosInSidebar}
                   shareStageImmersive={shareStageImmersive}
+                  dominantSpeakerPeerId={dominantSpeakerPeerId}
                 />
 
                 <RoomVideoStageOverlays

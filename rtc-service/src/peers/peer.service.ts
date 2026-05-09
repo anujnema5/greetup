@@ -7,6 +7,12 @@ import type { Socket } from "socket.io";
 import { RTC_CONFIG } from "@/config/constants";
 import { env } from "@/config/env";
 import { logger } from "@/core/logger";
+import {
+  DominantSpeakerCoordinator,
+  DOMINANT_SPEAKER_SOCKET_EVENT,
+  type DominantSpeakerSocketPayload,
+  isMicProducerForDominantUI,
+} from "@/peers/dominant-speaker-broadcast";
 import * as peerRepository from "@/peers/peer.repository";
 import type { PeerRecord } from "@/peers/peer.types";
 import { mediaSourceFromProducerAppData, type ProducerMediaSource } from "@/peers/media-source.util";
@@ -40,6 +46,15 @@ type RemoveSessionOptions = {
 export class PeerSessionService {
   private readonly sessions = new Map<string, PeerSession>();
   private readonly roomMembers = new Map<string, Set<string>>();
+
+  // -------------------------------------------------------------------------
+  // Dominant speaker (AudioLevelObserver → coordinator → Socket `dominantSpeaker`)
+  // -------------------------------------------------------------------------
+
+  private readonly dominantSpeaker = new DominantSpeakerCoordinator(
+    this.emitDominantSpeakerToMediasoupRoom.bind(this),
+  );
+
   /** userId → display name, set on join, cleared on leave. */
   private readonly displayNames = new Map<string, string>();
   /** userId → profile image URL, set on join, cleared on leave. */
@@ -120,6 +135,8 @@ export class PeerSessionService {
       if (image) peerImages[pid] = image;
     }
     const existingProducers = this.collectProducersInRoom(roomId, userId);
+
+    this.ensureDominantSpeakerListener(roomId);
 
     logger.info("Peer joined mediasoup room", { userId, roomId, peerCount: peerIds.length });
 
@@ -234,6 +251,10 @@ export class PeerSessionService {
 
     session.producers.set(producer.id, producer);
 
+    if (producer.kind === "audio" && !producer.paused && isMicProducerForDominantUI(producer)) {
+      void this.registerMicProducerForDominant(session.roomId, producer.id);
+    }
+
     await peerRepository.publishRoomMediaEvent(session.roomId, {
       type: "producer_added",
       roomId: session.roomId,
@@ -282,6 +303,11 @@ export class PeerSessionService {
       /* ignore */
     }
 
+    if (producer.kind === "audio" && isMicProducerForDominantUI(producer)) {
+      void this.unregisterMicProducerForDominant(session.roomId, producerId);
+      this.dominantSpeaker.clearHighlightIfUser(session.roomId, userId);
+    }
+
     const mediaSource = mediaSourceFromProducerAppData(producer.appData);
     session.socket.to(session.roomId).emit("producerPaused", {
       peerId: userId,
@@ -310,6 +336,10 @@ export class PeerSessionService {
       /* ignore */
     }
 
+    if (producer.kind === "audio" && isMicProducerForDominantUI(producer)) {
+      void this.registerMicProducerForDominant(session.roomId, producerId);
+    }
+
     const mediaSource = mediaSourceFromProducerAppData(producer.appData);
     session.socket.to(session.roomId).emit("producerResumed", {
       peerId: userId,
@@ -336,6 +366,10 @@ export class PeerSessionService {
 
     const { roomId, socket } = session;
     socket.to(roomId).emit("producerClosed", { peerId: userId, producerId });
+    if (producer.kind === "audio" && isMicProducerForDominantUI(producer)) {
+      void this.unregisterMicProducerForDominant(roomId, producerId);
+      this.dominantSpeaker.clearHighlightIfUser(roomId, userId);
+    }
     try {
       producer.close();
     } catch {
@@ -503,6 +537,53 @@ export class PeerSessionService {
     return null;
   }
 
+  // -------------------------------------------------------------------------
+  // Dominant speaker — private helpers (used only by coordinator + removeSession)
+  // -------------------------------------------------------------------------
+
+  /** Map loudest audio producer in the room to the peer who owns it. */
+  private findPeerIdOwningProducer(roomId: string, producerId: string): string | null {
+    const members = this.roomMembers.get(roomId);
+    if (!members) return null;
+    for (const uid of members) {
+      const s = this.sessions.get(uid);
+      if (s?.producers.has(producerId)) return uid;
+    }
+    return null;
+  }
+
+  /**
+   * Emit to every socket in the mediasoup room (including the “sender”).
+   * Used for `dominantSpeaker` so all clients update the highlight together.
+   */
+  private emitDominantSpeakerToMediasoupRoom(roomId: string, payload: DominantSpeakerSocketPayload): void {
+    const members = this.roomMembers.get(roomId);
+    if (!members || members.size === 0) return;
+    const firstId = members.values().next().value as string | undefined;
+    const session = firstId ? this.sessions.get(firstId) : undefined;
+    session?.socket.nsp.to(roomId).emit(DOMINANT_SPEAKER_SOCKET_EVENT, payload);
+  }
+
+  private ensureDominantSpeakerListener(roomId: string): void {
+    const room = roomService.getLocalRoom(roomId);
+    if (!room) return;
+    this.dominantSpeaker.attachLevelObserver(room, roomId, (producerId) =>
+      this.findPeerIdOwningProducer(roomId, producerId),
+    );
+  }
+
+  private registerMicProducerForDominant(roomId: string, producerId: string): void {
+    const room = roomService.getLocalRoom(roomId);
+    if (!room) return;
+    void this.dominantSpeaker.addMicProducer(room, producerId);
+  }
+
+  private unregisterMicProducerForDominant(roomId: string, producerId: string): void {
+    const room = roomService.getLocalRoom(roomId);
+    if (!room) return;
+    void this.dominantSpeaker.removeMicProducer(room, producerId);
+  }
+
   private async removeSession(userId: string, opts: RemoveSessionOptions = {}): Promise<void> {
     const session = this.sessions.get(userId);
     if (!session) return;
@@ -511,8 +592,14 @@ export class PeerSessionService {
 
     socket.to(roomId).emit("peerLeft", { peerId: userId });
 
+    const wasDominant = this.dominantSpeaker.currentHighlightedPeerId(roomId) === userId;
+
     const producerIds = Array.from(session.producers.keys());
     for (const producerId of producerIds) {
+      const p = session.producers.get(producerId);
+      if (p?.kind === "audio" && isMicProducerForDominantUI(p)) {
+        void this.unregisterMicProducerForDominant(roomId, producerId);
+      }
       socket.to(roomId).emit("producerClosed", { peerId: userId, producerId });
       await peerRepository.publishRoomMediaEvent(roomId, {
         type: "producer_removed",
@@ -538,10 +625,15 @@ export class PeerSessionService {
       members.delete(userId);
       if (members.size === 0) {
         this.roomMembers.delete(roomId);
+        this.dominantSpeaker.forgetRoom(roomId);
         if (opts.releaseRoomIfEmpty !== false) {
           await roomService.releaseRoom(roomId);
         }
       }
+    }
+
+    if (wasDominant) {
+      this.dominantSpeaker.broadcastIfChanged(roomId, null);
     }
 
     if (!opts.skipRedis) {

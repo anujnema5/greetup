@@ -1,5 +1,6 @@
 import type { types as MediasoupTypes } from "mediasoup";
 import { env } from "@/config/env";
+import { RTC_CONFIG } from "@/config/constants";
 import { createRouter } from "@/mediasoup/mediasoup.service";
 import { getRedis } from "@/redis/client";
 import { RTC_ROOM_METADATA_TTL_SECONDS } from "@/redis/constants";
@@ -9,6 +10,10 @@ import { Keys } from "@/redis/keys";
 export type LocalRoom = {
   roomId: string;
   router: MediasoupTypes.Router;
+  /** Mic-level + silence for natural `dominantSpeaker` clears (not ActiveSpeakerObserver). */
+  audioLevelObserver: MediasoupTypes.AudioLevelObserver;
+  /** Peer session service sets this when wiring volume/silence → Socket.IO (once per router). */
+  dominantSpeakerListenerAttached: boolean;
 };
 
 const localRooms = new Map<string, LocalRoom>();
@@ -54,7 +59,18 @@ export async function getOrCreateLocalRoom(roomId: string): Promise<LocalRoomRes
   }
 
   const router = await createRouter();
-  const room: LocalRoom = { roomId, router };
+  const al = RTC_CONFIG.audioLevelDominantSpeaker;
+  const audioLevelObserver = await router.createAudioLevelObserver({
+    maxEntries: al.maxEntries,
+    threshold: al.threshold,
+    interval: al.interval,
+  });
+  const room: LocalRoom = {
+    roomId,
+    router,
+    audioLevelObserver,
+    dominantSpeakerListenerAttached: false,
+  };
   localRooms.set(roomId, room);
 
   const now = Date.now();

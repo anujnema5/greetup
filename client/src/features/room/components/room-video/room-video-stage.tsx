@@ -37,6 +37,12 @@ import { hasLiveEnabledVideo, hasLiveVideo } from "@/features/rtc";
 import { useAttachMediaStream } from "@/features/room/hooks/use-attach-media-stream";
 import { ScreenShareFilmstrip } from "@/features/room/components/room-video/screen-share-filmstrip";
 import { ScreenShareMobileParticipantGrid } from "@/features/room/components/room-video/screen-share-mobile-participant-grid";
+import {
+  DOMINANT_SPEAKER_TILE_RING,
+  isDirectCallRemoteSideDominant,
+  isDominantSpeakerLocalUser,
+  isDominantSpeakerPeer,
+} from "@/features/room/lib/dominant-speaker-tile";
 
 type StageRatio = "16:9" | "1:1";
 
@@ -102,6 +108,7 @@ export function RoomVideoStage({
    * show only the shared screen (not peer/local tiles beside or below it).
    */
   shareStageImmersive = false,
+  dominantSpeakerPeerId = null,
 }: {
   isGroupRoom: boolean;
   groupGalleryParticipants: RemoteParticipant[];
@@ -143,8 +150,17 @@ export function RoomVideoStage({
   remotePeerCameraStream?: MediaStream | null;
   participantVideosInSidebar?: boolean;
   shareStageImmersive?: boolean;
+  /** SFU mic-dominant user id (rtc-service `dominantSpeaker`). */
+  dominantSpeakerPeerId?: string | null;
 }) {
   const stageActivity = activeRealtimeActivity?.kind === "chess" ? "chess" : activeActivity;
+
+  const localDominant = isDominantSpeakerLocalUser(dominantSpeakerPeerId, currentUserId ?? null);
+  const directRemoteDominant = isDirectCallRemoteSideDominant(
+    isGroupRoom,
+    dominantSpeakerPeerId,
+    currentUserId ?? null,
+  );
 
   /** Direct 1:1 while a screen share exists: main tile is the share; rail shows cameras unless they moved to the sidebar. */
   const directScreenShareSidebar =
@@ -257,6 +273,8 @@ export function RoomVideoStage({
                 cameraEnabled={cameraEnabled ?? true}
                 remoteParticipants={sideParticipants}
                 className="min-h-0 md:flex-1 md:min-h-0 xl:hidden"
+                currentUserId={currentUserId ?? null}
+                dominantSpeakerPeerId={dominantSpeakerPeerId}
               />
             ) : null}
           </div>
@@ -272,15 +290,29 @@ export function RoomVideoStage({
             myAvatarUrl={myAvatarUrl}
             micEnabled={micEnabled}
             cameraEnabled={cameraEnabled}
+            currentUserId={currentUserId ?? null}
+            dominantSpeakerPeerId={dominantSpeakerPeerId}
           />
         ) : (
           /* 1–6 participants: adaptive single-page grid (featured layout for 3, 2×2 for 4, etc.) */
           <div className="absolute inset-0 overflow-y-auto p-1 md:p-1.5">
             <div className={cn("grid h-full min-h-0 auto-rows-fr gap-1 md:gap-1", groupGridClass)}>
               {featuredParticipant ? (
-                <RemoteParticipantTile participant={featuredParticipant} className="md:row-span-2" />
+                <RemoteParticipantTile
+                  participant={featuredParticipant}
+                  className="md:row-span-2"
+                  isDominantSpeaker={isDominantSpeakerPeer(
+                    dominantSpeakerPeerId,
+                    featuredParticipant.peer.peerId,
+                  )}
+                />
               ) : null}
-              <div className="relative flex min-h-22 min-w-0 flex-col overflow-hidden rounded-xl border border-border/50 shadow-sm">
+              <div
+                className={cn(
+                  "relative flex min-h-22 min-w-0 flex-col overflow-hidden rounded-xl border border-border/50 shadow-sm",
+                  localDominant && DOMINANT_SPEAKER_TILE_RING,
+                )}
+              >
                 <VideoMirror
                   srcRef={localVideoRef}
                   mirrored
@@ -309,6 +341,10 @@ export function RoomVideoStage({
                   key={participant.peer.peerId}
                   participant={participant}
                   className={groupTileCount === 3 && idx < 2 ? "min-h-0 md:min-h-22" : undefined}
+                  isDominantSpeaker={isDominantSpeakerPeer(
+                    dominantSpeakerPeerId,
+                    participant.peer.peerId,
+                  )}
                 />
               ))}
             </div>
@@ -434,6 +470,7 @@ export function RoomVideoStage({
                           "max-md:aspect-video max-md:w-full max-md:flex-none",
                           "md:max-xl:flex-1 md:max-xl:min-h-0 md:max-xl:self-stretch",
                           "xl:min-h-0 xl:flex-1 xl:max-h-[48%]",
+                          directRemoteDominant && DOMINANT_SPEAKER_TILE_RING,
                         )}
                       >
                         <video
@@ -471,6 +508,7 @@ export function RoomVideoStage({
                           "max-md:aspect-video max-md:w-full max-md:flex-none",
                           "md:max-xl:flex-1 md:max-xl:min-h-0 md:max-xl:self-stretch",
                           "xl:min-h-0 xl:flex-1 xl:max-h-[48%]",
+                          localDominant && DOMINANT_SPEAKER_TILE_RING,
                         )}
                       >
                         <video
@@ -504,7 +542,12 @@ export function RoomVideoStage({
                 )
               ) : (
                 <>
-                  <div className="relative min-h-0 min-w-0 flex-1 basis-0 overflow-hidden rounded-2xl bg-black">
+                  <div
+                    className={cn(
+                      "relative min-h-0 min-w-0 flex-1 basis-0 overflow-hidden rounded-2xl bg-black",
+                      directRemoteDominant && DOMINANT_SPEAKER_TILE_RING,
+                    )}
+                  >
                     <VideoMirror
                       srcRef={remoteVideoRef}
                       mirrored={false}
@@ -546,7 +589,12 @@ export function RoomVideoStage({
                     ) : null}
                   </div>
 
-                  <div className="relative min-h-0 min-w-0 flex-1 basis-0 overflow-hidden rounded-2xl border border-border/60 bg-card">
+                  <div
+                    className={cn(
+                      "relative min-h-0 min-w-0 flex-1 basis-0 overflow-hidden rounded-2xl border border-border/60 bg-card",
+                      localDominant && DOMINANT_SPEAKER_TILE_RING,
+                    )}
+                  >
                     <VideoMirror
                       srcRef={localVideoRef}
                       mirrored

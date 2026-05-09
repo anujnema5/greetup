@@ -59,4 +59,14 @@ export const RTC_CONFIG = {
     maxIncomingBitrate: 3_000_000,
     initialAvailableOutgoingBitrate: 2_500_000,
   },
+  /**
+   * Mic-only dominant speaker UI (`peers/dominant-speaker-broadcast.ts`): emit while level is above
+   * threshold, clear on `silence` (screen-share tab audio is excluded via producer `appData`).
+   */
+  audioLevelDominantSpeaker: {
+    maxEntries: 1,
+    /** dBvo (-127…0); louder = closer to 0. */
+    threshold: -72,
+    interval: 100,
+  },
 } as const;
