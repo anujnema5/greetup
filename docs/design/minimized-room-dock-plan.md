@@ -13,7 +13,7 @@ This document captures the **product rules**, **technical context**, and **check
 
 **Related code (server)**
 
-- `rtc-service/src/peers/dominant-speaker-broadcast.ts` — mic-only dominant speaker, Socket.IO `dominantSpeaker`
+- `rtc-service/src/modules/peers/dominant-speaker-broadcast.ts` — mic-only dominant speaker, Socket.IO `dominantSpeaker`
 
 ---
 

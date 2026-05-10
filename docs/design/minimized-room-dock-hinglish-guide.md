@@ -420,7 +420,7 @@ useLayoutEffect(() => {
 | Room page gates | `features/room/pages/room-page.tsx` |
 | Global RTC | `features/rtc/providers/rtc-socket-provider.tsx` |
 | Mediasoup session | `features/rtc/hooks/use-mediasoup-room-session.ts` |
-| Dominant (server) | `rtc-service/src/peers/dominant-speaker-broadcast.ts` |
+| Dominant (server) | `rtc-service/src/modules/peers/dominant-speaker-broadcast.ts` |
 
 ---
 

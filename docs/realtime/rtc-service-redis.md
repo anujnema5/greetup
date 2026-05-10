@@ -1,5 +1,7 @@
 # How `rtc-service` uses Redis (beginner-friendly)
 
+**Path style:** `rtc-service` references below use **kebab-case file names with extension** (for example `create-app.ts`, `room-registry.ts`).
+
 This doc explains **what Redis is doing for the real-time (WebRTC / mediasoup) service**, in plain language. You do **not** need to be a Redis expert to follow it.
 
 ---
@@ -36,8 +38,8 @@ Without Redis (or something like it), instances would not agree on ownership or 
 ## 3. How we connect (code)
 
 - Library: **`ioredis`** (Node Redis client).
-- URL: **`REDIS_URL`** (default `redis://127.0.0.1:6379`) — see `rtc-service/src/config/env.ts`.
-- On startup, `app.ts` calls **`connectRedis()`**, which connects and runs **`PING`** to verify Redis is alive (with a timeout). See `rtc-service/src/redis/client.ts`.
+- URL: **`REDIS_URL`** (default `redis://127.0.0.1:6379`) — see `rtc-service/src/shared/config/env.ts`.
+- On startup, **`index.ts`** calls **`connectRedis()`**, which connects and runs **`PING`** to verify Redis is alive (with a timeout). See `rtc-service/src/core/redis/client.ts`.
 
 If Redis is down at startup, the service does not treat the connection as healthy until `PING` returns `PONG`.
 
@@ -58,7 +60,7 @@ If you are new to Redis, these are the only shapes that matter in this service:
 
 ## 5. All keys (naming cheat sheet)
 
-Defined in `rtc-service/src/redis/keys.ts`:
+Defined in `rtc-service/src/core/redis/keys.ts`:
 
 | Key pattern | Redis type | Purpose |
 |-------------|------------|---------|
@@ -75,7 +77,7 @@ Defined in `rtc-service/src/redis/keys.ts`:
 
 Room-related keys use a shared TTL constant:
 
-- **`RTC_ROOM_METADATA_TTL_SECONDS`** = **24 hours** (`rtc-service/src/redis/constants.ts`).
+- **`RTC_ROOM_METADATA_TTL_SECONDS`** = **24 hours** (`rtc-service/src/core/redis/constants.ts`).
 
 So: owner key, room hash, peer hash, and room peer set get **`EXPIRE`** refreshed/updated so they **auto-delete** after roughly a day if not touched. That avoids infinite growth if something crashes without cleanup.
 
@@ -89,7 +91,7 @@ So: owner key, room hash, peer hash, and room peer set get **`EXPIRE`** refreshe
 
 **Solution:** One Redis string key per room. Value = winning instance’s **`rtcInstanceId`**.
 
-Flow (`room-registry.ts` → `getOrCreateLocalRoom`):
+Flow (`modules/rooms/room-registry.ts` → `getOrCreateLocalRoom`):
 
 1. Read `GET rtc:room:{roomId}:owner`.
 2. If it exists and is **another** instance → return **`WRONG_INSTANCE`** + that owner id so the **client** can reconnect to the right place.
@@ -111,7 +113,7 @@ When a local router is created, we **`HSET`** fields such as:
 
 Then **`EXPIRE`** on the hash key for the 24h TTL.
 
-**Reading** this hash is in `room.repository.ts` (`getRoomRecord`) — useful for admin/debug tooling, not required for every WebRTC packet.
+**Reading** this hash is in `modules/rooms/room.repository.ts` (`getRoomRecord`) — useful for admin/debug tooling, not required for every WebRTC packet.
 
 ---
 
@@ -119,7 +121,7 @@ Then **`EXPIRE`** on the hash key for the 24h TTL.
 
 This is a Redis **SET** of **user ids** (peers).
 
-- **`SADD`** when a peer is saved (`peer.repository.ts` → `savePeer`).
+- **`SADD`** when a peer is saved (`modules/peers/peer.repository.ts` → `savePeer`).
 - **`SREM`** when a peer is removed (`deletePeer`).
 - **`SMEMBERS`** to list everyone in the room (`listPeerIdsInRoom`).
 
@@ -139,12 +141,12 @@ Written in **`savePeer`**, deleted in **`deletePeer`**, read in **`getPeer`**. A
 
 ## 11. Pub/Sub: `rtc:room:{roomId}:events`
 
-When producers are added or removed, rtc-service can **`PUBLISH`** a JSON message on this channel (`publishRoomMediaEvent` in `peer.repository.ts`).
+When producers are added or removed, rtc-service can **`PUBLISH`** a JSON message on this channel (`publishRoomMediaEvent` in `modules/peers/peer.repository.ts`).
 
 - **Publish** = fire-and-forget; if nobody is subscribed, messages are dropped (that is normal for Pub/Sub).
 - This is described in code as **optional cross-service fan-out** — another service could **`SUBSCRIBE`** to react (e.g. analytics, recording coordinator). The core call does not require a subscriber for media to work.
 
-Event shapes (TypeScript types in `peer.repository.ts`):
+Event shapes (TypeScript types in `modules/peers/peer.repository.ts`):
 
 - `producer_added` — `roomId`, `peerId`, `producerId`, `kind`
 - `producer_removed` — `roomId`, `peerId`, `producerId`
@@ -154,7 +156,7 @@ Event shapes (TypeScript types in `peer.repository.ts`):
 ## 12. `user:active_rtc_room:{userId}` (shared with main API)
 
 - **Main API** sets this when it gives the user an RTC token (so the rest of the product knows “they intended to join this room”).
-- **rtc-service** **`clearUserActiveRtcRoomIfMatches`** (`peer.repository.ts`):
+- **rtc-service** **`clearUserActiveRtcRoomIfMatches`** (`modules/peers/peer.repository.ts`):
   - **`GET`** the key.
   - If value **equals** the `roomId` we are leaving, **`DEL`** the key.
   - If the user started a **new** room elsewhere, the value might differ — we **do not** delete (avoids wiping a newer session).
@@ -200,12 +202,12 @@ In a few places we use **`redis.pipeline()`** to send several commands in one ro
 
 | File | Role |
 |------|------|
-| `rtc-service/src/redis/client.ts` | Connect / disconnect / `getRedis()` |
-| `rtc-service/src/redis/keys.ts` | All key string patterns |
-| `rtc-service/src/redis/constants.ts` | TTL |
-| `rtc-service/src/rooms/room-registry.ts` | Owner claim, room hash, `releaseRoom` |
-| `rtc-service/src/peers/peer.repository.ts` | Peer hash, peers set, publish, clear active room |
-| `rtc-service/src/rooms/room.repository.ts` | Read room hash |
+| `rtc-service/src/core/redis/client.ts` | Connect / disconnect / `getRedis()` |
+| `rtc-service/src/core/redis/keys.ts` | All key string patterns |
+| `rtc-service/src/core/redis/constants.ts` | TTL |
+| `rtc-service/src/modules/rooms/room-registry.ts` | Owner claim, room hash, `releaseRoom` |
+| `rtc-service/src/modules/peers/peer.repository.ts` | Peer hash, peers set, publish, clear active room |
+| `rtc-service/src/modules/rooms/room.repository.ts` | Read room hash |
 | `server/src/modules/rooms/services/user-active-rtc-room-redis.service.ts` | Main API side of `user:active_rtc_room` |
 
 ---
@@ -221,4 +223,4 @@ In a few places we use **`redis.pipeline()`** to send several commands in one ro
 
 ---
 
-If you add new Redis keys, **update `rtc-service/src/redis/keys.ts` and this doc** so the contract stays obvious for the next person (including future you).
+If you add new Redis keys, **update `rtc-service/src/core/redis/keys.ts` and this doc** so the contract stays obvious for the next person (including future you).

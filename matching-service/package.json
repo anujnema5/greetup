@@ -1,11 +1,11 @@
 {
   "name": "matching-service",
-  "module": "src/app.ts",
+  "module": "src/index.ts",
   "type": "module",
   "private": true,
   "scripts": {
-    "dev": "bun --watch src/app.ts",
-    "start": "bun run src/app.ts",
+    "dev": "bun --watch src/index.ts",
+    "start": "bun run src/index.ts",
     "typecheck": "bunx tsc --noEmit",
     "test": "bun test",
     "stress": "bun run scripts/stress-match.ts"
