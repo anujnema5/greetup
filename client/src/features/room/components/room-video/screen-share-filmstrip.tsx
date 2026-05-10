@@ -68,7 +68,7 @@ function SharedScreenChooserRow({
     <button
       type="button"
       onClick={onSelect}
-      aria-selected={onStage}
+      aria-pressed={onStage}
       className={cn(
         "flex w-full min-w-0 gap-3 rounded-xl border bg-card/80 p-2.5 text-left shadow-sm transition-colors",
         onStage

@@ -31,13 +31,14 @@ export default function ForgotPasswordPage() {
                     <div className="space-y-2 text-center">
                         <h1 className="text-xl font-bold tracking-tight">Check your email</h1>
                         <p className="text-sm text-muted-foreground">
-                            We've sent a password reset link to
+                            We&apos;ve sent a password reset link to
                         </p>
                         <p className="font-medium text-foreground">
                             {form.getValues("email")}
                         </p>
                         <p className="pt-2 text-sm text-muted-foreground">
-                            Click the link in the email to reset your password. If you don't see it, check your spam folder.
+                            Click the link in the email to reset your password. If you don&apos;t see it,
+                            check your spam folder.
                         </p>
                     </div>
 
@@ -78,7 +79,8 @@ export default function ForgotPasswordPage() {
                             Forgot password?
                         </h1>
                         <p className="text-[13px] leading-snug text-muted-foreground">
-                            No worries! Enter your email address and we'll send you a link to reset your password.
+                            No worries! Enter your email address and we&apos;ll send you a link to reset your
+                            password.
                         </p>
                     </div>
                 </div>

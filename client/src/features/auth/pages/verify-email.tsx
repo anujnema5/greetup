@@ -159,7 +159,7 @@ function VerifyEmailContent() {
 
                 <CardFooter className="justify-center">
                     <p className="text-xs text-muted-foreground text-center">
-                        Didn't receive the email? Check your spam folder or click resend above.
+                        Didn&apos;t receive the email? Check your spam folder or click resend above.
                     </p>
                 </CardFooter>
             </Card>

@@ -45,7 +45,10 @@ import { RoomVideoToolbar } from "@/features/room/components/room-video/room-vid
 import { RoomVideoStageOverlays } from "@/features/room/components/room-video/room-video-overlays";
 import { RoomMobileChatSheetDragHandle } from "@/features/room/components/room-video/room-mobile-chat-sheet-drag-handle";
 import { RoomVideoRightPanel } from "@/features/room/components/room-video/room-video-right-panel";
-import { useRoomMobileChatSheetHeight } from "@/features/room/hooks/use-room-mobile-chat-sheet-height";
+import {
+  roomMobileChatSheetLayoutCssVars,
+  useRoomMobileChatSheetHeight,
+} from "@/features/room/hooks/use-room-mobile-chat-sheet-height";
 import { useRoomRightPanelTab } from "@/features/room/hooks/use-room-right-panel-tab";
 import { cn } from "@/lib/utils";
 import { buildLocalPreviewStream } from "@/features/rtc/lib/direct-call-stage";
@@ -692,21 +695,24 @@ export function RoomVideoView({
             <DialogContent
               showCloseButton
               aria-describedby={undefined}
-              className={[
+              className={cn(
                 /* Above RoomVideoLayer (`z-100`) and in-room dialogs (e.g. `z-200`). */
                 "z-250 gap-0 border-x-0 border-b-0 p-0",
                 "fixed! inset-x-0! bottom-0! top-auto! left-0! right-0! w-full! max-w-full!",
                 "translate-x-0! translate-y-0! rounded-t-2xl rounded-b-none",
-              ].join(" ")}
-              style={{ maxHeight: mobileChatSheetDrag.maxHeightPx }}
+                "max-h-(--room-mobile-chat-sheet-max-h)",
+              )}
+              style={roomMobileChatSheetLayoutCssVars(mobileChatSheetDrag)}
               overlayClassName="z-240"
             >
               <DialogTitle className="sr-only">
                 {showActivitiesTab ? "People, chat, and activities" : "People and chat"}
               </DialogTitle>
               <div
-                className="flex min-h-0 flex-col overflow-hidden pb-[env(safe-area-inset-bottom)]"
-                style={{ height: mobileChatSheetDrag.heightPx }}
+                className={cn(
+                  "flex min-h-0 flex-col overflow-hidden pb-[env(safe-area-inset-bottom)]",
+                  "h-(--room-mobile-chat-sheet-h)",
+                )}
               >
                 <RoomMobileChatSheetDragHandle
                   isDragging={mobileChatSheetDrag.isDragging}

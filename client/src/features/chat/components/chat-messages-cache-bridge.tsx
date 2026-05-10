@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
+import { useEffect, useLayoutEffect, useRef } from 'react';
 import { useDispatch, useSelector, useStore } from 'react-redux';
 import { useSession } from '@/lib/auth-client';
 import { useSocket } from '@/lib/socket/provider';
@@ -22,7 +22,10 @@ export function ChatMessagesCacheBridge() {
   const currentUserId = session?.user?.id ?? '';
   const activeConversationId = useSelector((s: RootState) => s.chat.activeConversationId);
   const activeRef = useRef(activeConversationId);
-  activeRef.current = activeConversationId;
+
+  useLayoutEffect(() => {
+    activeRef.current = activeConversationId;
+  }, [activeConversationId]);
 
   useEffect(() => {
     if (!socket) return;

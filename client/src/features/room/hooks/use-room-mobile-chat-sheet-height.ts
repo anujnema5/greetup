@@ -1,5 +1,6 @@
 "use client";
 
+import type { CSSProperties } from "react";
 import { useCallback, useLayoutEffect, useRef, useState } from "react";
 
 export const ROOM_MOBILE_CHAT_SHEET_HEIGHT_KEY = "circlo-room-mobile-chat-sheet-height";
@@ -92,6 +93,15 @@ type SurfacePending = {
   target: EventTarget | null;
 };
 
+/**
+ * Custom properties set on the mobile sheet container; Tailwind references them via
+ * `max-h-[var(--room-mobile-chat-sheet-max-h)]` and `h-[var(--room-mobile-chat-sheet-h)]`.
+ */
+export const ROOM_MOBILE_CHAT_SHEET_CSS = {
+  maxH: "--room-mobile-chat-sheet-max-h",
+  height: "--room-mobile-chat-sheet-h",
+} as const;
+
 export type UseRoomMobileChatSheetHeightResult = {
   heightPx: number;
   minHeightPx: number;
@@ -111,6 +121,16 @@ export type UseRoomMobileChatSheetHeightResult = {
     onPointerCancel: (e: React.PointerEvent<HTMLElement>) => void;
   };
 };
+
+export function roomMobileChatSheetLayoutCssVars({
+  maxHeightPx,
+  heightPx,
+}: Pick<UseRoomMobileChatSheetHeightResult, "maxHeightPx" | "heightPx">): CSSProperties {
+  return {
+    [ROOM_MOBILE_CHAT_SHEET_CSS.maxH]: `${maxHeightPx}px`,
+    [ROOM_MOBILE_CHAT_SHEET_CSS.height]: `${heightPx}px`,
+  } as CSSProperties;
+}
 
 /**
  * Bottom-anchored room panel on narrow viewports: resize by dragging the handle, or by a vertical
@@ -164,7 +184,8 @@ export function useRoomMobileChatSheetHeight(open: boolean): UseRoomMobileChatSh
     if (!open) {
       resizeSessionRef.current = null;
       surfacePendingRef.current = null;
-      setIsDragging(false);
+      // Defer so this isn’t a synchronous setState in the effect body (react-hooks/set-state-in-effect).
+      queueMicrotask(() => setIsDragging(false));
       return;
     }
 

@@ -8,7 +8,7 @@
  * Local tile is always built first so it is not the last slot on a page.
  */
 import Image from "next/image";
-import { cloneElement, useMemo, useRef, useState, type ComponentProps, type ReactElement } from "react";
+import { cloneElement, useMemo, useRef, useState, type ReactElement } from "react";
 import { ChevronLeft, ChevronRight, Monitor } from "lucide-react";
 import { sortPeerIds } from "@/features/rtc/lib/remote-participant-streams";
 import type { RemoteParticipant, RemotePeer, ScreenShareTileInfo } from "@/features/rtc/types/mediasoup-room.types";
@@ -39,6 +39,25 @@ const CAMERA_TILE_CLASS = "min-h-0 w-full";
 
 const PAGE_NAV_BTN =
   "flex h-8 w-8 items-center justify-center rounded-full border border-border/80 bg-muted/40 text-foreground transition hover:bg-muted/70";
+
+type ParticipantVideoTileProps = {
+  label: string;
+  stream: MediaStream | null;
+  cameraOff: boolean;
+  micOff: boolean;
+  imageUrl?: string | null;
+  isSelf?: boolean;
+  mirrored?: boolean;
+  sharingScreen: boolean;
+  shareTileKey: string | null;
+  shareIsFocused: boolean;
+  onSelectShare?: (key: string) => void;
+  allowPickShareFromTile?: boolean;
+  tileClassName?: string;
+  /** `fill` = stretch with grid `1fr` rows; `square` = 1:1; `video` = 16:9 column strip. */
+  tileAspect?: "video" | "square" | "fill";
+  isDominantSpeaker?: boolean;
+};
 
 function shareTileKeyForPeer(tiles: ScreenShareTileInfo[], peerId: string | "local"): string | null {
   return tiles.find((x) => x.peerId === peerId)?.key ?? null;
@@ -72,24 +91,7 @@ function ParticipantVideoTile({
   tileClassName,
   tileAspect = "video",
   isDominantSpeaker = false,
-}: {
-  label: string;
-  stream: MediaStream | null;
-  cameraOff: boolean;
-  micOff: boolean;
-  imageUrl?: string | null;
-  isSelf?: boolean;
-  mirrored?: boolean;
-  sharingScreen: boolean;
-  shareTileKey: string | null;
-  shareIsFocused: boolean;
-  onSelectShare?: (key: string) => void;
-  allowPickShareFromTile?: boolean;
-  tileClassName?: string;
-  /** `fill` = stretch with grid `1fr` rows; `square` = 1:1; `video` = 16:9 column strip. */
-  tileAspect?: "video" | "square" | "fill";
-  isDominantSpeaker?: boolean;
-}) {
+}: ParticipantVideoTileProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const muteCycle = useRerenderOnVideoTrackMuteCycle(stream);
   const videoReady = isSelf
@@ -126,27 +128,22 @@ function ParticipantVideoTile({
     tileClassName,
   );
 
+  const showVideo = Boolean(mirrored || videoReady);
+
   const inner = (
     <>
-      {mirrored ? (
-        <video
-          ref={videoRef}
-          playsInline
-          autoPlay
-          muted
-          className={cn(
-            "absolute inset-0 h-full w-full -scale-x-100 object-cover",
-            !videoReady && "opacity-0",
-          )}
-        />
-      ) : videoReady ? (
+      {showVideo ? (
         <video
           key={attachKey}
           ref={videoRef}
           playsInline
           autoPlay
           muted
-          className="absolute inset-0 h-full w-full object-cover"
+          className={cn(
+            "absolute inset-0 h-full w-full object-cover",
+            mirrored && "-scale-x-100",
+            mirrored && !videoReady && "opacity-0",
+          )}
         />
       ) : null}
       {!videoReady ? (
@@ -217,8 +214,6 @@ function ParticipantVideoTile({
     </div>
   );
 }
-
-type ParticipantVideoTileProps = ComponentProps<typeof ParticipantVideoTile>;
 
 /** Applies `col-span-2` for 3-up (bottom row) and single-tile pages; stretches cells to row height. */
 function withGridTileLayout(

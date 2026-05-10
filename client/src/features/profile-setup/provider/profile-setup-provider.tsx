@@ -3,6 +3,7 @@ import {
   createContext,
   useContext,
   useEffect,
+  useLayoutEffect,
   useState,
   useCallback,
   useMemo,
@@ -126,7 +127,10 @@ export const ProfileSetupProvider: React.FC<ProfileSetupProviderProps> = ({
 
   /** RHF keeps the first resolver; point at the latest Zod schema per step. */
   const stepSchemaRef = useRef<z.ZodTypeAny>(currentStepSchema)
-  stepSchemaRef.current = currentStepSchema
+
+  useLayoutEffect(() => {
+    stepSchemaRef.current = currentStepSchema
+  }, [currentStepSchema])
 
   const dynamicResolver = useMemo(
     () =>
@@ -147,44 +151,46 @@ export const ProfileSetupProvider: React.FC<ProfileSetupProviderProps> = ({
   useEffect(() => {
     if (data?.data?.steps && !isInitialized) {
       const fetchedSteps = data.data.steps
-      setSteps(fetchedSteps)
+      queueMicrotask(() => {
+        setSteps(fetchedSteps)
 
-      // Build initial form data from API defaults
-      const initialData: Record<string, unknown> = {}
-      fetchedSteps.forEach((step: ProfileSetupStep) => {
-        const stepDefaults = getStepDefaultValues(step.fields)
-        Object.assign(initialData, stepDefaults)
+        // Build initial form data from API defaults
+        const initialData: Record<string, unknown> = {}
+        fetchedSteps.forEach((step: ProfileSetupStep) => {
+          const stepDefaults = getStepDefaultValues(step.fields)
+          Object.assign(initialData, stepDefaults)
+        })
+
+        // Restore saved progress if valid
+        const storedStep = getStoredStep()
+        const storedData = getStoredFormData()
+        const totalSteps = fetchedSteps.length
+        const stepFromQuery = Number(searchParams.get('step'))
+        const hasQueryStep =
+          Number.isInteger(stepFromQuery) &&
+          stepFromQuery >= 1 &&
+          stepFromQuery <= totalSteps
+        const inferredStepFromServer = getFirstIncompleteRequiredStep(fetchedSteps)
+        const preferredStep =
+          hasQueryStep
+            ? stepFromQuery
+            : inferredStepFromServer ?? 1
+        const validStep =
+          storedStep != null &&
+          Number.isInteger(storedStep) &&
+          storedStep >= 1 &&
+          storedStep <= totalSteps
+
+        if (validStep && storedData && typeof storedData === 'object') {
+          // Keep users on the furthest valid step we've seen locally/server-side.
+          setCurrentStep(Math.max(storedStep, preferredStep))
+          setAllFormData({ ...initialData, ...storedData })
+        } else {
+          setCurrentStep(preferredStep)
+          setAllFormData(initialData)
+        }
+        setIsInitialized(true)
       })
-
-      // Restore saved progress if valid
-      const storedStep = getStoredStep()
-      const storedData = getStoredFormData()
-      const totalSteps = fetchedSteps.length
-      const stepFromQuery = Number(searchParams.get('step'))
-      const hasQueryStep =
-        Number.isInteger(stepFromQuery) &&
-        stepFromQuery >= 1 &&
-        stepFromQuery <= totalSteps
-      const inferredStepFromServer = getFirstIncompleteRequiredStep(fetchedSteps)
-      const preferredStep =
-        hasQueryStep
-          ? stepFromQuery
-          : inferredStepFromServer ?? 1
-      const validStep =
-        storedStep != null &&
-        Number.isInteger(storedStep) &&
-        storedStep >= 1 &&
-        storedStep <= totalSteps
-
-      if (validStep && storedData && typeof storedData === 'object') {
-        // Keep users on the furthest valid step we've seen locally/server-side.
-        setCurrentStep(Math.max(storedStep, preferredStep))
-        setAllFormData({ ...initialData, ...storedData })
-      } else {
-        setCurrentStep(preferredStep)
-        setAllFormData(initialData)
-      }
-      setIsInitialized(true)
     }
   }, [data, isInitialized, searchParams])
 
@@ -195,7 +201,7 @@ export const ProfileSetupProvider: React.FC<ProfileSetupProviderProps> = ({
       const currentValues = { ...stepDefaults, ...allFormData }
       methods.reset(currentValues)
     }
-  }, [currentStepData, currentStep, isInitialized])
+  }, [currentStepData, currentStep, isInitialized, allFormData, methods])
 
   // Persist current step and form data to localStorage
   const persistProgress = useCallback(() => {
@@ -281,6 +287,7 @@ export const ProfileSetupProvider: React.FC<ProfileSetupProviderProps> = ({
     allFormData,
     methods,
     saveProfileSetup,
+    router,
   ])
 
   const onBack = useCallback(() => {

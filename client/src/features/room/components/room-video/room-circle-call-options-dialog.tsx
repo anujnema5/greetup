@@ -50,11 +50,13 @@ export function RoomCircleCallOptionsDialog({
   const [updateTitle, { isLoading }] = useUpdateRoomTitleMutation();
 
   useEffect(() => {
-    if (!open) setEditing(false);
+    if (open) return;
+    queueMicrotask(() => setEditing(false));
   }, [open]);
 
   useEffect(() => {
-    if (!editing) setDraft(displayTitle);
+    if (editing) return;
+    queueMicrotask(() => setDraft(displayTitle));
   }, [displayTitle, editing]);
 
   const cancelEdit = () => {

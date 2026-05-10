@@ -132,7 +132,7 @@ export function useConversation(
     if (data?.nextCursor && !isFetching) {
       setCursor(data.nextCursor);
     }
-  }, [data?.nextCursor, isFetching]);
+  }, [data, isFetching]);
 
   return {
     messages:    allMessages,

@@ -1,6 +1,6 @@
 "use client";
 
-import { type ReactNode } from "react";
+import type { CSSProperties, ReactNode } from "react";
 import { MicOff, VideoOff } from "lucide-react";
 import { useAudioLevel } from "@/features/room/hooks/use-audio-level";
 import { cn } from "@/lib/utils";
@@ -49,7 +49,7 @@ export function TileMediaStatus({
   cameraOn?: boolean;
   className?: string;
 }) {
-  const showMicOff    = micOn    === false;
+  const showMicOff = micOn === false;
   const showCameraOff = cameraOn === false;
 
   if (!showMicOff && !showCameraOff) return null;
@@ -61,7 +61,7 @@ export function TileMediaStatus({
         className,
       )}
     >
-      {showMicOff    && <MicOff   size={12} strokeWidth={2.2} className="shrink-0 text-red-400" />}
+      {showMicOff && <MicOff size={12} strokeWidth={2.2} className="shrink-0 text-red-400" />}
       {showCameraOff && <VideoOff size={12} strokeWidth={2.2} className="shrink-0 text-red-400" />}
     </div>
   );
@@ -71,6 +71,10 @@ export function TileMediaStatus({
 
 /** Audio level below this is treated as silence — rings stay hidden. */
 const SPEAKING_THRESHOLD = 0.04;
+
+const SPEAKING_RING_EASE: Pick<CSSProperties, "transition"> = {
+  transition: "transform 80ms ease-out, opacity 80ms ease-out",
+};
 
 /**
  * Google Meet-style speaking indicator.
@@ -88,7 +92,7 @@ export function TileSpeakingRings({
   stream: MediaStream | null;
   children: ReactNode;
 }) {
-  const level    = useAudioLevel(stream);
+  const level = useAudioLevel(stream);
   const speaking = level > SPEAKING_THRESHOLD;
 
   // Each ring is defined by how far it expands and how strongly it glows.
@@ -124,7 +128,7 @@ export function TileSpeakingRings({
           style={{
             transform: `scale(${ring.scale})`,
             opacity: ring.opacity,
-            transition: "transform 80ms ease-out, opacity 80ms ease-out",
+            ...SPEAKING_RING_EASE,
           }}
         />
       ))}

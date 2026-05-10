@@ -51,7 +51,7 @@ export function useEmailLogin() {
                 setIsLoading(false);
             }
         },
-        []
+        [router],
     );
 
     return {

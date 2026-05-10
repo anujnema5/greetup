@@ -25,27 +25,29 @@ export function useScreenShareFocusOrdering(screenShareTiles: ScreenShareTileInf
   });
 
   useEffect(() => {
-    setLayout((prev) => {
-      if (sortedKeys.length === 0) {
-        return prev.order.length === 0 ? prev : { order: [], generation: prev.generation };
-      }
+    queueMicrotask(() => {
+      setLayout((prev) => {
+        if (sortedKeys.length === 0) {
+          return prev.order.length === 0 ? prev : { order: [], generation: prev.generation };
+        }
 
-      const active = new Set(sortedKeys);
-      const kept = prev.order.filter((k) => active.has(k));
-      const keptSet = new Set(kept);
-      const brandNew = sortedKeys.filter((k) => !keptSet.has(k));
-      const order = [...kept, ...brandNew];
-      const hasNew = brandNew.length > 0;
-      const generation = hasNew ? prev.generation + 1 : prev.generation;
+        const active = new Set(sortedKeys);
+        const kept = prev.order.filter((k) => active.has(k));
+        const keptSet = new Set(kept);
+        const brandNew = sortedKeys.filter((k) => !keptSet.has(k));
+        const order = [...kept, ...brandNew];
+        const hasNew = brandNew.length > 0;
+        const generation = hasNew ? prev.generation + 1 : prev.generation;
 
-      if (
-        generation === prev.generation &&
-        order.length === prev.order.length &&
-        order.every((k, i) => k === prev.order[i])
-      ) {
-        return prev;
-      }
-      return { order, generation };
+        if (
+          generation === prev.generation &&
+          order.length === prev.order.length &&
+          order.every((k, i) => k === prev.order[i])
+        ) {
+          return prev;
+        }
+        return { order, generation };
+      });
     });
   }, [sortedKeys]);
 

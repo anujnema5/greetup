@@ -64,7 +64,7 @@ export function useAppMatchFlow() {
     startTransition(() => {
       router.push(url);
     });
-  }, [status, result, router, startTransition]);
+  }, [status, result, router, startTransition, pathname]);
 
   const handleFindMatch = useCallback(() => {
     if (status === "idle" || status === "error") findAMatch();

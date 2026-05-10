@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Image from "next/image";
 import { Loader2, Video, Zap } from "lucide-react";
 import {
   Dialog,
@@ -108,7 +109,14 @@ export function MatchFoundDialog({
               {isFetching ? (
                 <span className="size-6 animate-pulse rounded-md bg-white/20" />
               ) : image ? (
-                <img src={image} alt={displayName} className="size-full object-cover" />
+                <Image
+                  src={image}
+                  alt={displayName}
+                  width={80}
+                  height={80}
+                  className="size-full object-cover"
+                  unoptimized
+                />
               ) : (
                 initials
               )}
