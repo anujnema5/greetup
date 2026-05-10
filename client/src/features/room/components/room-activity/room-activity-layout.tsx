@@ -4,8 +4,12 @@
  */
 "use client";
 
-import { memo, useEffect, useRef, type ReactNode } from "react";
+import { memo, useEffect, useMemo, useRef, type ReactNode } from "react";
 import { Mic, MicOff, Video, VideoOff } from "lucide-react";
+import {
+  CameraOffAvatar,
+  TileSpeakingRings,
+} from "@/features/room/components/room-video/room-video-primitives";
 
 /** Mic + camera pill (Meet-style): green icons when live, red when muted / camera off. */
 const ActivityVideoMediaPill = memo(function ActivityVideoMediaPill({
@@ -38,6 +42,8 @@ type RoomActivityVideoTilesProps = {
   peerLabel: string;
   myName: string;
   peerInitials: string;
+  peerAvatarUrl?: string | null;
+  myAvatarUrl?: string | null;
   remoteVideoLive: boolean;
   localVideoLive: boolean;
   remoteStream: MediaStream | null;
@@ -80,6 +86,8 @@ type RoomActivityLayoutProps = {
   peerLabel: string;
   myName: string;
   peerInitials: string;
+  peerAvatarUrl?: string | null;
+  myAvatarUrl?: string | null;
   remoteVideoLive: boolean;
   localVideoLive: boolean;
   remoteStream: MediaStream | null;
@@ -133,6 +141,8 @@ export const RoomActivityVideoTiles = memo(function RoomActivityVideoTiles({
   peerLabel,
   myName,
   peerInitials,
+  peerAvatarUrl = null,
+  myAvatarUrl = null,
   remoteVideoLive,
   localVideoLive,
   remoteStream,
@@ -147,6 +157,16 @@ export const RoomActivityVideoTiles = memo(function RoomActivityVideoTiles({
   narrowEmphasizeLocal = false,
   className = "",
 }: RoomActivityVideoTilesProps) {
+  const myInitials = useMemo(
+    () =>
+      myName
+        .split(/\s+/)
+        .filter(Boolean)
+        .slice(0, 2)
+        .map((w) => w[0]!.toUpperCase())
+        .join(""),
+    [myName],
+  );
   const peerCam = peerCameraLive ?? remoteVideoLive;
   const localCam = localCameraLive ?? localVideoLive;
   const narrowRowFill = narrowVideosSideBySide && fillAvailableOnNarrow;
@@ -209,13 +229,20 @@ export const RoomActivityVideoTiles = memo(function RoomActivityVideoTiles({
         ) : (
           <div
             className={[
-              "flex h-full items-center justify-center text-lg font-semibold text-white/90 sm:text-xl md:min-h-0",
+              "flex h-full w-full items-center justify-center bg-muted/20 md:min-h-0",
               narrowRowFill || narrowVideosSideBySide
                 ? "max-md:min-h-0 min-h-[10rem]"
                 : "min-h-[10rem] max-md:min-h-[10rem]",
             ].join(" ")}
           >
-            {peerInitials}
+            <TileSpeakingRings stream={peerMicLive ? remoteStream : null}>
+              <CameraOffAvatar
+                name={peerLabel}
+                initials={peerInitials}
+                imageUrl={peerAvatarUrl}
+                sizeClass="h-14 w-14 sm:h-16 sm:w-16"
+              />
+            </TileSpeakingRings>
           </div>
         )}
         <ActivityVideoMediaPill micLive={peerMicLive} cameraLive={peerCam} />
@@ -259,13 +286,20 @@ export const RoomActivityVideoTiles = memo(function RoomActivityVideoTiles({
         ) : (
           <div
             className={[
-              "flex h-full items-center justify-center text-lg font-semibold text-white/90 sm:text-xl md:min-h-0",
+              "flex h-full w-full items-center justify-center bg-muted/20 md:min-h-0",
               narrowRowFill || narrowVideosSideBySide
                 ? "max-md:min-h-0 min-h-[9.5rem]"
                 : "min-h-[9.5rem] max-md:min-h-[9.5rem]",
             ].join(" ")}
           >
-            {myName.charAt(0).toUpperCase()}
+            <TileSpeakingRings stream={localMicLive ? localStream : null}>
+              <CameraOffAvatar
+                name={myName}
+                initials={myInitials || "?"}
+                imageUrl={myAvatarUrl}
+                sizeClass="h-14 w-14 sm:h-16 sm:w-16"
+              />
+            </TileSpeakingRings>
           </div>
         )}
         <ActivityVideoMediaPill micLive={localMicLive} cameraLive={localCam} />
@@ -292,6 +326,8 @@ export function RoomActivityLayout({
   peerLabel,
   myName,
   peerInitials,
+  peerAvatarUrl = null,
+  myAvatarUrl = null,
   remoteVideoLive,
   localVideoLive,
   remoteStream,
@@ -364,6 +400,8 @@ export function RoomActivityLayout({
               peerLabel={peerLabel}
               myName={myName}
               peerInitials={peerInitials}
+              peerAvatarUrl={peerAvatarUrl}
+              myAvatarUrl={myAvatarUrl}
               remoteVideoLive={remoteVideoLive}
               localVideoLive={localVideoLive}
               remoteStream={remoteStream}

@@ -525,10 +525,8 @@ export function RoomVideoView({
   return (
     <div className="flex h-full min-h-0 w-full min-w-0 overflow-hidden bg-background">
       <div
-        className="absolute inset-0 pointer-events-none"
-        style={{
-          background: `linear-gradient(135deg, ${MOCK_MATCH.gradFrom}14, var(--background) 40%, ${MOCK_MATCH.gradTo}10)`,
-        }}
+        className="pointer-events-none absolute inset-0 bg-[linear-gradient(135deg,rgb(124_58_237/0.078),var(--background)_40%,rgb(79_70_229/0.063))]"
+        aria-hidden
       />
 
       <div className="relative flex min-h-0 min-w-0 flex-1 flex-col gap-2 p-2 md:gap-3 md:p-3">

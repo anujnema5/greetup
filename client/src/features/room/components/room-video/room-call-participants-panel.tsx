@@ -134,8 +134,10 @@ function ParticipantVideoTile({
           playsInline
           autoPlay
           muted
-          className={cn("absolute inset-0 h-full w-full object-cover", !videoReady && "opacity-0")}
-          style={{ transform: "scaleX(-1)" }}
+          className={cn(
+            "absolute inset-0 h-full w-full -scale-x-100 object-cover",
+            !videoReady && "opacity-0",
+          )}
         />
       ) : videoReady ? (
         <video

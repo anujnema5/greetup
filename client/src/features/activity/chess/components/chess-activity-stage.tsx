@@ -41,6 +41,8 @@ export type ChessActivityStageProps = {
   remoteCameraOff?: boolean;
   micEnabled?: boolean;
   cameraEnabled?: boolean;
+  peerAvatarUrl?: string | null;
+  myAvatarUrl?: string | null;
 };
 
 /** Walnut / cream — high contrast, reads well on video backgrounds. */
@@ -264,6 +266,8 @@ export function ChessActivityStage({
   remoteCameraOff = false,
   micEnabled = true,
   cameraEnabled = true,
+  peerAvatarUrl = null,
+  myAvatarUrl = null,
 }: ChessActivityStageProps) {
   const [submitMove, { isLoading: moveSubmitting }] = useRoomChessMoveMutation();
   /** Square of the piece “lifted” for a move (highlights + legal targets). */
@@ -646,6 +650,8 @@ export function ChessActivityStage({
       peerLabel={peerLabel}
       myName={myName}
       peerInitials={peerInitials}
+      peerAvatarUrl={peerAvatarUrl}
+      myAvatarUrl={myAvatarUrl}
       remoteVideoLive={remoteVideoLive}
       localVideoLive={localVideoLive}
       remoteStream={remoteStream}
@@ -680,6 +686,8 @@ export function ChessActivityStage({
                 peerLabel={peerLabel}
                 myName={myName}
                 peerInitials={peerInitials}
+                peerAvatarUrl={peerAvatarUrl}
+                myAvatarUrl={myAvatarUrl}
                 remoteVideoLive={remoteVideoLive}
                 localVideoLive={localVideoLive}
                 remoteStream={remoteStream}

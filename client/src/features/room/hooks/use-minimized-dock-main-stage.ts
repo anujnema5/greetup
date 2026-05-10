@@ -41,6 +41,7 @@ export function useMinimizedDockMainStage({
   rtcPrimaryRemoteUserId,
   currentUserId,
   localMediaStream,
+  cameraEnabled,
   directCallPeerLabel,
 }: UseMinimizedDockMainStageArgs): MinimizedDockMainStage {
   const isCircleRoom = rtcRoomType === "circle";
@@ -108,7 +109,7 @@ export function useMinimizedDockMainStage({
         stageBadge: "sharing" as const,
         sideStrip: {
           stream: localMediaStream,
-          videoLive: hasLiveEnabledVideo(localMediaStream),
+          videoLive: Boolean(cameraEnabled && hasLiveEnabledVideo(localMediaStream)),
           label: "You",
           mirrorVideo: true,
           remotePeer: null,
@@ -142,7 +143,7 @@ export function useMinimizedDockMainStage({
       : playbackStreamForDockVideo(remoteSourceForMain, remoteTrackMediaSource);
 
     const mainVideoLive = mainIsLocal
-      ? hasLiveEnabledVideo(mainStream)
+      ? Boolean(cameraEnabled && hasLiveEnabledVideo(mainStream))
       : Boolean(
           hasLiveVideo(mainStream) &&
             (mainParticipant ? mainParticipant.peer.cameraActive !== false : true),
@@ -204,6 +205,7 @@ export function useMinimizedDockMainStage({
     remoteParticipants,
     remoteTrackMediaSource,
     localMediaStream,
+    cameraEnabled,
     uid,
     dockFocusPeerId,
     directCallPeerLabel,

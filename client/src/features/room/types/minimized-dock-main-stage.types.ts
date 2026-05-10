@@ -45,6 +45,8 @@ export type UseMinimizedDockMainStageArgs = {
   rtcPrimaryRemoteUserId: string | null;
   currentUserId: string | null | undefined;
   localMediaStream: MediaStream | null;
+  /** UI + producer state — must be in the memo deps: `localMediaStream` identity does not change when tracks are paused. */
+  cameraEnabled: boolean;
   /** 1:1 display name from Redux when roster is thin. */
   directCallPeerLabel: string | null;
 };

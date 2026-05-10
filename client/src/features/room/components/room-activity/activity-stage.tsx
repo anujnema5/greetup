@@ -20,6 +20,8 @@ export type ActivityStageProps = {
   remoteCameraOff?: boolean;
   micEnabled?: boolean;
   cameraEnabled?: boolean;
+  peerAvatarUrl?: string | null;
+  myAvatarUrl?: string | null;
   activeRealtimeActivity: RoomActiveActivity | null;
   onEndActiveGame?: () => void;
   onOfferDrawGame?: () => void;
@@ -40,6 +42,8 @@ export function ActivityStage({
   remoteCameraOff = false,
   micEnabled = true,
   cameraEnabled = true,
+  peerAvatarUrl = null,
+  myAvatarUrl = null,
   activeRealtimeActivity,
   onEndActiveGame,
   onOfferDrawGame,
@@ -59,6 +63,8 @@ export function ActivityStage({
         remoteCameraOff={remoteCameraOff}
         micEnabled={micEnabled}
         cameraEnabled={cameraEnabled}
+        peerAvatarUrl={peerAvatarUrl}
+        myAvatarUrl={myAvatarUrl}
         chessActivity={activeRealtimeActivity?.kind === "chess" ? activeRealtimeActivity : null}
         onEndGame={onEndActiveGame}
         onOfferDraw={onOfferDrawGame}
@@ -81,6 +87,8 @@ export function ActivityStage({
       remoteCameraOff={remoteCameraOff}
       micEnabled={micEnabled}
       cameraEnabled={cameraEnabled}
+      peerAvatarUrl={peerAvatarUrl}
+      myAvatarUrl={myAvatarUrl}
     />
   );
 }
