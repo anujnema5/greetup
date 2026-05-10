@@ -1,6 +1,6 @@
 import type { MiddlewareHandler } from "hono";
 
-import { env } from "@/config/env";
+import { env } from "@/shared/config/env";
 
 /** Validates `x-internal-api-key` when `INTERNAL_API_KEY` is set (server ↔ matching-service convention). */
 export const internalApiGuard: MiddlewareHandler = async (c, next) => {
