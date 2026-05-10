@@ -5,14 +5,13 @@
  * room compositor 1:1. Screen-share stages still use {@link remoteMediaStream} from RTC context
  * so focus ordering matches the big stage.
  *
- * Policy: pin (Redux) → debounced dominant → silence sticky → first remote. See
- * `docs/design/minimized-room-dock-plan.md`.
+ * Policy: pin (Redux) → debounced dominant → last speaker (while still in roster) → first remote.
  *
  * Direct (1:1) uses the same stack as circle (dominant when not pinned). An “always show remote”
  * shortcut would simplify tile changes but was intentionally not applied so behavior matches group calls.
  *
- * Dominant / silence: {@link minimizedDockSilenceReducer} — one batched update per `dominantSpeakerPeerId`
- * change (microtask), plus a sticky timer. Debounce stays separate (delayed `setTimeout`).
+ * Dominant history: {@link minimizedDockSilenceReducer} — last non-null server dominant (silence does
+ * not clear it). Debounce stays separate (delayed `setTimeout`).
  */
 import { useEffect, useMemo, useReducer, useState } from "react";
 import { hasLiveEnabledVideo, hasLiveMedia, hasLiveVideo } from "@/features/rtc";
@@ -23,7 +22,6 @@ import type {
 import {
   firstRemoteParticipantExcluding,
   MINIMIZED_DOCK_DOMINANT_DEBOUNCE_MS,
-  MINIMIZED_DOCK_SILENCE_STICKY_MS,
   peerDisplayLabel,
   playbackStreamForDockVideo,
   resolveFocusedRemoteParticipant,
@@ -39,12 +37,14 @@ export function useMinimizedDockMainStage({
   remoteParticipants,
   remoteTrackMediaSource,
   dominantSpeakerPeerId,
+  rtcRoomType,
   rtcPrimaryRemoteUserId,
   currentUserId,
   localMediaStream,
   directCallPeerLabel,
 }: UseMinimizedDockMainStageArgs): MinimizedDockMainStage {
-  const pinned = rtcPrimaryRemoteUserId;
+  const isCircleRoom = rtcRoomType === "circle";
+  const pinned = isCircleRoom ? null : rtcPrimaryRemoteUserId;
   const uid = currentUserId ?? null;
 
   const [silence, dispatchSilence] = useReducer(
@@ -57,14 +57,6 @@ export function useMinimizedDockMainStage({
       dispatchSilence({ type: "apply_dominant", peerId: dominantSpeakerPeerId });
     });
   }, [dominantSpeakerPeerId]);
-
-  useEffect(() => {
-    if (silence.silenceStartedAt === null) return;
-    const t = window.setTimeout(() => {
-      dispatchSilence({ type: "sticky_timer_fire" });
-    }, MINIMIZED_DOCK_SILENCE_STICKY_MS);
-    return () => window.clearTimeout(t);
-  }, [silence.silenceStartedAt]);
 
   const [debouncedDominant, setDebouncedDominant] = useState<string | null>(null);
   useEffect(() => {
@@ -84,15 +76,12 @@ export function useMinimizedDockMainStage({
     if (dominantSpeakerPeerId !== null) {
       return debouncedDominant ?? dominantSpeakerPeerId;
     }
-    if (
-      silence.silenceStartedAt !== null &&
-      silence.lastNonNullDominant !== null &&
-      silence.silenceStickyLive
-    ) {
-      return silence.lastNonNullDominant;
+    const last = silence.lastNonNullDominant;
+    if (last !== null && remoteParticipants.some((p) => p.peer.peerId === last)) {
+      return last;
     }
     return null;
-  }, [pinned, dominantSpeakerPeerId, debouncedDominant, silence]);
+  }, [pinned, dominantSpeakerPeerId, debouncedDominant, silence, remoteParticipants]);
 
   const dockFocusPeerId = useMemo(() => {
     if (pinned) return pinned;
@@ -140,7 +129,8 @@ export function useMinimizedDockMainStage({
      * the big room uses (direct or two-party circle). Otherwise pick the focused peer’s bucket.
      * Always run {@link playbackStreamForDockVideo} so we never bind multiple video tracks to one element.
      */
-    const singleRemoteParty = remoteParticipants.length <= 1 && Boolean(remoteMediaStream);
+    const singleRemoteParty =
+      !isCircleRoom && remoteParticipants.length <= 1 && Boolean(remoteMediaStream);
     const remoteSourceForMain = mainIsLocal
       ? null
       : singleRemoteParty
@@ -217,5 +207,6 @@ export function useMinimizedDockMainStage({
     uid,
     dockFocusPeerId,
     directCallPeerLabel,
+    isCircleRoom,
   ]);
 }

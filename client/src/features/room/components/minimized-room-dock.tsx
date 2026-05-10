@@ -107,6 +107,7 @@ function MinimizedRoomDockPanel() {
     remoteParticipants,
     remoteTrackMediaSource,
     dominantSpeakerPeerId,
+    rtcRoomType,
     rtcPrimaryRemoteUserId,
     currentUserId,
     localMediaStream,

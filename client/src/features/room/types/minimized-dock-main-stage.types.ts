@@ -2,6 +2,7 @@ import type {
   ProducerMediaSource,
   RemoteParticipant,
 } from "@/features/rtc/types/mediasoup-room.types";
+import type { RoomSessionType } from "@/shared/types/room-session";
 
 /** Right column in {@link MinimizedRoomDock}: local “You” or a remote thumbnail when main is self. */
 export type MinimizedDockSideStrip = {
@@ -39,6 +40,8 @@ export type UseMinimizedDockMainStageArgs = {
   remoteParticipants: RemoteParticipant[];
   remoteTrackMediaSource: Record<string, ProducerMediaSource>;
   dominantSpeakerPeerId: string | null;
+  /** When `circle`, match URL “primary peer” must not pin the dock — follow dominant speaker instead. */
+  rtcRoomType: RoomSessionType | null;
   rtcPrimaryRemoteUserId: string | null;
   currentUserId: string | null | undefined;
   localMediaStream: MediaStream | null;

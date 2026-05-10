@@ -28,9 +28,6 @@ export function playbackStreamForDockVideo(
 /** Mic-dominant debounce — reduces rapid tile swaps in cross-talk. */
 export const MINIMIZED_DOCK_DOMINANT_DEBOUNCE_MS = 380;
 
-/** After server clears dominant (silence), keep last speaker on stage briefly. */
-export const MINIMIZED_DOCK_SILENCE_STICKY_MS = 4200;
-
 /** Strict match — no fallback (callers combine with roster fallback). */
 export function findRemoteParticipant(
   participants: readonly RemoteParticipant[],

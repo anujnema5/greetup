@@ -45,7 +45,7 @@ export function MinimizedDockVideoFromSink({
         ref={sinkRef}
         playsInline
         autoPlay
-        muted
+        muted={mirrored}
         className={MINIMIZED_DOCK_OFFSCREEN_SINK_CLASS}
         aria-hidden
       />
