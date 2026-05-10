@@ -43,10 +43,11 @@ export function InviteFriendsDialog({
   const [draft, setDraft] = useState<Set<string>>(() => new Set());
 
   useEffect(() => {
-    if (open) {
+    if (!open) return;
+    queueMicrotask(() => {
       setDraft(new Set(selectedIds));
       setSearch("");
-    }
+    });
   }, [open, selectedIds]);
 
   const filtered = useMemo(() => {

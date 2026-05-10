@@ -116,7 +116,7 @@ export default function ResetPasswordPage() {
                             Reset your password
                         </h1>
                         <p className="text-[13px] leading-snug text-muted-foreground">
-                            Enter your new password below. Make sure it's at least 8 characters long.
+                            Enter your new password below. Make sure it&apos;s at least 8 characters long.
                         </p>
                     </div>
                 </div>

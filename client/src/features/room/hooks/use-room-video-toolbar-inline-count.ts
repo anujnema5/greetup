@@ -78,7 +78,14 @@ export function useRoomVideoToolbarInlineCount(
     const ro = new ResizeObserver(() => measure());
     ro.observe(root);
     return () => ro.disconnect();
-  }, [toolbarFlowSecondaries, skipPinnedMobile, narrowToolbar]);
+  }, [
+    endRef,
+    mediaRef,
+    rootRef,
+    toolbarFlowSecondaries,
+    skipPinnedMobile,
+    narrowToolbar,
+  ]);
 
   return inlineSecondaryCount;
 }

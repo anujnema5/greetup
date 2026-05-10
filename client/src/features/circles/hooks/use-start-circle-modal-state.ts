@@ -48,7 +48,10 @@ export function useStartCircleModalState() {
   const [createCircle, { isLoading: creating }] = useCreateCircleMutation();
 
   const connections = connectionsRes?.data?.items ?? [];
-  const categories = categoriesRes?.data?.categories ?? [];
+  const categories = useMemo(
+    () => categoriesRes?.data?.categories ?? [],
+    [categoriesRes?.data?.categories],
+  );
 
   const form = useForm<StartCircleFormValues>({
     resolver: zodResolver(startCircleFormSchema),

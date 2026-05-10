@@ -593,7 +593,17 @@ export function useMediasoupRoomSession(options: MediasoupRoomSessionOptions): v
       zeroMediasoupRefs(refs);
       wipeMediasoupRoomUiState(set);
     };
-  }, [enabled, rtcSocket, rtcSocketState, rtcRoomId, cleanupLocalScreenShareRef, set, refs]);
+  }, [
+    enabled,
+    rtcSocket,
+    rtcSocketState,
+    rtcRoomId,
+    cleanupLocalScreenShareRef,
+    set,
+    refs,
+    localDisplayNameRef,
+    localProfileImageUrlRef,
+  ]);
 }
 
 function wipeMediasoupRoomUiState(set: MediasoupRoomSessionSetters): void {

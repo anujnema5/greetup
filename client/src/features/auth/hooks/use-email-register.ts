@@ -51,7 +51,7 @@ export function useEmailRegister() {
         } finally {
             setIsLoading(false);
         }
-    }, []);
+    }, [router]);
 
     return {
         registerForm,

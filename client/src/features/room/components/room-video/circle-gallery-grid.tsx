@@ -61,13 +61,15 @@ export function CircleGalleryGrid({
   const [page, setPage] = useState(0);
   // Clamp when someone leaves and the last page disappears
   useEffect(() => {
-    setPage((p) => Math.min(p, Math.max(0, totalPages - 1)));
+    queueMicrotask(() => {
+      setPage((p) => Math.min(p, Math.max(0, totalPages - 1)));
+    });
   }, [totalPages]);
 
-  const prev = useCallback(() => setPage((p) => Math.max(0, p - 1)), []);
+  const prev = useCallback(() => setPage((p) => Math.max(0, p - 1)), [setPage]);
   const next = useCallback(
     () => setPage((p) => Math.min(totalPages - 1, p + 1)),
-    [totalPages],
+    [totalPages, setPage],
   );
 
   // Touch swipe: left = next page, right = prev page

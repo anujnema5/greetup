@@ -56,12 +56,13 @@ export function RoomInviteSettingsModal({
   );
 
   useEffect(() => {
-    if (open) {
+    if (!open) return;
+    queueMicrotask(() => {
       setPolicy(initial.policy);
       setSelectedIds(initial.allowlistedUserIds);
       setSearch("");
       setDebouncedQ("");
-    }
+    });
   }, [open, initial.policy, initial.allowlistedUserIds]);
 
   const items = useMemo(

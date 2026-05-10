@@ -18,9 +18,9 @@ export function useMatchPrepClientSessionId(): string | null {
         v = crypto.randomUUID();
         sessionStorage.setItem(STORAGE_KEY, v);
       }
-      setId(v);
+      queueMicrotask(() => setId(v));
     } catch {
-      setId(crypto.randomUUID());
+      queueMicrotask(() => setId(crypto.randomUUID()));
     }
   }, []);
 

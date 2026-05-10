@@ -11,7 +11,7 @@ export function useAudioLevel(stream: MediaStream | null): number {
 
   useEffect(() => {
     if (!stream || !stream.getAudioTracks().length) {
-      setLevel(0);
+      queueMicrotask(() => setLevel(0));
       return;
     }
 
