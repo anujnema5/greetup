@@ -216,8 +216,9 @@ matching-service/
       scripts.ts
   scripts/
     stress-match.ts
-  MATCHING_SERVICE_PLAN.md
 ```
+
+**Documentation (repo root):** `docs/matching/matching-engine.md`, `docs/matching/matching-service-plan.md`.
 
 ## Notes
 

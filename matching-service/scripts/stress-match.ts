@@ -1,5 +1,5 @@
-import { connectRedis, disconnectRedis, getRedis } from "../src/redis/client";
-import { redisKeys } from "../src/redis/keys";
+import { connectRedis, disconnectRedis, getRedis } from "../src/core/redis/client";
+import { redisKeys } from "../src/core/redis/keys";
 
 type MatchResponse =
   | { ok: true; data: { status: "matched"; roomId: string; peerUserId: string; matchScore: number } }

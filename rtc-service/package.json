@@ -4,8 +4,8 @@
   "type": "module",
   "private": true,
   "scripts": {
-    "dev": "tsx watch src/app.ts",
-    "start": "bun src/app.ts",
+    "dev": "tsx watch src/index.ts",
+    "start": "bun src/index.ts",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {

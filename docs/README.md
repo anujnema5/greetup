@@ -37,14 +37,23 @@ All paths below are from the **repository root** (`docs/...`).
 | [realtime/video-calling-architecture-and-debugging.md](realtime/video-calling-architecture-and-debugging.md) | Client architecture, Redux, skip/end, debugging |
 | [realtime/scaling-mediasoup-sfu-horizontally.pdf](realtime/scaling-mediasoup-sfu-horizontally.pdf) | Scaling the SFU horizontally (PDF) |
 
+## Matching (`matching-service`)
+
+| Doc | What it is |
+|-----|------------|
+| [matching/matching-engine.md](matching/matching-engine.md) | Matching engine: Redis model, HTTP API, modules, flows |
+| [matching/matching-service-plan.md](matching/matching-service-plan.md) | Original plan: Redis keys, lifecycle, milestones |
+
 ## Product & system design
 
 | Doc | What it is |
 |-----|------------|
 | [design/chat-system-design.md](design/chat-system-design.md) | Chat system design |
-| [design/matching-system-design.md](design/matching-system-design.md) | Matching / matchmaking (see also `matching-service/` in code) |
+| [design/matching-system-design.md](design/matching-system-design.md) | Matching / matchmaking (see also [matching/matching-engine.md](matching/matching-engine.md)) |
 | [design/room-activities-and-chess.md](design/room-activities-and-chess.md) | Room activities & chess lifecycle |
 | [design/authentication.md](design/authentication.md) | Better Auth, Firebase Phone, cookies, Next ↔ Hono |
+| [design/minimized-room-dock-plan.md](design/minimized-room-dock-plan.md) | Minimized call dock: dominant vs pin vs screen share, tasks for implementation |
+| [design/minimized-room-dock-hinglish-guide.md](design/minimized-room-dock-hinglish-guide.md) | **A–Z Hinglish:** full dock feature, flows, Redux/RTC, problems + fixes (beginner-friendly) |
 
 ## Reference & exports
 
@@ -63,6 +72,7 @@ docs/
   getting-started/       # Local development
   operations/            # Deploy, email
   realtime/              # rtc-service, mediasoup, WebRTC, Redis
+  matching/              # matching-service deep dive + plan
   design/                # Product & platform design
   reference/             # PDFs, HTML exports
 ```

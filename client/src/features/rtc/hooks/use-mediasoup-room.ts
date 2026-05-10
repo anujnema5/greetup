@@ -89,6 +89,8 @@ export function useMediasoupRoom(options: UseMediasoupRoomArgs): UseMediasoupRoo
   const localUserIdRef = useRef<string | null>(localUserId ?? null);
   const rtcRoomTypeRef = useRef<RtcRoomType>(rtcRoomType ?? "direct");
   const statusRef = useRef(status);
+  const localDisplayNameRef = useRef(localDisplayName);
+  const localProfileImageUrlRef = useRef(localProfileImageUrl);
 
   // Async handlers read latest values via refs (avoids stale closures).
   useEffect(() => {
@@ -99,6 +101,11 @@ export function useMediasoupRoom(options: UseMediasoupRoomArgs): UseMediasoupRoo
     micEnabledRef.current = micEnabled;
     cameraEnabledRef.current = cameraEnabled;
   }, [localUserId, rtcRoomType, status, localStream, micEnabled, cameraEnabled]);
+
+  useEffect(() => {
+    localDisplayNameRef.current = localDisplayName;
+    localProfileImageUrlRef.current = localProfileImageUrl;
+  }, [localDisplayName, localProfileImageUrl]);
 
   const remoteParticipants = useMemo(
     () => remoteParticipantsFromRecord(remoteStreamsByPeerId, peers),
@@ -337,8 +344,8 @@ export function useMediasoupRoom(options: UseMediasoupRoomArgs): UseMediasoupRoo
     rtcSocket,
     rtcSocketState,
     rtcRoomId,
-    localDisplayName,
-    localProfileImageUrl,
+    localDisplayNameRef,
+    localProfileImageUrlRef,
     cleanupLocalScreenShareRef,
     refs: sessionRefs,
     set: sessionSet,

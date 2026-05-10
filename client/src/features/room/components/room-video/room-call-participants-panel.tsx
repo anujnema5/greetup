@@ -120,7 +120,8 @@ function ParticipantVideoTile({
     tileAspect === "square" && "aspect-square",
     tileAspect === "video" && "aspect-video",
     shareIsFocused && "ring-2 ring-primary ring-offset-2 ring-offset-background",
-    isDominantSpeaker && DOMINANT_SPEAKER_TILE_RING,
+    // Avoid stacking primary + emerald rings + glow in the same corner as `TileMediaStatus`.
+    isDominantSpeaker && !shareIsFocused && DOMINANT_SPEAKER_TILE_RING,
     canPickShare && "cursor-pointer transition-[box-shadow,transform] hover:ring-2 hover:ring-primary/50",
     tileClassName,
   );
@@ -176,7 +177,13 @@ function ParticipantVideoTile({
       >
         {label}
       </TileNameBadge>
-      <TileMediaStatus micOn={!micOff} cameraOn={!cameraOff} />
+      <TileMediaStatus
+        micOn={!micOff}
+        cameraOn={!cameraOff}
+        className={cn(
+          (shareIsFocused || isDominantSpeaker) && "bottom-3 right-3 z-20 sm:bottom-3.5 sm:right-3.5",
+        )}
+      />
       {sharingScreen ? (
         <div className="pointer-events-none absolute left-2 top-2 flex items-center gap-1 rounded-md bg-black/55 px-1.5 py-0.5 text-[10px] font-semibold text-white/95 backdrop-blur-sm">
           <Monitor size={12} className="shrink-0" />

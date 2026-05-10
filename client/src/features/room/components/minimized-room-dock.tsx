@@ -1,55 +1,76 @@
 "use client";
 
-import { useCallback, useRef } from "react";
+import { useCallback, useMemo, useRef } from "react";
 import { useRouter, usePathname } from "next/navigation";
+import { useSession } from "@/lib/auth-client";
 import { useAppDispatch, useAppSelector } from "@/lib/redux/hooks";
 import {
   selectActiveRoomId,
+  selectDirectCallPeerLabel,
   selectIsRoomMinimized,
   selectIsVideoSessionActive,
+  selectRtcPrimaryRemoteUserId,
 } from "@/lib/redux/selectors/room-selectors";
 import { expandVideoSession } from "@/lib/redux/slices/room-slice";
-import { clearRoomMinimized } from "@/features/room/lib/room-sync";
 import { isCircleRoomData } from "@/features/matching";
 import { useGetRoomQuery } from "@/features/room/api/room-api";
 import { useRoomVideo } from "@/features/room/hooks/use-room-video";
+import { useMinimizedDockMainStage } from "@/features/room/hooks/use-minimized-dock-main-stage";
 import { MOCK_MATCH } from "@/features/room/constants/mock-match";
-import {
-  hasLiveEnabledVideo,
-  hasLiveMedia,
-  hasLiveVideo,
-  useRtcSocketContext,
-} from "@/features/rtc";
+import { mediaStreamVideoAttachRevision, useRtcSocketContext } from "@/features/rtc";
 import { canUseScreenShare } from "@/features/rtc/lib/screen-share-policy";
 import { useMobileWebRtcUi } from "@/features/rtc/hooks/use-mobile-web-rtc-ui";
 import { allowScreenShareCallControl } from "@/features/rtc/lib/rtc-mobile-profile";
 import { cn } from "@/lib/utils";
 import {
-  Maximize2,
   Mic,
   MicOff,
   Monitor,
   MonitorOff,
   PhoneOff,
   SkipForward,
+  SquareArrowOutUpRight,
   Video,
   VideoOff,
 } from "lucide-react";
-import { useAttachMediaStream } from "@/features/room/hooks/use-attach-media-stream";
+import { MinimizedDockVideoFromSink } from "@/features/room/components/minimized-dock-video-sink";
 import { useCallElapsedSeconds } from "@/features/room/hooks/use-call-elapsed-seconds";
 import {
   MINIMIZED_DOCK_OFFSET_STORAGE_KEY,
   useMinimizedDockDrag,
 } from "@/features/room/hooks/use-minimized-dock-drag";
+import { clearRoomMinimized } from "@/features/room/lib/room-sync";
 import { formatCallDuration } from "@/features/room/lib/format-call-duration";
+import {
+  DOMINANT_SPEAKER_TILE_RING,
+  isDominantSpeakerPeer,
+} from "@/features/room/lib/dominant-speaker-tile";
+import {
+  CameraOffAvatar,
+  TileSpeakingRings,
+} from "@/features/room/components/room-video/room-video-primitives";
+import { useRerenderOnVideoTrackMuteCycle } from "@/features/room/hooks/use-attach-media-stream";
 
-export function MinimizedRoomDock() {
+function displayInitials(name: string): string {
+  return name
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((w) => w[0]!.toUpperCase())
+    .join("");
+}
+
+/** Heavy RTC + dock logic — only mounted when {@link MinimizedRoomDock} gate says minimized + off /circle. */
+function MinimizedRoomDockPanel() {
   const router = useRouter();
-  const pathname = usePathname();
   const dispatch = useAppDispatch();
   const isActive = useAppSelector(selectIsVideoSessionActive);
-  const isMinimized = useAppSelector(selectIsRoomMinimized);
   const activeRoomId = useAppSelector(selectActiveRoomId);
+  const rtcPrimaryRemoteUserId = useAppSelector(selectRtcPrimaryRemoteUserId);
+  const directCallPeerLabel = useAppSelector(selectDirectCallPeerLabel);
+  const { data: session } = useSession();
+  const currentUserId = session?.user?.id ?? null;
+  const localProfileImageUrl = session?.user?.image ?? null;
 
   const { data: dockRoomMeta } = useGetRoomQuery(activeRoomId ?? "", {
     skip: !activeRoomId || !isActive,
@@ -65,7 +86,9 @@ export function MinimizedRoomDock() {
     localMediaStream,
     remoteMediaStream,
     mainStageShowsScreen,
-    remotePeerCameraStream,
+    remoteParticipants,
+    remoteTrackMediaSource,
+    dominantSpeakerPeerId,
     mediasoupStatus,
     rtcRoomType,
     micEnabled,
@@ -78,46 +101,91 @@ export function MinimizedRoomDock() {
     clearLocalMediaDeviceError,
   } = useRtcSocketContext();
 
+  const dockStage = useMinimizedDockMainStage({
+    mainStageShowsScreen,
+    remoteMediaStream,
+    remoteParticipants,
+    remoteTrackMediaSource,
+    dominantSpeakerPeerId,
+    rtcRoomType,
+    rtcPrimaryRemoteUserId,
+    currentUserId,
+    localMediaStream,
+    directCallPeerLabel,
+  });
+
   const mediaControlsReady = mediasoupStatus === "ready";
   const screenShareAllowed = canUseScreenShare(rtcRoomType);
   const mobileWebCallUi = useMobileWebRtcUi();
   const showScreenShareInDock =
     screenShareAllowed && allowScreenShareCallControl(mobileWebCallUi, screenSharing);
-  const remoteVideoRef = useRef<HTMLVideoElement>(null);
-  const peerCameraInsetRef = useRef<HTMLVideoElement>(null);
-  const localVideoRef = useRef<HTMLVideoElement>(null);
+  const mainVideoLive = dockStage.mainVideoLive;
+  const mainStream = dockStage.mainStream;
+  const mainAttachKey = mediaStreamVideoAttachRevision(mainStream);
 
-  const remoteVideoLive = hasLiveVideo(remoteMediaStream);
-  const remoteMediaLive = hasLiveMedia(remoteMediaStream);
-  const localVideoLive = hasLiveEnabledVideo(localMediaStream);
+  const sideStripStream = dockStage.sideStrip.stream;
+  const sideStripMuteCycle = useRerenderOnVideoTrackMuteCycle(sideStripStream);
+  const sideAttachKey = `${sideStripMuteCycle}:${mediaStreamVideoAttachRevision(sideStripStream)}`;
+  const sideStripRemote = dockStage.sideStrip.remotePeer;
+  const sideStripMicMuted = sideStripRemote
+    ? sideStripRemote.peer.micActive === false
+    : !micEnabled;
 
-  const peerCameraInsetStream =
-    mainStageShowsScreen && remotePeerCameraStream && hasLiveVideo(remotePeerCameraStream)
-      ? remotePeerCameraStream
-      : null;
-  const peerCameraInsetLive = hasLiveVideo(peerCameraInsetStream);
+  const mainTileDominant =
+    !dockStage.mainStageShowsScreen &&
+    Boolean(
+      dockStage.mainFocusPeerId &&
+        isDominantSpeakerPeer(dominantSpeakerPeerId, dockStage.mainFocusPeerId),
+    );
 
-  useAttachMediaStream(remoteVideoRef, remoteMediaStream ?? null, remoteVideoLive);
-  useAttachMediaStream(localVideoRef, localMediaStream ?? null, localVideoLive);
-  useAttachMediaStream(peerCameraInsetRef, peerCameraInsetStream, peerCameraInsetLive);
-
-  const isFullRoom = pathname.startsWith("/circle/");
-  const visible = isActive && isMinimized && !isFullRoom;
+  const mainAvatar = useMemo(() => {
+    const p = dockStage.mainParticipant;
+    if (p) {
+      return {
+        name: dockStage.headerLabel,
+        initials: displayInitials(
+          p.peer.displayName?.trim() || dockStage.headerLabel || "?",
+        ),
+        imageUrl: p.peer.image ?? null,
+        micOff: p.peer.micActive === false,
+        stream: p.stream,
+      };
+    }
+    if (dockStage.headerLabel === "You") {
+      return {
+        name: "You",
+        initials: "You".slice(0, 2).toUpperCase(),
+        imageUrl: null as string | null,
+        micOff: !micEnabled,
+        stream: localMediaStream,
+      };
+    }
+    return {
+      name: dockStage.headerLabel,
+      initials: displayInitials(dockStage.headerLabel || "?"),
+      imageUrl: null as string | null,
+      micOff: undefined as boolean | undefined,
+      stream: null as MediaStream | null,
+    };
+  }, [dockStage.mainParticipant, dockStage.headerLabel, micEnabled, localMediaStream]);
 
   const cardRef = useRef<HTMLDivElement>(null);
-  const elapsed = useCallElapsedSeconds(visible);
+  const elapsed = useCallElapsedSeconds(true);
   const { onDragPointerDown, onDragPointerMove, onDragPointerUp } = useMinimizedDockDrag(
     cardRef,
-    visible,
+    true,
     elapsed,
   );
 
   const handleExpand = useCallback(() => {
     dispatch(expandVideoSession());
-    clearRoomMinimized();
+    // Keep `ROOM_MINIMIZED_KEY` until `/circle` mounts `RoomVideoLayer` (`useRoomVideo` clears it).
+    // Clearing here runs before navigation; `useRoomPageTabLease` cleanup then thinks we fully
+    // left the room and dispatches `resetRoomState()`, which tears down RTC and forces re-join.
     if (activeRoomId) {
       router.push(`/circle/${activeRoomId}`);
     } else {
+      clearRoomMinimized();
       router.push("/home");
     }
   }, [dispatch, router, activeRoomId]);
@@ -140,16 +208,16 @@ export function MinimizedRoomDock() {
     roomHandleSkip();
   }, [roomHandleSkip, clearDockOffset]);
 
-  if (!visible) return null;
+  const tileShell =
+    "relative flex min-h-0 min-w-0 flex-col overflow-hidden rounded-xl bg-zinc-950/90 ring-1 ring-white/12 shadow-inner shadow-black/40";
 
   return (
     <div
       ref={cardRef}
       className={cn(
-        "fixed z-200 flex max-h-[min(92dvh,calc(100vh-1rem))] flex-col overflow-hidden rounded-2xl border border-border bg-card shadow-2xl max-md:rounded-xl",
-        "w-[min(25rem,calc(100vw-1.25rem))]",
-        "max-md:bottom-[5.25rem] max-md:right-3",
-        "md:bottom-4 md:right-4",
+        "fixed z-200 flex max-h-[min(92dvh,calc(100vh-1rem))] flex-col overflow-hidden rounded-2xl border border-border bg-card/95 shadow-2xl backdrop-blur-md max-md:rounded-xl",
+        "w-[min(28rem,calc(100vw-1rem))] max-md:max-w-[calc(100vw-0.75rem)]",
+        "max-md:bottom-[5.25rem] max-md:right-2 max-md:left-2 md:bottom-4 md:right-4 md:left-auto md:w-[min(28rem,calc(100vw-1.25rem))]",
       )}
       style={{
         boxShadow: "0 16px 48px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.06)",
@@ -164,134 +232,144 @@ export function MinimizedRoomDock() {
         onPointerCancel={onDragPointerUp}
         className={cn(
           "relative w-full shrink-0 cursor-default overflow-hidden select-none touch-none",
-          "h-[11rem] min-h-[11rem] sm:h-[12.75rem] sm:min-h-[12.75rem] md:h-[14rem] md:min-h-[14rem]",
+          "min-h-[12.5rem] sm:min-h-[14rem] md:min-h-[15rem]",
         )}
       >
-        <div className="flex h-full w-full min-w-0 flex-row overflow-hidden">
-          <div className="relative min-h-0 min-w-0 flex-1">
-            <div
-              className="absolute inset-0"
-              style={{
-                background: `linear-gradient(145deg, ${MOCK_MATCH.gradFrom}40, var(--card) 45%, ${MOCK_MATCH.gradTo}35)`,
-              }}
-            />
-            <div
-              className="pointer-events-none absolute inset-0 opacity-[0.35]"
-              style={{
-                backgroundImage:
-                  "repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(255,255,255,0.03) 2px, rgba(255,255,255,0.03) 3px), repeating-linear-gradient(90deg, transparent, transparent 2px, rgba(255,255,255,0.02) 2px, rgba(255,255,255,0.02) 3px)",
-              }}
-            />
-            {remoteMediaLive ? (
-              <video
-                ref={remoteVideoRef}
-                playsInline
-                autoPlay
-                className={cn(
-                  remoteVideoLive
-                    ? "pointer-events-none absolute inset-0 h-full w-full"
-                    : "pointer-events-none absolute h-px w-px overflow-hidden opacity-0",
-                  remoteVideoLive &&
-                    (mainStageShowsScreen ? "bg-black object-contain" : "object-cover"),
-                )}
+        <div
+          className={cn(
+            "grid h-full min-h-[inherit] w-full min-w-0 grid-cols-[minmax(0,1fr)_minmax(4.75rem,26%)] gap-1.5 p-2 sm:grid-cols-[minmax(0,1fr)_6rem] sm:gap-2 sm:p-2.5",
+          )}
+        >
+          <div className={cn(tileShell, "min-h-[10.5rem] sm:min-h-[11.5rem]", mainTileDominant && DOMINANT_SPEAKER_TILE_RING)}>
+            <div className="absolute inset-0 overflow-hidden rounded-[inherit]">
+              <div
+                className="absolute inset-0"
+                style={{
+                  background: `linear-gradient(145deg, ${MOCK_MATCH.gradFrom}35, var(--card) 40%, ${MOCK_MATCH.gradTo}30)`,
+                }}
               />
-            ) : null}
-            {!remoteVideoLive && (
-              <div className="absolute inset-0 flex items-center justify-center">
-                <div
-                  className="relative flex h-[4.75rem] w-[4.75rem] items-center justify-center rounded-full text-2xl font-bold text-white shadow-lg sm:h-[5.25rem] sm:w-[5.25rem] sm:text-[1.75rem] md:h-[5.75rem] md:w-[5.75rem] md:text-3xl"
-                  style={{
-                    background: `linear-gradient(135deg, ${MOCK_MATCH.gradFrom}, ${MOCK_MATCH.gradTo})`,
-                    boxShadow: `0 0 36px ${MOCK_MATCH.gradFrom}66`,
-                  }}
-                >
-                  {MOCK_MATCH.initials}
-                </div>
-              </div>
-            )}
-          </div>
-          {peerCameraInsetStream ? (
-            <div
-              className="flex w-[26%] max-w-[5.5rem] shrink-0 flex-col border-l border-white/15 bg-black/40"
-              aria-label="Peer camera"
-            >
-              <div className="px-0.5 py-0.5 text-center">
-                <span className="text-[7px] font-medium text-white/55">Peer</span>
-              </div>
-              <div className="relative min-h-0 flex-1 overflow-hidden">
-                {peerCameraInsetLive ? (
-                  <video
-                    ref={peerCameraInsetRef}
-                    playsInline
-                    autoPlay
-                    className="pointer-events-none h-full w-full object-cover"
-                  />
-                ) : (
-                  <div
-                    className="flex h-full w-full items-center justify-center"
-                    style={{
-                      background:
-                        "linear-gradient(135deg, oklch(28% 0.04 105), oklch(18% 0.02 110))",
-                    }}
+              <div
+                className="pointer-events-none absolute inset-0 opacity-[0.28]"
+                style={{
+                  backgroundImage:
+                    "repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(255,255,255,0.03) 2px, rgba(255,255,255,0.03) 3px), repeating-linear-gradient(90deg, transparent, transparent 2px, rgba(255,255,255,0.02) 2px, rgba(255,255,255,0.02) 3px)",
+                }}
+              />
+              {dockStage.mainHasPlayableMedia ? (
+                <MinimizedDockVideoFromSink
+                  stream={mainStream}
+                  attachRevision={mainAttachKey}
+                  mirrored={dockStage.mainVideoMuted}
+                  videoVisible={mainVideoLive}
+                  visibleClassName={cn(
+                    "absolute inset-0 h-full w-full rounded-[inherit]",
+                    dockStage.mainStageShowsScreen ? "bg-black object-contain" : "object-cover",
+                  )}
+                  audioOnlyClassName="pointer-events-none absolute h-px w-px overflow-hidden opacity-0"
+                />
+              ) : null}
+              {!mainVideoLive && (
+                <div className="absolute inset-0 flex items-center justify-center bg-black/30">
+                  <TileSpeakingRings
+                    stream={mainAvatar.micOff === true ? null : mainAvatar.stream}
                   >
-                    <span className="text-[7px] text-white/40">—</span>
-                  </div>
+                    <CameraOffAvatar
+                      name={mainAvatar.name}
+                      initials={mainAvatar.initials}
+                      imageUrl={mainAvatar.imageUrl}
+                      sizeClass="h-16 w-16 sm:h-[4.5rem] sm:w-[4.5rem] md:h-20 md:w-20"
+                    />
+                  </TileSpeakingRings>
+                </div>
+              )}
+            </div>
+            <div className="pointer-events-none absolute inset-x-0 bottom-0 z-[1] bg-linear-to-t from-black/85 via-black/40 to-transparent px-2 pb-2 pt-6">
+              <div className="flex items-center gap-1.5">
+                {dockStage.stageBadge === "sharing" ? (
+                  <Monitor size={11} className="shrink-0 text-emerald-300/90" />
+                ) : (
+                  <Video size={11} className="shrink-0 text-white/70" />
                 )}
+                <span className="truncate text-[10px] font-medium text-white/90 sm:text-[11px]">
+                  {dockStage.stageBadge === "sharing" ? "Screen share" : dockStage.headerLabel}
+                </span>
               </div>
             </div>
-          ) : null}
-          <div
-            className={cn(
-              "flex shrink-0 flex-col border-l border-white/15 bg-black/40",
-              peerCameraInsetStream ? "w-[26%] max-w-[5.5rem]" : "w-[30%] max-w-[6.5rem]",
-            )}
-            aria-label="Your camera"
-          >
-            <div className="px-1 py-0.5 text-center">
-              <span className="text-[8px] font-medium text-white/55">You</span>
+          </div>
+
+          <div className={cn(tileShell, "min-h-0")} aria-label={dockStage.sideStrip.label}>
+            <div className="pointer-events-none border-b border-white/10 bg-black/50 px-1 py-1 text-center">
+              <span className="line-clamp-1 text-[8px] font-semibold uppercase tracking-wide text-white/60">
+                {dockStage.sideStrip.label}
+              </span>
             </div>
-            <div className="relative min-h-0 flex-1 overflow-hidden">
-              {localVideoLive ? (
-                <video
-                  ref={localVideoRef}
-                  playsInline
-                  autoPlay
-                  muted
-                  className="pointer-events-none h-full w-full object-cover"
+            <div className="relative min-h-0 flex-1">
+              {dockStage.sideStrip.videoLive ? (
+                <MinimizedDockVideoFromSink
+                  stream={sideStripStream}
+                  attachRevision={sideAttachKey}
+                  mirrored={dockStage.sideStrip.mirrorVideo}
+                  videoVisible
+                  visibleClassName="pointer-events-none absolute inset-0 h-full w-full object-cover"
+                  audioOnlyClassName="pointer-events-none absolute h-px w-px overflow-hidden opacity-0"
                 />
               ) : (
-                <div
-                  className="flex h-full w-full items-center justify-center"
-                  style={{
-                    background:
-                      "linear-gradient(135deg, oklch(28% 0.04 105), oklch(18% 0.02 110))",
-                  }}
-                >
-                  <div
-                    className="flex h-7 w-7 items-center justify-center rounded-full text-[9px] font-bold sm:h-8 sm:w-8 sm:text-[10px]"
-                    style={{
-                      background:
-                        "radial-gradient(circle at 40% 35%, oklch(90% 0.11 105), oklch(78% 0.10 105))",
-                      color: "oklch(22% 0.03 110)",
-                    }}
-                  >
-                    You
-                  </div>
+                <div className="flex h-full min-h-16 items-center justify-center bg-zinc-950/90">
+                  <TileSpeakingRings stream={sideStripMicMuted ? null : sideStripStream}>
+                    <CameraOffAvatar
+                      name={dockStage.sideStrip.label}
+                      initials={
+                        displayInitials(dockStage.sideStrip.label).slice(0, 2) || "?"
+                      }
+                      imageUrl={
+                        sideStripRemote?.peer.image?.trim()
+                          ? sideStripRemote.peer.image
+                          : dockStage.sideStrip.mirrorVideo
+                            ? localProfileImageUrl
+                            : null
+                      }
+                      sizeClass="h-11 w-11 sm:h-12 sm:w-12"
+                    />
+                  </TileSpeakingRings>
                 </div>
               )}
             </div>
           </div>
         </div>
+
         <div
-          className="pointer-events-none absolute inset-x-0 top-0 flex items-start justify-between gap-2 bg-gradient-to-b from-black/75 to-transparent px-3 pb-10 pt-2.5 sm:px-3.5 sm:pb-12 sm:pt-3"
+          className="pointer-events-none absolute inset-x-0 top-0 flex items-start justify-between gap-2 bg-linear-to-b from-black/80 to-transparent px-2 pb-12 pt-2 sm:px-3 sm:pb-14 sm:pt-2.5"
           style={{ userSelect: "none" }}
         >
-          <div className="flex min-w-0 items-center gap-2">
-            <p className="truncate text-xs font-semibold text-white sm:text-[13px]">
-              {MOCK_MATCH.name}
+          <div className="flex min-w-0 items-center gap-1.5 pt-0.5">
+            <p
+              className="truncate pl-0.5 text-[11px] font-semibold text-white/95 sm:text-xs md:text-[13px]"
+              aria-live="polite"
+            >
+              {dockStage.headerLabel}
             </p>
+            {dockStage.mainParticipant ? (
+              <span className="flex shrink-0 items-center gap-0.5">
+                {dockStage.mainParticipant.peer.micActive === false ? (
+                  <span
+                    className="flex h-6 w-6 items-center justify-center rounded-full bg-black/55 ring-1 ring-white/12"
+                    title="Their microphone is off"
+                  >
+                    <MicOff size={12} className="text-amber-200" strokeWidth={2.25} />
+                  </span>
+                ) : null}
+                {dockStage.mainParticipant.peer.cameraActive === false ? (
+                  <span
+                    className="flex h-6 w-6 items-center justify-center rounded-full bg-black/55 ring-1 ring-white/12"
+                    title="Their camera is off"
+                  >
+                    <VideoOff size={12} className="text-amber-200" strokeWidth={2.25} />
+                  </span>
+                ) : null}
+              </span>
+            ) : null}
           </div>
-          <div className="pointer-events-auto flex shrink-0 items-center gap-1 sm:gap-1.5">
+          <div className="pointer-events-auto flex max-w-[min(100%,18rem)] shrink-0 flex-wrap items-center justify-end gap-1 sm:gap-1.5">
             <button
               type="button"
               aria-label={micEnabled ? "Mute" : "Unmute"}
@@ -364,7 +442,7 @@ export function MinimizedRoomDock() {
               </button>
             ) : null}
             <div
-              className="rounded-full px-2 py-0.5 font-mono text-[11px] font-semibold text-white/85"
+              className="rounded-full px-2 py-0.5 font-mono text-[10px] font-semibold text-white/85 sm:text-[11px]"
               style={{
                 background: "rgba(0,0,0,0.5)",
                 border: "1px solid rgba(255,255,255,0.12)",
@@ -374,7 +452,8 @@ export function MinimizedRoomDock() {
             </div>
             <button
               type="button"
-              aria-label="Open full call"
+              aria-label="Return to full call"
+              title="Return to full call"
               onClick={handleExpand}
               onPointerDown={(e) => e.stopPropagation()}
               className="flex h-8 w-8 shrink-0 cursor-pointer items-center justify-center rounded-full text-white/90 hover:bg-white/10 sm:h-9 sm:w-9"
@@ -384,13 +463,9 @@ export function MinimizedRoomDock() {
                 backdropFilter: "blur(6px)",
               }}
             >
-              <Maximize2 size={15} strokeWidth={2} className="sm:h-4 sm:w-4" />
+              <SquareArrowOutUpRight size={15} strokeWidth={2} className="sm:h-4 sm:w-4" />
             </button>
           </div>
-        </div>
-        <div className="pointer-events-none absolute bottom-2 left-2.5 flex items-center gap-1.5 rounded-md bg-black/35 px-2 py-1 backdrop-blur-sm sm:bottom-2.5 sm:left-3">
-          <Video size={11} className="text-white/70" />
-          <span className="text-[9px] font-medium text-white/65 sm:text-[10px]">Video</span>
         </div>
       </div>
 
@@ -434,4 +509,16 @@ export function MinimizedRoomDock() {
       </div>
     </div>
   );
+}
+
+/**
+ * Floating call UI when the session is minimized. Cheap gate: no dock hooks on `/circle/...` full room.
+ */
+export function MinimizedRoomDock() {
+  const pathname = usePathname();
+  const isActive = useAppSelector(selectIsVideoSessionActive);
+  const isMinimized = useAppSelector(selectIsRoomMinimized);
+  const isFullRoom = pathname.startsWith("/circle/");
+  if (!isActive || !isMinimized || isFullRoom) return null;
+  return <MinimizedRoomDockPanel />;
 }

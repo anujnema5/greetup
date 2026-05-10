@@ -257,7 +257,7 @@ export function RoomVideoStage({
                   tiles={screenShareTiles}
                   focusedKey={focusedScreenShareKey}
                   onSelect={onSelectScreenShare}
-                  className="absolute bottom-2 left-2 right-2 z-10 max-h-[40%]"
+                  className="absolute bottom-2 left-2 right-2 z-10 max-h-[40%] xl:hidden"
                 />
               ) : null}
             </div>
@@ -406,7 +406,7 @@ export function RoomVideoStage({
                         tiles={screenShareTiles}
                         focusedKey={focusedScreenShareKey}
                         onSelect={onSelectScreenShare}
-                        className="absolute bottom-2 left-2 right-2 z-10"
+                        className="absolute bottom-2 left-2 right-2 z-10 xl:hidden"
                       />
                     ) : null}
                   </div>
@@ -450,7 +450,7 @@ export function RoomVideoStage({
                           tiles={screenShareTiles}
                           focusedKey={focusedScreenShareKey}
                           onSelect={onSelectScreenShare}
-                          className="absolute bottom-2 left-2 right-2 z-10"
+                          className="absolute bottom-2 left-2 right-2 z-10 xl:hidden"
                         />
                       ) : null}
                     </div>
@@ -584,7 +584,7 @@ export function RoomVideoStage({
                         tiles={screenShareTiles}
                         focusedKey={focusedScreenShareKey}
                         onSelect={directScreenShareFilmstripSelect}
-                        className="absolute bottom-2 left-2 right-2 z-10"
+                        className="absolute bottom-2 left-2 right-2 z-10 xl:hidden"
                       />
                     ) : null}
                   </div>
@@ -698,7 +698,7 @@ export function RoomVideoStage({
                         tiles={screenShareTiles}
                         focusedKey={focusedScreenShareKey}
                         onSelect={directScreenShareFilmstripSelect}
-                        className="absolute bottom-3 left-3 right-3 z-10"
+                        className="absolute bottom-3 left-3 right-3 z-10 xl:hidden"
                       />
                     ) : null}
                   </div>
