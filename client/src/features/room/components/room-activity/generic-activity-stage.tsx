@@ -17,6 +17,8 @@ type GenericActivityStageProps = {
   remoteCameraOff?: boolean;
   micEnabled?: boolean;
   cameraEnabled?: boolean;
+  peerAvatarUrl?: string | null;
+  myAvatarUrl?: string | null;
 };
 
 export function GenericActivityStage({
@@ -33,6 +35,8 @@ export function GenericActivityStage({
   remoteCameraOff = false,
   micEnabled = true,
   cameraEnabled = true,
+  peerAvatarUrl = null,
+  myAvatarUrl = null,
 }: GenericActivityStageProps) {
   return (
     <RoomActivityLayout
@@ -41,6 +45,8 @@ export function GenericActivityStage({
       peerLabel={peerLabel}
       myName={myName}
       peerInitials={peerInitials}
+      peerAvatarUrl={peerAvatarUrl}
+      myAvatarUrl={myAvatarUrl}
       remoteVideoLive={remoteVideoLive}
       localVideoLive={localVideoLive}
       remoteStream={remoteStream}

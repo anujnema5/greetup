@@ -2,6 +2,7 @@
 
 import { Search, UserX } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 
 // ─── SearchingCandidateState ──────────────────────────────────────────────────
 
@@ -82,12 +83,16 @@ function PulsingOrb({
       {/* Three concentric rings, each slightly smaller than the last */}
       <div className={`absolute inset-0 rounded-full border border-primary/12 ${ringClass}`} />
       <div
-        className={`absolute rounded-full border border-primary/14 ${ringClass}`}
-        style={{ inset: 14, animationDelay: animated ? "180ms" : undefined }}
+        className={cn(
+          `absolute inset-3.5 rounded-full border border-primary/14 ${ringClass}`,
+          animated && "[animation-delay:180ms]",
+        )}
       />
       <div
-        className={`absolute rounded-full border border-primary/18 ${ringClass}`}
-        style={{ inset: 28, animationDelay: animated ? "360ms" : undefined }}
+        className={cn(
+          `absolute inset-7 rounded-full border border-primary/18 ${ringClass}`,
+          animated && "[animation-delay:360ms]",
+        )}
       />
 
       {/* Glow behind the centre circle */}

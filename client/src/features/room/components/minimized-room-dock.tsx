@@ -16,7 +16,6 @@ import { isCircleRoomData } from "@/features/matching";
 import { useGetRoomQuery } from "@/features/room/api/room-api";
 import { useRoomVideo } from "@/features/room/hooks/use-room-video";
 import { useMinimizedDockMainStage } from "@/features/room/hooks/use-minimized-dock-main-stage";
-import { MOCK_MATCH } from "@/features/room/constants/mock-match";
 import { mediaStreamVideoAttachRevision, useRtcSocketContext } from "@/features/rtc";
 import { canUseScreenShare } from "@/features/rtc/lib/screen-share-policy";
 import { useMobileWebRtcUi } from "@/features/rtc/hooks/use-mobile-web-rtc-ui";
@@ -40,7 +39,6 @@ import {
   useMinimizedDockDrag,
 } from "@/features/room/hooks/use-minimized-dock-drag";
 import { clearRoomMinimized } from "@/features/room/lib/room-sync";
-import { formatCallDuration } from "@/features/room/lib/format-call-duration";
 import {
   DOMINANT_SPEAKER_TILE_RING,
   isDominantSpeakerPeer,
@@ -111,6 +109,7 @@ function MinimizedRoomDockPanel() {
     rtcPrimaryRemoteUserId,
     currentUserId,
     localMediaStream,
+    cameraEnabled,
     directCallPeerLabel,
   });
 
@@ -211,19 +210,29 @@ function MinimizedRoomDockPanel() {
   const tileShell =
     "relative flex min-h-0 min-w-0 flex-col overflow-hidden rounded-xl bg-zinc-950/90 ring-1 ring-white/12 shadow-inner shadow-black/40";
 
+  /** Matches `MOCK_MATCH` gradient in `mock-match.ts` — keep in sync if those tokens change. */
+  const dockMainTileGrad =
+    "bg-[linear-gradient(145deg,rgb(124_58_237/0.21),var(--card)_40%,rgb(79_70_229/0.19))]";
+  const dockMainTileGridNoise =
+    "bg-[repeating-linear-gradient(0deg,transparent,transparent_2px,rgba(255,255,255,0.03)_2px,rgba(255,255,255,0.03)_3px),repeating-linear-gradient(90deg,transparent,transparent_2px,rgba(255,255,255,0.02)_2px,rgba(255,255,255,0.02)_3px)]";
+
+  const dockFooterControlSurface =
+    "bg-black/50 border border-white/12 backdrop-blur-[6px]";
+
   return (
     <div
-      ref={cardRef}
       className={cn(
-        "fixed z-200 flex max-h-[min(92dvh,calc(100vh-1rem))] flex-col overflow-hidden rounded-2xl border border-border bg-card/95 shadow-2xl backdrop-blur-md max-md:rounded-xl",
-        "w-[min(28rem,calc(100vw-1rem))] max-md:max-w-[calc(100vw-0.75rem)]",
-        "max-md:bottom-[5.25rem] max-md:right-2 max-md:left-2 md:bottom-4 md:right-4 md:left-auto md:w-[min(28rem,calc(100vw-1.25rem))]",
+        "fixed z-200 max-md:left-1/2 max-md:-translate-x-1/2 max-md:right-auto max-md:bottom-[5.25rem]",
+        "md:bottom-4 md:right-4 md:left-auto",
+        "w-[min(18.5rem,calc(100vw-1rem))] md:w-[min(28rem,calc(100vw-1.25rem))]",
       )}
-      style={{
-        boxShadow: "0 16px 48px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.06)",
-        touchAction: "manipulation",
-      }}
     >
+      <div
+        ref={cardRef}
+        className={cn(
+          "flex max-h-[min(88dvh,calc(100vh-1rem))] w-full touch-manipulation flex-col overflow-hidden rounded-2xl border border-border bg-card/95 shadow-[0_16px_48px_rgba(0,0,0,0.5),0_0_0_1px_rgba(255,255,255,0.06)] backdrop-blur-md max-md:rounded-xl",
+        )}
+      >
       <div
         aria-label="Move call window"
         onPointerDown={onDragPointerDown}
@@ -232,28 +241,28 @@ function MinimizedRoomDockPanel() {
         onPointerCancel={onDragPointerUp}
         className={cn(
           "relative w-full shrink-0 cursor-default overflow-hidden select-none touch-none",
-          "min-h-[12.5rem] sm:min-h-[14rem] md:min-h-[15rem]",
+          "min-h-[9.75rem] sm:min-h-[12.5rem] md:min-h-[15rem]",
         )}
       >
         <div
           className={cn(
-            "grid h-full min-h-[inherit] w-full min-w-0 grid-cols-[minmax(0,1fr)_minmax(4.75rem,26%)] gap-1.5 p-2 sm:grid-cols-[minmax(0,1fr)_6rem] sm:gap-2 sm:p-2.5",
+            "grid h-full min-h-[inherit] w-full min-w-0 grid-cols-[minmax(0,1fr)_minmax(3.75rem,22%)] gap-1 p-1.5 sm:grid-cols-[minmax(0,1fr)_6rem] sm:gap-2 sm:p-2.5",
           )}
         >
-          <div className={cn(tileShell, "min-h-[10.5rem] sm:min-h-[11.5rem]", mainTileDominant && DOMINANT_SPEAKER_TILE_RING)}>
+          <div
+            className={cn(
+              tileShell,
+              "min-h-[8rem] sm:min-h-[10.5rem] md:min-h-[11.5rem]",
+              mainTileDominant && DOMINANT_SPEAKER_TILE_RING,
+            )}
+          >
             <div className="absolute inset-0 overflow-hidden rounded-[inherit]">
+              <div className={cn("absolute inset-0", dockMainTileGrad)} />
               <div
-                className="absolute inset-0"
-                style={{
-                  background: `linear-gradient(145deg, ${MOCK_MATCH.gradFrom}35, var(--card) 40%, ${MOCK_MATCH.gradTo}30)`,
-                }}
-              />
-              <div
-                className="pointer-events-none absolute inset-0 opacity-[0.28]"
-                style={{
-                  backgroundImage:
-                    "repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(255,255,255,0.03) 2px, rgba(255,255,255,0.03) 3px), repeating-linear-gradient(90deg, transparent, transparent 2px, rgba(255,255,255,0.02) 2px, rgba(255,255,255,0.02) 3px)",
-                }}
+                className={cn(
+                  "pointer-events-none absolute inset-0 opacity-[0.28]",
+                  dockMainTileGridNoise,
+                )}
               />
               {dockStage.mainHasPlayableMedia ? (
                 <MinimizedDockVideoFromSink
@@ -269,7 +278,7 @@ function MinimizedRoomDockPanel() {
                 />
               ) : null}
               {!mainVideoLive && (
-                <div className="absolute inset-0 flex items-center justify-center bg-black/30">
+                <div className="absolute inset-0 flex items-center justify-center bg-muted/20">
                   <TileSpeakingRings
                     stream={mainAvatar.micOff === true ? null : mainAvatar.stream}
                   >
@@ -277,33 +286,54 @@ function MinimizedRoomDockPanel() {
                       name={mainAvatar.name}
                       initials={mainAvatar.initials}
                       imageUrl={mainAvatar.imageUrl}
-                      sizeClass="h-16 w-16 sm:h-[4.5rem] sm:w-[4.5rem] md:h-20 md:w-20"
+                      sizeClass="h-14 w-14 sm:h-16 sm:w-16 md:h-20 md:w-20"
                     />
                   </TileSpeakingRings>
                 </div>
               )}
             </div>
             <div className="pointer-events-none absolute inset-x-0 bottom-0 z-[1] bg-linear-to-t from-black/85 via-black/40 to-transparent px-2 pb-2 pt-6">
-              <div className="flex items-center gap-1.5">
+              <div className="flex min-w-0 items-center gap-1.5">
                 {dockStage.stageBadge === "sharing" ? (
                   <Monitor size={11} className="shrink-0 text-emerald-300/90" />
                 ) : (
                   <Video size={11} className="shrink-0 text-white/70" />
                 )}
-                <span className="truncate text-[10px] font-medium text-white/90 sm:text-[11px]">
+                <span
+                  className="min-w-0 truncate text-[10px] font-medium text-white/90 sm:text-[11px]"
+                  aria-live="polite"
+                >
                   {dockStage.stageBadge === "sharing" ? "Screen share" : dockStage.headerLabel}
                 </span>
+                {dockStage.mainParticipant ? (
+                  <span className="ml-auto flex shrink-0 items-center gap-0.5">
+                    {dockStage.mainParticipant.peer.micActive === false ? (
+                      <span
+                        className="flex h-5 w-5 items-center justify-center rounded-full bg-black/55 ring-1 ring-white/12 sm:h-6 sm:w-6"
+                        title="Their microphone is off"
+                      >
+                        <MicOff size={11} className="text-amber-200 sm:h-3 sm:w-3" strokeWidth={2.25} />
+                      </span>
+                    ) : null}
+                    {dockStage.mainParticipant.peer.cameraActive === false ? (
+                      <span
+                        className="flex h-5 w-5 items-center justify-center rounded-full bg-black/55 ring-1 ring-white/12 sm:h-6 sm:w-6"
+                        title="Their camera is off"
+                      >
+                        <VideoOff size={11} className="text-amber-200 sm:h-3 sm:w-3" strokeWidth={2.25} />
+                      </span>
+                    ) : null}
+                  </span>
+                ) : null}
               </div>
             </div>
           </div>
 
-          <div className={cn(tileShell, "min-h-0")} aria-label={dockStage.sideStrip.label}>
-            <div className="pointer-events-none border-b border-white/10 bg-black/50 px-1 py-1 text-center">
-              <span className="line-clamp-1 text-[8px] font-semibold uppercase tracking-wide text-white/60">
-                {dockStage.sideStrip.label}
-              </span>
-            </div>
-            <div className="relative min-h-0 flex-1">
+          <div
+            className={cn(tileShell, "relative h-full min-h-0")}
+            aria-label={dockStage.sideStrip.label}
+          >
+            <div className="absolute inset-0 overflow-hidden rounded-[inherit]">
               {dockStage.sideStrip.videoLive ? (
                 <MinimizedDockVideoFromSink
                   stream={sideStripStream}
@@ -314,7 +344,7 @@ function MinimizedRoomDockPanel() {
                   audioOnlyClassName="pointer-events-none absolute h-px w-px overflow-hidden opacity-0"
                 />
               ) : (
-                <div className="flex h-full min-h-16 items-center justify-center bg-zinc-950/90">
+                <div className="absolute inset-0 flex items-center justify-center bg-muted/20">
                   <TileSpeakingRings stream={sideStripMicMuted ? null : sideStripStream}>
                     <CameraOffAvatar
                       name={dockStage.sideStrip.label}
@@ -328,143 +358,20 @@ function MinimizedRoomDockPanel() {
                             ? localProfileImageUrl
                             : null
                       }
-                      sizeClass="h-11 w-11 sm:h-12 sm:w-12"
+                      sizeClass="h-12 w-12 sm:h-14 sm:w-14"
                     />
                   </TileSpeakingRings>
                 </div>
               )}
             </div>
-          </div>
-        </div>
-
-        <div
-          className="pointer-events-none absolute inset-x-0 top-0 flex items-start justify-between gap-2 bg-linear-to-b from-black/80 to-transparent px-2 pb-12 pt-2 sm:px-3 sm:pb-14 sm:pt-2.5"
-          style={{ userSelect: "none" }}
-        >
-          <div className="flex min-w-0 items-center gap-1.5 pt-0.5">
-            <p
-              className="truncate pl-0.5 text-[11px] font-semibold text-white/95 sm:text-xs md:text-[13px]"
-              aria-live="polite"
-            >
-              {dockStage.headerLabel}
-            </p>
-            {dockStage.mainParticipant ? (
-              <span className="flex shrink-0 items-center gap-0.5">
-                {dockStage.mainParticipant.peer.micActive === false ? (
-                  <span
-                    className="flex h-6 w-6 items-center justify-center rounded-full bg-black/55 ring-1 ring-white/12"
-                    title="Their microphone is off"
-                  >
-                    <MicOff size={12} className="text-amber-200" strokeWidth={2.25} />
-                  </span>
-                ) : null}
-                {dockStage.mainParticipant.peer.cameraActive === false ? (
-                  <span
-                    className="flex h-6 w-6 items-center justify-center rounded-full bg-black/55 ring-1 ring-white/12"
-                    title="Their camera is off"
-                  >
-                    <VideoOff size={12} className="text-amber-200" strokeWidth={2.25} />
-                  </span>
-                ) : null}
-              </span>
-            ) : null}
-          </div>
-          <div className="pointer-events-auto flex max-w-[min(100%,18rem)] shrink-0 flex-wrap items-center justify-end gap-1 sm:gap-1.5">
-            <button
-              type="button"
-              aria-label={micEnabled ? "Mute" : "Unmute"}
-              title={micEnabled ? "Mute" : "Unmute"}
-              disabled={!mediaControlsReady}
-              onClick={toggleMic}
-              onPointerDown={(e) => e.stopPropagation()}
-              className={cn(
-                "flex h-8 w-8 shrink-0 cursor-pointer items-center justify-center rounded-full text-white/90 hover:bg-white/10 sm:h-9 sm:w-9",
-                !mediaControlsReady && "cursor-not-allowed opacity-40 hover:bg-transparent",
-              )}
-              style={{
-                background: "rgba(0,0,0,0.5)",
-                border: "1px solid rgba(255,255,255,0.12)",
-                backdropFilter: "blur(6px)",
-              }}
-            >
-              {micEnabled ? (
-                <Mic size={15} strokeWidth={2} className="sm:h-4 sm:w-4" />
-              ) : (
-                <MicOff size={15} strokeWidth={2} className="sm:h-4 sm:w-4 text-amber-200" />
-              )}
-            </button>
-            <button
-              type="button"
-              aria-label={cameraEnabled ? "Stop video" : "Start video"}
-              title={cameraEnabled ? "Stop video" : "Start video"}
-              disabled={!mediaControlsReady}
-              onClick={toggleCamera}
-              onPointerDown={(e) => e.stopPropagation()}
-              className={cn(
-                "flex h-8 w-8 shrink-0 cursor-pointer items-center justify-center rounded-full text-white/90 hover:bg-white/10 sm:h-9 sm:w-9",
-                !mediaControlsReady && "cursor-not-allowed opacity-40 hover:bg-transparent",
-              )}
-              style={{
-                background: "rgba(0,0,0,0.5)",
-                border: "1px solid rgba(255,255,255,0.12)",
-                backdropFilter: "blur(6px)",
-              }}
-            >
-              {cameraEnabled ? (
-                <Video size={15} strokeWidth={2} className="sm:h-4 sm:w-4" />
-              ) : (
-                <VideoOff size={15} strokeWidth={2} className="sm:h-4 sm:w-4 text-amber-200" />
-              )}
-            </button>
-            {showScreenShareInDock ? (
-              <button
-                type="button"
-                aria-label={screenSharing ? "Stop sharing" : "Share screen"}
-                title={screenSharing ? "Stop sharing" : "Share screen"}
-                disabled={!mediaControlsReady}
-                onClick={toggleScreenShare}
-                onPointerDown={(e) => e.stopPropagation()}
-                className={cn(
-                  "flex h-8 w-8 shrink-0 cursor-pointer items-center justify-center rounded-full text-white/90 hover:bg-white/10 sm:h-9 sm:w-9",
-                  !mediaControlsReady && "cursor-not-allowed opacity-40 hover:bg-transparent",
-                )}
-                style={{
-                  background: "rgba(0,0,0,0.5)",
-                  border: "1px solid rgba(255,255,255,0.12)",
-                  backdropFilter: "blur(6px)",
-                }}
-              >
-                {screenSharing ? (
-                  <Monitor size={15} strokeWidth={2} className="sm:h-4 sm:w-4" />
-                ) : (
-                  <MonitorOff size={15} strokeWidth={2} className="sm:h-4 sm:w-4 text-amber-200" />
-                )}
-              </button>
-            ) : null}
-            <div
-              className="rounded-full px-2 py-0.5 font-mono text-[10px] font-semibold text-white/85 sm:text-[11px]"
-              style={{
-                background: "rgba(0,0,0,0.5)",
-                border: "1px solid rgba(255,255,255,0.12)",
-              }}
-            >
-              {formatCallDuration(elapsed)}
+            <div className="pointer-events-none absolute inset-x-0 bottom-0 z-[1] bg-linear-to-t from-black/85 via-black/40 to-transparent px-1.5 pb-1.5 pt-5 sm:px-2 sm:pb-2 sm:pt-6">
+              <div className="flex min-w-0 items-center gap-1 sm:gap-1.5">
+                <Video size={11} className="shrink-0 text-white/70" />
+                <span className="line-clamp-1 min-w-0 truncate text-[9px] font-medium text-white/90 sm:text-[10px] sm:font-semibold">
+                  {dockStage.sideStrip.label}
+                </span>
+              </div>
             </div>
-            <button
-              type="button"
-              aria-label="Return to full call"
-              title="Return to full call"
-              onClick={handleExpand}
-              onPointerDown={(e) => e.stopPropagation()}
-              className="flex h-8 w-8 shrink-0 cursor-pointer items-center justify-center rounded-full text-white/90 hover:bg-white/10 sm:h-9 sm:w-9"
-              style={{
-                background: "rgba(0,0,0,0.5)",
-                border: "1px solid rgba(255,255,255,0.12)",
-                backdropFilter: "blur(6px)",
-              }}
-            >
-              <SquareArrowOutUpRight size={15} strokeWidth={2} className="sm:h-4 sm:w-4" />
-            </button>
           </div>
         </div>
       </div>
@@ -487,25 +394,98 @@ function MinimizedRoomDockPanel() {
         </div>
       ) : null}
 
-      <div className="flex items-center justify-center gap-3 border-t border-white/10 px-2.5 py-3 sm:gap-3 sm:px-4 sm:py-3.5">
-        {rtcRoomType !== "circle" && !dockSessionIsCircle ? (
+      <div className="flex w-full min-w-0 items-center justify-between gap-2 border-t border-white/10 px-1.5 py-1.5 sm:gap-3 sm:px-4 sm:py-3.5">
+        <div className="flex min-w-0 flex-1 flex-wrap items-center gap-1 sm:gap-1.5">
           <button
             type="button"
-            onClick={handleSkip}
-            className="flex min-h-[44px] min-w-[6.5rem] shrink-0 flex-col items-center justify-center gap-1 rounded-xl border border-white/15 bg-white/5 px-4 py-1.5 text-white/85 hover:bg-white/10 sm:min-h-0 sm:flex-row sm:gap-2 sm:px-5 sm:py-2.5"
+            aria-label={micEnabled ? "Mute" : "Unmute"}
+            title={micEnabled ? "Mute" : "Unmute"}
+            disabled={!mediaControlsReady}
+            onClick={toggleMic}
+            className={cn(
+              "flex h-8 w-8 shrink-0 cursor-pointer items-center justify-center rounded-full text-white/90 hover:bg-white/10 sm:h-9 sm:w-9",
+              dockFooterControlSurface,
+              !mediaControlsReady && "cursor-not-allowed opacity-40 hover:bg-transparent",
+            )}
           >
-            <SkipForward size={18} className="shrink-0 sm:size-[18px]" />
-            <span className="text-[10px] font-medium sm:text-xs">Skip</span>
+            {micEnabled ? (
+              <Mic size={15} strokeWidth={2} className="sm:h-4 sm:w-4" />
+            ) : (
+              <MicOff size={15} strokeWidth={2} className="sm:h-4 sm:w-4 text-amber-200" />
+            )}
           </button>
-        ) : null}
-        <button
-          type="button"
-          onClick={handleEnd}
-          className="flex min-h-[44px] min-w-[6.5rem] shrink-0 cursor-pointer flex-col items-center justify-center gap-1 rounded-xl bg-red-500 px-4 py-1.5 text-white hover:bg-red-400 sm:min-h-0 sm:flex-row sm:gap-2 sm:px-5 sm:py-2.5"
-        >
-          <PhoneOff size={18} className="shrink-0 sm:size-[18px]" />
-          <span className="text-[10px] font-medium sm:text-xs">End</span>
-        </button>
+          <button
+            type="button"
+            aria-label={cameraEnabled ? "Stop video" : "Start video"}
+            title={cameraEnabled ? "Stop video" : "Start video"}
+            disabled={!mediaControlsReady}
+            onClick={toggleCamera}
+            className={cn(
+              "flex h-8 w-8 shrink-0 cursor-pointer items-center justify-center rounded-full text-white/90 hover:bg-white/10 sm:h-9 sm:w-9",
+              dockFooterControlSurface,
+              !mediaControlsReady && "cursor-not-allowed opacity-40 hover:bg-transparent",
+            )}
+          >
+            {cameraEnabled ? (
+              <Video size={15} strokeWidth={2} className="sm:h-4 sm:w-4" />
+            ) : (
+              <VideoOff size={15} strokeWidth={2} className="sm:h-4 sm:w-4 text-amber-200" />
+            )}
+          </button>
+          {showScreenShareInDock ? (
+            <button
+              type="button"
+              aria-label={screenSharing ? "Stop sharing" : "Share screen"}
+              title={screenSharing ? "Stop sharing" : "Share screen"}
+              disabled={!mediaControlsReady}
+              onClick={toggleScreenShare}
+              className={cn(
+                "flex h-8 w-8 shrink-0 cursor-pointer items-center justify-center rounded-full text-white/90 hover:bg-white/10 sm:h-9 sm:w-9",
+                dockFooterControlSurface,
+                !mediaControlsReady && "cursor-not-allowed opacity-40 hover:bg-transparent",
+              )}
+            >
+              {screenSharing ? (
+                <Monitor size={15} strokeWidth={2} className="sm:h-4 sm:w-4" />
+              ) : (
+                <MonitorOff size={15} strokeWidth={2} className="sm:h-4 sm:w-4 text-amber-200" />
+              )}
+            </button>
+          ) : null}
+          <button
+            type="button"
+            aria-label="Return to full call"
+            title="Return to full call"
+            onClick={handleExpand}
+            className={cn(
+              "flex h-8 w-8 shrink-0 cursor-pointer items-center justify-center rounded-full text-white/90 hover:bg-white/10 sm:h-9 sm:w-9",
+              dockFooterControlSurface,
+            )}
+          >
+            <SquareArrowOutUpRight size={15} strokeWidth={2} className="sm:h-4 sm:w-4" />
+          </button>
+        </div>
+        <div className="flex shrink-0 items-center justify-end gap-1 sm:gap-3">
+          {rtcRoomType !== "circle" && !dockSessionIsCircle ? (
+            <button
+              type="button"
+              onClick={handleSkip}
+              className="flex h-7 min-h-7 shrink-0 flex-row items-center justify-center gap-1 rounded-md border border-white/15 bg-white/5 px-2 py-0 text-white/85 hover:bg-white/10 sm:h-auto sm:min-h-0 sm:gap-2 sm:rounded-xl sm:px-5 sm:py-2.5"
+            >
+              <SkipForward className="h-3 w-3 shrink-0 sm:h-[18px] sm:w-[18px]" />
+              <span className="text-[9px] font-medium sm:text-xs">Skip</span>
+            </button>
+          ) : null}
+          <button
+            type="button"
+            onClick={handleEnd}
+            className="flex h-7 min-h-7 shrink-0 cursor-pointer flex-row items-center justify-center gap-1 rounded-md bg-red-500 px-2 py-0 text-white hover:bg-red-400 sm:h-auto sm:min-h-0 sm:gap-2 sm:rounded-xl sm:px-5 sm:py-2.5"
+          >
+            <PhoneOff className="h-3 w-3 shrink-0 sm:h-[18px] sm:w-[18px]" />
+            <span className="text-[9px] font-medium sm:text-xs">End</span>
+          </button>
+        </div>
+      </div>
       </div>
     </div>
   );

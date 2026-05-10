@@ -456,14 +456,10 @@ export function RoomVideoToolbar({
                         aria-label="More call actions"
                         title="More call actions"
                         className={cn(
-                          "inline-flex size-11 shrink-0 cursor-pointer items-center justify-center rounded-full bg-white/15 p-0",
+                          "inline-flex size-11 shrink-0 cursor-pointer items-center justify-center rounded-full border border-white/18 bg-white/15 p-0 backdrop-blur-md",
                           "transition-colors hover:bg-white/25 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/35",
                           "touch-manipulation active:bg-white/20",
                         )}
-                        style={{
-                          border: "1px solid rgba(255,255,255,0.18)",
-                          backdropFilter: "blur(8px)",
-                        }}
                       >
                         <MoreVertical size={18} className="text-white/85" />
                       </button>

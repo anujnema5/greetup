@@ -27,7 +27,6 @@ export function RoomMobileChatSheetDragHandle({
         "flex shrink-0 touch-none select-none items-center justify-center py-2",
         "cursor-grab active:cursor-grabbing",
       )}
-      style={{ touchAction: "none" }}
       onPointerDown={onPointerDown}
       onPointerMove={onPointerMove}
       onPointerUp={onPointerUp}

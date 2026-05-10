@@ -13,8 +13,6 @@ export type MediaToggleButtonProps = {
   iconInactive: ReactNode;
 };
 
-const BTN_SIZE = 56;
-
 export function MediaToggleButton({
   active,
   labelActive,
@@ -38,12 +36,11 @@ export function MediaToggleButton({
     >
       <div
         className={cn(
-          "flex items-center justify-center rounded-2xl border transition-colors duration-200",
+          "flex size-14 items-center justify-center rounded-2xl border transition-colors duration-200",
           active
             ? "border-border/80 bg-card/85 dark:border-white/15 dark:bg-white/10"
             : "border-amber-500/40 bg-amber-950/45 dark:border-amber-400/30",
         )}
-        style={{ width: BTN_SIZE, height: BTN_SIZE }}
       >
         {active ? iconActive : iconInactive}
       </div>

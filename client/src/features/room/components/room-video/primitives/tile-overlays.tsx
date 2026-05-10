@@ -57,14 +57,9 @@ export function TileMediaStatus({
   return (
     <div
       className={cn(
-        "absolute bottom-2 right-2 z-10 flex items-center gap-1.5 rounded-full px-2 py-[5px]",
+        "absolute bottom-2 right-2 z-10 flex items-center gap-1.5 rounded-full border border-white/10 bg-black/58 px-2 py-[5px] backdrop-blur-[10px]",
         className,
       )}
-      style={{
-        background:     "rgba(0,0,0,0.58)",
-        backdropFilter: "blur(10px)",
-        border:         "1px solid rgba(255,255,255,0.1)",
-      }}
     >
       {showMicOff    && <MicOff   size={12} strokeWidth={2.2} className="shrink-0 text-red-400" />}
       {showCameraOff && <VideoOff size={12} strokeWidth={2.2} className="shrink-0 text-red-400" />}
@@ -100,22 +95,23 @@ export function TileSpeakingRings({
   // Listed inner → outer so they layer correctly.
   const rings = [
     {
-      label:   "inner",
-      scale:   1 + level * 0.14,
+      label: "inner",
+      scale: 1 + level * 0.14,
       opacity: speaking ? Math.min(level * 2.2, 0.9) : 0,
-      style:   { border: "2px solid rgba(52,211,153,0.92)" },
+      ringClass: "border-2 border-emerald-400/90",
     },
     {
-      label:   "middle",
-      scale:   1 + level * 0.38,
+      label: "middle",
+      scale: 1 + level * 0.38,
       opacity: speaking ? level * 0.68 : 0,
-      style:   { border: "1.5px solid rgba(52,211,153,0.65)" },
+      ringClass: "border-[1.5px] border-emerald-400/65",
     },
     {
-      label:   "outer",
-      scale:   1 + level * 0.72,
+      label: "outer",
+      scale: 1 + level * 0.72,
       opacity: speaking ? level * 0.38 : 0,
-      style:   { background: "radial-gradient(circle, transparent 44%, rgba(52,211,153,0.28) 100%)" },
+      ringClass:
+        "border-0 bg-[radial-gradient(circle,transparent_44%,rgba(52,211,153,0.28)_100%)]",
     },
   ];
 
@@ -124,11 +120,10 @@ export function TileSpeakingRings({
       {rings.map((ring) => (
         <div
           key={ring.label}
-          className="pointer-events-none absolute inset-0 rounded-full"
+          className={cn("pointer-events-none absolute inset-0 rounded-full", ring.ringClass)}
           style={{
-            ...ring.style,
-            transform:  `scale(${ring.scale})`,
-            opacity:    ring.opacity,
+            transform: `scale(${ring.scale})`,
+            opacity: ring.opacity,
             transition: "transform 80ms ease-out, opacity 80ms ease-out",
           }}
         />

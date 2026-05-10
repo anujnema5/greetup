@@ -77,6 +77,7 @@ export function StartCircleModalDialog(props: StartCircleModalDialogProps) {
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent
         showCloseButton
+        onOpenAutoFocus={(e) => e.preventDefault()}
         className={cn(
           "flex max-h-[min(90dvh,760px)] flex-col gap-0 overflow-y-auto p-6 sm:p-8",
           "border-border/60 bg-card shadow-2xl sm:max-w-2xl",

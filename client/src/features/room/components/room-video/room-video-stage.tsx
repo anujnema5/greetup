@@ -651,6 +651,8 @@ export function RoomVideoStage({
                       myName={myName}
                       currentUserId={currentUserId ?? null}
                       peerInitials={peerInitials}
+                      peerAvatarUrl={peerAvatarUrl}
+                      myAvatarUrl={myAvatarUrl}
                       remoteVideoLive={remoteVideoLive}
                       localVideoLive={localVideoLive}
                       remoteStream={remoteStream}
