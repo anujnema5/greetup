@@ -46,6 +46,7 @@ import { RoomVideoStageOverlays } from "@/features/room/components/room-video/ro
 import { RoomMobileChatSheetDragHandle } from "@/features/room/components/room-video/room-mobile-chat-sheet-drag-handle";
 import { RoomVideoRightPanel } from "@/features/room/components/room-video/room-video-right-panel";
 import { useRoomMobileChatSheetHeight } from "@/features/room/hooks/use-room-mobile-chat-sheet-height";
+import { useRoomRightPanelTab } from "@/features/room/hooks/use-room-right-panel-tab";
 import { cn } from "@/lib/utils";
 import { buildLocalPreviewStream } from "@/features/rtc/lib/direct-call-stage";
 import {
@@ -192,8 +193,6 @@ export function RoomVideoView({
   const mdDown = useSyncExternalStore(subscribeMdDown, snapshotMdDown, snapshotMdDownServer);
   const stageShellRef = useRef<HTMLDivElement>(null);
   const stageFullscreen = useStageFullscreen(stageShellRef);
-  const [rightPanelTab, setRightPanelTab] = useState<RoomCallRightPanelTab>("chat");
-  const prevShowPeopleTabRef = useRef(false);
   const [mobileChatSheetOpen, setMobileChatSheetOpen] = useState(false);
   const [activeActivity, setActiveActivity] = useState<RoomActivityId | null>(null);
   const [stageRatio, setStageRatio] = useState<StageRatio>(() =>
@@ -402,24 +401,11 @@ export function RoomVideoView({
 
   const mobileChatSheetDrag = useRoomMobileChatSheetHeight(mobileChatSheetOpen && !xlUp);
 
-  useEffect(() => {
-    if (rightPanelTab === "participants" && !showPeopleTab) {
-      setRightPanelTab("chat");
-    }
-  }, [rightPanelTab, showPeopleTab]);
-
-  useEffect(() => {
-    if (rightPanelTab === "activities" && !showActivitiesTab) {
-      setRightPanelTab("chat");
-    }
-  }, [rightPanelTab, showActivitiesTab]);
-
-  useEffect(() => {
-    if (showPeopleTab && !prevShowPeopleTabRef.current && xlUp) {
-      setRightPanelTab("participants");
-    }
-    prevShowPeopleTabRef.current = showPeopleTab;
-  }, [showPeopleTab, xlUp]);
+  const {
+    tab: rightPanelTab,
+    setTab: setRightPanelTab,
+    surfacePeopleIfAvailable,
+  } = useRoomRightPanelTab({ showPeopleTab, showActivitiesTab, xlUp });
 
   useEffect(() => {
     return () => {
@@ -450,7 +436,7 @@ export function RoomVideoView({
         });
       }
     },
-    [xlUp],
+    [xlUp, setRightPanelTab],
   );
 
   const suppressPeoplePanelCameras = shouldSuppressDuplicatePeopleCameras({
@@ -642,7 +628,12 @@ export function RoomVideoView({
                         {showStageFullscreenControl ? (
                           <button
                             type="button"
-                            onClick={() => void stageFullscreen.toggle()}
+                            onClick={() => {
+                              // Collapsing the share stage: re-surface People (participants
+                              // + share roster) rather than leaving whatever tab was active.
+                              if (stageFullscreen.isExpanded) surfacePeopleIfAvailable();
+                              void stageFullscreen.toggle();
+                            }}
                             aria-label={
                               stageFullscreen.isExpanded ? "Exit full screen" : "Full screen"
                             }
