@@ -1,7 +1,6 @@
-import { and, asc, eq, inArray, isNull, notExists, sql } from "drizzle-orm";
+import { and, asc, eq, gte, inArray, isNotNull, isNull, ne, notExists, or, sql } from "drizzle-orm";
 
 import { db } from "@/core/database";
-import type { RoomSessionType } from "@/shared/types/room-session";
 import {
   mergeRoomAdvancedOptions,
   roomCategories,
@@ -11,6 +10,8 @@ import {
   users,
   type RoomAdvancedOptions,
 } from "@/core/database/schema";
+import { computeRoomExpiryFields } from "@/modules/rooms/lib/room-expiry";
+import type { RoomSessionType } from "@/shared/types/room-session";
 
 export const roomsRepository = {
   async findUserDisplayLabel(userId: string): Promise<string> {
@@ -28,6 +29,23 @@ export const roomsRepository = {
     return db.query.rooms.findFirst({
       where: eq(rooms.id, roomId),
     });
+  },
+
+  async findLiveDirectRoomIdForParticipant(userId: string): Promise<string | null> {
+    const row = await db
+      .select({ roomId: roomParticipants.roomId })
+      .from(roomParticipants)
+      .innerJoin(rooms, eq(rooms.id, roomParticipants.roomId))
+      .where(
+        and(
+          eq(roomParticipants.userId, userId),
+          isNull(roomParticipants.leftAt),
+          eq(rooms.roomType, "direct"),
+          eq(rooms.status, "live"),
+        ),
+      )
+      .limit(1);
+    return row[0]?.roomId ?? null;
   },
 
   async isUserRoomParticipant(roomId: string, userId: string) {
@@ -68,6 +86,23 @@ export const roomsRepository = {
    * Marks a scheduled room as live and sets rtc_room_id to the same id for correlation with SFU/RTC.
    */
   async markRoomLive(roomId: string, startedAt: Date) {
+    const existing = await db.query.rooms.findFirst({
+      where: and(eq(rooms.id, roomId), eq(rooms.status, "scheduled")),
+      columns: {
+        scheduledStartAt: true,
+        scheduledEndAt: true,
+        advancedOptions: true,
+      },
+    });
+    if (!existing) return null;
+
+    const { expiresAt, isExpired } = computeRoomExpiryFields({
+      status: "live",
+      scheduledStartAt: existing.scheduledStartAt,
+      scheduledEndAt: existing.scheduledEndAt,
+      advancedOptions: existing.advancedOptions,
+    });
+
     const [row] = await db
       .update(rooms)
       .set({
@@ -75,6 +110,8 @@ export const roomsRepository = {
         startedAt,
         rtcRoomId: roomId,
         updatedAt: new Date(),
+        expiresAt,
+        isExpired,
       })
       .where(and(eq(rooms.id, roomId), eq(rooms.status, "scheduled")))
       .returning({
@@ -89,6 +126,35 @@ export const roomsRepository = {
     return row ?? null;
   },
 
+  /**
+   * Marks circle rooms as expired when:
+   * - `expires_at` is set and in the past, or
+   * - still `scheduled` but `scheduled_start_at` is in the past (session never started).
+   * Returns affected ids for Redis cleanup.
+   */
+  async syncPastDueCircleRoomExpiry(): Promise<string[]> {
+    const rows = await db
+      .update(rooms)
+      .set({ isExpired: true, updatedAt: new Date() })
+      .where(
+        and(
+          eq(rooms.roomType, "circle"),
+          inArray(rooms.status, ["live", "scheduled"]),
+          eq(rooms.isExpired, false),
+          or(
+            and(isNotNull(rooms.expiresAt), sql`${rooms.expiresAt} < NOW()`),
+            and(
+              eq(rooms.status, "scheduled"),
+              isNotNull(rooms.scheduledStartAt),
+              sql`${rooms.scheduledStartAt} < NOW()`,
+            ),
+          ),
+        ),
+      )
+      .returning({ id: rooms.id });
+    return rows.map((r) => r.id);
+  },
+
   async updateLiveRoomTitle(roomId: string, title: string) {
     const [row] = await db
       .update(rooms)
@@ -96,6 +162,82 @@ export const roomsRepository = {
       .where(and(eq(rooms.id, roomId), eq(rooms.status, "live")))
       .returning({ id: rooms.id });
     return row ?? null;
+  },
+
+  /**
+   * Host-only: update a circle that is still `scheduled`. Recomputes expiry fields.
+   */
+  async updateScheduledCircleByHost(params: {
+    roomId: string;
+    hostUserId: string;
+    title?: string;
+    scheduledStartAt?: Date;
+    scheduledEndAt?: Date | null;
+  }): Promise<
+    | { ok: true; id: string; title: string; scheduledStartAt: Date | null }
+    | { ok: false; reason: "NOT_FOUND" | "INVALID_SCHEDULE" | "INVALID_END" }
+  > {
+    const room = await db.query.rooms.findFirst({
+      where: and(eq(rooms.id, params.roomId), eq(rooms.hostUserId, params.hostUserId)),
+      columns: {
+        status: true,
+        roomType: true,
+        title: true,
+        scheduledStartAt: true,
+        scheduledEndAt: true,
+        advancedOptions: true,
+      },
+    });
+
+    if (!room || room.roomType !== "circle" || room.status !== "scheduled") {
+      return { ok: false, reason: "NOT_FOUND" };
+    }
+
+    const nextTitle =
+      params.title !== undefined ? params.title.trim() : room.title;
+    const nextStart =
+      params.scheduledStartAt !== undefined
+        ? params.scheduledStartAt
+        : room.scheduledStartAt;
+    const nextEnd =
+      params.scheduledEndAt !== undefined ? params.scheduledEndAt : room.scheduledEndAt;
+
+    const now = new Date();
+    if (!nextStart || nextStart <= now) {
+      return { ok: false, reason: "INVALID_SCHEDULE" };
+    }
+    if (nextEnd && nextEnd <= nextStart) {
+      return { ok: false, reason: "INVALID_END" };
+    }
+
+    const { expiresAt, isExpired } = computeRoomExpiryFields({
+      status: "scheduled",
+      scheduledStartAt: nextStart,
+      scheduledEndAt: nextEnd,
+      advancedOptions: room.advancedOptions,
+    });
+
+    const [row] = await db
+      .update(rooms)
+      .set({
+        title: nextTitle,
+        scheduledStartAt: nextStart,
+        scheduledEndAt: nextEnd,
+        expiresAt,
+        isExpired,
+        updatedAt: new Date(),
+      })
+      .where(and(eq(rooms.id, params.roomId), eq(rooms.status, "scheduled")))
+      .returning({
+        id: rooms.id,
+        title: rooms.title,
+        scheduledStartAt: rooms.scheduledStartAt,
+      });
+
+    if (!row) {
+      return { ok: false, reason: "NOT_FOUND" };
+    }
+    return { ok: true, ...row };
   },
 
   /** Pending/accepted friend invites for a room (e.g. notify invitees when session goes live). */
@@ -153,6 +295,8 @@ export const roomsRepository = {
         status: "live",
         startedAt: now,
         endedAt: null,
+        expiresAt: null,
+        isExpired: false,
         rtcRoomId: params.roomId,
         inviteCode: null,
         advancedOptions,
@@ -212,6 +356,13 @@ export const roomsRepository = {
     roomType: RoomSessionType;
   }) {
     return db.transaction(async (tx) => {
+      const { expiresAt, isExpired } = computeRoomExpiryFields({
+        status: params.status,
+        scheduledStartAt: params.scheduledStartAt,
+        scheduledEndAt: params.scheduledEndAt,
+        advancedOptions: params.advancedOptions,
+      });
+
       const [row] = await tx
         .insert(rooms)
         .values({
@@ -226,6 +377,8 @@ export const roomsRepository = {
           status: params.status,
           startedAt: params.startedAt,
           endedAt: null,
+          expiresAt,
+          isExpired,
           rtcRoomId: null,
           inviteCode: params.inviteCode,
           advancedOptions: params.advancedOptions,
@@ -285,6 +438,18 @@ export const roomsRepository = {
     )`;
   },
 
+  _activeCircleListingPredicate() {
+    return and(
+      eq(rooms.isExpired, false),
+      or(isNull(rooms.expiresAt), gte(rooms.expiresAt, sql`NOW()`)),
+      or(
+        ne(rooms.status, "scheduled"),
+        isNull(rooms.scheduledStartAt),
+        gte(rooms.scheduledStartAt, sql`NOW()`),
+      ),
+    );
+  },
+
   /** Shared column projection for the active-circles list. */
   _activeCircleColumns() {
     return {
@@ -295,6 +460,8 @@ export const roomsRepository = {
       maxParticipants: rooms.maxParticipants,
       scheduledStartAt: rooms.scheduledStartAt,
       startedAt: rooms.startedAt,
+      expiresAt: rooms.expiresAt,
+      isExpired: rooms.isExpired,
       roomType: rooms.roomType,
       hostUserId: rooms.hostUserId,
       categoryId: roomCategories.id,
@@ -331,6 +498,7 @@ export const roomsRepository = {
         and(
           eq(rooms.roomType, "circle"),
           inArray(rooms.status, ["live", "scheduled"]),
+          roomsRepository._activeCircleListingPredicate(),
         ),
       )
       .orderBy(
@@ -371,6 +539,7 @@ export const roomsRepository = {
           eq(rooms.roomType, "circle"),
           inArray(rooms.status, ["live", "scheduled"]),
           notExists(friendInviteExists),
+          roomsRepository._activeCircleListingPredicate(),
         ),
       )
       .orderBy(
@@ -431,6 +600,7 @@ export const roomsRepository = {
           eq(rooms.visibility, "public"),
           notExists(friendInviteExists),
           notExists(participantExists),
+          roomsRepository._activeCircleListingPredicate(),
           cursorClause,
         ),
       )

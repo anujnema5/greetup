@@ -64,6 +64,8 @@ export type ActiveCircleItem = {
   status: "live" | "scheduled";
   visibility: "public" | "private";
   maxParticipants: number;
+  expiresAt: string | null;
+  isExpired: boolean;
   scheduledStartAt: string | null;
   startedAt: string | null;
   participantCount: number;
@@ -95,3 +97,19 @@ export type ActiveCirclesData = {
 };
 
 export type ActiveCirclesApiResponse = ApiResponse<ActiveCirclesData>;
+
+export type UpdateScheduledCircleRequest = {
+  title?: string;
+  scheduledStartAt?: string;
+  scheduledEndAt?: string | null;
+};
+
+export type UpdateScheduledCircleResult = {
+  room: {
+    id: string;
+    title: string;
+    scheduledStartAt: string | null;
+  };
+};
+
+export type UpdateScheduledCircleApiResponse = ApiResponse<UpdateScheduledCircleResult>;

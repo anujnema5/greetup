@@ -13,6 +13,8 @@ import type {
   CreateCircleApiResponse,
   CreateCircleRequest,
   ListCircleCategoriesApiResponse,
+  UpdateScheduledCircleApiResponse,
+  UpdateScheduledCircleRequest,
 } from "../types/circles-api.types";
 
 const { CIRCLES } = API_ENDPOINTS;
@@ -57,6 +59,18 @@ export const circlesApi = baseApi.injectEndpoints({
       }),
       invalidatesTags: [CACHE_ACTIVE_CIRCLES],
     }),
+
+    updateScheduledCircle: build.mutation<
+      UpdateScheduledCircleApiResponse,
+      { roomId: string; body: UpdateScheduledCircleRequest }
+    >({
+      query: ({ roomId, body }) => ({
+        url: CIRCLES.patch(roomId),
+        method: "PATCH",
+        body,
+      }),
+      invalidatesTags: [CACHE_ACTIVE_CIRCLES],
+    }),
   }),
 });
 
@@ -64,4 +78,5 @@ export const {
   useListCircleCategoriesQuery,
   useListActiveCirclesQuery,
   useCreateCircleMutation,
+  useUpdateScheduledCircleMutation,
 } = circlesApi;

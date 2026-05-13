@@ -59,6 +59,7 @@ export const API_ENDPOINTS = {
     CATEGORIES: "/circles/categories",
     CREATE: "/circles",
     ACTIVE: "/circles/active",
+    patch: (roomId: string) => `/circles/${encodeURIComponent(roomId)}` as const,
   },
   CHAT: {
     CONVERSATIONS:        '/chat/conversations',
