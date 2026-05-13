@@ -137,6 +137,9 @@ function MinimizedRoomDockPanel() {
         isDominantSpeakerPeer(dominantSpeakerPeerId, dockStage.mainFocusPeerId),
     );
 
+  /** PiP column shows self (incl. screen-share) vs remote — nudge column split so local is slightly wider, remote strip slightly narrower when swapped. */
+  const dockStripShowsLocalSelf = dockStage.sideStrip.label === "You";
+
   const mainAvatar = useMemo(() => {
     const p = dockStage.mainParticipant;
     if (p) {
@@ -219,6 +222,9 @@ function MinimizedRoomDockPanel() {
   const dockFooterControlSurface =
     "bg-black/50 border border-white/12 backdrop-blur-[6px]";
 
+  const dockExpandCallBtnClass =
+    "box-border inline-flex size-8 shrink-0 cursor-pointer items-center justify-center rounded-xl border border-white/25 bg-black/55 p-1 leading-none text-white shadow-lg backdrop-blur-md transition-colors hover:bg-black/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40";
+
   return (
     <div
       className={cn(
@@ -244,9 +250,26 @@ function MinimizedRoomDockPanel() {
           "min-h-[9.75rem] sm:min-h-[12.5rem] md:min-h-[15rem]",
         )}
       >
+        <button
+          type="button"
+          aria-label="Return to full call"
+          title="Return to full call"
+          onPointerDown={(e) => e.stopPropagation()}
+          onClick={handleExpand}
+          className={cn(
+            dockExpandCallBtnClass,
+            "absolute z-[2] top-3 right-3 sm:top-3.5 sm:right-3.5 md:top-4 md:right-4",
+            "pointer-events-auto touch-manipulation",
+          )}
+        >
+          <SquareArrowOutUpRight size={14} strokeWidth={2} className="block shrink-0" aria-hidden />
+        </button>
         <div
           className={cn(
-            "grid h-full min-h-[inherit] w-full min-w-0 grid-cols-[minmax(0,1fr)_minmax(3.75rem,22%)] gap-1 p-1.5 sm:grid-cols-[minmax(0,1fr)_6rem] sm:gap-2 sm:p-2.5",
+            "grid h-full min-h-[inherit] w-full min-w-0 gap-1 p-1.5 sm:gap-2 sm:p-2.5",
+            dockStripShowsLocalSelf
+              ? "grid-cols-[minmax(0,1fr)_minmax(5.25rem,36%)] sm:grid-cols-[minmax(0,1fr)_9rem]"
+              : "grid-cols-[minmax(0,1fr)_minmax(3.5rem,20%)] sm:grid-cols-[minmax(0,1fr)_5.5rem]",
           )}
         >
           <div
@@ -452,18 +475,6 @@ function MinimizedRoomDockPanel() {
               )}
             </button>
           ) : null}
-          <button
-            type="button"
-            aria-label="Return to full call"
-            title="Return to full call"
-            onClick={handleExpand}
-            className={cn(
-              "flex h-8 w-8 shrink-0 cursor-pointer items-center justify-center rounded-full text-white/90 hover:bg-white/10 sm:h-9 sm:w-9",
-              dockFooterControlSurface,
-            )}
-          >
-            <SquareArrowOutUpRight size={15} strokeWidth={2} className="sm:h-4 sm:w-4" />
-          </button>
         </div>
         <div className="flex shrink-0 items-center justify-end gap-1 sm:gap-3">
           {rtcRoomType !== "circle" && !dockSessionIsCircle ? (
