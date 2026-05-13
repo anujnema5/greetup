@@ -1,10 +1,11 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { toast } from "sonner";
 import type { AppDispatch } from "@/lib/redux/store";
 import { startVideoSession } from "@/lib/redux/slices/room-slice";
 import { useJoinRoomMutation } from "@/features/room/api/room-api";
-import { getRtkQueryErrorMessage } from "@/lib/api/rtk-query-error";
+import { getRtkMutationErrorMessage } from "@/lib/api/rtk-mutation-error";
 import { markRoomActive } from "@/features/room/lib/room-sync";
 
 /**
@@ -41,10 +42,12 @@ export function useRoomJoinAndStartVideo({
       })
       .catch((err: unknown) => {
         if (!cancelled) {
+          const message = getRtkMutationErrorMessage(err, "Could not join this room");
           setJoinRoomErrorState({
             roomId,
-            message: getRtkQueryErrorMessage(err),
+            message,
           });
+          toast.error(message, { id: `join-room-${roomId}` });
         }
       });
     return () => {

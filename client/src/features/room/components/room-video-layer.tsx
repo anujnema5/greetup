@@ -10,7 +10,7 @@
  *
  * Keep this file focused on state composition + event wiring, not low-level tile rendering.
  */
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import { useSession } from "@/lib/auth-client";
 import { useAppDispatch, useAppSelector } from "@/lib/redux/hooks";
@@ -24,7 +24,13 @@ import {
 } from "@/features/activity";
 import { useRtcSocketContext } from "@/features/rtc";
 import { useMatchmaking } from "@/features/matching";
+import {
+  useOpenCircleMeetingMutation,
+  useStartScheduledCircleMutation,
+} from "@/features/room/api/room-api";
+import { Button } from "@/components/ui/button";
 import { AddToCircleDialog } from "@/features/room/components/add-to-circle-dialog";
+import { CircleLobbyOverlay } from "@/features/room/components/circle-lobby-overlay";
 import { RoomVideoView } from "@/features/room/components/room-video-view";
 import { useRoomPeerChrome } from "@/features/room/hooks/use-room-peer-chrome";
 import { useRoomVideo } from "@/features/room/hooks/use-room-video";
@@ -35,6 +41,8 @@ import {
   useRoomEmbeddedActivitiesCatalog,
 } from "@/features/room/embedded-activities";
 import type { RoomActivityId } from "@/features/room/types/room-activity.types";
+import { formatScheduledStart } from "@/lib/datetime/format-scheduled-start";
+import { isClientStillBeforeScheduledStart } from "@/lib/datetime/scheduled-start-guards";
 
 export type RoomVideoLayerProps = {
   roomId: string;
@@ -44,6 +52,16 @@ export type RoomVideoLayerProps = {
   isGroupRoom: boolean;
   groupRoomTitle: string | null;
   circleCanEditTitle?: boolean;
+  /** DB circle host — used for “open circle for everyone” lobby control. */
+  circleHostUserId?: string | null;
+  /** From GET `/room/:id` Redis payload (`db_room`). */
+  circleLobbyGateActive?: "0" | "1" | null;
+  /** ISO scheduled start from GET room — pre-start lobby (G-Meet–style time line). */
+  circleScheduledStartAt?: string | null;
+  /** Postgres circle lifecycle from GET room (`scheduled`, `live`, …). */
+  circleRoomStatus?: string | null;
+  /** True for a persisted circle room (`sessionKind: "db_room"`), not a Redis match pair. */
+  isDbCircleCall?: boolean;
 };
 
 export function RoomVideoLayer({
@@ -54,6 +72,11 @@ export function RoomVideoLayer({
   isGroupRoom,
   groupRoomTitle,
   circleCanEditTitle = false,
+  circleHostUserId = null,
+  circleLobbyGateActive = null,
+  circleScheduledStartAt = null,
+  circleRoomStatus = null,
+  isDbCircleCall = false,
 }: RoomVideoLayerProps) {
   const dispatch = useAppDispatch();
   const { data: session } = useSession();
@@ -65,7 +88,14 @@ export function RoomVideoLayer({
   const [inviteToChess, { isLoading: requestingChess }] = useRoomChessInviteMutation();
   const [endChess, { isLoading: endingChess }] = useRoomChessEndMutation();
   const [offerDraw, { isLoading: offeringDraw }] = useRoomChessDrawOfferMutation();
-  const video = useRoomVideo(roomId);
+  const [openCircleMeeting, { isLoading: openingCircleMeeting }] =
+    useOpenCircleMeetingMutation();
+  const [startScheduledCircle, { isLoading: startingScheduledCircle }] =
+    useStartScheduledCircleMutation();
+  const video = useRoomVideo(roomId, {
+    isDbCircleCall,
+    circleHostUserId,
+  });
   const {
     mediasoupStatus,
     mediasoupError,
@@ -78,6 +108,11 @@ export function RoomVideoLayer({
     remoteParticipants,
     peers,
     rtcRoomType,
+    rtcToken,
+    rtcTokenLoading,
+    rtcTokenError,
+    rtcTokenErrorCode,
+    refetchRtcToken,
     micEnabled,
     cameraEnabled,
     screenSharing,
@@ -176,8 +211,146 @@ export function RoomVideoLayer({
     return () => cancelAnimationFrame(id);
   }, [embeddedCallPolicy.blockParticipantInvites]);
 
+  const lobbyStickyGateRef = useRef<"LOBBY_NOT_READY" | "LOBBY_WAITING_FOR_HOST" | null>(null);
+
+  useEffect(() => {
+    lobbyStickyGateRef.current = null;
+  }, [roomId]);
+
+  useEffect(() => {
+    if (rtcTokenErrorCode === "LOBBY_NOT_READY" || rtcTokenErrorCode === "LOBBY_WAITING_FOR_HOST") {
+      lobbyStickyGateRef.current = rtcTokenErrorCode;
+    }
+  }, [rtcTokenErrorCode]);
+
+  useEffect(() => {
+    if (rtcToken) {
+      lobbyStickyGateRef.current = null;
+    }
+  }, [rtcToken]);
+
+  /** Keeps lobby visible while RTK refetch clears `isError` (avoids flash of the call UI). */
+  const rtcLobbyGateCode = useMemo((): "LOBBY_NOT_READY" | "LOBBY_WAITING_FOR_HOST" | null => {
+    if (rtcTokenErrorCode === "LOBBY_NOT_READY" || rtcTokenErrorCode === "LOBBY_WAITING_FOR_HOST") {
+      return rtcTokenErrorCode;
+    }
+    if (
+      rtcTokenLoading &&
+      !rtcToken &&
+      (lobbyStickyGateRef.current === "LOBBY_NOT_READY" ||
+        lobbyStickyGateRef.current === "LOBBY_WAITING_FOR_HOST")
+    ) {
+      return lobbyStickyGateRef.current;
+    }
+    return null;
+  }, [rtcTokenErrorCode, rtcTokenLoading, rtcToken]);
+
+  const isHostUser = Boolean(
+    session?.user?.id && circleHostUserId && session.user.id === circleHostUserId,
+  );
+  const guestLobbyWait =
+    isGroupRoom && !isHostUser && rtcLobbyGateCode === "LOBBY_WAITING_FOR_HOST";
+
+  const circleLobbyScheduledNotReady = isGroupRoom && rtcLobbyGateCode === "LOBBY_NOT_READY";
+
+  const rtcLobbyWait = guestLobbyWait || circleLobbyScheduledNotReady;
+
+  const hostCanStartScheduledCircleNow = Boolean(
+    isDbCircleCall &&
+      isHostUser &&
+      circleRoomStatus === "scheduled",
+  );
+
+  const scheduledLobbyLabel = useMemo(
+    () => formatScheduledStart(circleScheduledStartAt ?? undefined),
+    [circleScheduledStartAt],
+  );
+
+  const handleLobbyJoinCircle = useCallback(() => {
+    if (
+      circleLobbyScheduledNotReady &&
+      isClientStillBeforeScheduledStart(circleScheduledStartAt) &&
+      !isHostUser
+    ) {
+      const when = scheduledLobbyLabel?.trim();
+      toast.error(
+        when
+          ? `This circle hasn’t opened yet. You can join after ${when} (your device time).`
+          : "This circle hasn’t opened yet — try again after the scheduled start time.",
+        { id: `circle-lobby-join-${roomId}` },
+      );
+      return;
+    }
+    void refetchRtcToken();
+  }, [
+    circleLobbyScheduledNotReady,
+    circleScheduledStartAt,
+    isHostUser,
+    scheduledLobbyLabel,
+    refetchRtcToken,
+    roomId,
+  ]);
+
+  useEffect(() => {
+    if (!rtcLobbyWait) return;
+    const id = window.setInterval(() => {
+      if (circleLobbyScheduledNotReady && isClientStillBeforeScheduledStart(circleScheduledStartAt)) {
+        return;
+      }
+      refetchRtcToken();
+    }, 10000);
+    return () => window.clearInterval(id);
+  }, [rtcLobbyWait, refetchRtcToken, circleLobbyScheduledNotReady, circleScheduledStartAt]);
+
+  const handleOpenCircleMeeting = useCallback(async () => {
+    try {
+      await openCircleMeeting(roomId).unwrap();
+      toast.success("Everyone can join the circle now.");
+    } catch (e: unknown) {
+      toast.error(getRtkMutationErrorMessage(e, "Could not open the circle for everyone"));
+    }
+  }, [openCircleMeeting, roomId]);
+
+  const handleHostStartScheduledCircleNow = useCallback(async () => {
+    try {
+      await startScheduledCircle(roomId).unwrap();
+      toast.success("Circle is live — connecting you now.");
+      void refetchRtcToken();
+    } catch (e: unknown) {
+      toast.error(getRtkMutationErrorMessage(e, "Could not start the circle"));
+    }
+  }, [refetchRtcToken, roomId, startScheduledCircle]);
+
   return (
     <div className="fixed inset-0 z-100 flex flex-col overflow-hidden bg-background">
+      {rtcLobbyWait ? (
+        <CircleLobbyOverlay
+          open
+          circleTitle={groupRoomTitle}
+          scheduledLabel={scheduledLobbyLabel}
+          waitingForScheduledStart={circleLobbyScheduledNotReady}
+          rtcTokenError={rtcTokenError}
+          rtcTokenLoading={rtcTokenLoading}
+          onJoinCircle={handleLobbyJoinCircle}
+          viewerDisplayName={myName}
+          hostCanStartScheduledNow={hostCanStartScheduledCircleNow}
+          hostStartScheduledBusy={startingScheduledCircle}
+          onHostStartScheduledNow={() => void handleHostStartScheduledCircleNow()}
+        />
+      ) : null}
+      {isGroupRoom && isHostUser && circleLobbyGateActive === "1" ? (
+        <div className="pointer-events-auto absolute top-4 left-1/2 z-[150] flex -translate-x-1/2 justify-center px-4">
+          <Button
+            type="button"
+            size="sm"
+            className="shadow-md"
+            disabled={openingCircleMeeting}
+            onClick={() => void handleOpenCircleMeeting()}
+          >
+            {openingCircleMeeting ? "Starting…" : "Open circle for everyone"}
+          </Button>
+        </div>
+      ) : null}
       <AddToCircleDialog
         open={addCircleOpen}
         onOpenChange={setAddCircleOpen}
@@ -234,6 +407,8 @@ export function RoomVideoLayer({
         roomId={roomId}
         circleDisplayTitle={groupRoomTitle}
         circleCanEditTitle={circleCanEditTitle}
+        showHostEndCircleForEveryone={Boolean(isDbCircleCall && circleCanEditTitle)}
+        onHostEndCircleForEveryone={video.handleHostEndCircleForEveryone}
         screenShareTiles={screenShareTiles}
         focusedScreenShareKey={focusedScreenShareKey}
         onSelectScreenShare={setFocusedScreenShareKey}

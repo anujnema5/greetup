@@ -2,6 +2,7 @@ import { Hono } from "hono";
 
 import {
   handleCreateCircle,
+  handleDeleteScheduledCircle,
   handleListActiveCircles,
   handleListCircleCategories,
   handlePatchScheduledCircle,
@@ -13,3 +14,4 @@ circlesRoute.get("/active", handleListActiveCircles);
 circlesRoute.get("/categories", handleListCircleCategories);
 circlesRoute.post("/", handleCreateCircle);
 circlesRoute.patch("/:roomId", handlePatchScheduledCircle);
+circlesRoute.delete("/:roomId", handleDeleteScheduledCircle);

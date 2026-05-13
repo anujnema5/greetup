@@ -14,6 +14,7 @@ export * from "./lib/room-tab-lease";
 export * from "./lib/room-return-path";
 export { useRoomUi } from "./hooks/use-room-ui";
 export { useRoomVideo } from "./hooks/use-room-video";
+export type { UseRoomVideoOptions } from "./hooks/use-room-video";
 export { useMinimizedDockMainStage } from "./hooks/use-minimized-dock-main-stage";
 export type {
   MinimizedDockMainStage,
@@ -68,6 +69,11 @@ export {
   useGetRoomQuery,
   useGetRoomEmbeddedActivitiesQuery,
   useJoinRoomMutation,
+  useStartScheduledCircleMutation,
+  useOpenCircleMeetingMutation,
+  useLeaveCircleRtcMutation,
+  useHostEndCircleForEveryoneMutation,
+  useHostEndDeleteCircleAfterCallMutation,
   useRoomInviteMutation,
   useRoomInviteRespondMutation,
   useUpdateRoomTitleMutation,

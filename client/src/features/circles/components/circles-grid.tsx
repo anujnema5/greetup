@@ -1,13 +1,19 @@
 "use client";
 
-import { memo, useCallback, useMemo, useState } from "react";
+import { memo, useCallback, useMemo } from "react";
 import { useRouter } from "next/navigation";
-import { ChevronRight, Users } from "lucide-react";
+import { ChevronRight, Users, Video } from "lucide-react";
+import { toast } from "sonner";
 import { useSession } from "@/lib/auth-client";
+import { getRtkMutationErrorMessage } from "@/lib/api/rtk-mutation-error";
+import { useStartScheduledCircleMutation } from "@/features/room/api/room-api";
 import { cn } from "@/lib/utils";
+import { formatScheduledStart } from "@/lib/datetime/format-scheduled-start";
+import { isClientStillBeforeScheduledStart } from "@/lib/datetime/scheduled-start-guards";
+import { scheduledStartTimeDisclaimerCompact } from "@/features/circles/constants/scheduled-circle-join-grace";
 import { useListActiveCirclesQuery } from "../api/circles-api";
+import { useStartCircleModal } from "./start-circle-modal-provider";
 import type { ActiveCircleItem } from "../types/circles-api.types";
-import { EditScheduledCircleDialog } from "./edit-scheduled-circle-dialog";
 
 // ─── Colour palette — pick deterministically by room id so colour is stable across re-renders ─────
 const COVERS = [
@@ -29,20 +35,21 @@ function hostLabel(host: ActiveCircleItem["host"]) {
   return host.displayName?.trim() || host.name?.trim() || "Host";
 }
 
-/** Human-readable local start time for scheduled circles. */
-function formatScheduledStart(iso: string | null): string | null {
-  if (!iso) return null;
-  try {
-    return new Intl.DateTimeFormat(undefined, {
-      weekday: "short",
-      month: "short",
-      day: "numeric",
-      hour: "numeric",
-      minute: "2-digit",
-    }).format(new Date(iso));
-  } catch {
-    return null;
+/**
+ * A circle can be `live` in the DB after an early “Start now”, then everyone leaves before the
+ * calendar slot — still the same scheduled event; show scheduled-style copy instead of LIVE /
+ * “Ongoing circle”.
+ */
+function displayAsLiveInActiveGrid(circle: ActiveCircleItem): boolean {
+  if (circle.status !== "live") return false;
+  if (
+    circle.scheduledStartAt &&
+    isClientStillBeforeScheduledStart(circle.scheduledStartAt) &&
+    circle.participantCount === 0
+  ) {
+    return false;
   }
+  return true;
 }
 
 // ─── Single card ─────────────────────────────────────────────────────────────
@@ -52,18 +59,28 @@ function CircleCard({
   currentUserId,
   onJoin,
   onEditScheduled,
+  onStartScheduledNow,
+  startScheduledBusy,
 }: {
   circle: ActiveCircleItem;
   badge?: React.ReactNode;
   currentUserId: string | null;
   onJoin: (circle: ActiveCircleItem) => void;
   onEditScheduled?: (circle: ActiveCircleItem) => void;
+  onStartScheduledNow?: (circle: ActiveCircleItem) => void;
+  startScheduledBusy?: boolean;
 }) {
   const cover = coverFor(circle.id);
-  const isLive = circle.status === "live";
+  const isLive = displayAsLiveInActiveGrid(circle);
   const scheduledLabel = formatScheduledStart(circle.scheduledStartAt);
   const isHost = Boolean(currentUserId && circle.host.userId === currentUserId);
-  const showEdit = isHost && !isLive && circle.scheduledStartAt && onEditScheduled;
+  const showEdit = isHost && circle.status === "scheduled" && circle.scheduledStartAt && onEditScheduled;
+  const showStartNow =
+    Boolean(onStartScheduledNow) &&
+    isHost &&
+    !isLive &&
+    circle.status === "scheduled" &&
+    Boolean(circle.scheduledStartAt);
 
   return (
     <div
@@ -104,7 +121,7 @@ function CircleCard({
           className="absolute top-2 right-2 z-10 rounded-md bg-black/50 px-2 py-0.5 text-[10px] font-semibold text-white backdrop-blur-md hover:bg-black/70"
           onClick={(e) => {
             e.stopPropagation();
-            onEditScheduled(circle);
+            onEditScheduled?.(circle);
           }}
         >
           Edit
@@ -136,12 +153,35 @@ function CircleCard({
         <p className="text-xs font-bold text-white leading-snug drop-shadow-sm line-clamp-2">
           {circle.title}
         </p>
-        {!isLive && scheduledLabel ? (
-          <p className="text-[10px] text-white/70 mt-0.5">Starts {scheduledLabel}</p>
+        {isLive ? (
+          <p className="mt-1 flex items-center gap-1.5 text-[10px] font-semibold tracking-wide text-emerald-200">
+            <Video className="size-3 shrink-0 text-emerald-300" aria-hidden />
+            <span>Ongoing circle</span>
+          </p>
+        ) : scheduledLabel ? (
+          <>
+            <p className="mt-0.5 text-[10px] text-white/70">Starts {scheduledLabel}</p>
+            <p className="mt-1 line-clamp-2 text-[9px] leading-snug text-white/55">
+              {scheduledStartTimeDisclaimerCompact()}
+            </p>
+          </>
         ) : null}
         <p className="text-[10px] text-white/50 mt-0.5">by {hostLabel(circle.host)}</p>
         {isHost ? (
           <p className="text-[9px] font-semibold text-amber-200/90 mt-0.5">You are hosting</p>
+        ) : null}
+        {showStartNow && onStartScheduledNow ? (
+          <button
+            type="button"
+            disabled={startScheduledBusy}
+            className="relative z-20 mt-2 w-full rounded-lg bg-white/20 py-1.5 text-[10px] font-semibold text-white shadow-sm hover:bg-white/30 pointer-events-auto disabled:pointer-events-none disabled:opacity-50"
+            onClick={(e) => {
+              e.stopPropagation();
+              onStartScheduledNow(circle);
+            }}
+          >
+            Start now
+          </button>
         ) : null}
       </div>
 
@@ -161,12 +201,16 @@ function CircleRow({
   currentUserId,
   onJoinCircle,
   onEditScheduled,
+  onStartScheduledNow,
+  startScheduledBusy,
 }: {
   items: ActiveCircleItem[];
   renderBadge?: (item: ActiveCircleItem) => React.ReactNode;
   currentUserId: string | null;
   onJoinCircle: (circle: ActiveCircleItem) => void;
   onEditScheduled?: (circle: ActiveCircleItem) => void;
+  onStartScheduledNow?: (circle: ActiveCircleItem) => void;
+  startScheduledBusy?: boolean;
 }) {
   if (items.length === 0) return null;
   return (
@@ -182,6 +226,8 @@ function CircleRow({
           currentUserId={currentUserId}
           onJoin={onJoinCircle}
           onEditScheduled={onEditScheduled}
+          onStartScheduledNow={onStartScheduledNow}
+          startScheduledBusy={startScheduledBusy}
         />
       ))}
     </div>
@@ -231,7 +277,22 @@ function CirclesGridInner() {
   const router = useRouter();
   const { data: session } = useSession();
   const currentUserId = session?.user?.id ?? null;
-  const [editTarget, setEditTarget] = useState<ActiveCircleItem | null>(null);
+  const { openModalForEdit } = useStartCircleModal();
+  const [startScheduledCircle, { isLoading: startingScheduledCircle }] =
+    useStartScheduledCircleMutation();
+
+  const handleStartScheduledNow = useCallback(
+    async (circle: ActiveCircleItem) => {
+      try {
+        await startScheduledCircle(circle.id).unwrap();
+        toast.success("Circle is live — opening room…");
+        router.push(`/circle/${circle.id}`);
+      } catch (e: unknown) {
+        toast.error(getRtkMutationErrorMessage(e, "Could not start this circle yet"));
+      }
+    },
+    [router, startScheduledCircle],
+  );
 
   const { data, isLoading } = useListActiveCirclesQuery({}, { refetchOnMountOrArgChange: true });
 
@@ -282,7 +343,9 @@ function CirclesGridInner() {
           items={allItems}
           currentUserId={currentUserId}
           onJoinCircle={goToCircleRoom}
-          onEditScheduled={(c) => setEditTarget(c)}
+          onEditScheduled={openModalForEdit}
+          onStartScheduledNow={handleStartScheduledNow}
+          startScheduledBusy={startingScheduledCircle}
           renderBadge={(c) => {
             if (friendInvited.find((f) => f.id === c.id)) return FriendBadge;
             if (joined.find((j) => j.id === c.id)) return JoinedBadge;
@@ -290,14 +353,6 @@ function CirclesGridInner() {
           }}
         />
       )}
-
-      <EditScheduledCircleDialog
-        circle={editTarget}
-        open={Boolean(editTarget)}
-        onOpenChange={(o) => {
-          if (!o) setEditTarget(null);
-        }}
-      />
     </div>
   );
 }

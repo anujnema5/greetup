@@ -7,10 +7,12 @@ import { zodFieldErrorsItems } from "@/shared/validation";
 import { createCircleBodySchema } from "../schemas/create-circle.schema";
 import { updateScheduledCircleBodySchema } from "../schemas/update-scheduled-circle.schema";
 import { createCircleService } from "../services/create-circle.service";
+import { deleteScheduledCircleService } from "../services/delete-scheduled-circle.service";
 import { listActiveCirclesService } from "../services/list-active-circles.service";
 import { listCircleCategoriesService } from "../services/list-categories.service";
 import { updateScheduledCircleService } from "../services/update-scheduled-circle.service";
 import { CreateCircleError } from "../types/create-circle.types";
+import { DeleteScheduledCircleError } from "../types/delete-scheduled-circle.types";
 import { UpdateScheduledCircleError } from "../types/update-scheduled-circle.types";
 
 export const handleListActiveCircles = async (c: Context) => {
@@ -39,6 +41,39 @@ export const handleListCircleCategories = async (c: Context) => {
   } catch (error: unknown) {
     logger.error("List circle categories error", { error });
     return internalError(c, error, "LIST_CIRCLE_CATEGORIES_FAILED");
+  }
+};
+
+export const handleDeleteScheduledCircle = async (c: Context) => {
+  try {
+    const userId = c.get("userId") as string;
+    const roomId = c.req.param("roomId");
+    if (!roomId) {
+      return c.json(
+        ApiResponse.error({
+          message: "roomId is required",
+          statusCode: 400,
+          code: "VALIDATION_ERROR",
+        }),
+        400,
+      );
+    }
+
+    const result = await deleteScheduledCircleService(userId, roomId);
+    return c.json(ApiResponse.success(result, "Circle cancelled", 200), 200);
+  } catch (error: unknown) {
+    if (error instanceof DeleteScheduledCircleError) {
+      return c.json(
+        ApiResponse.error({
+          message: error.message,
+          statusCode: error.statusCode,
+          code: error.code,
+        }),
+        error.statusCode,
+      );
+    }
+    logger.error("Delete scheduled circle error", { error });
+    return internalError(c, error, "DELETE_SCHEDULED_CIRCLE_FAILED");
   }
 };
 

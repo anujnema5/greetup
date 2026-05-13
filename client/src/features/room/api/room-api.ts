@@ -1,6 +1,7 @@
 import { API_ENDPOINTS, baseApi } from "@/lib/api";
 import { API_BASE_URL } from "@/shared/constants/environments";
 import { invalidateRoomAndPeersCallStatusTags, roomEntityTag } from "@/features/room/lib/room-rtk-cache";
+import { rtcTokenCacheTag } from "@/features/rtc/api/rtc-api";
 
 import { parseRoomData, type RoomData } from "@/features/matching/types/room.types";
 import type {
@@ -81,6 +82,12 @@ function assertJoinRoomOk(response: JoinRoomApiResponse): void {
   }
 }
 
+function assertOpenCircleMeetingOk(response: JoinRoomApiResponse): void {
+  if (!response.success) {
+    throw new Error(response.message ?? "Could not open circle");
+  }
+}
+
 const CACHE_ROOM_EMBEDDED_ACTIVITIES = {
   type: "RoomEmbeddedActivities" as const,
   id: "LIST" as const,
@@ -88,6 +95,20 @@ const CACHE_ROOM_EMBEDDED_ACTIVITIES = {
 
 export const roomApi = baseApi.injectEndpoints({
   endpoints: (build) => ({
+    startScheduledCircle: build.mutation<void, string>({
+      query: (roomId) => ({
+        url: ROOM.start(roomId),
+        method: "POST",
+      }),
+      transformResponse: assertJoinRoomOk,
+      invalidatesTags: (_r, _e, roomId) => [
+        roomEntityTag(roomId),
+        rtcTokenCacheTag(roomId),
+        { type: "ActiveCircles" as const, id: "LIST" as const },
+        ...invalidateRoomAndPeersCallStatusTags(roomId),
+      ],
+    }),
+
     leaveRoom: build.mutation<void, void>({
       query: () => ({
         url: MATCHING.LEAVE_ROOM,
@@ -124,6 +145,43 @@ export const roomApi = baseApi.injectEndpoints({
         method: "POST",
       }),
       transformResponse: assertJoinRoomOk,
+    }),
+
+    openCircleMeeting: build.mutation<void, string>({
+      query: (roomId) => ({
+        url: ROOM.openMeeting(roomId),
+        method: "POST",
+      }),
+      transformResponse: assertOpenCircleMeetingOk,
+      invalidatesTags: (_r, _e, roomId) => [rtcTokenCacheTag(roomId), roomEntityTag(roomId)],
+    }),
+
+    leaveCircleRtc: build.mutation<void, string>({
+      query: (roomId) => ({
+        url: ROOM.leaveCircleRtc(roomId),
+        method: "POST",
+      }),
+      transformResponse: assertJoinRoomOk,
+      invalidatesTags: (_r, _e, roomId) => [
+        rtcTokenCacheTag(roomId),
+        roomEntityTag(roomId),
+        { type: "ActiveCircles" as const, id: "LIST" as const },
+        ...invalidateRoomAndPeersCallStatusTags(roomId),
+      ],
+    }),
+
+    hostEndCircleForEveryone: build.mutation<void, string>({
+      query: (roomId) => ({
+        url: ROOM.hostEndCircleForEveryone(roomId),
+        method: "POST",
+      }),
+      transformResponse: assertJoinRoomOk,
+      invalidatesTags: (_r, _e, roomId) => [
+        rtcTokenCacheTag(roomId),
+        roomEntityTag(roomId),
+        { type: "ActiveCircles" as const, id: "LIST" as const },
+        ...invalidateRoomAndPeersCallStatusTags(roomId),
+      ],
     }),
 
     roomInvite: build.mutation<
@@ -169,10 +227,17 @@ export const {
   useGetRoomQuery,
   useGetRoomEmbeddedActivitiesQuery,
   useJoinRoomMutation,
+  useStartScheduledCircleMutation,
+  useOpenCircleMeetingMutation,
+  useLeaveCircleRtcMutation,
+  useHostEndCircleForEveryoneMutation,
   useRoomInviteMutation,
   useRoomInviteRespondMutation,
   useUpdateRoomTitleMutation,
 } = roomApi;
+
+/** @deprecated Use `useHostEndCircleForEveryoneMutation` */
+export const useHostEndDeleteCircleAfterCallMutation = useHostEndCircleForEveryoneMutation;
 
 /** Back-compat aliases (legacy direct-expand naming). */
 export const useExpandDirectInviteMutation = useRoomInviteMutation;

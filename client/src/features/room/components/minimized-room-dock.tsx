@@ -75,9 +75,16 @@ function MinimizedRoomDockPanel() {
   });
   const dockSessionIsCircle = Boolean(dockRoomMeta && isCircleRoomData(dockRoomMeta));
 
+  const dockCircleHostId =
+    dockRoomMeta && isCircleRoomData(dockRoomMeta) ? dockRoomMeta.hostUserId : null;
+
   const { handleEnd: roomHandleEnd, handleSkip: roomHandleSkip } = useRoomVideo(
     activeRoomId ?? "",
-    { skipSetup: true },
+    {
+      skipSetup: true,
+      isDbCircleCall: dockSessionIsCircle,
+      circleHostUserId: dockCircleHostId,
+    },
   );
 
   const {

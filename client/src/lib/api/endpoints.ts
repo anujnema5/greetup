@@ -59,7 +59,8 @@ export const API_ENDPOINTS = {
     CATEGORIES: "/circles/categories",
     CREATE: "/circles",
     ACTIVE: "/circles/active",
-    patch: (roomId: string) => `/circles/${encodeURIComponent(roomId)}` as const,
+    /** Same path for PATCH (update) and DELETE (remove) — method differs per request. */
+    room: (roomId: string) => `/circles/${encodeURIComponent(roomId)}` as const,
   },
   CHAT: {
     CONVERSATIONS:        '/chat/conversations',
@@ -77,6 +78,13 @@ export const API_ENDPOINTS = {
     start: (roomId: string) => `/room/${roomId}/start` as const,
     get: (roomId: string) => `/room/${roomId}` as const,
     join: (roomId: string) => `/room/${roomId}/join` as const,
+    openMeeting: (roomId: string) => `/room/${roomId}/open-meeting` as const,
+    leaveCircleRtc: (roomId: string) => `/room/${roomId}/leave-circle-rtc` as const,
+    hostEndCircleForEveryone: (roomId: string) =>
+      `/room/${roomId}/host-end-circle` as const,
+    /** @deprecated Prefer `hostEndCircleForEveryone` — same handler, legacy path. */
+    hostEndDeleteAfterCall: (roomId: string) =>
+      `/room/${roomId}/host-end-delete-after-call` as const,
     updateTitle: (roomId: string) => `/room/${roomId}/title` as const,
     rtcToken: (roomId: string) => `/room/${roomId}/rtc-token` as const,
     invite: (roomId: string) => `/room/${roomId}/invite` as const,

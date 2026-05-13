@@ -12,7 +12,7 @@ import { provisionSessionRoomRedis } from "@/modules/rooms/services/session-room
 import type { CreateCircleBody } from "../schemas/create-circle.schema";
 import { CreateCircleError } from "../types/create-circle.types";
 
-function randomInviteCode(): string {
+export function randomInviteCode(): string {
   return randomBytes(9).toString("base64url").replace(/[^a-zA-Z0-9]/g, "").slice(0, 12);
 }
 
@@ -38,7 +38,7 @@ function normalizeInviteeIds(
   return out;
 }
 
-async function resolveValidatedInviteeIds(
+export async function resolveValidatedInviteeIds(
   hostUserId: string,
   invitedUserIds: string[] | undefined,
 ): Promise<string[]> {
@@ -59,7 +59,7 @@ async function resolveValidatedInviteeIds(
   return unique;
 }
 
-async function assertInviteesAllowRoomInvitesFromHost(
+export async function assertInviteesAllowRoomInvitesFromHost(
   hostUserId: string,
   inviteeIds: string[],
 ): Promise<void> {
@@ -114,6 +114,14 @@ export async function createCircleService(
     body.invitedUserIds,
   );
 
+  const maxInvitees = body.maxParticipants - 1;
+  if (inviteeIds.length > maxInvitees) {
+    throw new CreateCircleError(
+      `You can invite at most ${maxInvitees} ${maxInvitees === 1 ? "person" : "people"} for a ${body.maxParticipants}-seat circle (you use one seat).`,
+      "INVITES_EXCEED_CAPACITY",
+    );
+  }
+
   await assertInviteesAllowRoomInvitesFromHost(hostUserId, inviteeIds);
 
   const isInstant = body.scheduleMode === "instant";
@@ -146,6 +154,7 @@ export async function createCircleService(
       hostUserId,
       roomType,
       title: body.title.trim(),
+      lobbyGateActive: advancedOptions.shouldHostStartMeeting !== false,
     });
   }
 

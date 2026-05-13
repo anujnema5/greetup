@@ -17,6 +17,7 @@ export { CirclesGrid } from "./components/circles-grid";
 export {
   circlesApi,
   useCreateCircleMutation,
+  useDeleteScheduledCircleMutation,
   useListCircleCategoriesQuery,
   useListActiveCirclesQuery,
   useUpdateScheduledCircleMutation,

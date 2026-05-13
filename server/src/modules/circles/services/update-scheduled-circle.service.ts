@@ -1,13 +1,78 @@
+import { notifyCircleInviteReceived } from "../notifications";
+import {
+  assertInviteesAllowRoomInvitesFromHost,
+  randomInviteCode,
+  resolveValidatedInviteeIds,
+} from "./create-circle.service";
+import type { RoomAdvancedOptions } from "@/core/database/schema";
 import { roomsRepository } from "@/modules/rooms/repositories/rooms.repository";
 
 import type { UpdateScheduledCircleBody } from "../schemas/update-scheduled-circle.schema";
-import { UpdateScheduledCircleError } from "../types/update-scheduled-circle.types";
+import { CreateCircleError } from "../types/create-circle.types";
+import { UpdateScheduledCircleError, type UpdateScheduledCircleErrorCode } from "../types/update-scheduled-circle.types";
+
+function wrapInviteErrors<T>(fn: () => Promise<T>): Promise<T> {
+  return fn().catch((e: unknown) => {
+    if (e instanceof CreateCircleError) {
+      if (
+        e.code === "INVALID_INVITEES" ||
+        e.code === "INVITEE_RESTRICTED_ROOM_INVITES" ||
+        e.code === "INVITES_EXCEED_CAPACITY"
+      ) {
+        throw new UpdateScheduledCircleError(
+          e.message,
+          e.code as UpdateScheduledCircleErrorCode,
+          400,
+        );
+      }
+    }
+    throw e;
+  });
+}
 
 export async function updateScheduledCircleService(
   hostUserId: string,
   roomId: string,
   body: UpdateScheduledCircleBody,
 ) {
+  const room = await roomsRepository.findRoomById(roomId);
+  if (!room || room.hostUserId !== hostUserId || room.roomType !== "circle" || room.status !== "scheduled") {
+    throw new UpdateScheduledCircleError(
+      "Circle not found, or you cannot edit it",
+      "ROOM_NOT_FOUND",
+      404,
+    );
+  }
+
+  if (body.categoryId !== undefined) {
+    const cat = await roomsRepository.findActiveCategoryById(body.categoryId);
+    if (!cat) {
+      throw new UpdateScheduledCircleError(
+        "Category not found or inactive",
+        "CATEGORY_NOT_FOUND",
+        404,
+      );
+    }
+  }
+
+  const nextMaxParticipants = body.maxParticipants ?? room.maxParticipants;
+  let resolvedInviteeIds: string[] | undefined;
+  if (body.invitedUserIds !== undefined) {
+    if (body.invitedUserIds.length > nextMaxParticipants - 1) {
+      throw new UpdateScheduledCircleError(
+        `You can invite at most ${nextMaxParticipants - 1} ${nextMaxParticipants - 1 === 1 ? "person" : "people"} for a ${nextMaxParticipants}-seat circle (you use one seat).`,
+        "INVITES_EXCEED_CAPACITY",
+        400,
+      );
+    }
+    resolvedInviteeIds = await wrapInviteErrors(() =>
+      resolveValidatedInviteeIds(hostUserId, body.invitedUserIds),
+    );
+    await wrapInviteErrors(() =>
+      assertInviteesAllowRoomInvitesFromHost(hostUserId, resolvedInviteeIds!),
+    );
+  }
+
   const scheduledStartAt =
     body.scheduledStartAt !== undefined ? new Date(body.scheduledStartAt) : undefined;
   const scheduledEndAt =
@@ -17,12 +82,43 @@ export async function updateScheduledCircleService(
         ? null
         : new Date(body.scheduledEndAt);
 
+  const description =
+    body.description === undefined
+      ? undefined
+      : body.description === null
+        ? null
+        : body.description.trim() === ""
+          ? null
+          : body.description.trim();
+
+  let inviteCode: string | null | undefined;
+  if (body.visibility === "public") {
+    inviteCode = null;
+  } else if (body.visibility === "private") {
+    if (room.visibility === "public" || !room.inviteCode) {
+      inviteCode = randomInviteCode();
+    }
+  }
+
+  const advancedOptionsPatch: Partial<RoomAdvancedOptions> | undefined =
+    body.advancedOptions === undefined ? undefined : (body.advancedOptions as Partial<RoomAdvancedOptions>);
+
+  const beforePending = await roomsRepository.listPendingInviteeUserIds(roomId);
+  const beforeSet = new Set(beforePending);
+
   const result = await roomsRepository.updateScheduledCircleByHost({
     roomId,
     hostUserId,
     title: body.title,
+    categoryId: body.categoryId,
+    description,
+    visibility: body.visibility,
+    maxParticipants: body.maxParticipants,
     scheduledStartAt,
     scheduledEndAt,
+    advancedOptionsPatch,
+    inviteCode,
+    invitedUserIds: resolvedInviteeIds,
   });
 
   if (!result.ok) {
@@ -40,11 +136,31 @@ export async function updateScheduledCircleService(
         400,
       );
     }
+    if (result.reason === "ROOM_FULL") {
+      throw new UpdateScheduledCircleError(
+        "Cannot set seats below the number of people already in this circle",
+        "ROOM_FULL",
+        400,
+      );
+    }
     throw new UpdateScheduledCircleError(
       "scheduledEndAt must be after scheduledStartAt",
       "INVALID_END",
       400,
     );
+  }
+
+  if (resolvedInviteeIds) {
+    for (const inviteeUserId of resolvedInviteeIds) {
+      if (!beforeSet.has(inviteeUserId)) {
+        await notifyCircleInviteReceived({
+          recipientUserId: inviteeUserId,
+          actorUserId: hostUserId,
+          roomId,
+          roomTitle: body.title?.trim() ?? room.title,
+        });
+      }
+    }
   }
 
   return {

@@ -8,7 +8,7 @@ export const corsOptions = {
     ? [config.webClientHost, ...devOrigins]
     : devOrigins,
   allowHeaders: ["Content-Type", "Authorization"],
-  allowMethods: ["POST", "GET", "OPTIONS"],
+  allowMethods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
   exposeHeaders: ["Content-Length"],
   maxAge: 600,
   credentials: true,

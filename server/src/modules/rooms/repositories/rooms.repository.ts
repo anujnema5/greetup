@@ -1,4 +1,17 @@
-import { and, asc, eq, gte, inArray, isNotNull, isNull, ne, notExists, or, sql } from "drizzle-orm";
+import {
+  and,
+  asc,
+  eq,
+  gte,
+  inArray,
+  isNotNull,
+  isNull,
+  ne,
+  notExists,
+  notInArray,
+  or,
+  sql,
+} from "drizzle-orm";
 
 import { db } from "@/core/database";
 import {
@@ -11,7 +24,25 @@ import {
   type RoomAdvancedOptions,
 } from "@/core/database/schema";
 import { computeRoomExpiryFields } from "@/modules/rooms/lib/room-expiry";
+import { SCHEDULED_JOIN_GRACE_AFTER_START_MINUTES } from "@/modules/rooms/constants/scheduled-circle-join-grace";
 import type { RoomSessionType } from "@/shared/types/room-session";
+
+/** Shared predicate: circle rows that should be marked `is_expired` from wall-clock (see `syncPastDueCircleRoomExpiry`). */
+function circleRoomsPastDueForSyncWhere() {
+  return and(
+    eq(rooms.roomType, "circle"),
+    inArray(rooms.status, ["live", "scheduled"]),
+    eq(rooms.isExpired, false),
+    or(
+      and(isNotNull(rooms.expiresAt), sql`${rooms.expiresAt} < NOW()`),
+      and(
+        eq(rooms.status, "scheduled"),
+        isNotNull(rooms.scheduledStartAt),
+        sql`(${rooms.scheduledStartAt} + (${SCHEDULED_JOIN_GRACE_AFTER_START_MINUTES} * interval '1 minute')) < NOW()`,
+      ),
+    ),
+  );
+}
 
 export const roomsRepository = {
   async findUserDisplayLabel(userId: string): Promise<string> {
@@ -58,6 +89,36 @@ export const roomsRepository = {
       columns: { id: true },
     });
     return !!row;
+  },
+
+  /**
+   * Whether the user may load circle room metadata (GET room) when Redis has no session yet.
+   * Host, public circles, invitees with pending/accepted friend invite, or active participants.
+   */
+  async canUserViewCircleRoomMetadata(
+    userId: string,
+    room: {
+      id: string;
+      roomType: RoomSessionType;
+      hostUserId: string;
+      visibility: "private" | "public";
+    },
+  ): Promise<boolean> {
+    if (room.roomType !== "circle") return false;
+    if (room.hostUserId === userId) return true;
+    if (room.visibility === "public") return true;
+
+    const invite = await db.query.roomFriendInvites.findFirst({
+      where: and(
+        eq(roomFriendInvites.roomId, room.id),
+        eq(roomFriendInvites.inviteeUserId, userId),
+        inArray(roomFriendInvites.status, ["pending", "accepted"]),
+      ),
+      columns: { id: true },
+    });
+    if (invite) return true;
+
+    return roomsRepository.isUserRoomParticipant(room.id, userId);
   },
 
   async listActiveParticipantUserIds(roomId: string): Promise<string[]> {
@@ -129,30 +190,29 @@ export const roomsRepository = {
   /**
    * Marks circle rooms as expired when:
    * - `expires_at` is set and in the past, or
-   * - still `scheduled` but `scheduled_start_at` is in the past (session never started).
+   * - still `scheduled` but `scheduled_start_at` + join grace has passed (never went live in time).
    * Returns affected ids for Redis cleanup.
    */
   async syncPastDueCircleRoomExpiry(): Promise<string[]> {
     const rows = await db
       .update(rooms)
       .set({ isExpired: true, updatedAt: new Date() })
-      .where(
-        and(
-          eq(rooms.roomType, "circle"),
-          inArray(rooms.status, ["live", "scheduled"]),
-          eq(rooms.isExpired, false),
-          or(
-            and(isNotNull(rooms.expiresAt), sql`${rooms.expiresAt} < NOW()`),
-            and(
-              eq(rooms.status, "scheduled"),
-              isNotNull(rooms.scheduledStartAt),
-              sql`${rooms.scheduledStartAt} < NOW()`,
-            ),
-          ),
-        ),
-      )
+      .where(circleRoomsPastDueForSyncWhere())
       .returning({ id: rooms.id });
     return rows.map((r) => r.id);
+  },
+
+  /**
+   * Same rules as {@link syncPastDueCircleRoomExpiry} for a single room (GET/join/token paths
+   * where list-circles may not have run yet). Returns whether a row was updated.
+   */
+  async syncCircleRoomExpiryIfPastDue(roomId: string): Promise<boolean> {
+    const rows = await db
+      .update(rooms)
+      .set({ isExpired: true, updatedAt: new Date() })
+      .where(and(eq(rooms.id, roomId), circleRoomsPastDueForSyncWhere()))
+      .returning({ id: rooms.id });
+    return rows.length > 0;
   },
 
   async updateLiveRoomTitle(roomId: string, title: string) {
@@ -164,80 +224,199 @@ export const roomsRepository = {
     return row ?? null;
   },
 
+  async listPendingInviteeUserIds(roomId: string): Promise<string[]> {
+    const rows = await db.query.roomFriendInvites.findMany({
+      where: and(
+        eq(roomFriendInvites.roomId, roomId),
+        eq(roomFriendInvites.status, "pending"),
+      ),
+      columns: { inviteeUserId: true },
+    });
+    return rows.map((r) => r.inviteeUserId);
+  },
+
   /**
-   * Host-only: update a circle that is still `scheduled`. Recomputes expiry fields.
+   * Host-only: update a scheduled circle. Recomputes expiry; optionally replaces pending invites.
    */
   async updateScheduledCircleByHost(params: {
     roomId: string;
     hostUserId: string;
     title?: string;
+    categoryId?: string;
+    description?: string | null;
+    visibility?: "public" | "private";
+    maxParticipants?: number;
     scheduledStartAt?: Date;
     scheduledEndAt?: Date | null;
+    advancedOptionsPatch?: Partial<RoomAdvancedOptions> | null;
+    inviteCode?: string | null;
+    /** When set (including `[]`), pending invites are synced to this list; accepted rows are kept. */
+    invitedUserIds?: string[];
   }): Promise<
     | { ok: true; id: string; title: string; scheduledStartAt: Date | null }
-    | { ok: false; reason: "NOT_FOUND" | "INVALID_SCHEDULE" | "INVALID_END" }
+    | {
+        ok: false;
+        reason: "NOT_FOUND" | "INVALID_SCHEDULE" | "INVALID_END" | "ROOM_FULL";
+      }
   > {
-    const room = await db.query.rooms.findFirst({
-      where: and(eq(rooms.id, params.roomId), eq(rooms.hostUserId, params.hostUserId)),
-      columns: {
-        status: true,
-        roomType: true,
-        title: true,
-        scheduledStartAt: true,
-        scheduledEndAt: true,
-        advancedOptions: true,
-      },
-    });
-
-    if (!room || room.roomType !== "circle" || room.status !== "scheduled") {
-      return { ok: false, reason: "NOT_FOUND" };
-    }
-
-    const nextTitle =
-      params.title !== undefined ? params.title.trim() : room.title;
-    const nextStart =
-      params.scheduledStartAt !== undefined
-        ? params.scheduledStartAt
-        : room.scheduledStartAt;
-    const nextEnd =
-      params.scheduledEndAt !== undefined ? params.scheduledEndAt : room.scheduledEndAt;
-
-    const now = new Date();
-    if (!nextStart || nextStart <= now) {
-      return { ok: false, reason: "INVALID_SCHEDULE" };
-    }
-    if (nextEnd && nextEnd <= nextStart) {
-      return { ok: false, reason: "INVALID_END" };
-    }
-
-    const { expiresAt, isExpired } = computeRoomExpiryFields({
-      status: "scheduled",
-      scheduledStartAt: nextStart,
-      scheduledEndAt: nextEnd,
-      advancedOptions: room.advancedOptions,
-    });
-
-    const [row] = await db
-      .update(rooms)
-      .set({
-        title: nextTitle,
-        scheduledStartAt: nextStart,
-        scheduledEndAt: nextEnd,
-        expiresAt,
-        isExpired,
-        updatedAt: new Date(),
-      })
-      .where(and(eq(rooms.id, params.roomId), eq(rooms.status, "scheduled")))
-      .returning({
-        id: rooms.id,
-        title: rooms.title,
-        scheduledStartAt: rooms.scheduledStartAt,
+    return db.transaction(async (tx) => {
+      const room = await tx.query.rooms.findFirst({
+        where: and(eq(rooms.id, params.roomId), eq(rooms.hostUserId, params.hostUserId)),
+        columns: {
+          status: true,
+          roomType: true,
+          title: true,
+          categoryId: true,
+          description: true,
+          visibility: true,
+          maxParticipants: true,
+          inviteCode: true,
+          scheduledStartAt: true,
+          scheduledEndAt: true,
+          advancedOptions: true,
+        },
       });
 
-    if (!row) {
-      return { ok: false, reason: "NOT_FOUND" };
-    }
-    return { ok: true, ...row };
+      if (!room || room.roomType !== "circle" || room.status !== "scheduled") {
+        return { ok: false, reason: "NOT_FOUND" } as const;
+      }
+
+      if (params.maxParticipants !== undefined) {
+        const [cnt] = await tx
+          .select({ n: sql<number>`cast(count(*) as int)` })
+          .from(roomParticipants)
+          .where(
+            and(eq(roomParticipants.roomId, params.roomId), isNull(roomParticipants.leftAt)),
+          );
+        const activeSeats = cnt?.n ?? 0;
+        if (activeSeats > params.maxParticipants) {
+          return { ok: false, reason: "ROOM_FULL" } as const;
+        }
+      }
+
+      const nextTitle =
+        params.title !== undefined ? params.title.trim() : room.title;
+      const nextCategoryId = params.categoryId ?? room.categoryId;
+      const nextDescription =
+        params.description !== undefined ? params.description : room.description;
+      const nextVisibility = params.visibility ?? room.visibility;
+      const nextMaxParticipants = params.maxParticipants ?? room.maxParticipants;
+      const nextInviteCode =
+        params.inviteCode !== undefined ? params.inviteCode : room.inviteCode;
+      const nextStart =
+        params.scheduledStartAt !== undefined
+          ? params.scheduledStartAt
+          : room.scheduledStartAt;
+      const nextEnd =
+        params.scheduledEndAt !== undefined ? params.scheduledEndAt : room.scheduledEndAt;
+
+      const now = new Date();
+      if (!nextStart || nextStart <= now) {
+        return { ok: false, reason: "INVALID_SCHEDULE" } as const;
+      }
+      if (nextEnd && nextEnd <= nextStart) {
+        return { ok: false, reason: "INVALID_END" } as const;
+      }
+
+      const nextAdvanced =
+        params.advancedOptionsPatch != null &&
+        Object.keys(params.advancedOptionsPatch).length > 0
+          ? mergeRoomAdvancedOptions({
+              ...(room.advancedOptions ?? {}),
+              ...params.advancedOptionsPatch,
+            } as RoomAdvancedOptions)
+          : room.advancedOptions;
+
+      const { expiresAt, isExpired } = computeRoomExpiryFields({
+        status: "scheduled",
+        scheduledStartAt: nextStart,
+        scheduledEndAt: nextEnd,
+        advancedOptions: nextAdvanced,
+      });
+
+      const [row] = await tx
+        .update(rooms)
+        .set({
+          title: nextTitle,
+          categoryId: nextCategoryId,
+          description: nextDescription,
+          visibility: nextVisibility,
+          maxParticipants: nextMaxParticipants,
+          inviteCode: nextInviteCode,
+          scheduledStartAt: nextStart,
+          scheduledEndAt: nextEnd,
+          advancedOptions: nextAdvanced,
+          expiresAt,
+          isExpired,
+          updatedAt: new Date(),
+        })
+        .where(and(eq(rooms.id, params.roomId), eq(rooms.status, "scheduled")))
+        .returning({
+          id: rooms.id,
+          title: rooms.title,
+          scheduledStartAt: rooms.scheduledStartAt,
+        });
+
+      if (!row) {
+        return { ok: false, reason: "NOT_FOUND" } as const;
+      }
+
+      if (params.invitedUserIds !== undefined) {
+        const ids = params.invitedUserIds;
+        if (ids.length > 0) {
+          await tx
+            .delete(roomFriendInvites)
+            .where(
+              and(
+                eq(roomFriendInvites.roomId, params.roomId),
+                eq(roomFriendInvites.status, "pending"),
+                notInArray(roomFriendInvites.inviteeUserId, ids),
+              ),
+            );
+          await tx
+            .insert(roomFriendInvites)
+            .values(
+              ids.map((inviteeUserId) => ({
+                roomId: params.roomId,
+                inviterUserId: params.hostUserId,
+                inviteeUserId,
+                status: "pending" as const,
+              })),
+            )
+            .onConflictDoNothing({
+              target: [roomFriendInvites.roomId, roomFriendInvites.inviteeUserId],
+            });
+        } else {
+          await tx
+            .delete(roomFriendInvites)
+            .where(
+              and(
+                eq(roomFriendInvites.roomId, params.roomId),
+                eq(roomFriendInvites.status, "pending"),
+              ),
+            );
+        }
+      }
+
+      return { ok: true, ...row };
+    });
+  },
+
+  /** Host cancels a scheduled circle before it goes live. */
+  async cancelScheduledCircleByHost(roomId: string, hostUserId: string) {
+    const [row] = await db
+      .update(rooms)
+      .set({ status: "cancelled", updatedAt: new Date() })
+      .where(
+        and(
+          eq(rooms.id, roomId),
+          eq(rooms.hostUserId, hostUserId),
+          eq(rooms.roomType, "circle"),
+          eq(rooms.status, "scheduled"),
+        ),
+      )
+      .returning({ id: rooms.id });
+    return row ?? null;
   },
 
   /** Pending/accepted friend invites for a room (e.g. notify invitees when session goes live). */
@@ -458,6 +637,8 @@ export const roomsRepository = {
       status: rooms.status,
       visibility: rooms.visibility,
       maxParticipants: rooms.maxParticipants,
+      description: rooms.description,
+      advancedOptions: rooms.advancedOptions,
       scheduledStartAt: rooms.scheduledStartAt,
       startedAt: rooms.startedAt,
       expiresAt: rooms.expiresAt,
@@ -471,6 +652,9 @@ export const roomsRepository = {
       hostName: users.name,
       hostDisplayName: users.displayName,
       participantCount: roomsRepository._participantCountSq(),
+      pendingInviteeIds: sql<
+        string[] | null
+      >`(select coalesce(array_agg(invitee_user_id::text), array[]::text[]) from room_friend_invites where room_id = ${rooms.id} and status = 'pending')`,
     } as const;
   },
 
@@ -508,7 +692,8 @@ export const roomsRepository = {
   },
 
   /**
-   * Rooms where the caller is a participant but has no friend invite (circle type, active only).
+   * Circles the caller should see under “joined”: active in-call membership **or** they host the
+   * room (so leaving RTC does not hide a future / still-live circle from their dashboard).
    */
   async listJoinedCircles(userId: string) {
     const friendInviteExists = db
@@ -526,7 +711,7 @@ export const roomsRepository = {
       .from(rooms)
       .innerJoin(roomCategories, eq(rooms.categoryId, roomCategories.id))
       .innerJoin(users, eq(rooms.hostUserId, users.id))
-      .innerJoin(
+      .leftJoin(
         roomParticipants,
         and(
           eq(roomParticipants.roomId, rooms.id),
@@ -540,6 +725,7 @@ export const roomsRepository = {
           inArray(rooms.status, ["live", "scheduled"]),
           notExists(friendInviteExists),
           roomsRepository._activeCircleListingPredicate(),
+          or(eq(rooms.hostUserId, userId), isNotNull(roomParticipants.userId)),
         ),
       )
       .orderBy(
@@ -610,5 +796,33 @@ export const roomsRepository = {
         asc(rooms.id),
       )
       .limit(limit + 1);
+  },
+
+  /**
+   * After someone joins/rejoins a live circle, reset `expires_at` / `is_expired` from schedule
+   * (clears an empty-room grace deadline once the session has people again).
+   */
+  async refreshLiveCircleExpiryAfterParticipantJoin(roomId: string): Promise<void> {
+    const row = await db.query.rooms.findFirst({
+      where: and(eq(rooms.id, roomId), eq(rooms.roomType, "circle"), eq(rooms.status, "live")),
+      columns: {
+        scheduledStartAt: true,
+        scheduledEndAt: true,
+        advancedOptions: true,
+      },
+    });
+    if (!row) return;
+
+    const { expiresAt, isExpired } = computeRoomExpiryFields({
+      status: "live",
+      scheduledStartAt: row.scheduledStartAt,
+      scheduledEndAt: row.scheduledEndAt,
+      advancedOptions: row.advancedOptions,
+    });
+
+    await db
+      .update(rooms)
+      .set({ expiresAt, isExpired, updatedAt: new Date() })
+      .where(and(eq(rooms.id, roomId), eq(rooms.roomType, "circle"), eq(rooms.status, "live")));
   },
 };

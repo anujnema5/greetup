@@ -187,6 +187,8 @@ export function RoomVideoView({
   directRoomActivities: directRoomActivitiesProp,
   embeddedCallPolicyLookup = null,
   dominantSpeakerPeerId = null,
+  showHostEndCircleForEveryone = false,
+  onHostEndCircleForEveryone,
 }: RoomVideoViewProps) {
   /** `is_active` catalog tiles from `RoomVideoLayer` (empty until loaded or when none enabled). */
   const activeDirectRoomActivities = directRoomActivitiesProp ?? [];
@@ -519,6 +521,8 @@ export function RoomVideoView({
     formatDuration,
     showPeopleTab,
     showActivitiesTab,
+    showHostEndCircleForEveryone,
+    onHostEndCircleForEveryone,
   };
 
   const openCircleChat = useCallback(() => {

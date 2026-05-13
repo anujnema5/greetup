@@ -92,6 +92,9 @@ export type RoomVideoViewProps = {
   directRoomActivities?: RoomActivityMeta[];
   /** Full API policy map; merged with chess defaults in `resolveEmbeddedActivityCallPolicy` when thin. */
   embeddedCallPolicyLookup?: EmbeddedCallPolicyLookup | null;
+  /** Circle host: explicit “end circle for everyone” (separate from leaving the call yourself). */
+  showHostEndCircleForEveryone?: boolean;
+  onHostEndCircleForEveryone?: () => void;
   /** Mediasoup dominant speaker user id (`dominantSpeaker` from rtc-service). */
   dominantSpeakerPeerId?: string | null;
 };

@@ -1,6 +1,9 @@
 import config from "@/shared/config/config";
 import logger from "@/core/logging";
-import { clearUserActiveRtcRoom } from "@/modules/rooms/services/user-active-rtc-room-redis.service";
+import { clearUserActiveRtcRoom, getUserActiveRtcRoomId } from "@/modules/rooms/services/user-active-rtc-room-redis.service";
+import { finalizeDirectMatchRoomSession } from "@/modules/rooms/services/finalize-direct-match-room.service";
+import { leaveCircleRtcSessionInternal } from "@/modules/rooms/services/leave-circle-rtc-session.service";
+import { roomsRepository } from "@/modules/rooms/repositories/rooms.repository";
 
 import type { UserMatchState } from "../types/match.types";
 
@@ -154,6 +157,13 @@ async function assertMatchEngineOk(res: Response, label: string): Promise<void> 
   throw new Error("Match engine error");
 }
 
+async function directRoomIdForLeavingUser(userId: string): Promise<string | null> {
+  return (
+    (await getUserActiveRtcRoomId(userId)) ??
+    (await roomsRepository.findLiveDirectRoomIdForParticipant(userId))
+  );
+}
+
 export const findMatchService = async (userId: string, requestId: string) => {
   const res = await matchEngineRequest("POST", "/match/find", { userId, requestId });
   await assertMatchEngineOk(res, "Match engine /match/find");
@@ -190,16 +200,37 @@ export const getUserMatchStateService = async (userId: string): Promise<UserMatc
 };
 
 export const cancelMatchService = async (userId: string): Promise<void> => {
-  const res = await matchEngineRequest("POST", "/match/cancel", { userId });
-  await assertMatchEngineOk(res, "Match engine /match/cancel");
-  await clearUserActiveRtcRoom(userId);
+  const roomId = await directRoomIdForLeavingUser(userId);
+  try {
+    const res = await matchEngineRequest("POST", "/match/cancel", { userId });
+    await assertMatchEngineOk(res, "Match engine /match/cancel");
+  } finally {
+    if (roomId) {
+      const room = await roomsRepository.findRoomById(roomId);
+      if (room?.roomType === "circle") {
+        await leaveCircleRtcSessionInternal(userId, roomId);
+      } else {
+        await finalizeDirectMatchRoomSession(roomId);
+      }
+    }
+    await clearUserActiveRtcRoom(userId);
+  }
 };
 
 export const leaveRoomService = async (userId: string): Promise<void> => {
+  const roomId = await directRoomIdForLeavingUser(userId);
   try {
     const res = await matchEngineRequest("POST", "/match/leave-room", { userId });
     await assertMatchEngineOk(res, "Match engine /match/leave-room");
   } finally {
+    if (roomId) {
+      const room = await roomsRepository.findRoomById(roomId);
+      if (room?.roomType === "circle") {
+        await leaveCircleRtcSessionInternal(userId, roomId);
+      } else {
+        await finalizeDirectMatchRoomSession(roomId);
+      }
+    }
     await clearUserActiveRtcRoom(userId);
   }
 };

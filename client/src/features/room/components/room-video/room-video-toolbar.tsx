@@ -29,6 +29,7 @@ import {
   SkipForward,
   UserPlus,
   Users,
+  Ban,
   Video,
   VideoOff,
 } from "lucide-react";
@@ -71,6 +72,8 @@ export function RoomVideoToolbar({
   showSkip,
   onSkip,
   onEnd,
+  showHostEndCircleForEveryone = false,
+  onHostEndCircleForEveryone,
   elapsed: _elapsed,
   formatDuration: _formatDuration,
   showPeopleTab = false,
@@ -98,6 +101,9 @@ export function RoomVideoToolbar({
   showSkip: boolean;
   onSkip: () => void;
   onEnd: () => void;
+  /** Circle host: show explicit “end for everyone” control (separate from Leave). */
+  showHostEndCircleForEveryone?: boolean;
+  onHostEndCircleForEveryone?: () => void;
   elapsed: number;
   formatDuration: (seconds: number) => string;
   showPeopleTab?: boolean;
@@ -406,7 +412,35 @@ export function RoomVideoToolbar({
             </div>
 
             <div ref={endRef} className="flex shrink-0 items-center">
-              <div className="flex w-16 min-w-16 shrink-0 flex-col items-center gap-1">
+              <div className="flex shrink-0 items-center gap-1.5">
+                {isGroupRoom && showHostEndCircleForEveryone && onHostEndCircleForEveryone ? (
+                  <div className="flex w-[4.25rem] min-w-[4.25rem] shrink-0 flex-col items-center gap-1">
+                    <button
+                      type="button"
+                      onClick={() => onHostEndCircleForEveryone()}
+                      aria-label="End circle for everyone"
+                      title="End circle for everyone"
+                      className={cn(
+                        "inline-flex h-11 w-11 shrink-0 cursor-pointer items-center justify-center rounded-full",
+                        "border border-amber-500/40 bg-amber-600/90 text-white shadow-md shadow-black/25",
+                        "backdrop-blur-sm transition-[background-color,border-color,transform,box-shadow] duration-150",
+                        "hover:border-amber-400/50 hover:bg-amber-700 hover:shadow-lg",
+                        "active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-400/50 focus-visible:ring-offset-0",
+                      )}
+                    >
+                      <Ban size={18} className="text-white" />
+                    </button>
+                    <span
+                      className={cn(
+                        TOOLBAR_CONTROL_CAPTION_CLASS,
+                        "flex w-full items-center justify-center whitespace-nowrap text-[10px] text-amber-100/95",
+                      )}
+                    >
+                      End all
+                    </span>
+                  </div>
+                ) : null}
+                <div className="flex w-16 min-w-16 shrink-0 flex-col items-center gap-1">
                 <button
                   type="button"
                   onClick={onEnd}
@@ -430,6 +464,7 @@ export function RoomVideoToolbar({
                 >
                   Leave
                 </span>
+              </div>
               </div>
             </div>
           </>
@@ -481,12 +516,40 @@ export function RoomVideoToolbar({
                     className="z-200 w-52"
                   >
                     {overflowSecondaries.map((id) => renderOverflowMenuItem(id))}
+                    {isGroupRoom && showHostEndCircleForEveryone && onHostEndCircleForEveryone ? (
+                      <DropdownMenuItem
+                        key="host-end-circle"
+                        onClick={() => onHostEndCircleForEveryone()}
+                        className="text-amber-700 focus:text-amber-800 dark:text-amber-400"
+                      >
+                        <Ban size={16} />
+                        End circle for everyone
+                      </DropdownMenuItem>
+                    ) : null}
                   </DropdownMenuContent>
                 </DropdownMenu>
               ) : null}
             </div>
 
             <div ref={endRef} className="flex shrink-0 items-center gap-2 sm:gap-3">
+              {isGroupRoom && showHostEndCircleForEveryone && onHostEndCircleForEveryone ? (
+                <button
+                  type="button"
+                  onClick={() => onHostEndCircleForEveryone()}
+                  aria-label="End circle for everyone"
+                  title="End circle for everyone"
+                  className={cn(
+                    "inline-flex h-11 shrink-0 cursor-pointer items-center gap-2 rounded-full px-4",
+                    "border border-amber-500/40 bg-amber-600/90 text-sm font-semibold text-white shadow-md shadow-black/25",
+                    "backdrop-blur-sm transition-[background-color,border-color,transform,box-shadow] duration-150",
+                    "hover:border-amber-400/50 hover:bg-amber-700 hover:shadow-lg",
+                    "active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-400/50 focus-visible:ring-offset-0",
+                  )}
+                >
+                  <Ban size={16} className="text-white" />
+                  End for everyone
+                </button>
+              ) : null}
               <div className="h-7 w-px shrink-0 self-center bg-white/18" aria-hidden />
               <button
                 type="button"

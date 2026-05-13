@@ -53,6 +53,14 @@ export function RoomPage() {
     }
     return false;
   })();
+  const circleHostUserId =
+    room && isCircleRoomData(room)
+      ? room.hostUserId
+      : room && "hostUserId" in room && typeof room.hostUserId === "string"
+        ? room.hostUserId
+        : null;
+  const circleLobbyGateActive =
+    room && isCircleRoomData(room) ? (room.lobbyGateActive ?? null) : null;
   const shouldStartVideo =
     !duplicateTabRedirect &&
     !loading &&
@@ -121,6 +129,15 @@ export function RoomPage() {
           room && "title" in room && typeof room.title === "string" ? room.title : null
         }
         circleCanEditTitle={circleCanEditTitle}
+        circleHostUserId={circleHostUserId}
+        circleLobbyGateActive={circleLobbyGateActive}
+        circleScheduledStartAt={
+          room && isCircleRoomData(room) && room.scheduledStartAt ? room.scheduledStartAt : null
+        }
+        circleRoomStatus={
+          room && isCircleRoomData(room) && room.status ? room.status : null
+        }
+        isDbCircleCall={Boolean(room && isCircleRoomData(room))}
       />
     );
   }

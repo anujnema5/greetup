@@ -12,6 +12,7 @@ import type {
   ActiveCirclesApiResponse,
   CreateCircleApiResponse,
   CreateCircleRequest,
+  DeleteScheduledCircleApiResponse,
   ListCircleCategoriesApiResponse,
   UpdateScheduledCircleApiResponse,
   UpdateScheduledCircleRequest,
@@ -65,9 +66,17 @@ export const circlesApi = baseApi.injectEndpoints({
       { roomId: string; body: UpdateScheduledCircleRequest }
     >({
       query: ({ roomId, body }) => ({
-        url: CIRCLES.patch(roomId),
+        url: CIRCLES.room(roomId),
         method: "PATCH",
         body,
+      }),
+      invalidatesTags: [CACHE_ACTIVE_CIRCLES],
+    }),
+
+    deleteScheduledCircle: build.mutation<DeleteScheduledCircleApiResponse, string>({
+      query: (roomId) => ({
+        url: CIRCLES.room(roomId),
+        method: "DELETE",
       }),
       invalidatesTags: [CACHE_ACTIVE_CIRCLES],
     }),
@@ -79,4 +88,5 @@ export const {
   useListActiveCirclesQuery,
   useCreateCircleMutation,
   useUpdateScheduledCircleMutation,
+  useDeleteScheduledCircleMutation,
 } = circlesApi;

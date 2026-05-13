@@ -1,7 +1,8 @@
+import { mergeRoomAdvancedOptions } from "@/core/database/schema";
 import { roomsRepository } from "@/modules/rooms/repositories/rooms.repository";
-import { notifyCircleStarted } from "../notifications";
+import { syncCircleRoomExpiryFromClockIfDue } from "@/modules/rooms/services/circle-room-expiry-sync.service";
 
-import { provisionSessionRoomRedis } from "./session-room-redis.service";
+import { runLiveCircleAfterMarkLive } from "./live-circle-after-mark-live.service";
 
 export type StartRoomSessionErrorCode =
   | "ROOM_NOT_FOUND"
@@ -22,6 +23,7 @@ export class StartRoomSessionError extends Error {
  * Host starts a previously scheduled DB room: PG → live, then Redis session key.
  */
 export async function startRoomSessionService(hostUserId: string, roomId: string) {
+  await syncCircleRoomExpiryFromClockIfDue(roomId);
   const existing = await roomsRepository.findRoomById(roomId);
 
   if (!existing) {
@@ -49,27 +51,16 @@ export async function startRoomSessionService(hostUserId: string, roomId: string
     );
   }
 
-  await provisionSessionRoomRedis({
+  const adv = mergeRoomAdvancedOptions(existing.advancedOptions);
+
+  await runLiveCircleAfterMarkLive({
     roomId: row.id,
     hostUserId,
     roomType: row.roomType,
     title: existing.title,
+    notifyInvitees: true,
+      lobbyGateActive: adv.shouldHostStartMeeting !== false,
   });
-
-  const invitees = await roomsRepository.listActiveFriendInviteeUserIds(row.id);
-
-  if (invitees.length > 0) {
-    await Promise.all(
-      invitees.map((invite) =>
-        notifyCircleStarted({
-          recipientUserId: invite.inviteeUserId,
-          actorUserId: hostUserId,
-          roomId: row.id,
-          roomTitle: existing.title,
-        }),
-      ),
-    );
-  }
 
   return { room: row };
 }
