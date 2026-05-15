@@ -56,17 +56,18 @@ export function RoomPage() {
         : null;
   const circleLobbyGateActive =
     room && isCircleRoomData(room) ? (room.lobbyGateActive ?? null) : null;
+  const rematchLanding = isSearchingNext && Boolean(peerId);
   const shouldStartVideo =
     !duplicateTabRedirect &&
-    !loading &&
-    Boolean(room) &&
+    (rematchLanding || (!loading && Boolean(room))) &&
     (isCircleRoom || Boolean(peerId)) &&
-    !isSearchingNext;
+    (!isSearchingNext || rematchLanding);
 
   const { joinRoomError, joinRoomLoading } = useRoomJoinAndStartVideo({
     roomId,
     shouldStartVideo,
     sessionActive,
+    joinWhileSessionActive: rematchLanding,
     peerId,
     dispatch,
   });
@@ -121,6 +122,7 @@ export function RoomPage() {
   if (showCallSurface) {
     return (
       <InCallContainer
+        key={roomId}
         roomId={roomId}
         peerId={peerId}
         scoreLabel={scoreLabel}
