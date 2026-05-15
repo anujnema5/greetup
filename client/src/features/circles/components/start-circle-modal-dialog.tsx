@@ -390,9 +390,9 @@ export function StartCircleModalDialog(props: StartCircleModalDialogProps) {
                       )}
                     />
                     </div>
-                    <p className="border-t border-border/40 pt-3 text-[11px] leading-relaxed text-muted-foreground">
+                    {/* <p className="border-t border-border/40 pt-3 text-[11px] leading-relaxed text-muted-foreground">
                       {scheduleTimeMeaningNote()}
-                    </p>
+                    </p> */}
                   </div>
                 )}
 

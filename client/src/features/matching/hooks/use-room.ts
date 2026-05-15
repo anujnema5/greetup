@@ -6,8 +6,8 @@ import { useSession } from "@/lib/auth-client";
 import { getRtkQueryErrorMessage } from "@/lib/api/rtk-query-error";
 import { useAppDispatch } from "@/lib/redux/hooks";
 import { resetRoomState } from "@/lib/redux/slices/room-slice";
-import { useRoomPageTabLease } from "@/features/room";
-import { clearRoomStorage } from "@/features/room/lib/room-sync";
+import { useRoomPageTabLease } from "@/features/room/hooks";
+import { clearRoomStorage } from "@/features/room/lib/session/room-sync";
 import { useGetRoomQuery, useLeaveRoomMutation, useLeaveCircleRtcMutation } from "@/features/room/api/room-api";
 import { useRtcSocketContext } from "@/features/rtc";
 import {
@@ -140,7 +140,7 @@ export function useRoom() {
       if (room && isCircleRoomData(room)) {
         await leaveCircleRtc(roomId).unwrap();
       } else {
-        await leaveRoom().unwrap();
+        await leaveRoom({ roomId }).unwrap();
       }
     } catch {
       /* best-effort */

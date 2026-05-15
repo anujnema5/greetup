@@ -627,7 +627,7 @@ export class PeerSessionService {
         this.roomMembers.delete(roomId);
         this.dominantSpeaker.forgetRoom(roomId);
         if (opts.releaseRoomIfEmpty !== false) {
-          await roomService.releaseRoom(roomId);
+          await this.releaseRoomAndTaps(roomId);
         }
       }
     }
@@ -650,5 +650,28 @@ export class PeerSessionService {
     }
 
     logger.info("Peer session removed", { userId, roomId });
+  }
+
+  /**
+   * Internal webhook from main API: tear down the SFU room even if clients have not all left yet.
+   * Releases VoiceIQ taps, evicts peers on this replica, clears rtc Redis keys when we own the room.
+   */
+  async forceTeardownMediasoupRoom(roomId: string): Promise<{ ok: true; removedSessions: number }> {
+    const userIds = [...(this.roomMembers.get(roomId) ?? [])];
+    for (const userId of userIds) {
+      await this.removeSession(userId, {
+        skipRedis: false,
+        skipSocketLeave: false,
+        releaseRoomIfEmpty: true,
+      });
+    }
+    await this.releaseRoomAndTaps(roomId);
+    logger.info("forceTeardownMediasoupRoom", { roomId, removedSessions: userIds.length });
+    return { ok: true, removedSessions: userIds.length };
+  }
+
+  private async releaseRoomAndTaps(roomId: string): Promise<void> {
+    voiceIqTapService.releaseAllTapsForRoom(roomId);
+    await roomService.releaseRoom(roomId);
   }
 }

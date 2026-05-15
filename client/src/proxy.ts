@@ -424,6 +424,7 @@ function getSessionToken(req: NextRequest): string | undefined {
 // ⭐ Note: In Next.js 16, the config export stays the same
 export const config = {
   matcher: [
-    "/((?!_next/static|_next/image|favicon.ico|public).*)",
+    // Exclude sw.js so static `public/sw.js` is served without running this file.
+    "/((?!_next/static|_next/image|favicon.ico|public|sw\\.js).*)",
   ],
 };

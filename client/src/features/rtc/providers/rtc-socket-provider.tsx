@@ -4,7 +4,7 @@ import { createContext, useContext, useEffect, useMemo } from "react";
 import { useSession } from "@/lib/auth-client";
 import { useAppDispatch, useAppSelector } from "@/lib/redux/hooks";
 import { useGetMyProfileQuery } from "@/features/profile-setup/components/profile-setup-api";
-import { useRoomTabLeaseRtcSync } from "@/features/room";
+import { useRoomTabLeaseRtcSync } from "@/features/room/hooks";
 import {
   selectActiveRoomId,
   selectIsVideoSessionActive,

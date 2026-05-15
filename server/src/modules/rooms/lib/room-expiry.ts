@@ -60,30 +60,6 @@ export function computeRoomExpiryFields(
   return { expiresAt, isExpired: computeIsExpired(expiresAt, now) };
 }
 
-/**
- * When a live circle has **zero** active participants and `deleteCircleAfterCall` is on, or when
- * computing a short grace window (legacy / tests). **Normal last-leaver leave** no longer updates
- * `expires_at` from this helper — see `leave-circle-rtc-session.service.ts`.
- */
-export function computeEmptyLiveCircleGraceDeadline(input: {
-  now: Date;
-  graceMinutes: number;
-  scheduledEndAt: Date | null;
-  currentExpiresAt: Date | null;
-}): { expiresAt: Date; endSessionImmediately: boolean } {
-  const candidates: number[] = [input.now.getTime() + input.graceMinutes * 60_000];
-  if (input.scheduledEndAt) {
-    candidates.push(input.scheduledEndAt.getTime());
-  }
-  if (input.currentExpiresAt) {
-    candidates.push(input.currentExpiresAt.getTime());
-  }
-  const t = Math.min(...candidates);
-  const expiresAt = new Date(t);
-  const endSessionImmediately = expiresAt.getTime() <= input.now.getTime();
-  return { expiresAt, endSessionImmediately };
-}
-
 export type DbRoomSessionRow = {
   status: "scheduled" | "live" | "ended" | "cancelled";
   expiresAt: Date | null;

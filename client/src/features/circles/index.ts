@@ -5,6 +5,7 @@
  * - UI copy: `constants/start-circle-copy.ts`
  * - Form state: `hooks/use-start-circle-modal-state.ts` (react-hook-form)
  * - Types: `types/` (API DTOs + `start-circle-ui.types.ts`)
+ * - Active grid card rules: `lib/active-circle-card-session-display.ts`
  */
 
 export {

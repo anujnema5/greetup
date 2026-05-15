@@ -17,7 +17,7 @@ import { playChessSound, preloadChessSounds } from "@/features/activity/chess/ut
 import {
   RoomActivityLayout,
   RoomActivityVideoTiles,
-} from "@/features/room/components/room-activity/room-activity-layout";
+} from "@/features/room/call/activities/stages/room-activity-layout";
 import { getRtkMutationErrorMessage } from "@/lib/api/rtk-mutation-error";
 import { cn } from "@/lib/utils";
 import type { RoomChessActivityState } from "@/lib/redux/types/room-slice.types";

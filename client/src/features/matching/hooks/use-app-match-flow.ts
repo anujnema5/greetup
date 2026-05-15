@@ -55,8 +55,15 @@ export function useAppMatchFlow() {
       peerId: result.peerId ?? null,
       score: result.matchScore != null ? String(Math.round(result.matchScore)) : null,
     });
+    const target = `/circle/${roomId}`;
+    const alreadyOnCircleRoute =
+      pathname === target || pathname.startsWith("/circle/");
     startTransition(() => {
-      router.push(`/circle/${roomId}`);
+      if (alreadyOnCircleRoute) {
+        router.replace(target);
+      } else {
+        router.push(target);
+      }
     });
   }, [status, result, router, startTransition, pathname]);
 

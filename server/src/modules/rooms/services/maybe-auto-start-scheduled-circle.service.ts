@@ -18,7 +18,7 @@ import { runLiveCircleAfterMarkLive } from "./live-circle-after-mark-live.servic
  * **Step 3:** `deleteCircleAfterCall` — last active participant `leave-circle-rtc` ends the live circle
  * immediately when the flag is on; when off, last leave only records `left_at` (circle stays live
  * until host **end circle for everyone** or `expires_at` / scheduled join grace). `POST /room/:id/host-end-circle`
- * (legacy: `host-end-delete-after-call`) ends the session for everyone.
+ * ends the session for everyone.
  */
 export async function maybeAutoStartScheduledCircleFromDb(roomId: string): Promise<void> {
   const room = await roomsRepository.findRoomById(roomId);

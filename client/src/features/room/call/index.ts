@@ -1,0 +1,18 @@
+/** In-call UI */
+export { InCallScreen } from "./shell/in-call-screen";
+export type { InCallScreenProps } from "./shell/in-call-screen";
+export { InCallContainer } from "./shell/in-call-container";
+export type { InCallContainerProps } from "./shell/in-call-container";
+export { MainStage } from "./stage/main-stage";
+export { LocalParticipantTile } from "./tiles/my-camera-tile";
+export { RemoteParticipantTile } from "./tiles/peer-camera-tile";
+export * from "./tiles/tile-primitives";
+export * from "./tiles/tile-styles";
+export { CircleGalleryGrid } from "./layouts/grid/circle-grid";
+export { PaginatedTileGrid } from "./layouts/grid/paginated-tile-grid";
+export { circleGridClass } from "./layouts/grid/circle-grid-classes";
+export { ActivityStage } from "./activities/activity-stage";
+export { CALL_ACTIVITY_REGISTRY, resolveActivityStageComponent } from "./activities/registry";
+export { CallTopBar, CALL_STAGE_CHROME_BTN_CLASS } from "./stage/top-bar";
+export { StageOverlays } from "./stage/stage-overlays";
+export { RightSidebar } from "./panels/sidebar/right-sidebar";

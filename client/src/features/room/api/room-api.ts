@@ -1,6 +1,6 @@
 import { API_ENDPOINTS, baseApi } from "@/lib/api";
 import { API_BASE_URL } from "@/shared/constants/environments";
-import { invalidateRoomAndPeersCallStatusTags, roomEntityTag } from "@/features/room/lib/room-rtk-cache";
+import { invalidateRoomAndPeersCallStatusTags, roomEntityTag } from "@/features/room/lib/session/room-rtk-cache";
 import { rtcTokenCacheTag } from "@/features/rtc/api/rtc-api";
 
 import { parseRoomData, type RoomData } from "@/features/matching/types/room.types";
@@ -12,8 +12,8 @@ import type {
   UpdateRoomTitleMutationArg,
   UpdateRoomTitleMutationResult,
   RoomApiEnvelope,
-} from "../types/room-api.types";
-import { parseListRoomEmbeddedActivitiesResponse } from "@/features/room/embedded-activities/parse-list-response";
+} from "../types/api/room-api.types";
+import { parseListRoomEmbeddedActivitiesResponse } from "@/features/room/embedded-activities/parse/parse-list-response";
 import type { RoomEmbeddedActivityDto } from "@/features/room/embedded-activities/types";
 
 const { MATCHING, ROOM } = API_ENDPOINTS;
@@ -109,10 +109,14 @@ export const roomApi = baseApi.injectEndpoints({
       ],
     }),
 
-    leaveRoom: build.mutation<void, void>({
-      query: () => ({
+    leaveRoom: build.mutation<void, { roomId?: string } | void>({
+      query: (arg) => ({
         url: MATCHING.LEAVE_ROOM,
         method: "POST",
+        body:
+          arg && typeof arg === "object" && typeof arg.roomId === "string" && arg.roomId.length > 0
+            ? { roomId: arg.roomId }
+            : undefined,
       }),
     }),
 
@@ -235,10 +239,3 @@ export const {
   useRoomInviteRespondMutation,
   useUpdateRoomTitleMutation,
 } = roomApi;
-
-/** @deprecated Use `useHostEndCircleForEveryoneMutation` */
-export const useHostEndDeleteCircleAfterCallMutation = useHostEndCircleForEveryoneMutation;
-
-/** Back-compat aliases (legacy direct-expand naming). */
-export const useExpandDirectInviteMutation = useRoomInviteMutation;
-export const useExpandDirectRespondMutation = useRoomInviteRespondMutation;

@@ -10,7 +10,6 @@ import {
   handleOpenCircleMeeting,
   handleLeaveCircleRtc,
   handleHostEndCircleForEveryone,
-  handleHostEndDeleteAfterCall,
   handleStartRoomSession,
 } from "./controllers/room.controller";
 import { internalRoomsRoute } from "./routes/internal-rooms.route";
@@ -26,13 +25,9 @@ roomRoute.post("/:roomId/join", handleJoinRoom);
 roomRoute.post("/:roomId/open-meeting", handleOpenCircleMeeting);
 roomRoute.post("/:roomId/leave-circle-rtc", handleLeaveCircleRtc);
 roomRoute.post("/:roomId/host-end-circle", handleHostEndCircleForEveryone);
-roomRoute.post("/:roomId/host-end-delete-after-call", handleHostEndDeleteAfterCall);
 roomRoute.patch("/:roomId/title", handlePatchRoomTitle);
 roomRoute.post("/:roomId/start", handleStartRoomSession);
 roomRoute.post("/:roomId/invite", handleRoomInvite);
 roomRoute.post("/:roomId/invite/respond", handleRoomInviteRespond);
-/* Back-compat legacy direct-expand routes */
-roomRoute.post("/:roomId/expand-direct/invite", handleRoomInvite);
-roomRoute.post("/:roomId/expand-direct/respond", handleRoomInviteRespond);
 roomRoute.get("/:roomId", handleGetRoom);
 roomRoute.route("/", roomActivityRoute);

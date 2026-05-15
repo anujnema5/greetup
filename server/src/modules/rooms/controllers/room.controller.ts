@@ -216,8 +216,9 @@ export const handleLeaveCircleRtc = async (c: Context) => {
 };
 
 /**
- * POST /api/room/:roomId/host-end-circle  
- * Host-only: ends the live circle for everyone (also registered under legacy `host-end-delete-after-call`).
+ * POST /api/room/:roomId/host-end-circle
+ * Host-only: ends the live RTC session for everyone (participants marked left, Redis cleared).
+ * Calendar circles with a scheduled start return to `scheduled`; instant circles are ended in Postgres.
  */
 export const handleHostEndCircleForEveryone = async (c: Context) => {
   const roomId = c.req.param("roomId");
@@ -248,9 +249,6 @@ export const handleHostEndCircleForEveryone = async (c: Context) => {
     return internalError(c, error);
   }
 };
-
-/** @deprecated Path name — prefer POST `.../host-end-circle`. */
-export const handleHostEndDeleteAfterCall = handleHostEndCircleForEveryone;
 
 /**
  * POST /api/room/:roomId/start
@@ -368,7 +366,7 @@ export const handlePatchRoomTitle = async (c: Context) => {
 };
 
 /**
- * POST /api/room/:roomId/expand-direct/invite
+ * POST /api/room/:roomId/invite
  * Participant invites a connection to upgrade this direct call to a circle (pending until they accept).
  */
 export const handleRoomInvite = async (c: Context) => {
@@ -413,7 +411,7 @@ export const handleRoomInvite = async (c: Context) => {
 };
 
 /**
- * POST /api/room/:roomId/expand-direct/respond
+ * POST /api/room/:roomId/invite/respond
  * Invitee accepts or declines — on accept the room becomes a circle in place.
  */
 export const handleRoomInviteRespond = async (c: Context) => {
@@ -467,10 +465,6 @@ export const handleRoomInviteRespond = async (c: Context) => {
   }
 };
 
-/** Back-compat aliases (legacy direct-expand naming). */
-export const handleExpandDirectInvite = handleRoomInvite;
-export const handleExpandDirectRespond = handleRoomInviteRespond;
-
 /**
  * GET /api/room/:roomId
  * Returns Redis-backed room payload (match pair or DB session room).
@@ -490,7 +484,34 @@ export const handleGetRoom = async (c: Context) => {
     const room = await redis.hgetall(`${ROOM_KEYS.ROOM}${roomId}`);
     if (!room || !room.roomId) {
       let dbRoom = await roomsRepository.findRoomById(roomId);
-      if (!dbRoom || dbRoom.roomType !== "circle") {
+      if (!dbRoom) {
+        return c.json(
+          ApiResponse.error({ message: "Room not found", statusCode: 404, code: "NOT_FOUND" }),
+          404,
+        );
+      }
+
+      /** Match rooms: Redis may lag or expire; fall back to Postgres for live direct pairs. */
+      if (dbRoom.roomType === "direct" && dbRoom.status === "live") {
+        const participantIds = await roomsRepository.listActiveParticipantUserIds(roomId);
+        const hostId = dbRoom.hostUserId;
+        const peerId = participantIds.find((id) => id !== hostId) ?? participantIds[1];
+        if (hostId && peerId && participantIds.length >= 2) {
+          return c.json(
+            ApiResponse.success(
+              {
+                roomId,
+                userA: hostId,
+                userB: peerId,
+                matchScore: null,
+              },
+              "Room found",
+            ),
+          );
+        }
+      }
+
+      if (dbRoom.roomType !== "circle") {
         return c.json(
           ApiResponse.error({ message: "Room not found", statusCode: 404, code: "NOT_FOUND" }),
           404,

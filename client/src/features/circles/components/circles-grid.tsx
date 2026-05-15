@@ -9,8 +9,8 @@ import { getRtkMutationErrorMessage } from "@/lib/api/rtk-mutation-error";
 import { useStartScheduledCircleMutation } from "@/features/room/api/room-api";
 import { cn } from "@/lib/utils";
 import { formatScheduledStart } from "@/lib/datetime/format-scheduled-start";
-import { isClientStillBeforeScheduledStart } from "@/lib/datetime/scheduled-start-guards";
 import { scheduledStartTimeDisclaimerCompact } from "@/features/circles/constants/scheduled-circle-join-grace";
+import { activeCircleCardShowsLiveSession } from "@/features/circles/lib/active-circle-card-session-display";
 import { useListActiveCirclesQuery } from "../api/circles-api";
 import { useStartCircleModal } from "./start-circle-modal-provider";
 import type { ActiveCircleItem } from "../types/circles-api.types";
@@ -35,23 +35,6 @@ function hostLabel(host: ActiveCircleItem["host"]) {
   return host.displayName?.trim() || host.name?.trim() || "Host";
 }
 
-/**
- * A circle can be `live` in the DB after an early “Start now”, then everyone leaves before the
- * calendar slot — still the same scheduled event; show scheduled-style copy instead of LIVE /
- * “Ongoing circle”.
- */
-function displayAsLiveInActiveGrid(circle: ActiveCircleItem): boolean {
-  if (circle.status !== "live") return false;
-  if (
-    circle.scheduledStartAt &&
-    isClientStillBeforeScheduledStart(circle.scheduledStartAt) &&
-    circle.participantCount === 0
-  ) {
-    return false;
-  }
-  return true;
-}
-
 // ─── Single card ─────────────────────────────────────────────────────────────
 function CircleCard({
   circle,
@@ -71,7 +54,7 @@ function CircleCard({
   startScheduledBusy?: boolean;
 }) {
   const cover = coverFor(circle.id);
-  const isLive = displayAsLiveInActiveGrid(circle);
+  const isLive = activeCircleCardShowsLiveSession(circle);
   const scheduledLabel = formatScheduledStart(circle.scheduledStartAt);
   const isHost = Boolean(currentUserId && circle.host.userId === currentUserId);
   const showEdit = isHost && circle.status === "scheduled" && circle.scheduledStartAt && onEditScheduled;
@@ -161,9 +144,9 @@ function CircleCard({
         ) : scheduledLabel ? (
           <>
             <p className="mt-0.5 text-[10px] text-white/70">Starts {scheduledLabel}</p>
-            <p className="mt-1 line-clamp-2 text-[9px] leading-snug text-white/55">
+            {/* <p className="mt-1 line-clamp-2 text-[9px] leading-snug text-white/55">
               {scheduledStartTimeDisclaimerCompact()}
-            </p>
+            </p> */}
           </>
         ) : null}
         <p className="text-[10px] text-white/50 mt-0.5">by {hostLabel(circle.host)}</p>
@@ -213,10 +196,18 @@ function CircleRow({
   startScheduledBusy?: boolean;
 }) {
   if (items.length === 0) return null;
+  const single = items.length === 1;
   return (
     <div
-      className="flex gap-3 overflow-x-auto pb-1 md:overflow-visible md:grid md:gap-3 scrollbar-none"
-      style={{ gridTemplateColumns: `repeat(${items.length}, 1fr)` }}
+      className={cn(
+        "flex gap-3 overflow-x-auto pb-1 md:overflow-visible md:grid md:gap-3 scrollbar-none",
+        single && "md:justify-start",
+      )}
+      style={{
+        gridTemplateColumns: single
+          ? "minmax(0, min(100%, 22rem))"
+          : `repeat(${items.length}, minmax(0, 1fr))`,
+      }}
     >
       {items.map((c) => (
         <CircleCard
