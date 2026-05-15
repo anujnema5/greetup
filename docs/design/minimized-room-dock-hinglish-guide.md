@@ -245,7 +245,7 @@ router.replace(getRoomReturnPath() ?? "/home");
 
 ## J. Server pe “dominant speaker” kya hai?
 
-**File:** `rtc-service/.../dominant-speaker-broadcast.ts`
+**File:** `rtc-service/.../dominant-speaker.ts`
 
 - Sirf **mic** se — screen-share audio **dominant fight** mein mix nahi.
 - `AudioLevelObserver` — sabse zyada awaaz.
@@ -420,7 +420,7 @@ useLayoutEffect(() => {
 | Room page gates | `features/room/pages/room-page.tsx` |
 | Global RTC | `features/rtc/providers/rtc-socket-provider.tsx` |
 | Mediasoup session | `features/rtc/hooks/use-mediasoup-room-session.ts` |
-| Dominant (server) | `rtc-service/src/modules/peers/dominant-speaker-broadcast.ts` |
+| Dominant (server) | `rtc-service/src/modules/rtc/peer/dominant-speaker.ts` |
 
 ---
 

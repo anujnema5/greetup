@@ -1,7 +1,3 @@
-/**
- * rtc-service bootstrap — HTTP (`createApp`) + Socket.IO + Redis + mediasoup worker.
- */
-
 import { serve } from "@hono/node-server";
 import { Server } from "socket.io";
 import type { Server as HttpServer } from "node:http";
@@ -11,8 +7,8 @@ import { logger } from "@/core/logging";
 import { connectRedis, disconnectRedis } from "@/core/redis/client";
 import { initializeMediasoup } from "@/core/mediasoup/mediasoup.service";
 import { registerRtcSocketAuth } from "@/middleware/socket-jwt.middleware";
-import { registerSignalingHandlers } from "@/modules/signaling/signaling.handler";
-import { registerInternalPeers } from "@/modules/internal/internal-peers.registry";
+import { registerSignalingHandlers } from "@/modules/rtc/signaling/io-signaling";
+import { registerInternalPeers } from "@/modules/rtc/internal/global-peer-session";
 
 const app = createApp();
 

@@ -1,10 +1,6 @@
-/**
- * Internal HTTP handlers for VoiceIQ — see {@link voiceIqTapService}.
- */
 import type { Context } from "hono";
 import { voiceIqTapService } from "@/modules/voiceiq/voiceiq-tap.service";
 
-// POST /internal/voiceiq/tap
 export async function handleVoiceIQTap(c: Context): Promise<Response> {
   let body: unknown;
   try {
@@ -63,7 +59,6 @@ export async function handleVoiceIQTap(c: Context): Promise<Response> {
   });
 }
 
-// DELETE /internal/voiceiq/tap/:tapId
 export async function handleVoiceIQTapRelease(c: Context): Promise<Response> {
   const tapId = c.req.param("tapId");
   if (!tapId) {

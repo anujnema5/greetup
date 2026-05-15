@@ -1,7 +1,3 @@
-/**
- * In-memory mediasoup peer session + Redis room membership for video/WebRTC.
- * Socket event surface: `modules/signaling/mediasoup-socket.handlers.ts`.
- */
 import type { types as MediasoupTypes } from "mediasoup";
 import type { Socket } from "socket.io";
 import { RTC_CONFIG } from "@/shared/constants";
@@ -12,11 +8,11 @@ import {
   DOMINANT_SPEAKER_SOCKET_EVENT,
   type DominantSpeakerSocketPayload,
   isMicProducerForDominantUI,
-} from "@/modules/peers/dominant-speaker-broadcast";
-import * as peerRepository from "@/modules/peers/peer.repository";
-import type { PeerRecord } from "@/modules/peers/peer.types";
-import { mediaSourceFromProducerAppData, type ProducerMediaSource } from "@/modules/peers/media-source.util";
-import { roomService } from "@/modules/rooms/room.service";
+} from "@/modules/rtc/peer/dominant-speaker";
+import * as peerRepository from "@/modules/rtc/peer/peer.repository";
+import type { PeerRecord } from "@/modules/rtc/peer/peer.types";
+import { mediaSourceFromProducerAppData, type ProducerMediaSource } from "@/modules/rtc/peer/media-source";
+import { roomService } from "@/modules/rtc/room/room.service";
 import { voiceIqTapService } from "@/modules/voiceiq/voiceiq-tap.service";
 import type { RoomSessionType } from "@/shared/types/room-session";
 
@@ -24,7 +20,6 @@ export type ExistingProducerInfo = {
   peerId: string;
   producerId: string;
   kind: MediasoupTypes.MediaKind;
-  /** Present for video producers; defaults to camera when omitted (legacy clients). */
   mediaSource?: ProducerMediaSource;
 };
 
@@ -40,7 +35,6 @@ type PeerSession = {
 type RemoveSessionOptions = {
   skipRedis?: boolean;
   skipSocketLeave?: boolean;
-  /** When false, keep mediasoup Router / Redis room if this peer was the last local member (used before same-user re-join). */
   releaseRoomIfEmpty?: boolean;
 };
 
@@ -48,14 +42,11 @@ export class PeerSessionService {
   private readonly sessions = new Map<string, PeerSession>();
   private readonly roomMembers = new Map<string, Set<string>>();
 
-  /** Dominant mic highlight: AudioLevelObserver → {@link DominantSpeakerCoordinator} → Socket `dominantSpeaker`. */
   private readonly dominantSpeaker = new DominantSpeakerCoordinator(
     this.emitDominantSpeakerToMediasoupRoom.bind(this),
   );
 
-  /** userId → display name, set on join, cleared on leave. */
   private readonly displayNames = new Map<string, string>();
-  /** userId → profile image URL, set on join, cleared on leave. */
   private readonly profileImages = new Map<string, string>();
 
   async join(socket: Socket, displayName?: string, profileImageUrl?: string): Promise<
@@ -288,10 +279,6 @@ export class PeerSessionService {
     return { ok: true, id: producer.id };
   }
 
-  /**
-   * Pause a producer and notify room peers so they can show a placeholder (e.g. camera-off initials).
-   * The mediasoup producer stays alive — the peer can resume it without a new `getUserMedia`.
-   */
   async pauseProducer(
     userId: string,
     producerId: string,
@@ -322,9 +309,6 @@ export class PeerSessionService {
     return { ok: true };
   }
 
-  /**
-   * Resume a paused producer and notify room peers.
-   */
   async resumeProducer(
     userId: string,
     producerId: string,
@@ -354,11 +338,6 @@ export class PeerSessionService {
     return { ok: true };
   }
 
-  /**
-   * Tear down a producer we own. Required when the browser closes a track / mediasoup-client
-   * `Producer.close()` — that only stops local sending and does not remove the router producer,
-   * so peers would otherwise keep a frozen consumer until disconnect.
-   */
   async closeProducer(
     userId: string,
     producerId: string,
@@ -407,7 +386,6 @@ export class PeerSessionService {
         type: MediasoupTypes.ConsumerType;
         producerPaused: boolean;
         paused: boolean;
-        /** Video only: from producer `appData` (UI labels camera vs screen). */
         mediaSource?: ProducerMediaSource;
       }
     | { ok: false; code: string }
@@ -474,10 +452,6 @@ export class PeerSessionService {
     await this.removeSession(userId, { skipRedis: false, skipSocketLeave: true, releaseRoomIfEmpty: true });
   }
 
-  /**
-   * Explicit leave from client while keeping the underlying socket connected
-   * (e.g. user exits room but remains logged in on the app).
-   */
   async leave(userId: string): Promise<void> {
     await this.removeSession(userId, {
       skipRedis: false,
@@ -486,10 +460,6 @@ export class PeerSessionService {
     });
   }
 
-  /**
-   * Updates JWT-derived `roomType` on all mediasoup sessions in a Socket.IO room (e.g. direct → circle)
-   * without disconnecting transports — used when the main API expands a 1:1 call in place.
-   */
   setRoomTypeForRoomPeers(roomId: string, roomType: RoomSessionType): { updated: number } {
     let updated = 0;
     const members = this.roomMembers.get(roomId);
@@ -541,7 +511,6 @@ export class PeerSessionService {
     return null;
   }
 
-  /** Map loudest audio producer in the room to the peer who owns it. */
   private findPeerIdOwningProducer(roomId: string, producerId: string): string | null {
     const members = this.roomMembers.get(roomId);
     if (!members) return null;
@@ -552,10 +521,6 @@ export class PeerSessionService {
     return null;
   }
 
-  /**
-   * Emit to every socket in the mediasoup room (including the “sender”).
-   * Used for `dominantSpeaker` so all clients update the highlight together.
-   */
   private emitDominantSpeakerToMediasoupRoom(roomId: string, payload: DominantSpeakerSocketPayload): void {
     const members = this.roomMembers.get(roomId);
     if (!members || members.size === 0) return;
@@ -645,17 +610,13 @@ export class PeerSessionService {
       try {
         await socket.leave(roomId);
       } catch {
-        // ignore
+        /* ignore */
       }
     }
 
     logger.info("Peer session removed", { userId, roomId });
   }
 
-  /**
-   * Internal webhook from main API: tear down the SFU room even if clients have not all left yet.
-   * Releases VoiceIQ taps, evicts peers on this replica, clears rtc Redis keys when we own the room.
-   */
   async forceTeardownMediasoupRoom(roomId: string): Promise<{ ok: true; removedSessions: number }> {
     const userIds = [...(this.roomMembers.get(roomId) ?? [])];
     for (const userId of userIds) {

@@ -1,9 +1,8 @@
 import type { Server } from "socket.io";
 import { logger } from "@/core/logging";
-import { PeerSessionService } from "@/modules/peers/peer.service";
-import { registerMediasoupSocketHandlers } from "@/modules/signaling/mediasoup-socket.handlers";
+import { PeerSessionService } from "@/modules/rtc/peer/peer.service";
+import { registerMediasoupSocketHandlers } from "@/modules/rtc/signaling/mediasoup-events";
 
-/** Wires Socket.IO: one {@link PeerSessionService} per process, handlers per connection. */
 export function registerSignalingHandlers(io: Server): PeerSessionService {
   const peers = new PeerSessionService();
 

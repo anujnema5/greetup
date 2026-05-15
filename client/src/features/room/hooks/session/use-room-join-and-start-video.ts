@@ -10,9 +10,6 @@ import { getRtkMutationErrorMessage } from "@/lib/api/rtk-mutation-error";
 import { baseApi } from "@/lib/api";
 import { markRoomActive } from "@/features/room/lib/session/room-sync";
 
-/**
- * POST `/room/:id/join` then Redux `startVideoSession` when the route is ready for media.
- */
 export function useRoomJoinAndStartVideo({
   roomId,
   shouldStartVideo,
@@ -24,7 +21,6 @@ export function useRoomJoinAndStartVideo({
   roomId: string;
   shouldStartVideo: boolean;
   sessionActive: boolean;
-  /** Rematch while searching overlay is up — still POST join for the new route room. */
   joinWhileSessionActive?: boolean;
   peerId: string | null;
   dispatch: AppDispatch;

@@ -1,9 +1,5 @@
-/**
- * HTTP application — mirrors main `server` `http/create-app` pattern.
- */
-
 import { Hono } from "hono";
-import { handleRoomRoomType, handleRoomSfuTeardown } from "@/modules/internal/internal.controller";
+import { handleRoomRoomType, handleRoomSfuTeardown } from "@/modules/rtc/internal/room-webhooks";
 import { handleVoiceIQTap, handleVoiceIQTapRelease } from "@/modules/voiceiq/voiceiq.controller";
 import { healthHandler } from "@/modules/health/health.controller";
 import { internalApiGuard } from "@/middleware/internal-api.middleware";

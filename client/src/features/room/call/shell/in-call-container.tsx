@@ -1,15 +1,5 @@
 "use client";
 
-/**
- * InCallContainer is the room frontend orchestration layer between RTC state and presentational UI.
- *
- * Purpose:
- * - Reads mediasoup/socket state from `useRtcSocketContext`.
- * - Derives peer labels, camera/mic status, and direct-vs-circle behavior.
- * - Wires room actions (end, skip, minimize, add-to-circle, chess controls) into `InCallScreen`.
- *
- * Keep this file focused on state composition + event wiring, not low-level tile rendering.
- */
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { useSession } from "@/lib/auth-client";

@@ -1,8 +1,7 @@
 import { getRedis } from "@/core/redis/client";
 import { Keys } from "@/core/redis/keys";
-import type { RoomRecord } from "@/modules/rooms/room.types";
+import type { RoomRecord } from "@/modules/rtc/room/room.types";
 
-/** Kept for future room-introspection and admin tooling. */
 export async function getRoomRecord(roomId: string): Promise<RoomRecord | null> {
   const redis = getRedis();
   const h = await redis.hgetall(Keys.room(roomId));

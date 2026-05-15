@@ -12,7 +12,6 @@ export interface RoomSliceState {
     phase: RoomSessionPhase;
     rtcPrimaryRemoteUserId: string | null;
     conversationId: string | null;
-    /** Primary remote display name in 1:1 (for chess outcome copy); set from `InCallContainer`. */
     directCallPeerLabel: string | null;
   };
   media: {
@@ -46,7 +45,6 @@ export const roomSlice = createSlice({
   reducers: {
     enterRoomPage: (state, action: PayloadAction<{ roomId: string }>) => {
       const nextId = action.payload.roomId;
-      /** Skip/rematch: URL changed but stay in-call; RTC room id is set after POST join succeeds. */
       const rematchRouteChange =
         state.ui.sessionActive &&
         (state.session.phase === "searching" || state.session.phase === "in_call");
@@ -132,10 +130,6 @@ export const roomSlice = createSlice({
       state.session.phase = action.payload;
     },
 
-    /**
-     * Stay in the room UI while searching a new direct-call partner, but detach
-     * from the current RTC room so the previous peer gets an immediate `peerLeft`.
-     */
     beginSearchingNextCall: (state) => {
       state.ui.sessionActive = true;
       state.ui.isMinimized = false;

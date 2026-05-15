@@ -13,7 +13,7 @@ This document captures the **product rules**, **technical context**, and **check
 
 **Related code (server)**
 
-- `rtc-service/src/modules/peers/dominant-speaker-broadcast.ts` — mic-only dominant speaker, Socket.IO `dominantSpeaker`
+- `rtc-service/src/modules/rtc/peer/dominant-speaker.ts` — mic-only dominant speaker, Socket.IO `dominantSpeaker`
 
 ---
 
@@ -39,7 +39,7 @@ This document captures the **product rules**, **technical context**, and **check
 
 ## Server: what “dominant speaker” means
 
-From rtc-service (`dominant-speaker-broadcast.ts`):
+From rtc-service (`dominant-speaker.ts`):
 
 - **Mic only** — display-capture / screen-share audio producers are **excluded** from dominant UI.
 - Driven by mediasoup **AudioLevelObserver** (loudest mic).

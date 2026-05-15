@@ -4,8 +4,8 @@ import {
   releaseRoom,
   type LocalRoom,
   type LocalRoomResult,
-} from "@/modules/rooms/room-registry";
-import * as roomRepository from "@/modules/rooms/room.repository";
+} from "@/modules/rtc/room/room-registry";
+import * as roomRepository from "@/modules/rtc/room/room.repository";
 
 export type { LocalRoom, LocalRoomResult };
 

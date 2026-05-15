@@ -1,10 +1,3 @@
-/**
- * Shared runtime constants for rtc-service.
- *
- * - `RTC_CONFIG.mediasoup`: worker ports + router codecs (Opus / VP8 / H264).
- * - `RTC_CONFIG.webRtcTransport`: UDP/TCP listen addresses + bitrate caps for transports.
- */
-
 import type { types as MediasoupTypes } from "mediasoup";
 import { env } from "@/shared/config/env";
 
@@ -25,7 +18,6 @@ export const RTC_CONFIG = {
         mimeType: "audio/opus",
         clockRate: 48000,
         channels: 2,
-        // DTX: less bandwidth when quiet; FEC: helps lossy Wi‑Fi without extra RTX.
         parameters: {
           minptime: 10,
           useinbandfec: 1,
@@ -55,14 +47,9 @@ export const RTC_CONFIG = {
       { protocol: "udp" as const, ip: env.webrtcListenIp, announcedAddress: env.webrtcAnnouncedIp },
       { protocol: "tcp" as const, ip: env.webrtcListenIp, announcedAddress: env.webrtcAnnouncedIp },
     ] as MediasoupTypes.TransportListenInfo[],
-    // Room for simulcast + screen share; consumers still drop to lower layers on bad links.
     maxIncomingBitrate: 3_000_000,
     initialAvailableOutgoingBitrate: 2_500_000,
   },
-  /**
-   * Mic-only dominant speaker UI (`modules/peers/dominant-speaker-broadcast.ts`): emit while level is above
-   * threshold, clear on `silence` (screen-share tab audio is excluded via producer `appData`).
-   */
   audioLevelDominantSpeaker: {
     maxEntries: 1,
     threshold: -72,
