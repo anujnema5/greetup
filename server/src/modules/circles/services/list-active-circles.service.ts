@@ -1,7 +1,14 @@
+import { mergeRoomAdvancedOptions } from "@/core/database/schema";
 import { roomsRepository } from "@/modules/rooms/repositories/rooms.repository";
+import { deleteSessionRoomRedisMany } from "@/modules/rooms/services/session-room-redis.service";
 import { ActiveCircleItem, ActiveCirclesResult, FriendInvitedCircleItem } from "../types";
 
 const DEFAULT_PUBLIC_LIMIT = 10;
+
+function normalizePendingInviteeIds(raw: unknown): string[] {
+  if (!Array.isArray(raw)) return [];
+  return raw.filter((x): x is string => typeof x === "string");
+}
 
 function toActiveCircleItem(row: {
   id: string;
@@ -9,6 +16,11 @@ function toActiveCircleItem(row: {
   status: "live" | "scheduled" | "ended" | "cancelled";
   visibility: "public" | "private";
   maxParticipants: number;
+  description: string | null;
+  advancedOptions: unknown;
+  pendingInviteeIds: unknown;
+  expiresAt: Date | null;
+  isExpired: boolean;
   scheduledStartAt: Date | null;
   startedAt: Date | null;
   participantCount: number;
@@ -26,6 +38,11 @@ function toActiveCircleItem(row: {
     status: row.status as "live" | "scheduled",
     visibility: row.visibility,
     maxParticipants: row.maxParticipants,
+    description: row.description,
+    advancedOptions: mergeRoomAdvancedOptions(row.advancedOptions as never),
+    pendingInviteeIds: normalizePendingInviteeIds(row.pendingInviteeIds),
+    expiresAt: row.expiresAt?.toISOString() ?? null,
+    isExpired: row.isExpired,
     scheduledStartAt: row.scheduledStartAt?.toISOString() ?? null,
     startedAt: row.startedAt?.toISOString() ?? null,
     participantCount: row.participantCount,
@@ -48,6 +65,10 @@ export async function listActiveCirclesService(
   publicLimit = DEFAULT_PUBLIC_LIMIT,
   cursor?: string,
 ): Promise<ActiveCirclesResult> {
+  // Marks expired circles: `expires_at` past, or scheduled + start + join grace past (see roomsRepository).
+  const expiredIds = await roomsRepository.syncPastDueCircleRoomExpiry();
+  await deleteSessionRoomRedisMany(expiredIds);
+
   const [friendInvitedRows, joinedRows, publicRows] = await Promise.all([
     roomsRepository.listFriendInvitedCircles(userId),
     roomsRepository.listJoinedCircles(userId),

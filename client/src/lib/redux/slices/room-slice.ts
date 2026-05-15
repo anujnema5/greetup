@@ -12,7 +12,7 @@ export interface RoomSliceState {
     phase: RoomSessionPhase;
     rtcPrimaryRemoteUserId: string | null;
     conversationId: string | null;
-    /** Primary remote display name in 1:1 (for chess outcome copy); set from `RoomVideoLayer`. */
+    /** Primary remote display name in 1:1 (for chess outcome copy); set from `InCallContainer`. */
     directCallPeerLabel: string | null;
   };
   media: {

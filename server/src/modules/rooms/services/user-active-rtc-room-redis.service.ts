@@ -17,6 +17,16 @@ export async function setUserActiveRtcRoom(userId: string, roomId: string): Prom
   }
 }
 
+export async function getUserActiveRtcRoomId(userId: string): Promise<string | null> {
+  try {
+    const id = await getRedis().get(activeRtcRoomKey(userId));
+    return typeof id === "string" && id.length > 0 ? id : null;
+  } catch (err) {
+    logger.warn("getUserActiveRtcRoomId failed", { userId, err: String(err) });
+    return null;
+  }
+}
+
 export async function clearUserActiveRtcRoom(userId: string): Promise<void> {
   try {
     await getRedis().del(activeRtcRoomKey(userId));

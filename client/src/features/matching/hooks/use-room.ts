@@ -1,23 +1,29 @@
 "use client";
 
-import { useCallback, useMemo } from "react";
+import { useCallback, useEffect, useMemo } from "react";
 import { useParams, useSearchParams, useRouter } from "next/navigation";
 import { useSession } from "@/lib/auth-client";
 import { getRtkQueryErrorMessage } from "@/lib/api/rtk-query-error";
 import { useAppDispatch } from "@/lib/redux/hooks";
 import { resetRoomState } from "@/lib/redux/slices/room-slice";
-import { useRoomPageTabLease } from "@/features/room";
-import { clearRoomStorage } from "@/features/room/lib/room-sync";
-import { useGetRoomQuery, useLeaveRoomMutation } from "@/features/room/api/room-api";
+import { useRoomPageTabLease } from "@/features/room/hooks";
+import { clearRoomStorage } from "@/features/room/lib/session/room-sync";
+import { useGetRoomQuery, useLeaveRoomMutation, useLeaveCircleRtcMutation } from "@/features/room/api/room-api";
 import { useRtcSocketContext } from "@/features/rtc";
+import {
+  clearCircleRoomBootstrap,
+  migrateLegacyCircleRoomQuery,
+  readCircleRoomSeeds,
+} from "@/features/matching/lib/circle-room-bootstrap";
 import { isCircleRoomData, type RoomData } from "../types/room.types";
 import { useGetMyProfileQuery } from "@/features/profile-setup/components/profile-setup-api";
 
 export type { RoomData };
 
 /**
- * `/circle/[roomId]`: server data via RTK Query, global room context via Redux (`enterRoomPage`),
- * RTC token + socket from `RtcSocketProvider` (layout), leave + storage cleanup.
+ * `/circle/[roomId]`: RTK room fetch, tab lease, RTC context, leave/cleanup.
+ * Peer + score for fresh 1:1 joins: `readCircleRoomSeeds` (session + optional legacy query).
+ * Legacy `?peer=&score=` is migrated via `migrateLegacyCircleRoomQuery` then stripped from the URL.
  */
 export function useRoom() {
   const dispatch = useAppDispatch();
@@ -27,10 +33,18 @@ export function useRoom() {
   const { data: session, isPending: sessionPending } = useSession();
   const { data: myProfileData } = useGetMyProfileQuery(undefined, { skip: sessionPending });
   const [leaveRoom] = useLeaveRoomMutation();
+  const [leaveCircleRtc] = useLeaveCircleRtcMutation();
 
   const roomId = params.roomId as string;
-  const peerIdFromUrl = searchParams.get("peer");
-  const scoreFromUrl = searchParams.get("score");
+  const legacyPeer = searchParams.get("peer");
+  const legacyScore = searchParams.get("score");
+  const { seedPeerId, seedScore } = readCircleRoomSeeds(roomId, legacyPeer, legacyScore);
+
+  useEffect(() => {
+    migrateLegacyCircleRoomQuery(roomId, legacyPeer, legacyScore, (path) =>
+      router.replace(path, { scroll: false }),
+    );
+  }, [roomId, legacyPeer, legacyScore, router]);
 
   const currentUserId = session?.user?.id ?? null;
 
@@ -44,6 +58,12 @@ export function useRoom() {
 
   const skipRoomQuery = !roomId || sessionPending;
   const roomQuery = useGetRoomQuery(roomId, { skip: skipRoomQuery });
+
+  useEffect(() => {
+    if (roomQuery.isSuccess && roomQuery.data) {
+      clearCircleRoomBootstrap(roomId);
+    }
+  }, [roomId, roomQuery.isSuccess, roomQuery.data]);
 
   const {
     rtcToken,
@@ -72,12 +92,12 @@ export function useRoom() {
   } = useRtcSocketContext();
 
   const fallbackRoom: RoomData | null =
-    roomQuery.isError && peerIdFromUrl && session?.user?.id
+    roomQuery.isError && seedPeerId && session?.user?.id
       ? {
           roomId,
           userA: session.user.id,
-          userB: peerIdFromUrl,
-          matchScore: scoreFromUrl,
+          userB: seedPeerId,
+          matchScore: seedScore,
         }
       : null;
 
@@ -97,18 +117,18 @@ export function useRoom() {
     | undefined;
 
   const peerId = useMemo(() => {
-    if (!room) return peerIdFromUrl ?? null;
+    if (!room) return seedPeerId ?? null;
     if ("sessionKind" in room && room.sessionKind === "db_room") return null;
     return room.userA === currentUserId ? room.userB : room.userA;
-  }, [room, currentUserId, peerIdFromUrl]);
+  }, [room, currentUserId, seedPeerId]);
 
   const currentUserName =
     myProfileData?.data?.displayName ?? sessionUser?.displayName ?? sessionUser?.name ?? null;
 
   const score = useMemo(() => {
     if (room && isCircleRoomData(room)) return null;
-    return room && "matchScore" in room ? room.matchScore : scoreFromUrl;
-  }, [room, scoreFromUrl]);
+    return room && "matchScore" in room ? room.matchScore : seedScore;
+  }, [room, seedScore]);
 
   const goHome = useCallback(() => {
     router.replace("/home");
@@ -117,13 +137,18 @@ export function useRoom() {
   const leaveRoomAndClear = useCallback(async () => {
     clearLeaseIfOwner();
     try {
-      await leaveRoom().unwrap();
+      if (room && isCircleRoomData(room)) {
+        await leaveCircleRtc(roomId).unwrap();
+      } else {
+        await leaveRoom({ roomId }).unwrap();
+      }
     } catch {
       /* best-effort */
     }
     clearRoomStorage();
+    clearCircleRoomBootstrap(roomId);
     dispatch(resetRoomState());
-  }, [clearLeaseIfOwner, leaveRoom, dispatch]);
+  }, [clearLeaseIfOwner, leaveRoom, leaveCircleRtc, dispatch, roomId, room]);
 
   const leaveAndGoHome = useCallback(() => {
     void leaveRoomAndClear().then(() => router.replace("/home"));

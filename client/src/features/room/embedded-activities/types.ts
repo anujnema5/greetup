@@ -1,4 +1,4 @@
-import type { RoomActivityId } from "@/features/room/types/room-activity.types";
+import type { RoomActivityId } from "@/features/room/types/call/room-activity.types";
 
 /**
  * One row of `room_embedded_activities` from `GET /api/room/embedded-activities`.

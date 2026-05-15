@@ -59,6 +59,8 @@ export const API_ENDPOINTS = {
     CATEGORIES: "/circles/categories",
     CREATE: "/circles",
     ACTIVE: "/circles/active",
+    /** Same path for PATCH (update) and DELETE (remove) — method differs per request. */
+    room: (roomId: string) => `/circles/${encodeURIComponent(roomId)}` as const,
   },
   CHAT: {
     CONVERSATIONS:        '/chat/conversations',
@@ -76,12 +78,14 @@ export const API_ENDPOINTS = {
     start: (roomId: string) => `/room/${roomId}/start` as const,
     get: (roomId: string) => `/room/${roomId}` as const,
     join: (roomId: string) => `/room/${roomId}/join` as const,
+    openMeeting: (roomId: string) => `/room/${roomId}/open-meeting` as const,
+    leaveCircleRtc: (roomId: string) => `/room/${roomId}/leave-circle-rtc` as const,
+    hostEndCircleForEveryone: (roomId: string) =>
+      `/room/${roomId}/host-end-circle` as const,
     updateTitle: (roomId: string) => `/room/${roomId}/title` as const,
     rtcToken: (roomId: string) => `/room/${roomId}/rtc-token` as const,
     invite: (roomId: string) => `/room/${roomId}/invite` as const,
     inviteRespond: (roomId: string) => `/room/${roomId}/invite/respond` as const,
-    expandDirectInvite: (roomId: string) => `/room/${roomId}/expand-direct/invite` as const,
-    expandDirectRespond: (roomId: string) => `/room/${roomId}/expand-direct/respond` as const,
     chessInvite: (roomId: string) => `/room/${roomId}/activity/chess/invite` as const,
     chessRespond: (roomId: string) => `/room/${roomId}/activity/chess/respond` as const,
     chessEnd: (roomId: string) => `/room/${roomId}/activity/chess/end` as const,

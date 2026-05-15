@@ -29,18 +29,41 @@ export type RoomAdvancedOptions = {
 
 export function defaultRoomAdvancedOptions(): RoomAdvancedOptions {
   return {
-    shouldHostStartMeeting: true,
-    shouldMeetingAutoStart: false,
+    shouldHostStartMeeting: false,
+    shouldMeetingAutoStart: true,
     circleExpirationMinutes: null,
     deleteCircleAfterCall: false,
     hostControlsActiveSpeaker: false,
   };
 }
 
+/**
+ * `shouldMeetingAutoStart` and `shouldHostStartMeeting` are mutually exclusive.
+ * After merging defaults with stored/partial JSON: auto-start on forces host-start off; then if the
+ * host still opens the circle manually first, lazy auto-start is turned off. (Handles partial payloads like only
+ * `{ shouldMeetingAutoStart: true }` where the default would otherwise leave both implied on.)
+ */
+export function applyMeetingStartExclusivity(opts: RoomAdvancedOptions): RoomAdvancedOptions {
+  let hostOn = opts.shouldHostStartMeeting !== false;
+  let autoOn = opts.shouldMeetingAutoStart === true;
+  if (autoOn) {
+    hostOn = false;
+  }
+  if (hostOn) {
+    autoOn = false;
+  }
+  return {
+    ...opts,
+    shouldHostStartMeeting: hostOn,
+    shouldMeetingAutoStart: autoOn,
+  };
+}
+
 export function mergeRoomAdvancedOptions(
   stored: RoomAdvancedOptions | null | undefined,
 ): RoomAdvancedOptions {
-  return { ...defaultRoomAdvancedOptions(), ...stored };
+  const merged = { ...defaultRoomAdvancedOptions(), ...stored };
+  return applyMeetingStartExclusivity(merged);
 }
 
 /**
@@ -125,6 +148,10 @@ export const rooms = pgTable(
     startedAt: timestamp("started_at"),
 
     endedAt: timestamp("ended_at"),
+
+    expiresAt: timestamp("expires_at"),
+
+    isExpired: boolean("is_expired").notNull().default(false),
 
     rtcRoomId: text("rtc_room_id"),
 

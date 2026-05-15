@@ -38,6 +38,8 @@ import {
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
+import { LAUNCH_MAX_CIRCLE_PARTICIPANTS } from "@/features/circles/constants/circle-capacity";
+import { scheduleTimeMeaningNote } from "@/features/circles/constants/scheduled-circle-join-grace";
 import { START_CIRCLE_COPY as C } from "@/features/circles/constants/start-circle-copy";
 import type { StartCircleModalState } from "@/features/circles/hooks/use-start-circle-modal-state";
 
@@ -51,9 +53,13 @@ export function StartCircleModalDialog(props: StartCircleModalDialogProps) {
     open,
     handleOpenChange,
     form,
-    submitCreateCircle,
+    submitCircleForm,
     advancedSectionRef,
     creating,
+    updating,
+    deleting,
+    isEditMode,
+    handleDeleteScheduled,
     categoriesLoading,
     categoriesError,
     refetchCategories,
@@ -64,7 +70,8 @@ export function StartCircleModalDialog(props: StartCircleModalDialogProps) {
     connections,
     connectionsLoading,
     setInviteDialogOpen,
-    setOpen,
+    maxInviteSlots,
+    handleInviteAtCapacity,
   } = props;
 
   const scheduleMode = useWatch({
@@ -72,6 +79,8 @@ export function StartCircleModalDialog(props: StartCircleModalDialogProps) {
     name: "scheduleMode",
   });
   const categoryId = useWatch({ control: form.control, name: "categoryId" });
+
+  const busy = creating || updating;
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
@@ -86,16 +95,16 @@ export function StartCircleModalDialog(props: StartCircleModalDialogProps) {
       >
         <DialogHeader className="space-y-1.5 text-left">
           <DialogTitle className="text-xl font-semibold tracking-tight sm:text-2xl">
-            {C.modalTitle}
+            {isEditMode ? C.modalTitleEdit : C.modalTitle}
           </DialogTitle>
           <DialogDescription className="text-sm text-muted-foreground sm:text-[15px] sm:leading-relaxed">
-            {C.modalDescription}
+            {isEditMode ? C.modalDescriptionEdit : C.modalDescription}
           </DialogDescription>
         </DialogHeader>
 
         <Form {...form}>
           <form
-            onSubmit={form.handleSubmit(submitCreateCircle)}
+            onSubmit={form.handleSubmit(submitCircleForm)}
             className="mt-4 flex flex-col gap-5 sm:gap-6"
           >
             <FormField
@@ -250,13 +259,13 @@ export function StartCircleModalDialog(props: StartCircleModalDialogProps) {
                               id="max-p"
                               type="number"
                               min={2}
-                              max={100}
+                              max={LAUNCH_MAX_CIRCLE_PARTICIPANTS}
                               className="h-11 w-full max-w-full border-border/80 bg-background/50 transition-[border-color,box-shadow] sm:max-w-36"
                               {...field}
                               onChange={(e) =>
                                 field.onChange(
                                   Math.min(
-                                    100,
+                                    LAUNCH_MAX_CIRCLE_PARTICIPANTS,
                                     Math.max(2, Number(e.target.value) || 2),
                                   ),
                                 )
@@ -283,6 +292,7 @@ export function StartCircleModalDialog(props: StartCircleModalDialogProps) {
                             {C.whenLabel}
                           </FormLabel>
                           <Select
+                            disabled={isEditMode}
                             onValueChange={field.onChange}
                             value={field.value}
                           >
@@ -308,7 +318,8 @@ export function StartCircleModalDialog(props: StartCircleModalDialogProps) {
                 </div>
 
                 {scheduleMode === "scheduled" && (
-                  <div className="flex flex-col gap-3 rounded-xl border border-border/50 bg-muted/20 p-4 sm:flex-row sm:items-end sm:gap-4">
+                  <div className="flex flex-col gap-3 rounded-xl border border-border/50 bg-muted/20 p-4">
+                    <div className="flex min-w-0 flex-1 flex-col gap-3 sm:flex-row sm:items-end sm:gap-4">
                     <FormField
                       control={form.control}
                       name="scheduleDate"
@@ -378,6 +389,10 @@ export function StartCircleModalDialog(props: StartCircleModalDialogProps) {
                         </FormItem>
                       )}
                     />
+                    </div>
+                    {/* <p className="border-t border-border/40 pt-3 text-[11px] leading-relaxed text-muted-foreground">
+                      {scheduleTimeMeaningNote()}
+                    </p> */}
                   </div>
                 )}
 
@@ -417,7 +432,10 @@ export function StartCircleModalDialog(props: StartCircleModalDialogProps) {
                         : connections.length === 0
                           ? C.inviteSubtitleNoConnections
                           : invitedPeerIds.size > 0
-                            ? C.inviteSubtitleCount(invitedPeerIds.size)
+                            ? C.inviteSubtitleWithCap(
+                                invitedPeerIds.size,
+                                maxInviteSlots,
+                              )
                             : C.inviteSubtitleChoose}
                     </p>
                   </div>
@@ -459,16 +477,24 @@ export function StartCircleModalDialog(props: StartCircleModalDialogProps) {
                           <FormItem className="flex flex-row items-center justify-between gap-4 space-y-0 border-b border-border/40 bg-background/30 px-4 py-3.5">
                             <div className="min-w-0 space-y-0.5">
                               <FormLabel className="text-base font-medium">
-                                Host starts meeting
+                                {C.advancedHostStartsMeetingLabel}
                               </FormLabel>
                               <p className="text-xs text-muted-foreground">
-                                Lobby until you start the call.
+                                {C.advancedHostStartsMeetingHint}
                               </p>
                             </div>
                             <FormControl>
                               <Switch
                                 checked={field.value}
-                                onCheckedChange={field.onChange}
+                                onCheckedChange={(next) => {
+                                  field.onChange(next);
+                                  if (next) {
+                                    form.setValue("advanced.shouldMeetingAutoStart", false, {
+                                      shouldDirty: true,
+                                      shouldValidate: true,
+                                    });
+                                  }
+                                }}
                               />
                             </FormControl>
                           </FormItem>
@@ -481,10 +507,44 @@ export function StartCircleModalDialog(props: StartCircleModalDialogProps) {
                           <FormItem className="flex flex-row items-center justify-between gap-4 space-y-0 border-b border-border/40 bg-background/30 px-4 py-3.5">
                             <div className="min-w-0 space-y-0.5">
                               <FormLabel className="text-base font-medium">
-                                Auto-start at scheduled time
+                                {C.advancedMeetingAutoStartLabel}
                               </FormLabel>
                               <p className="text-xs text-muted-foreground">
-                                Open the room without a host click.
+                                {scheduleMode === "scheduled"
+                                  ? C.advancedMeetingAutoStartHint
+                                  : C.advancedMeetingAutoStartInstantHint}
+                              </p>
+                            </div>
+                            <FormControl>
+                              <Switch
+                                checked={field.value}
+                                disabled={scheduleMode !== "scheduled"}
+                                onCheckedChange={(next) => {
+                                  field.onChange(next);
+                                  if (next) {
+                                    form.setValue("advanced.shouldHostStartMeeting", false, {
+                                      shouldDirty: true,
+                                      shouldValidate: true,
+                                    });
+                                  }
+                                }}
+                              />
+                            </FormControl>
+                          </FormItem>
+                        )}
+                      />
+                      {/*
+                      <FormField
+                        control={form.control}
+                        name="advanced.hostControlsActiveSpeaker"
+                        render={({ field }) => (
+                          <FormItem className="flex flex-row items-center justify-between gap-4 space-y-0 border-b border-border/40 bg-background/30 px-4 py-3.5">
+                            <div className="min-w-0 space-y-0.5">
+                              <FormLabel className="text-base font-medium">
+                                {C.advancedHostControlsSpeakerLabel}
+                              </FormLabel>
+                              <p className="text-xs text-muted-foreground">
+                                {C.advancedHostControlsSpeakerHint}
                               </p>
                             </div>
                             <FormControl>
@@ -496,6 +556,8 @@ export function StartCircleModalDialog(props: StartCircleModalDialogProps) {
                           </FormItem>
                         )}
                       />
+                      */}
+                      {/*
                       <FormField
                         control={form.control}
                         name="advanced.circleExpirationMinutes"
@@ -523,6 +585,7 @@ export function StartCircleModalDialog(props: StartCircleModalDialogProps) {
                           </FormItem>
                         )}
                       />
+                      */}
                       <FormField
                         control={form.control}
                         name="advanced.deleteCircleAfterCall"
@@ -545,62 +608,132 @@ export function StartCircleModalDialog(props: StartCircleModalDialogProps) {
                           </FormItem>
                         )}
                       />
-                      <FormField
-                        control={form.control}
-                        name="advanced.hostControlsActiveSpeaker"
-                        render={({ field }) => (
-                          <FormItem className="flex flex-row items-center justify-between gap-4 space-y-0 bg-background/30 px-4 py-3.5">
-                            <div className="min-w-0 space-y-0.5">
-                              <FormLabel className="text-base font-medium">
-                                Host picks speaker
-                              </FormLabel>
-                              <p className="text-xs text-muted-foreground">
-                                Only you can spotlight.
-                              </p>
-                            </div>
-                            <FormControl>
-                              <Switch
-                                checked={field.value}
-                                onCheckedChange={field.onChange}
-                              />
-                            </FormControl>
-                          </FormItem>
-                        )}
-                      />
                     </div>
                   )}
                 </div>
 
-            <DialogFooter className="flex flex-col-reverse gap-2 border-t border-border/60 pt-4 sm:flex-row sm:justify-end sm:gap-3">
-              <Button
-                type="button"
-                variant="outline"
-                className="w-full cursor-pointer sm:w-auto"
-                onClick={() => setOpen(false)}
-              >
-                {C.cancel}
-              </Button>
-              <Button
-                type="submit"
-                disabled={
-                  creating ||
-                  categoriesLoading ||
-                  !categories.length ||
-                  !categoryId
-                }
-                className="w-full min-w-36 cursor-pointer disabled:cursor-not-allowed sm:w-auto"
-              >
-                {creating ? (
-                  <span className="inline-flex items-center gap-1.5">
-                    <Loader2 className="size-4 shrink-0 animate-spin" aria-hidden />
-                    {C.submitWorking}
-                  </span>
-                ) : scheduleMode === "instant" ? (
-                  C.submitGoLive
-                ) : (
-                  C.submitSchedule
-                )}
-              </Button>
+            <DialogFooter className="flex w-full flex-col gap-2 border-t border-border/60 pt-4 sm:flex-row sm:items-center sm:justify-between">
+              {isEditMode ? (
+                <>
+                  {/* Mobile: Cancel → Delete scheduled circle → Save changes */}
+                  <div className="flex w-full flex-col gap-2 sm:hidden">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className="w-full cursor-pointer"
+                      onClick={() => handleOpenChange(false)}
+                    >
+                      {C.cancel}
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="destructive"
+                      className="w-full min-w-36 cursor-pointer"
+                      disabled={deleting || busy}
+                      onClick={() => void handleDeleteScheduled()}
+                    >
+                      {deleting ? (
+                        <span className="inline-flex items-center gap-1.5">
+                          <Loader2 className="size-4 shrink-0 animate-spin" aria-hidden />
+                          {C.deleteWorking}
+                        </span>
+                      ) : (
+                        C.deleteCircle
+                      )}
+                    </Button>
+                    <Button
+                      type="submit"
+                      disabled={busy || deleting}
+                      className="w-full min-w-36 cursor-pointer disabled:cursor-not-allowed"
+                    >
+                      {busy ? (
+                        <span className="inline-flex items-center gap-1.5">
+                          <Loader2 className="size-4 shrink-0 animate-spin" aria-hidden />
+                          {C.saveWorking}
+                        </span>
+                      ) : (
+                        C.saveChanges
+                      )}
+                    </Button>
+                  </div>
+                  {/* Desktop: Delete left · Cancel + Save right */}
+                  <div className="hidden w-full items-center justify-between gap-3 sm:flex">
+                    <Button
+                      type="button"
+                      variant="destructive"
+                      className="min-w-36 shrink-0 cursor-pointer sm:w-auto"
+                      disabled={deleting || busy}
+                      onClick={() => void handleDeleteScheduled()}
+                    >
+                      {deleting ? (
+                        <span className="inline-flex items-center gap-1.5">
+                          <Loader2 className="size-4 shrink-0 animate-spin" aria-hidden />
+                          {C.deleteWorking}
+                        </span>
+                      ) : (
+                        C.deleteCircle
+                      )}
+                    </Button>
+                    <div className="flex flex-row gap-3">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        className="cursor-pointer sm:w-auto"
+                        onClick={() => handleOpenChange(false)}
+                      >
+                        {C.cancel}
+                      </Button>
+                      <Button
+                        type="submit"
+                        disabled={busy || deleting}
+                        className="min-w-36 cursor-pointer disabled:cursor-not-allowed sm:w-auto"
+                      >
+                        {busy ? (
+                          <span className="inline-flex items-center gap-1.5">
+                            <Loader2 className="size-4 shrink-0 animate-spin" aria-hidden />
+                            {C.saveWorking}
+                          </span>
+                        ) : (
+                          C.saveChanges
+                        )}
+                      </Button>
+                    </div>
+                  </div>
+                </>
+              ) : (
+                <div className="flex w-full flex-col gap-2 sm:ml-auto sm:flex sm:w-auto sm:flex-row sm:justify-end sm:gap-3">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="w-full cursor-pointer sm:w-auto"
+                    onClick={() => handleOpenChange(false)}
+                  >
+                    {C.cancel}
+                  </Button>
+                  <Button
+                    type="submit"
+                    disabled={
+                      busy ||
+                      deleting ||
+                      categoriesLoading ||
+                      !categories.length ||
+                      !categoryId
+                    }
+                    className="w-full min-w-36 cursor-pointer disabled:cursor-not-allowed sm:w-auto"
+                  >
+                    {busy ? (
+                      <span className="inline-flex items-center gap-1.5">
+                        <Loader2 className="size-4 shrink-0 animate-spin" aria-hidden />
+                        {C.submitWorking}
+                      </span>
+                    ) : scheduleMode === "instant" ? (
+                      C.submitGoLive
+                    ) : (
+                      C.submitSchedule
+                    )}
+                  </Button>
+                </div>
+              )}
             </DialogFooter>
           </form>
         </Form>

@@ -1,28 +1,17 @@
 /**
  * Video call UI: `/circle/[roomId]`, minimized dock, cross-tab sync.
  *
- * - Constants: `constants/call-flow.ts`, `constants/direct-call-recovery.ts`, `constants/mock-match.ts`
- * - Embedded activities (DB-backed): `embedded-activities/`
- * - Cross-tab single-tab lease: `lib/room-tab-lease.ts`, `hooks/use-room-page-tab-lease.ts`,
- *   `hooks/use-room-tab-lease-rtc-sync.ts`
- * - Partner drop (direct match): `components/direct-call-partner-disconnect-handler.tsx`
- * - Redux: import actions/selectors from here or `@/lib/redux/slices/room-slice`
+ * Structure: see `README.md` — `call/`, `contracts/`, `listeners/`, `embedded-activities/`.
+ * Client hooks: import from `@/features/room/hooks` (not this barrel — keeps RSC layout safe).
  */
 
-export * from "./lib/room-sync";
-export * from "./lib/room-tab-lease";
-export * from "./lib/room-return-path";
-export { useRoomUi } from "./hooks/use-room-ui";
-export { useRoomVideo } from "./hooks/use-room-video";
-export { useMinimizedDockMainStage } from "./hooks/use-minimized-dock-main-stage";
+export * from "./contracts";
+export * from "./lib";
 export type {
   MinimizedDockMainStage,
   MinimizedDockSideStrip,
   UseMinimizedDockMainStageArgs,
-} from "./types/minimized-dock-main-stage.types";
-export { useRoomPageTabLease } from "./hooks/use-room-page-tab-lease";
-export type { RoomPageLeaseRouter } from "./hooks/use-room-page-tab-lease";
-export { useRoomTabLeaseRtcSync } from "./hooks/use-room-tab-lease-rtc-sync";
+} from "./types/minimized-dock/minimized-dock-main-stage.types";
 export { RoomPage } from "./pages/room-page";
 export type { RoomSliceState } from "@/lib/redux/slices/room-slice";
 export {
@@ -46,21 +35,21 @@ export {
   clearLastChessOutcome,
 } from "@/lib/redux/slices/room-activity-slice";
 export * from "./embedded-activities";
-export { MOCK_MATCH } from "./constants/mock-match";
-export { MATCHMAKING_HUB_PATH } from "./constants/call-flow";
 export {
+  MOCK_MATCH,
+  MATCHMAKING_HUB_PATH,
+  CIRCLE_HOST_END_FOR_EVERYONE_REDIRECT_PATH,
   DIRECT_CALL_RECOVERY,
   DIRECT_CALL_PEER_LEFT_DEBOUNCE_MS,
   DIRECT_CALL_NETWORK_RECOVERY_TIMEOUT_MS,
-} from "./constants/direct-call-recovery";
-export { RoomVideoView } from "./components/room-video-view";
-export type { RoomVideoViewProps } from "./types/room-video-view.types";
-export type { DirectExpandInvitePayload } from "./types/direct-expand-socket.types";
-export { RoomVideoLayer } from "./components/room-video-layer";
-export { MinimizedRoomDock } from "./components/minimized-room-dock";
-export { RoomMinimizedHydration } from "./components/room-minimized-hydration";
-export { DirectCallPartnerDisconnectHandler } from "./components/direct-call-partner-disconnect-handler";
-export { RoomDirectExpandSocketBridge } from "./components/room-direct-expand-socket-bridge";
+} from "./constants";
+
+export { InCallScreen, InCallContainer, MainStage } from "./call";
+export type { InCallScreenProps, DirectExpandInvitePayload } from "./types";
+export type { InCallContainerProps } from "./call";
+export { MinimizedRoomDock } from "./components/minimized-dock/minimized-room-dock";
+export { RoomMinimizedHydration } from "./components/minimized-dock/room-minimized-hydration";
+export { OnPartnerDisconnected, OnDirectExpandedToCircle, OnHostEndedCircle } from "./listeners";
 export {
   roomApi,
   leaveRoomKeepalive,
@@ -68,9 +57,11 @@ export {
   useGetRoomQuery,
   useGetRoomEmbeddedActivitiesQuery,
   useJoinRoomMutation,
+  useStartScheduledCircleMutation,
+  useOpenCircleMeetingMutation,
+  useLeaveCircleRtcMutation,
+  useHostEndCircleForEveryoneMutation,
   useRoomInviteMutation,
   useRoomInviteRespondMutation,
   useUpdateRoomTitleMutation,
-  useExpandDirectInviteMutation,
-  useExpandDirectRespondMutation,
 } from "./api/room-api";

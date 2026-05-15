@@ -31,8 +31,7 @@ export function StartCircleModalProvider({
   children: ReactNode;
 }) {
   const state = useStartCircleModalState();
-  const { shell, inviteDialogOpen, handleInviteConfirm, ...dialogProps } =
-    state;
+  const { shell, inviteDialogOpen, handleInviteConfirm, ...dialogProps } = state;
 
   return (
     <StartCircleShellContext.Provider value={shell}>
@@ -45,6 +44,8 @@ export function StartCircleModalProvider({
         connectionsLoading={state.connectionsLoading}
         selectedIds={state.invitedPeerIds}
         onConfirm={handleInviteConfirm}
+        maxSelectableInvites={state.maxInviteSlots}
+        onAtCapacity={state.handleInviteAtCapacity}
       />
     </StartCircleShellContext.Provider>
   );

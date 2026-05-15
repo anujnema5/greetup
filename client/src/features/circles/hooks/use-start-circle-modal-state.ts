@@ -2,32 +2,55 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useForm } from "react-hook-form";
+import { useForm, useWatch } from "react-hook-form";
 import { toast } from "sonner";
 
 import { useGetMyConnectionsQuery } from "@/features/connections/api/connections-api";
 import {
   useCreateCircleMutation,
+  useDeleteScheduledCircleMutation,
   useListCircleCategoriesQuery,
+  useUpdateScheduledCircleMutation,
 } from "@/features/circles/api/circles-api";
 import { START_CIRCLE_COPY as C } from "@/features/circles/constants/start-circle-copy";
 import { combineDateAndTime } from "@/features/circles/lib/start-circle-utils";
 import {
   getDefaultStartCircleFormValues,
+  getStartCircleFormValuesFromActiveCircle,
   startCircleFormSchema,
   type StartCircleFormValues,
 } from "@/features/circles/schemas/start-circle-form.schema";
-import { toApiAdvancedOptions } from "@/features/circles/types/start-circle-ui.types";
+import type { ActiveCircleItem } from "@/features/circles/types/circles-api.types";
+import { toApiAdvancedOptions, normalizeMeetingStartExclusivity } from "@/features/circles/types/start-circle-ui.types";
+import { getRtkMutationErrorMessage } from "@/lib/api/rtk-mutation-error";
 
 export type StartCircleShellValue = {
   openModal: () => void;
+  openModalForEdit: (circle: ActiveCircleItem) => void;
   categoriesLoading: boolean;
   isOpen: boolean;
 };
 
 export function useStartCircleModalState() {
   const [open, setOpen] = useState(false);
-  const openModal = useCallback(() => setOpen(true), []);
+  const [editCircle, setEditCircle] = useState<ActiveCircleItem | null>(null);
+  const editSnapshotRef = useRef<ActiveCircleItem | null>(null);
+
+  const editRoomId = editCircle?.id ?? null;
+  const isEditMode = editRoomId !== null;
+
+  const openModal = useCallback(() => {
+    editSnapshotRef.current = null;
+    setEditCircle(null);
+    setOpen(true);
+  }, []);
+
+  const openModalForEdit = useCallback((circle: ActiveCircleItem) => {
+    if (circle.status !== "scheduled" || !circle.scheduledStartAt) return;
+    editSnapshotRef.current = circle;
+    setEditCircle(circle);
+    setOpen(true);
+  }, []);
 
   const {
     data: categoriesRes,
@@ -46,6 +69,10 @@ export function useStartCircleModalState() {
     );
 
   const [createCircle, { isLoading: creating }] = useCreateCircleMutation();
+  const [updateScheduledCircle, { isLoading: updating }] =
+    useUpdateScheduledCircleMutation();
+  const [deleteScheduledCircle, { isLoading: deleting }] =
+    useDeleteScheduledCircleMutation();
 
   const connections = connectionsRes?.data?.items ?? [];
   const categories = useMemo(
@@ -72,13 +99,73 @@ export function useStartCircleModalState() {
     setInvitedPeerIds(ids);
   }, []);
 
+  const maxParticipantsRaw = useWatch({
+    control: form.control,
+    name: "maxParticipants",
+  });
+  const maxParticipantsVal =
+    typeof maxParticipantsRaw === "number" && !Number.isNaN(maxParticipantsRaw)
+      ? maxParticipantsRaw
+      : 8;
+  const maxInviteSlots = Math.max(0, maxParticipantsVal - 1);
+
+  const scheduleModeWatch = useWatch({
+    control: form.control,
+    name: "scheduleMode",
+  });
+
+  useEffect(() => {
+    if (scheduleModeWatch === "instant") {
+      if (form.getValues("advanced.shouldMeetingAutoStart")) {
+        form.setValue("advanced.shouldMeetingAutoStart", false, {
+          shouldDirty: true,
+          shouldValidate: true,
+        });
+      }
+      return;
+    }
+    if (scheduleModeWatch === "scheduled") {
+      const host = form.getValues("advanced.shouldHostStartMeeting");
+      const auto = form.getValues("advanced.shouldMeetingAutoStart");
+      if (!host && !auto) {
+        const n = normalizeMeetingStartExclusivity(false, true);
+        form.setValue("advanced.shouldHostStartMeeting", n.shouldHostStartMeeting, {
+          shouldDirty: true,
+          shouldValidate: true,
+        });
+        form.setValue("advanced.shouldMeetingAutoStart", n.shouldMeetingAutoStart, {
+          shouldDirty: true,
+          shouldValidate: true,
+        });
+      }
+    }
+  }, [scheduleModeWatch, form]);
+
+  useEffect(() => {
+    if (!open) return;
+    setInvitedPeerIds((prev) => {
+      if (prev.size <= maxInviteSlots) return prev;
+      const arr = Array.from(prev).slice(0, maxInviteSlots);
+      const removed = prev.size - arr.length;
+      if (removed > 0) {
+        toast.message(C.toastTrimmedInvites(removed));
+      }
+      return new Set(arr);
+    });
+  }, [maxInviteSlots, open]);
+
+  const handleInviteAtCapacity = useCallback(() => {
+    toast.info(C.inviteCapacityReachedToast(maxInviteSlots));
+  }, [maxInviteSlots]);
+
   useEffect(() => {
     if (!open || !categories.length) return;
+    if (isEditMode) return;
     const cid = form.getValues("categoryId");
     if (!cid) {
       form.setValue("categoryId", categories[0].id, { shouldValidate: false });
     }
-  }, [open, categories, form]);
+  }, [open, categories, form, isEditMode]);
 
   useEffect(() => {
     if (!open || !advancedOpen) return;
@@ -91,22 +178,97 @@ export function useStartCircleModalState() {
     return () => window.cancelAnimationFrame(id);
   }, [open, advancedOpen]);
 
+  /** Whenever the sheet opens, reset form for create vs edit (stable snapshot for edit). */
+  useEffect(() => {
+    if (!open) return;
+    const snap = editSnapshotRef.current;
+    setAdvancedOpen(snap !== null);
+    if (snap) {
+      form.reset(getStartCircleFormValuesFromActiveCircle(snap));
+      setInvitedPeerIds(new Set(snap.pendingInviteeIds ?? []));
+    } else {
+      form.reset(getDefaultStartCircleFormValues());
+      setInvitedPeerIds(new Set());
+    }
+  }, [open, form]);
+
   const handleOpenChange = useCallback(
     (next: boolean) => {
       setOpen(next);
-      if (next) {
-        form.reset(getDefaultStartCircleFormValues(categories[0]?.id ?? ""));
+      if (!next) {
+        editSnapshotRef.current = null;
+        setEditCircle(null);
+        setInviteDialogOpen(false);
+        form.reset(getDefaultStartCircleFormValues());
         setAdvancedOpen(false);
         setInvitedPeerIds(new Set());
-      } else {
-        setInviteDialogOpen(false);
       }
     },
-    [categories, form],
+    [form],
   );
 
-  const submitCreateCircle = useCallback(
+  const handleDeleteScheduled = useCallback(async () => {
+    if (!editRoomId) return;
+    if (!window.confirm(C.confirmDeleteScheduled)) return;
+    try {
+      await deleteScheduledCircle(editRoomId).unwrap();
+      toast.success(C.toastDeleted);
+      handleOpenChange(false);
+    } catch (err: unknown) {
+      toast.error(getRtkMutationErrorMessage(err, C.toastDeleteError));
+    }
+  }, [editRoomId, deleteScheduledCircle, handleOpenChange]);
+
+  const submitCircleForm = useCallback(
     async (data: StartCircleFormValues) => {
+      if (isEditMode && editRoomId) {
+        if (!data.scheduleDate) {
+          toast.error(C.toastPickDate);
+          return;
+        }
+        const inviteCap = data.maxParticipants - 1;
+        if (invitedPeerIds.size > inviteCap) {
+          toast.error(C.toastInvitesExceedSeats(inviteCap));
+          return;
+        }
+        const snap = editSnapshotRef.current;
+        const serverPending = new Set(snap?.pendingInviteeIds ?? []);
+        const invitesUnchanged =
+          snap != null &&
+          invitedPeerIds.size === serverPending.size &&
+          [...invitedPeerIds].every((id) => serverPending.has(id));
+        try {
+          await updateScheduledCircle({
+            roomId: editRoomId,
+            body: {
+              title: data.title.trim(),
+              scheduledStartAt: combineDateAndTime(
+                data.scheduleDate,
+                data.scheduleTime,
+              ).toISOString(),
+              categoryId: data.categoryId,
+              description: data.description.trim() || null,
+              visibility: data.visibility,
+              maxParticipants: data.maxParticipants,
+              advancedOptions: toApiAdvancedOptions(data.advanced),
+              ...(invitesUnchanged
+                ? {}
+                : { invitedUserIds: Array.from(invitedPeerIds) }),
+            },
+          }).unwrap();
+          toast.success(C.toastUpdated);
+          handleOpenChange(false);
+        } catch (err: unknown) {
+          toast.error(getRtkMutationErrorMessage(err, C.toastUpdateError));
+        }
+        return;
+      }
+
+      const inviteCap = data.maxParticipants - 1;
+      if (invitedPeerIds.size > inviteCap) {
+        toast.error(C.toastInvitesExceedSeats(inviteCap));
+        return;
+      }
       try {
         const res = await createCircle({
           categoryId: data.categoryId,
@@ -132,29 +294,37 @@ export function useStartCircleModalState() {
           const n = res.data.friendInvitesCreated ?? 0;
           const inviteLine = invite
             ? `Invite code: ${invite} · Share it for private joins.`
-            : "You’re live — others can discover this circle.";
+            : "You are live — others can discover this circle.";
           const friendsLine =
             n > 0 ? `${n} friend invite${n === 1 ? "" : "s"} sent.` : null;
           toast.success(res.message, {
             description: [inviteLine, friendsLine].filter(Boolean).join(" "),
           });
           setInviteDialogOpen(false);
-          setOpen(false);
+          handleOpenChange(false);
         }
-      } catch {
-        toast.error(C.toastCreateError);
+      } catch (err: unknown) {
+        toast.error(getRtkMutationErrorMessage(err, C.toastCreateError));
       }
     },
-    [createCircle, invitedPeerIds],
+    [
+      isEditMode,
+      editRoomId,
+      invitedPeerIds,
+      createCircle,
+      updateScheduledCircle,
+      handleOpenChange,
+    ],
   );
 
   const shell = useMemo<StartCircleShellValue>(
     () => ({
       openModal,
+      openModalForEdit,
       categoriesLoading,
       isOpen: open,
     }),
-    [openModal, categoriesLoading, open],
+    [openModal, openModalForEdit, categoriesLoading, open],
   );
 
   return {
@@ -162,9 +332,13 @@ export function useStartCircleModalState() {
     open,
     handleOpenChange,
     form,
-    submitCreateCircle,
+    submitCircleForm,
     advancedSectionRef,
     creating,
+    updating,
+    deleting,
+    isEditMode,
+    handleDeleteScheduled,
     categoriesLoading,
     categoriesError,
     refetchCategories,
@@ -177,7 +351,8 @@ export function useStartCircleModalState() {
     inviteDialogOpen,
     setInviteDialogOpen,
     handleInviteConfirm,
-    setOpen,
+    handleInviteAtCapacity,
+    maxInviteSlots,
   };
 }
 

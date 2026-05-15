@@ -5,6 +5,7 @@
  * - UI copy: `constants/start-circle-copy.ts`
  * - Form state: `hooks/use-start-circle-modal-state.ts` (react-hook-form)
  * - Types: `types/` (API DTOs + `start-circle-ui.types.ts`)
+ * - Active grid card rules: `lib/active-circle-card-session-display.ts`
  */
 
 export {
@@ -17,8 +18,10 @@ export { CirclesGrid } from "./components/circles-grid";
 export {
   circlesApi,
   useCreateCircleMutation,
+  useDeleteScheduledCircleMutation,
   useListCircleCategoriesQuery,
   useListActiveCirclesQuery,
+  useUpdateScheduledCircleMutation,
 } from "./api/circles-api";
 export type { StartCircleAdvancedFormState } from "./types/start-circle-ui.types";
 export type { ActiveCircleItem, FriendInvitedCircleItem } from "./types/circles-api.types";

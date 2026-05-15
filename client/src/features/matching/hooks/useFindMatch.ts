@@ -173,12 +173,13 @@ export function useFindMatch() {
           data.isFallbackMatch,
         );
       } else if (data.status === 'matched' && data.roomId) {
+        const peerId = proposalPeerIdRef.current ?? undefined;
         proposalPeerIdRef.current = null;
         const requestId = data.requestId ?? requestIdRef.current ?? '';
         clearMatchAttemptLocal(proposalPeerIdRef, requestIdRef);
         setWaitingForPeerConnect(false);
         setStatus('matched');
-        setResult({ requestId, roomId: data.roomId });
+        setResult({ requestId, roomId: data.roomId, peerId });
       } else if (data.status === 'idle') {
         clearMatchAttemptLocal(proposalPeerIdRef, requestIdRef);
         setWaitingForPeerConnect(false);

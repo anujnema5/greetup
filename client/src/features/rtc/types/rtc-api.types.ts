@@ -23,5 +23,8 @@ export type RoomRtcState = {
   rtcTokenExpiresInSec: number | null;
   rtcTokenLoading: boolean;
   rtcTokenError: string | null;
+  rtcTokenErrorCode: string | null;
   rtcTokenSkipped: boolean;
+  /** No-op when `rtcTokenSkipped` is true. */
+  refetchRtcToken: () => void;
 };

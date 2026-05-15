@@ -137,8 +137,17 @@ export const handleRespondMatchProposal = async (c: Context) => {
 export const handleLeaveRoom = async (c: Context) => {
   try {
     const userId = c.get("userId") as string;
-    logger.info("[handleLeaveRoom] request received", { userId });
-    await leaveRoomService(userId);
+    let explicitRoomId: string | undefined;
+    try {
+      const body = (await c.req.json()) as { roomId?: unknown };
+      if (typeof body.roomId === "string" && body.roomId.trim().length > 0) {
+        explicitRoomId = body.roomId.trim();
+      }
+    } catch {
+      /* empty body is fine — falls back to active RTC room id */
+    }
+    logger.info("[handleLeaveRoom] request received", { userId, explicitRoomId: explicitRoomId ?? null });
+    await leaveRoomService(userId, explicitRoomId);
     return c.json(ApiResponse.success(null, "Left room", 200), 200);
   } catch (error) {
     logger.error("[handleLeaveRoom] failed", { error });

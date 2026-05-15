@@ -65,7 +65,6 @@ export const RTC_CONFIG = {
    */
   audioLevelDominantSpeaker: {
     maxEntries: 1,
-    /** dBvo (-127…0); louder = closer to 0. */
     threshold: -72,
     interval: 100,
   },

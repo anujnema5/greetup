@@ -221,6 +221,17 @@ export const voiceIqTapService = {
     };
   },
 
+  /** Close every VoiceIQ PlainTransport for `roomId` (before mediasoup Router teardown). */
+  releaseAllTapsForRoom(roomId: string): void {
+    const ids = tapIdsByRoom.get(roomId);
+    if (!ids || ids.size === 0) {
+      return;
+    }
+    for (const tapId of [...ids]) {
+      this.releaseTap(tapId);
+    }
+  },
+
   releaseTap(tapId: string): { ok: true } | { ok: false; error: string } {
     const tap = activeTaps.get(tapId);
     if (!tap) {

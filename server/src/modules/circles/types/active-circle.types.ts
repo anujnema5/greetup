@@ -1,9 +1,16 @@
+import type { RoomAdvancedOptions } from "@/core/database/schema";
+
 export type ActiveCircleItem = {
   id: string;
   title: string;
   status: "live" | "scheduled";
   visibility: "public" | "private";
   maxParticipants: number;
+  description: string | null;
+  advancedOptions: RoomAdvancedOptions;
+  pendingInviteeIds: string[];
+  expiresAt: string | null;
+  isExpired: boolean;
   scheduledStartAt: string | null;
   startedAt: string | null;
   participantCount: number;

@@ -218,6 +218,3 @@ export const roomInviteRepository = {
     });
   },
 };
-
-/** Back-compat alias (legacy direct-expand naming). */
-export const expandDirectRoomRepository = roomInviteRepository;
