@@ -46,7 +46,20 @@ export const roomSlice = createSlice({
   reducers: {
     enterRoomPage: (state, action: PayloadAction<{ roomId: string }>) => {
       const nextId = action.payload.roomId;
+      /** Skip/rematch: URL changed but stay in-call; RTC room id is set after POST join succeeds. */
+      const rematchRouteChange =
+        state.ui.sessionActive &&
+        (state.session.phase === "searching" || state.session.phase === "in_call");
+
       if (state.session.activeRoomId !== nextId) {
+        if (rematchRouteChange) {
+          state.session.phase = "searching";
+          state.session.activeRoomId = null;
+          state.session.rtcPrimaryRemoteUserId = null;
+          state.session.directCallPeerLabel = null;
+          state.peers.byUserId = {};
+          return;
+        }
         state.ui.sessionActive = false;
         state.ui.isMinimized = false;
         state.session.activeRoomId = nextId;
