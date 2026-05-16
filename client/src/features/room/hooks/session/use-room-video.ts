@@ -27,6 +27,10 @@ import {
 } from "@/features/room/lib/session/room-sync";
 import { useMatchmaking } from "@/features/matching";
 import {
+  goToCircleSearch,
+  resolveApiRoomId,
+} from "@/features/room/lib/navigation/circle-routes";
+import {
   useHostEndCircleForEveryoneMutation,
   useLeaveCircleRtcMutation,
   useLeaveRoomMutation,
@@ -35,20 +39,10 @@ import { getRtkMutationErrorMessage } from "@/lib/api/rtk-mutation-error";
 
 export type UseRoomVideoOptions = {
   skipSetup?: boolean;
-  /** DB-backed circle (`sessionKind: "db_room"`) — uses `/room/:id/leave-circle-rtc` instead of matchmaking leave. */
   isDbCircleCall?: boolean;
-  /** Circle host user id — used for explicit “end circle for everyone” vs leaving the call yourself. */
   circleHostUserId?: string | null;
 };
 
-/**
- * Full-screen room video: active markers, BroadcastChannel, end / skip / minimize.
- * Mount only under `/circle/[roomId]` when video UI is shown (`startVideoSession` already dispatched).
- *
- * Pass `{ skipSetup: true }` when using from the minimized dock so the hook
- * only provides action handlers without claiming room-active markers or
- * subscribing to the BroadcastChannel (the room page owns those).
- */
 export function useRoomVideo(roomId: string, options?: UseRoomVideoOptions) {
   const skipSetup = options?.skipSetup ?? false;
   const isDbCircleCall = options?.isDbCircleCall ?? false;
@@ -99,22 +93,26 @@ export function useRoomVideo(roomId: string, options?: UseRoomVideoOptions) {
   const beginSearchAfterSkip = useCallback(() => {
     if (skipHandledRef.current) return;
     skipHandledRef.current = true;
+    const apiRoomId = resolveApiRoomId(roomId);
     dispatch(beginSearchingNextCall());
+    goToCircleSearch(router);
     if (isDbCircleCall) {
       void leaveCircleRtcOnly()
         .catch(() => {})
         .finally(() => {
           void matchmaking.restartSearch();
         });
-    } else {
-      void leaveRoom({ roomId })
+    } else if (apiRoomId) {
+      void leaveRoom({ roomId: apiRoomId })
         .unwrap()
         .catch(() => {})
         .finally(() => {
           void matchmaking.restartSearch();
         });
+    } else {
+      void matchmaking.restartSearch();
     }
-  }, [dispatch, isDbCircleCall, leaveRoom, matchmaking, leaveCircleRtcOnly]);
+  }, [dispatch, isDbCircleCall, leaveCircleRtcOnly, leaveRoom, matchmaking, roomId, router]);
 
   useEffect(() => {
     if (skipSetup) return;
@@ -141,6 +139,10 @@ export function useRoomVideo(roomId: string, options?: UseRoomVideoOptions) {
     if (endHandledRef.current) return;
     endHandledRef.current = true;
     dismissCallUiAndBroadcastEnd();
+    if (!resolveApiRoomId(roomId)) {
+      goToExploreHub();
+      return;
+    }
     if (isDbCircleCall) {
       void leaveCircleRtcOnly().catch(() => {}).finally(goToExploreHub);
     } else {
@@ -155,6 +157,7 @@ export function useRoomVideo(roomId: string, options?: UseRoomVideoOptions) {
     isDbCircleCall,
     leaveCircleRtcOnly,
     leaveRoom,
+    roomId,
   ]);
 
   const handleHostEndCircleForEveryone = useCallback(async () => {

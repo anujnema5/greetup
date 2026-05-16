@@ -6,13 +6,10 @@ import { getRedis } from "@/core/redis/client";
 import { RTC_ROOM_METADATA_TTL_SECONDS } from "@/core/redis/constants";
 import { Keys } from "@/core/redis/keys";
 
-/** In-memory only: mediasoup Router cannot live in Redis. */
 export type LocalRoom = {
   roomId: string;
   router: MediasoupTypes.Router;
-  /** Mic-level + silence for natural `dominantSpeaker` clears (not ActiveSpeakerObserver). */
   audioLevelObserver: MediasoupTypes.AudioLevelObserver;
-  /** Peer session service sets this when wiring volume/silence → Socket.IO (once per router). */
   dominantSpeakerListenerAttached: boolean;
 };
 
@@ -26,10 +23,6 @@ export type WrongInstanceError = {
 
 export type LocalRoomResult = { ok: true; room: LocalRoom } | WrongInstanceError;
 
-/**
- * Ensures this process has a Router for `roomId` if and only if Redis says we are the owner.
- * Other instances get `WRONG_INSTANCE` and must tell the client to connect to `ownerInstanceId`.
- */
 export async function getOrCreateLocalRoom(roomId: string): Promise<LocalRoomResult> {
   const redis = getRedis();
   const ownerKey = Keys.roomOwner(roomId);
@@ -88,7 +81,6 @@ export async function getOrCreateLocalRoom(roomId: string): Promise<LocalRoomRes
   return { ok: true, room };
 }
 
-/** Call when this instance releases the room (last peer left) or on controlled shutdown. */
 export async function releaseRoom(roomId: string): Promise<void> {
   const redis = getRedis();
   const ownerKey = Keys.roomOwner(roomId);

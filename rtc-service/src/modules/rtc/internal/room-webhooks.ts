@@ -1,9 +1,8 @@
 import type { Context } from "hono";
 
-import { getInternalPeers } from "@/modules/internal/internal-peers.registry";
+import { getInternalPeers } from "@/modules/rtc/internal/global-peer-session";
 import { isRoomSessionType } from "@/shared/types/room-session";
 
-/** POST `/internal/webhook/room-sfu-teardown` — evict peers + release mediasoup Router for `roomId`. */
 export const handleRoomSfuTeardown = async (c: Context): Promise<Response> => {
   const peers = getInternalPeers();
   if (!peers) {
@@ -24,10 +23,9 @@ export const handleRoomSfuTeardown = async (c: Context): Promise<Response> => {
   }
 
   const result = await peers.forceTeardownMediasoupRoom(roomId);
-  return c.json({ ok: true as const, ...result });
+  return c.json(result);
 };
 
-/** POST `/internal/webhook/room-room-type` — sync `socket.data.roomType` for in-place 1:1 → circle. */
 export const handleRoomRoomType = async (c: Context): Promise<Response> => {
   const peers = getInternalPeers();
   if (!peers) {

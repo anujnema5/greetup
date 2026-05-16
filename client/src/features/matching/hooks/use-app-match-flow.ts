@@ -4,6 +4,7 @@ import { useEffect, useCallback, useRef, useTransition } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { setRoomReturnPath } from "@/features/room";
 import { stashCircleRoomBootstrap } from "@/features/matching/lib/circle-room-bootstrap";
+import { circleRoomPath } from "@/features/room/lib/navigation/circle-routes";
 import { useFindMatch } from "./useFindMatch";
 
 /**
@@ -55,7 +56,7 @@ export function useAppMatchFlow() {
       peerId: result.peerId ?? null,
       score: result.matchScore != null ? String(Math.round(result.matchScore)) : null,
     });
-    const target = `/circle/${roomId}`;
+    const target = circleRoomPath(roomId);
     const alreadyOnCircleRoute =
       pathname === target || pathname.startsWith("/circle/");
     startTransition(() => {

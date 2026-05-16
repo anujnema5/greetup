@@ -2,7 +2,7 @@ import { env } from "@/shared/config/env";
 import { getRedis } from "@/core/redis/client";
 import { RTC_ROOM_METADATA_TTL_SECONDS } from "@/core/redis/constants";
 import { Keys } from "@/core/redis/keys";
-import type { PeerRecord } from "@/modules/peers/peer.types";
+import type { PeerRecord } from "@/modules/rtc/peer/peer.types";
 
 export async function savePeer(record: PeerRecord): Promise<void> {
   const redis = getRedis();
@@ -24,7 +24,6 @@ export async function deletePeer(peerId: string, roomId: string): Promise<void> 
   await redis.srem(Keys.roomPeers(roomId), peerId);
 }
 
-/** Clears main-API “in a call” hint only when it still matches this room (avoids wiping a newer session). */
 export async function clearUserActiveRtcRoomIfMatches(userId: string, roomId: string): Promise<void> {
   const redis = getRedis();
   const key = Keys.userActiveRtcRoom(userId);
@@ -34,7 +33,6 @@ export async function clearUserActiveRtcRoomIfMatches(userId: string, roomId: st
   }
 }
 
-/** Kept for operational debugging/future admin flows. */
 export async function getPeer(peerId: string): Promise<PeerRecord | null> {
   const redis = getRedis();
   const h = await redis.hgetall(Keys.peer(peerId));
@@ -49,7 +47,6 @@ export async function getPeer(peerId: string): Promise<PeerRecord | null> {
   };
 }
 
-/** Kept for room diagnostics and moderation tooling. */
 export async function listPeerIdsInRoom(roomId: string): Promise<string[]> {
   return getRedis().smembers(Keys.roomPeers(roomId));
 }

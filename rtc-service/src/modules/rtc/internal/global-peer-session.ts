@@ -1,4 +1,4 @@
-import type { PeerSessionService } from "@/modules/peers/peer.service";
+import type { PeerSessionService } from "@/modules/rtc/peer/peer.service";
 
 let peersRef: PeerSessionService | null = null;
 

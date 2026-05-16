@@ -1,20 +1,9 @@
 "use client";
 
-/**
- * Room hooks by concern. Import from `@/features/room/hooks` (not `@/features/room`).
- *
- * - `session/` — join, video lifecycle, Redux room UI
- * - `tab-lease/` — single-tab ownership + RTC sync
- * - `media/` — streams, tiles, call display data
- * - `call-ui/` — in-call screen chrome (fullscreen, panels, sheets)
- * - `toolbar/` — call toolbar layout
- * - `minimized-dock/` — floating dock stage + drag
- * - `lobby/` — pre-call preview
- */
-
 export { useRoomVideo } from "./session/use-room-video";
 export type { UseRoomVideoOptions } from "./session/use-room-video";
 export { useRoomJoinAndStartVideo } from "./session/use-room-join-and-start-video";
+export { useClientMounted } from "./session/use-client-mounted";
 export { useRoomUi } from "./session/use-room-ui";
 
 export { useRoomPageTabLease } from "./tab-lease/use-room-page-tab-lease";

@@ -1,4 +1,3 @@
-/** In-call UI */
 export { InCallScreen } from "./shell/in-call-screen";
 export type { InCallScreenProps } from "./shell/in-call-screen";
 export { InCallContainer } from "./shell/in-call-container";

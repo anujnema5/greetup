@@ -1,8 +1,5 @@
 "use client";
 
-/**
- * RoomPage is the `/circle/[roomId]` route entry for all call sessions.
- */
 import { useAppDispatch, useAppSelector } from "@/lib/redux/hooks";
 import {
   selectIsRoomMinimized,

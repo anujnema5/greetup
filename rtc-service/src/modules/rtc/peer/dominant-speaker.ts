@@ -1,26 +1,17 @@
-/**
- * Mic-only dominant speaker: mediasoup AudioLevelObserver → coalesced `dominantSpeaker` Socket.IO payloads.
- * Screen/tab audio producers are excluded via {@link isMicProducerForDominantUI}.
- */
 import type { types as MediasoupTypes } from "mediasoup";
-import type { LocalRoom } from "@/modules/rooms/room-registry";
+import type { LocalRoom } from "@/modules/rtc/room/room-registry";
 import { logger } from "@/core/logging";
-import { mediaSourceFromProducerAppData } from "@/modules/peers/media-source.util";
+import { mediaSourceFromProducerAppData } from "@/modules/rtc/peer/media-source";
 
 export const DOMINANT_SPEAKER_SOCKET_EVENT = "dominantSpeaker" as const;
 
 export type DominantSpeakerSocketPayload = { peerId: string | null };
 
-/**
- * Hook supplied by {@link PeerSessionService}: “tell every client in this room the new highlight peer”.
- * Implementation is usually Socket.IO `emit(DOMINANT_SPEAKER_SOCKET_EVENT, payload)`.
- */
 export type DominantSpeakerRoomNotifier = (
   roomId: string,
   payload: DominantSpeakerSocketPayload,
 ) => void;
 
-/** True for microphone audio; false for display-capture audio (screen share). */
 export function isMicProducerForDominantUI(producer: MediasoupTypes.Producer): boolean {
   if (producer.kind !== "audio") return false;
   return mediaSourceFromProducerAppData(producer.appData) !== "screen";
@@ -38,13 +29,10 @@ function producerIdOfLoudestVolume(volumes: VolumeSample[]): string | null {
   return top.producer.id;
 }
 
-/** AudioLevelObserver → loudest mic peerId; calls `notifyRoom` only when the id changes (see peer.service Socket emit). */
 export class DominantSpeakerCoordinator {
   private readonly lastPeerIdByRoom = new Map<string, string | null>();
 
   constructor(private readonly notifyRoom: DominantSpeakerRoomNotifier) {}
-
-  // --- mediasoup: attach observer + register mic producers ---
 
   attachLevelObserver(
     room: LocalRoom,
@@ -83,7 +71,7 @@ export class DominantSpeakerCoordinator {
     try {
       await room.audioLevelObserver.removeProducer({ producerId });
     } catch {
-      /* producer may already be closed */
+      /* ignore */
     }
   }
 
@@ -94,14 +82,12 @@ export class DominantSpeakerCoordinator {
     this.notifyRoom(roomId, { peerId });
   }
 
-  /** If this user’s tile was highlighted, clear immediately (e.g. mic muted). */
   clearHighlightIfUser(roomId: string, userId: string): void {
     if (this.lastPeerIdByRoom.get(roomId) === userId) {
       this.broadcastIfChanged(roomId, null);
     }
   }
 
-  /** Current highlight target (for mute/leave edge cases). */
   currentHighlightedPeerId(roomId: string): string | null {
     return this.lastPeerIdByRoom.get(roomId) ?? null;
   }

@@ -1,8 +1,8 @@
 import type { Socket } from "socket.io";
 import { logger } from "@/core/logging";
 import { env } from "@/shared/config/env";
-import { PeerSessionService } from "@/modules/peers/peer.service";
-import { asSocketAck } from "@/modules/signaling/socket-ack.util";
+import { PeerSessionService } from "@/modules/rtc/peer/peer.service";
+import { asSocketAck } from "@/modules/rtc/signaling/socket-ack";
 import {
   parseCloseProducerPayload,
   parseConnectTransportPayload,
@@ -12,12 +12,8 @@ import {
   parseProducePayload,
   parseRestartIcePayload,
   parseResumeConsumerPayload,
-} from "@/modules/signaling/mediasoup-payloads";
+} from "@/modules/rtc/signaling/socket-payloads";
 
-/**
- * Mediasoup / WebRTC signaling for video calls — Socket.IO events consumed by `mediasoup-client`.
- * Session logic lives in {@link PeerSessionService}.
- */
 export function registerMediasoupSocketHandlers(socket: Socket, peers: PeerSessionService): void {
   socket.on("join", async (payload, ack) => {
     const reply = asSocketAck(ack);

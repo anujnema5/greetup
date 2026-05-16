@@ -22,10 +22,6 @@ function extractToken(socket: Socket): string | null {
   return null;
 }
 
-/**
- * Verifies `RTC_JWT_SECRET`-signed JWT from `handshake.auth.token` or `query.token`.
- * Attaches `userId`, `roomId`, `roomType` on `socket.data` for handlers.
- */
 export function registerRtcSocketAuth(io: Server): void {
   io.use(async (socket, next) => {
     try {

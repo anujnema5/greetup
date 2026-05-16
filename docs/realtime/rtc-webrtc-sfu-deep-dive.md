@@ -1,6 +1,6 @@
 # RTC / WebRTC / mediasoup (SFU) — full stack reference (start → bottom)
 
-**Path style:** `rtc-service` references below use **kebab-case file names with extension** (for example `create-app.ts`, `socket-jwt.middleware.ts`, `mediasoup-socket.handlers.ts`).
+**Path style:** `rtc-service` references below use **kebab-case file names with extension** (for example `create-app.ts`, `socket-jwt.middleware.ts`, `mediasoup-events.ts`).
 
 This document is the **single deep reference** for how calling works: **room route → Redux → JWT → Socket.IO → mediasoup Router/Transport/Producer/Consumer → React streams → direct vs circle UI**.  
 Mediasoup behavior is **the same** for direct (1:1) and circle (group); **only client layout, roster rules, and some policies differ**.
@@ -120,8 +120,8 @@ File: **`rtc-service/src/index.ts`** (bootstrap; HTTP app factory: **`rtc-servic
 | 3 | **`serve({ fetch: app.fetch, ... })`** Hono | Health + internal routes from **`createApp()`**. |
 | 4 | **`new Server(httpServer)`** Socket.IO | CORS, websocket upgrade. |
 | 5 | **`registerRtcSocketAuth(io)`** | JWT middleware on connection. |
-| 6 | **`registerSignalingHandlers(io)`** (`modules/signaling/signaling.handler.ts`) | **`new PeerSessionService()`**, per-socket **`registerMediasoupSocketHandlers`**, returns `peers`. |
-| 7 | **`registerInternalPeers(peers)`** (`modules/internal/internal-peers.registry.ts`) | Internal API can call **`setRoomTypeForRoomPeers`**. |
+| 6 | **`registerSignalingHandlers(io)`** (`modules/rtc/signaling/io-signaling.ts`) | **`new PeerSessionService()`**, per-socket **`registerMediasoupSocketHandlers`**, returns `peers`. |
+| 7 | **`registerInternalPeers(peers)`** (`modules/rtc/internal/global-peer-session.ts`) | Internal API can call **`setRoomTypeForRoomPeers`**. |
 
 **Router creation does not happen at boot** — it happens on first **`join`** for a room via **`getOrCreateLocalRoom`**.
 
@@ -137,7 +137,7 @@ File: **`rtc-service/src/index.ts`** (bootstrap; HTTP app factory: **`rtc-servic
 ### rtc-service — handshake
 
 - **`registerRtcSocketAuth`** (`rtc-service/src/middleware/socket-jwt.middleware.ts`): reads **`handshake.auth.token`** (or query), **`jwtVerify`**, sets **`socket.data.userId`**, **`roomId`**, **`roomType`**.  
-- All **`mediasoup-socket.handlers`** read **`userId`** from **`socket.data`** for ack’d operations.
+- All **`mediasoup-events`** handlers read **`userId`** from **`socket.data`** for ack’d operations.
 
 ---
 
@@ -145,7 +145,7 @@ File: **`rtc-service/src/index.ts`** (bootstrap; HTTP app factory: **`rtc-servic
 
 ### 6.1 `getOrCreateLocalRoom` / `releaseRoom`
 
-File: **`rtc-service/src/modules/rooms/room-registry.ts`**
+File: **`rtc-service/src/modules/rtc/room/room-registry.ts`**
 
 | Function | mediasoup / side effects |
 |----------|---------------------------|
@@ -155,7 +155,7 @@ File: **`rtc-service/src/modules/rooms/room-registry.ts`**
 
 ### 6.2 `PeerSessionService` — methods ↔ mediasoup
 
-File: **`rtc-service/src/modules/peers/peer.service.ts`**
+File: **`rtc-service/src/modules/rtc/peer/peer.service.ts`**
 
 | Method | mediasoup calls | Emits / side effects |
 |--------|-----------------|----------------------|
@@ -173,7 +173,7 @@ File: **`rtc-service/src/modules/peers/peer.service.ts`**
 
 ### 6.3 `mediaSource` on server
 
-File: **`rtc-service/src/modules/peers/media-source.util.ts`**
+File: **`rtc-service/src/modules/rtc/peer/media-source.ts`**
 
 - **`mediaSourceFromProducerAppData(appData)`** → **`"screen"`** only if **`appData.mediaSource === "screen"`** (strict); else **`"camera"`**.  
 - Client normalizes looser strings on **`newProducer`** / pause events; **consume ack** uses producer appData from SFU.
@@ -182,8 +182,8 @@ File: **`rtc-service/src/modules/peers/media-source.util.ts`**
 
 ## 7) Socket.IO: request events (client → server)
 
-Registration: **`registerMediasoupSocketHandlers`** (`rtc-service/src/modules/signaling/mediasoup-socket.handlers.ts`).  
-Payload parsing: **`mediasoup-payloads.ts`** (same folder).
+Registration: **`registerMediasoupSocketHandlers`** (`rtc-service/src/modules/rtc/signaling/mediasoup-events.ts`).  
+Payload parsing: **`socket-payloads.ts`** (same folder).
 
 | Event | Parser | Server handler |
 |-------|--------|----------------|
@@ -294,7 +294,7 @@ File: **`client/src/features/rtc/hooks/use-mediasoup-room.ts`**
 
 Two channels:
 
-1. **Main app** may call internal **`POST /internal/webhook/room-room-type`** on rtc-service (`rtc-service/src/modules/internal/internal.controller.ts`) → **`PeerSessionService.setRoomTypeForRoomPeers(roomId, roomType)`** → updates **`socket.data.roomType`** for everyone still connected. **Transports/producers stay alive.**
+1. **Main app** may call internal **`POST /internal/webhook/room-room-type`** on rtc-service (`rtc-service/src/modules/rtc/internal/room-webhooks.ts`) → **`PeerSessionService.setRoomTypeForRoomPeers(roomId, roomType)`** → updates **`socket.data.roomType`** for everyone still connected. **Transports/producers stay alive.**
 
 2. **Client** **`RoomDirectExpandSocketBridge`**: on “room became circle”, **`patchCachedRtcRoomType("circle")`** on **`getRtcToken`** cache — comment in code: **do not invalidate `RtcToken`** or the rtc socket reconnect would **tear down mediasoup** for the room.
 
@@ -355,9 +355,9 @@ This layer **does not** call mediasoup; it **re-slices `MediaStream`s** already 
 | Issue token | `server/src/modules/rooms/services/issue-rtc-token.service.ts`, `server/src/core/rtc/rtc-jwt.ts` |
 | rtc-service boot | `rtc-service/src/index.ts`, `rtc-service/src/http/create-app.ts` |
 | mediasoup worker/router | `rtc-service/src/core/mediasoup/mediasoup.service.ts` |
-| Room registry | `rtc-service/src/modules/rooms/room-registry.ts`, `rtc-service/src/modules/rooms/room.service.ts` |
-| Peer session | `rtc-service/src/modules/peers/peer.service.ts`, `rtc-service/src/modules/peers/media-source.util.ts` |
-| Socket handlers | `rtc-service/src/modules/signaling/signaling.handler.ts`, `mediasoup-socket.handlers.ts`, `mediasoup-payloads.ts` |
+| Room registry | `rtc-service/src/modules/rtc/room/room-registry.ts`, `rtc-service/src/modules/rtc/room/room.service.ts` |
+| Peer session | `rtc-service/src/modules/rtc/peer/peer.service.ts`, `rtc-service/src/modules/rtc/peer/media-source.ts` |
+| Socket handlers | `rtc-service/src/modules/rtc/signaling/io-signaling.ts`, `mediasoup-events.ts`, `socket-payloads.ts` |
 | Socket auth | `rtc-service/src/middleware/socket-jwt.middleware.ts` |
-| Internal room type webhook | `rtc-service/src/modules/internal/internal.controller.ts` |
+| Internal room type webhook | `rtc-service/src/modules/rtc/internal/room-webhooks.ts` |
 | VoiceIQ tap (HTTP) | `rtc-service/src/modules/voiceiq/voiceiq.controller.ts`, `rtc-service/src/modules/voiceiq/voiceiq-tap.service.ts` |

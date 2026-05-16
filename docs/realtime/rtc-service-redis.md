@@ -91,7 +91,7 @@ So: owner key, room hash, peer hash, and room peer set get **`EXPIRE`** refreshe
 
 **Solution:** One Redis string key per room. Value = winning instance’s **`rtcInstanceId`**.
 
-Flow (`modules/rooms/room-registry.ts` → `getOrCreateLocalRoom`):
+Flow (`modules/rtc/room/room-registry.ts` → `getOrCreateLocalRoom`):
 
 1. Read `GET rtc:room:{roomId}:owner`.
 2. If it exists and is **another** instance → return **`WRONG_INSTANCE`** + that owner id so the **client** can reconnect to the right place.
@@ -113,7 +113,7 @@ When a local router is created, we **`HSET`** fields such as:
 
 Then **`EXPIRE`** on the hash key for the 24h TTL.
 
-**Reading** this hash is in `modules/rooms/room.repository.ts` (`getRoomRecord`) — useful for admin/debug tooling, not required for every WebRTC packet.
+**Reading** this hash is in `modules/rtc/room/room.repository.ts` (`getRoomRecord`) — useful for admin/debug tooling, not required for every WebRTC packet.
 
 ---
 
@@ -121,7 +121,7 @@ Then **`EXPIRE`** on the hash key for the 24h TTL.
 
 This is a Redis **SET** of **user ids** (peers).
 
-- **`SADD`** when a peer is saved (`modules/peers/peer.repository.ts` → `savePeer`).
+- **`SADD`** when a peer is saved (`modules/rtc/peer/peer.repository.ts` → `savePeer`).
 - **`SREM`** when a peer is removed (`deletePeer`).
 - **`SMEMBERS`** to list everyone in the room (`listPeerIdsInRoom`).
 
@@ -141,12 +141,12 @@ Written in **`savePeer`**, deleted in **`deletePeer`**, read in **`getPeer`**. A
 
 ## 11. Pub/Sub: `rtc:room:{roomId}:events`
 
-When producers are added or removed, rtc-service can **`PUBLISH`** a JSON message on this channel (`publishRoomMediaEvent` in `modules/peers/peer.repository.ts`).
+When producers are added or removed, rtc-service can **`PUBLISH`** a JSON message on this channel (`publishRoomMediaEvent` in `modules/rtc/peer/peer.repository.ts`).
 
 - **Publish** = fire-and-forget; if nobody is subscribed, messages are dropped (that is normal for Pub/Sub).
 - This is described in code as **optional cross-service fan-out** — another service could **`SUBSCRIBE`** to react (e.g. analytics, recording coordinator). The core call does not require a subscriber for media to work.
 
-Event shapes (TypeScript types in `modules/peers/peer.repository.ts`):
+Event shapes (TypeScript types in `modules/rtc/peer/peer.repository.ts`):
 
 - `producer_added` — `roomId`, `peerId`, `producerId`, `kind`
 - `producer_removed` — `roomId`, `peerId`, `producerId`
@@ -156,7 +156,7 @@ Event shapes (TypeScript types in `modules/peers/peer.repository.ts`):
 ## 12. `user:active_rtc_room:{userId}` (shared with main API)
 
 - **Main API** sets this when it gives the user an RTC token (so the rest of the product knows “they intended to join this room”).
-- **rtc-service** **`clearUserActiveRtcRoomIfMatches`** (`modules/peers/peer.repository.ts`):
+- **rtc-service** **`clearUserActiveRtcRoomIfMatches`** (`modules/rtc/peer/peer.repository.ts`):
   - **`GET`** the key.
   - If value **equals** the `roomId` we are leaving, **`DEL`** the key.
   - If the user started a **new** room elsewhere, the value might differ — we **do not** delete (avoids wiping a newer session).
@@ -205,9 +205,9 @@ In a few places we use **`redis.pipeline()`** to send several commands in one ro
 | `rtc-service/src/core/redis/client.ts` | Connect / disconnect / `getRedis()` |
 | `rtc-service/src/core/redis/keys.ts` | All key string patterns |
 | `rtc-service/src/core/redis/constants.ts` | TTL |
-| `rtc-service/src/modules/rooms/room-registry.ts` | Owner claim, room hash, `releaseRoom` |
-| `rtc-service/src/modules/peers/peer.repository.ts` | Peer hash, peers set, publish, clear active room |
-| `rtc-service/src/modules/rooms/room.repository.ts` | Read room hash |
+| `rtc-service/src/modules/rtc/room/room-registry.ts` | Owner claim, room hash, `releaseRoom` |
+| `rtc-service/src/modules/rtc/peer/peer.repository.ts` | Peer hash, peers set, publish, clear active room |
+| `rtc-service/src/modules/rtc/room/room.repository.ts` | Read room hash |
 | `server/src/modules/rooms/services/user-active-rtc-room-redis.service.ts` | Main API side of `user:active_rtc_room` |
 
 ---

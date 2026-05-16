@@ -1,21 +1,11 @@
-/**
- * VoiceIQ RTP tap — PlainTransport + Consumers, indexed by room for late-joining mics.
- *
- * - Ensures the room Router exists on this replica via {@link getOrCreateLocalRoom} (same as WebRTC peers).
- * - Uses the same listen/announced IP pattern as WebRTC transports so UDP works behind NAT.
- * - Publishes `voiceiq_tap_consumer_added` on `rtc:room:{roomId}:events` when a new mic is consumed
- *   so voiceiq-service can extend SSRC → participant mapping without polling.
- */
-
 import { randomUUID } from "crypto";
 import type { types as MediasoupTypes } from "mediasoup";
 import { env } from "@/shared/config/env";
 import { logger } from "@/core/logging";
-import { isMicProducerForDominantUI } from "@/modules/peers/dominant-speaker-broadcast";
-import * as peerRepository from "@/modules/peers/peer.repository";
-import { roomService } from "@/modules/rooms/room.service";
+import { isMicProducerForDominantUI } from "@/modules/rtc/peer/dominant-speaker";
+import * as peerRepository from "@/modules/rtc/peer/peer.repository";
+import { roomService } from "@/modules/rtc/room/room.service";
 
-/** Opus-only consumer for external RTP sink (matches router audio codecs). */
 export const VOICEIQ_RTP_CAPABILITIES: MediasoupTypes.RtpCapabilities = {
   codecs: [
     {
@@ -33,9 +23,7 @@ export type VoiceIqTapConsumerInfo = {
   consumerId: string;
   producerId: string;
   ssrc: number;
-  /** Circlo user id (room peer); VoiceIQ can map to its own participant rows. */
   peerId: string;
-  /** Alias of peerId for voiceiq-service clients that expect `participantId`. */
   participantId: string;
 };
 
@@ -221,7 +209,6 @@ export const voiceIqTapService = {
     };
   },
 
-  /** Close every VoiceIQ PlainTransport for `roomId` (before mediasoup Router teardown). */
   releaseAllTapsForRoom(roomId: string): void {
     const ids = tapIdsByRoom.get(roomId);
     if (!ids || ids.size === 0) {
@@ -258,9 +245,6 @@ export const voiceIqTapService = {
     return { ok: true };
   },
 
-  /**
-   * When a peer starts sending mic audio after the tap exists, attach a Consumer on every active tap.
-   */
   async onMicAudioProducerAdded(
     roomId: string,
     producer: MediasoupTypes.Producer,

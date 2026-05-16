@@ -12,6 +12,10 @@ import {
 } from "@/features/room/lib/session/room-tab-lease";
 import { clearRoomStorage, isRoomMinimizedMarked } from "@/features/room/lib/session/room-sync";
 import { toast } from "sonner";
+import {
+  CIRCLE_SEARCH_PATH,
+  isCircleSearchRoomId,
+} from "@/features/room/lib/navigation/circle-routes";
 
 const DUPLICATE_TAB_TOAST = "You're already in this room.";
 
@@ -48,6 +52,11 @@ export function useRoomPageTabLease({
     roomIdRef.current = roomId;
     userIdRef.current = currentUserId;
     if (!roomId || sessionPending || !currentUserId) return;
+
+    if (isCircleSearchRoomId(roomId)) {
+      dispatch(enterRoomPage({ roomId }));
+      return;
+    }
 
     const tabId = getOrCreateTabInstanceId();
     tabIdRef.current = tabId;
@@ -121,7 +130,11 @@ export function useRoomPageTabLease({
         try {
           const path = window.location.pathname;
           const rid = roomIdRef.current;
-          if (path === `/circle/${rid}` || path.startsWith(`/circle/${rid}/`)) {
+          if (
+            path === CIRCLE_SEARCH_PATH ||
+            path === `/circle/${rid}` ||
+            path.startsWith(`/circle/${rid}/`)
+          ) {
             return;
           }
         } catch {
