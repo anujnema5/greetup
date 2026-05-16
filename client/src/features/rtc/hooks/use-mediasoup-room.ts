@@ -68,6 +68,9 @@ export function useMediasoupRoom(options: UseMediasoupRoomArgs): UseMediasoupRoo
     Record<string, ProducerMediaSource>
   >({});
   const [dominantSpeakerPeerId, setDominantSpeakerPeerId] = useState<string | null>(null);
+  const [dominantSpeakerSpeakingMs, setDominantSpeakerSpeakingMs] = useState<Record<string, number>>(
+    {},
+  );
   const [localMediaDeviceError, setLocalMediaDeviceError] = useState<string | null>(null);
 
   const localStreamRef = useRef<MediaStream | null>(null);
@@ -322,6 +325,7 @@ export function useMediasoupRoom(options: UseMediasoupRoomArgs): UseMediasoupRoo
       setRemoteTrackMediaSource,
       setLocalMediaDeviceError,
       setDominantSpeakerPeerId,
+      setDominantSpeakerSpeakingMs,
     }),
     [
       setStatus,
@@ -336,6 +340,7 @@ export function useMediasoupRoom(options: UseMediasoupRoomArgs): UseMediasoupRoo
       setRemoteTrackMediaSource,
       setLocalMediaDeviceError,
       setDominantSpeakerPeerId,
+      setDominantSpeakerSpeakingMs,
     ],
   );
 
@@ -375,5 +380,6 @@ export function useMediasoupRoom(options: UseMediasoupRoomArgs): UseMediasoupRoo
     setFocusedScreenShareKey,
     remoteTrackMediaSource,
     dominantSpeakerPeerId,
+    dominantSpeakerSpeakingMs,
   };
 }

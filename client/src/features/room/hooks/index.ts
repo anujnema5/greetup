@@ -1,5 +1,3 @@
-"use client";
-
 export { useRoomVideo } from "./session/use-room-video";
 export type { UseRoomVideoOptions } from "./session/use-room-video";
 export { useRoomJoinAndStartVideo } from "./session/use-room-join-and-start-video";
@@ -43,3 +41,9 @@ export {
 } from "./minimized-dock/use-minimized-dock-drag";
 
 export { useLobbyPreviewMedia } from "./lobby/use-lobby-preview-media";
+
+export { useLockedSpeakerTileSlot } from "./call/use-locked-speaker-tile-slot";
+export { useParticipantsWithSpeakerFirst } from "./call/use-participants-with-speaker-first";
+export { usePeerIdsWithSpeakerFirst } from "./call/use-peer-ids-with-speaker-first";
+export { useTileGridPage } from "./call/use-tile-grid-page";
+export { usePeoplePanelCameraOrder } from "./call/use-people-panel-camera-order";

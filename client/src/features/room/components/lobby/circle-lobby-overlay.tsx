@@ -11,6 +11,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { DEFAULT_CIRCLE_DISPLAY_TITLE } from "@/features/room/constants/call/circle-display";
 import { cn } from "@/lib/utils";
 import { scheduledStartTimeDisclaimerCompact } from "@/features/circles/constants/scheduled-circle-join-grace";
 import { useLobbyPreviewMedia } from "@/features/room/hooks/lobby/use-lobby-preview-media";
@@ -63,7 +64,7 @@ export function CircleLobbyOverlay({
 
   if (!open) return null;
 
-  const headline = circleTitle?.trim() || "Circle";
+  const headline = circleTitle?.trim() || DEFAULT_CIRCLE_DISPLAY_TITLE;
 
   return (
     <div

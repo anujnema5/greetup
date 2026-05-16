@@ -1,5 +1,23 @@
+import { eq } from "drizzle-orm";
+
+import { db } from "@/core/database";
+import { roomParticipants } from "@/core/database/schema";
+import { emitToUser } from "@/core/socket/socket";
+import { CIRCLE_ROOM_SOCKET_EVENTS } from "@/modules/rooms/constants/circle-room-socket.events";
 import { roomsRepository } from "@/modules/rooms/repositories/rooms.repository";
 import { patchSessionRoomRedisTitle } from "@/modules/rooms/services/session-room-redis.service";
+
+async function emitCircleTitleUpdated(roomId: string, title: string): Promise<void> {
+  const rows = await db
+    .select({ userId: roomParticipants.userId })
+    .from(roomParticipants)
+    .where(eq(roomParticipants.roomId, roomId));
+  const userIds = [...new Set(rows.map((r) => r.userId))];
+  const payload = { roomId, title };
+  for (const uid of userIds) {
+    emitToUser(uid, CIRCLE_ROOM_SOCKET_EVENTS.titleUpdated, payload);
+  }
+}
 
 export class UpdateLiveRoomTitleError extends Error {
   constructor(
@@ -55,6 +73,7 @@ export async function updateLiveRoomTitleService(
   }
 
   await patchSessionRoomRedisTitle(roomId, title);
+  await emitCircleTitleUpdated(roomId, title);
 
   return { title };
 }

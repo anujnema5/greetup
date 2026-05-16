@@ -42,7 +42,7 @@ export type InCallContainerProps = {
   scoreLabel: string | null;
   myName: string;
   isGroupRoom: boolean;
-  groupRoomTitle: string | null;
+  circleDisplayTitle: string | null;
   circleCanEditTitle?: boolean;
   /** DB circle host — used for “open circle for everyone” lobby control. */
   circleHostUserId?: string | null;
@@ -62,7 +62,7 @@ export function InCallContainer({
   scoreLabel,
   myName,
   isGroupRoom,
-  groupRoomTitle,
+  circleDisplayTitle,
   circleCanEditTitle = false,
   circleHostUserId = null,
   circleLobbyGateActive = null,
@@ -118,7 +118,8 @@ export function InCallContainer({
     focusedScreenShareKey,
     setFocusedScreenShareKey,
     remoteTrackMediaSource,
-    dominantSpeakerPeerId,
+    dominantSpeakerPeerId: liveSpeakerPeerId,
+    dominantSpeakerSpeakingMs: liveSpeakerSpeakingMs,
   } = useRtcSocketContext();
 
   /** DB-backed tiles + policy map; invite gating uses `embeddedStageActivityId` (can run ahead of Redux). */
@@ -222,7 +223,6 @@ export function InCallContainer({
     peerId,
     peers,
     isGroupRoom,
-    groupRoomTitle,
   });
 
   useEffect(() => {
@@ -350,7 +350,7 @@ export function InCallContainer({
       {rtcLobbyWait ? (
         <CircleLobbyOverlay
           open
-          circleTitle={groupRoomTitle}
+          circleTitle={circleDisplayTitle}
           scheduledLabel={scheduledLobbyLabel}
           waitingForScheduledStart={circleLobbyScheduledNotReady}
           rtcTokenError={rtcTokenError}
@@ -429,7 +429,7 @@ export function InCallContainer({
         onEndActiveGame={() => void handleEndActiveGame()}
         onOfferDrawGame={() => void handleOfferDraw()}
         roomId={roomId}
-        circleDisplayTitle={groupRoomTitle}
+        circleDisplayTitle={circleDisplayTitle}
         circleCanEditTitle={circleCanEditTitle}
         onHostEndCircleForEveryone={
           isDbCircleCall && circleCanEditTitle ? video.handleHostEndCircleForEveryone : undefined
@@ -441,7 +441,8 @@ export function InCallContainer({
         onEmbeddedStageActivityChange={setEmbeddedStageActivityId}
         directRoomActivities={directRoomActivities}
         embeddedCallPolicyLookup={embeddedCallPolicyLookup}
-        dominantSpeakerPeerId={dominantSpeakerPeerId}
+        liveSpeakerPeerId={liveSpeakerPeerId}
+        liveSpeakerSpeakingMs={liveSpeakerSpeakingMs}
         callCapabilities={callCapabilities}
       />
     </div>

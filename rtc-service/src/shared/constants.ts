@@ -52,7 +52,8 @@ export const RTC_CONFIG = {
   },
   audioLevelDominantSpeaker: {
     maxEntries: 1,
-    threshold: -72,
+    /** dBvo (-127…0): higher = louder audio required before dominant-speaker events fire. */
+    threshold: -55,
     interval: 100,
   },
 } as const;

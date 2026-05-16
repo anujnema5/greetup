@@ -523,10 +523,24 @@ export class PeerSessionService {
 
   private emitDominantSpeakerToMediasoupRoom(roomId: string, payload: DominantSpeakerSocketPayload): void {
     const members = this.roomMembers.get(roomId);
-    if (!members || members.size === 0) return;
+    if (!members || members.size === 0) {
+      logger.warn("dominantSpeaker: emit skipped (no room members)", { roomId, payload });
+      return;
+    }
     const firstId = members.values().next().value as string | undefined;
     const session = firstId ? this.sessions.get(firstId) : undefined;
-    session?.socket.nsp.to(roomId).emit(DOMINANT_SPEAKER_SOCKET_EVENT, payload);
+    if (!session) {
+      logger.warn("dominantSpeaker: emit skipped (no session)", { roomId, payload });
+      return;
+    }
+    session.socket.nsp.to(roomId).emit(DOMINANT_SPEAKER_SOCKET_EVENT, payload);
+    logger.info("dominantSpeaker: socket emitted", {
+      roomId,
+      event: DOMINANT_SPEAKER_SOCKET_EVENT,
+      peerId: payload.peerId,
+      memberCount: members.size,
+      speakingMsByPeer: payload.speakingMsByPeer,
+    });
   }
 
   private ensureDominantSpeakerListener(roomId: string): void {
@@ -598,7 +612,7 @@ export class PeerSessionService {
     }
 
     if (wasDominant) {
-      this.dominantSpeaker.broadcastIfChanged(roomId, null);
+      this.dominantSpeaker.broadcastIfChanged(roomId, null, "manual");
     }
 
     if (!opts.skipRedis) {

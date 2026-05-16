@@ -125,7 +125,7 @@ export function RoomPage() {
         scoreLabel={scoreLabel}
         myName={myName}
         isGroupRoom={isCircleRoom}
-        groupRoomTitle={
+        circleDisplayTitle={
           room && "title" in room && typeof room.title === "string" ? room.title : null
         }
         circleCanEditTitle={circleCanEditTitle}

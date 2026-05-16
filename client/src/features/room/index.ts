@@ -49,7 +49,12 @@ export type { InCallScreenProps, DirectExpandInvitePayload } from "./types";
 export type { InCallContainerProps } from "./call";
 export { MinimizedRoomDock } from "./components/minimized-dock/minimized-room-dock";
 export { RoomMinimizedHydration } from "./components/minimized-dock/room-minimized-hydration";
-export { OnPartnerDisconnected, OnDirectExpandedToCircle, OnHostEndedCircle } from "./listeners";
+export {
+  OnCircleTitleUpdated,
+  OnPartnerDisconnected,
+  OnDirectExpandedToCircle,
+  OnHostEndedCircle,
+} from "./listeners";
 export {
   roomApi,
   leaveRoomKeepalive,

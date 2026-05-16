@@ -23,18 +23,18 @@ import {
   CALL_TILE_REMOTE_CLASS,
   CALL_TILE_REMOTE_NAME_BADGE_CLASS,
 } from "@/features/room/call/tiles/tile-styles";
-import { DOMINANT_SPEAKER_TILE_RING } from "@/features/room/lib/call/dominant-speaker-tile";
+import { LIVE_SPEAKER_TILE_RING } from "@/features/room/lib/call/active-speaker";
 
 export function RemoteParticipantTile({
   participant,
   className,
-  isDominantSpeaker = false,
+  isLiveSpeaker = false,
   avatarSizeClass = CALL_TILE_AVATAR_SIZE_MAIN,
 }: {
   participant: RemoteParticipant;
   className?: string;
   /** From rtc-service `dominantSpeaker` (mic level + silence clears). */
-  isDominantSpeaker?: boolean;
+  isLiveSpeaker?: boolean;
   avatarSizeClass?: string;
 }) {
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -62,7 +62,7 @@ export function RemoteParticipantTile({
     <div
       className={cn(
         CALL_TILE_REMOTE_CLASS,
-        isDominantSpeaker && DOMINANT_SPEAKER_TILE_RING,
+        isLiveSpeaker && LIVE_SPEAKER_TILE_RING,
         className,
       )}
     >
