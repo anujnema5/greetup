@@ -2,17 +2,16 @@
 
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { useSession } from "@/lib/auth-client";
 import { useAppDispatch, useAppSelector } from "@/lib/redux/hooks";
 import {
   selectIsRoomMinimized,
   selectIsVideoSessionActive,
   selectRoomPhase,
 } from "@/lib/redux/selectors/room-selectors";
-import { useRoomPageTabLease } from "@/features/room/hooks";
-import { useSession } from "@/lib/auth-client";
 import { InCallContainer } from "@/features/room/call/shell/in-call-container";
-import { CircleRouteLoadingShell } from "@/features/room/components/circle-route-loading-shell";
-import { useClientMounted } from "@/features/room/hooks/use-client-mounted";
+import { CircleRouteLoadingShell } from "@/features/room/components/search/circle-route-loading-shell";
+import { useRoomPageTabLease, useClientMounted } from "@/features/room/hooks";
 import { CIRCLE_SEARCH_SEGMENT } from "@/features/room/lib/navigation/circle-routes";
 
 /** Direct-call rematch UI at `/circle/search` (no room API until a match lands). */
