@@ -19,8 +19,10 @@ import type { RtcSocketState } from "@/features/rtc/hooks/use-rtc-socket";
 export type MediasoupRoomSessionRefs = {
   localStreamRef: MutableRefObject<MediaStream | null>;
   videoProducerRef: MutableRefObject<Producer | null>;
-  screenProducerRef: MutableRefObject<Producer | null>;
-  screenShareProducerIdRef: MutableRefObject<string | null>;
+  screenVideoProducerRef: MutableRefObject<Producer | null>;
+  screenVideoProducerIdRef: MutableRefObject<string | null>;
+  screenAudioProducerRef: MutableRefObject<Producer | null>;
+  screenAudioProducerIdRef: MutableRefObject<string | null>;
   localScreenTrackRef: MutableRefObject<MediaStreamTrack | null>;
   audioProducerRef: MutableRefObject<Producer | null>;
   sendTransportRef: MutableRefObject<Transport | null>;
@@ -43,6 +45,7 @@ export type MediasoupRoomSessionSetters = {
   setLocalScreenTrackId: (id: string | null) => void;
   setRemoteTrackMediaSource: (u: SetStateAction<Record<string, ProducerMediaSource>>) => void;
   setLocalMediaDeviceError: (msg: string | null) => void;
+  setDominantSpeakerPeerId: (u: SetStateAction<string | null>) => void;
 };
 
 export type MediasoupRoomSessionOptions = {
@@ -50,10 +53,12 @@ export type MediasoupRoomSessionOptions = {
   rtcSocket: Socket | null;
   rtcSocketState: RtcSocketState;
   rtcRoomId: string | null;
-  /** Current user's display name — sent to the rtc-service on join so peers can see it. */
-  localDisplayName?: string | null;
-  /** Current user's profile image URL — sent to rtc-service for peer fallback avatars. */
-  localProfileImageUrl?: string | null;
+  /**
+   * Latest display name for `join` — must be refs so profile/session hydration does **not**
+   * re-run this effect (full reconnect would reset mic/camera UI state).
+   */
+  localDisplayNameRef: MutableRefObject<string | null | undefined>;
+  localProfileImageUrlRef: MutableRefObject<string | null | undefined>;
   cleanupLocalScreenShareRef: MutableRefObject<() => void>;
   refs: MediasoupRoomSessionRefs;
   set: MediasoupRoomSessionSetters;
@@ -65,8 +70,10 @@ export type MediasoupLocalMediaRefs = {
   deviceRef: MutableRefObject<Device | null>;
   localStreamRef: MutableRefObject<MediaStream | null>;
   videoProducerRef: MutableRefObject<Producer | null>;
-  screenProducerRef: MutableRefObject<Producer | null>;
-  screenShareProducerIdRef: MutableRefObject<string | null>;
+  screenVideoProducerRef: MutableRefObject<Producer | null>;
+  screenVideoProducerIdRef: MutableRefObject<string | null>;
+  screenAudioProducerRef: MutableRefObject<Producer | null>;
+  screenAudioProducerIdRef: MutableRefObject<string | null>;
   localScreenTrackRef: MutableRefObject<MediaStreamTrack | null>;
   audioProducerRef: MutableRefObject<Producer | null>;
   socketRef: MutableRefObject<Socket | null>;

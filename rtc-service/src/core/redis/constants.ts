@@ -1,0 +1,1 @@
+export const RTC_ROOM_METADATA_TTL_SECONDS = 24 * 60 * 60;

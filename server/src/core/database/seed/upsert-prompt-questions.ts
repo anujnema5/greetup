@@ -10,7 +10,7 @@ import type { SeedDb } from "./seed-db";
 export async function upsertPromptQuestions(db: SeedDb): Promise<void> {
   await db
     .insert(promptQuestions)
-    .values(PROMPT_QUESTIONS_SEED)
+    .values([...PROMPT_QUESTIONS_SEED])
     .onConflictDoUpdate({
       target: promptQuestions.key,
       set: {

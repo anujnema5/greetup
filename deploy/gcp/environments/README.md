@@ -23,6 +23,17 @@ Production YAMLs default to **`server-prod`** / **`matching-service-prod`** so o
 
 **Firebase (phone auth, etc.):** the client needs `NEXT_PUBLIC_FIREBASE_*` passed as Docker `--build-arg` via Cloud Build substitutions (`cloudbuild.client*.yaml`). Set them on the build trigger (or in the YAML) to match the Firebase Web app config; they were previously omitted, so the image could build without baking Firebase into the bundle.
 
+**Trigger variable names (common mistake):** In the Cloud Build trigger UI, user-defined substitutions **must** match the YAML exactly, including the **leading underscore**:
+
+| Wrong (ignored / stays empty) | Correct |
+|--------------------------------|---------|
+| `NEXT_PUBLIC_FIREBASE_API_KEY` | `_NEXT_PUBLIC_FIREBASE_API_KEY` |
+| `FIREBASE_API_KEY` | `_NEXT_PUBLIC_FIREBASE_API_KEY` |
+
+If names are wrong, the Docker step still runs with empty `--build-arg` values and production shows “Firebase client env missing”. The client `cloudbuild` files include a **first step that fails the build** when those three required substitutions are empty so you get a clear log instead of a broken deploy.
+
+**After changing trigger substitutions:** push a new commit or **Run** the trigger again; editing Cloud Run env alone does not change the Next.js bundle.
+
 ## VM (`deploy/gcp/vm`)
 
 Postgres / Redis / rtc on the VM are **per-environment**. Production should use its own VM (or managed DB/Redis), not dev connection strings.

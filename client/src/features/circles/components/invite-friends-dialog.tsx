@@ -25,6 +25,10 @@ export type InviteFriendsDialogProps = {
   /** Current selection from parent; copied into draft when dialog opens. */
   selectedIds: Set<string>;
   onConfirm: (ids: Set<string>) => void;
+  /** Max others the host can invite (room seats minus host). */
+  maxSelectableInvites: number;
+  /** Fires when user tries to select beyond `maxSelectableInvites`. */
+  onAtCapacity?: () => void;
 };
 
 function peerLabel(peer: ConnectionListItem["peer"]) {
@@ -38,15 +42,18 @@ export function InviteFriendsDialog({
   connectionsLoading,
   selectedIds,
   onConfirm,
+  maxSelectableInvites,
+  onAtCapacity,
 }: InviteFriendsDialogProps) {
   const [search, setSearch] = useState("");
   const [draft, setDraft] = useState<Set<string>>(() => new Set());
 
   useEffect(() => {
-    if (open) {
+    if (!open) return;
+    queueMicrotask(() => {
       setDraft(new Set(selectedIds));
       setSearch("");
-    }
+    });
   }, [open, selectedIds]);
 
   const filtered = useMemo(() => {
@@ -59,14 +66,23 @@ export function InviteFriendsDialog({
     });
   }, [connections, search]);
 
-  const toggle = useCallback((userId: string) => {
-    setDraft((prev) => {
-      const next = new Set(prev);
-      if (next.has(userId)) next.delete(userId);
-      else next.add(userId);
-      return next;
-    });
-  }, []);
+  const toggle = useCallback(
+    (userId: string) => {
+      setDraft((prev) => {
+        const next = new Set(prev);
+        if (next.has(userId)) {
+          next.delete(userId);
+        } else if (next.size >= maxSelectableInvites) {
+          onAtCapacity?.();
+          return prev;
+        } else {
+          next.add(userId);
+        }
+        return next;
+      });
+    },
+    [maxSelectableInvites, onAtCapacity],
+  );
 
   const handleConfirm = () => {
     onConfirm(draft);
@@ -92,6 +108,12 @@ export function InviteFriendsDialog({
           </DialogTitle>
           <DialogDescription className="text-sm text-muted-foreground">
             Pick who should get a heads-up—search below and confirm with Invite.
+            {maxSelectableInvites > 0 ? (
+              <span className="mt-1 block text-xs text-muted-foreground/90">
+                Up to {maxSelectableInvites} invite
+                {maxSelectableInvites === 1 ? "" : "s"} for this room size (you take one seat).
+              </span>
+            ) : null}
           </DialogDescription>
         </DialogHeader>
 

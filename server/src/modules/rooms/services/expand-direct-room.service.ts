@@ -225,11 +225,3 @@ export async function respondRoomInviteService(
 
   return { roomId, expanded: true };
 }
-
-/** Back-compat aliases (legacy direct-expand naming). */
-export {
-  RoomInviteError as ExpandDirectRoomError,
-  createRoomInviteService as createExpandDirectInviteService,
-  respondRoomInviteService as respondExpandDirectInviteService,
-};
-export type { RoomInviteErrorCode as ExpandDirectRoomErrorCode };

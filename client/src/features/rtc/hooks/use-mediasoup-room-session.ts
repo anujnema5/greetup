@@ -41,6 +41,18 @@ function producerMediaSourceFromSocket(kind: MediaKind, mediaSource: string | un
 }
 
 /**
+ * Outcome of an ICE-restart attempt.
+ * - `restarted`: server returned new params and `transport.restartIce` resolved.
+ * - `skipped`:   no-op due to in-flight restart, debounce window, socket disconnect, or cancellation.
+ * - `failed`:    a restart was attempted but the server NACK'd or the call threw.
+ *
+ * Only `failed` should surface as a "remained unstable" warning; `skipped` is a benign
+ * coalescing path that fires whenever `connectionstatechange` re-emits `disconnected`/`failed`
+ * inside the {@link ICE_RESTART_MIN_GAP_MS} window after a previous attempt.
+ */
+type IceRestartOutcome = "restarted" | "skipped" | "failed";
+
+/**
  * Joins the JWT room over Socket.IO, creates recv/send WebRTC transports, and attaches consumers.
  * Does not call `getUserMedia` — that lives in {@link useMediasoupLocalMedia}.
  */
@@ -50,11 +62,11 @@ export function useMediasoupRoomSession(options: MediasoupRoomSessionOptions): v
     rtcSocket,
     rtcSocketState,
     rtcRoomId,
-    localDisplayName,
-    localProfileImageUrl,
+    localDisplayNameRef,
+    localProfileImageUrlRef,
     cleanupLocalScreenShareRef,
     refs,
-    set
+    set,
   } = options;
 
   useEffect(() => {
@@ -84,6 +96,7 @@ export function useMediasoupRoomSession(options: MediasoupRoomSessionOptions): v
     set.setScreenSharing(false);
     set.setLocalScreenTrackId(null);
     set.setRemoteTrackMediaSource({});
+    set.setDominantSpeakerPeerId(null);
     refs.micEnabledRef.current = false;
     refs.cameraEnabledRef.current = false;
     set.setLocalStream(null);
@@ -91,14 +104,42 @@ export function useMediasoupRoomSession(options: MediasoupRoomSessionOptions): v
     set.setRemoteStreamsByPeerId({});
     set.setPeers({});
     set.setLocalMediaDeviceError(null);
-    refs.screenProducerRef.current = null;
-    refs.screenShareProducerIdRef.current = null;
+    refs.screenVideoProducerRef.current = null;
+    refs.screenVideoProducerIdRef.current = null;
+    refs.screenAudioProducerRef.current = null;
+    refs.screenAudioProducerIdRef.current = null;
     refs.localScreenTrackRef.current = null;
 
     const consumers = new Map<string, Consumer>();
     const iceRecoveryRuntime = {
       restartInFlightByTransportId: new Set<string>(),
       lastRestartAtByTransportId: new Map<string, number>(),
+    };
+
+    const upsertPeer = (
+      peerId: string,
+      patch: Partial<Pick<RemotePeer, "displayName" | "image" | "cameraActive" | "micActive">>,
+    ) => {
+      set.setPeers((prev) => ({
+        ...prev,
+        [peerId]: {
+          ...(prev[peerId] ?? { peerId }),
+          ...patch,
+        },
+      }));
+    };
+
+    const setPeerMediaActive = (
+      peerId: string,
+      kind: MediaKind | string | undefined,
+      active: boolean,
+      mediaSource?: string,
+    ) => {
+      if (kind === "video" && producerMediaSourceFromSocket("video", mediaSource) === "camera") {
+        upsertPeer(peerId, { cameraActive: active });
+      } else if (kind === "audio") {
+        upsertPeer(peerId, { micActive: active });
+      }
     };
 
     const onPeerJoined = (data: {
@@ -109,23 +150,33 @@ export function useMediasoupRoomSession(options: MediasoupRoomSessionOptions): v
       if (cancelled || !data?.peerId) return;
       if (data.peerId === refs.localUserIdRef.current) return;
       const pid = data.peerId;
-      set.setPeers((prev) => ({
-        ...prev,
-        [pid]: {
-          ...(prev[pid] ?? { peerId: pid }),
-          displayName: data.displayName ?? prev[pid]?.displayName ?? null,
-          image: data.image ?? prev[pid]?.image ?? null,
-          // Default to false so the UI shows "off" icons immediately.
-          // Producer events (newProducer / consumeRemoteProducer) will flip these to true.
-          cameraActive: prev[pid]?.cameraActive ?? false,
-          micActive: prev[pid]?.micActive ?? false,
-        },
-      }));
+      set.setPeers((current) => {
+        const existing = current[pid];
+        return {
+          ...current,
+          [pid]: {
+            ...(existing ?? { peerId: pid }),
+            displayName: data.displayName ?? existing?.displayName ?? null,
+            image: data.image ?? existing?.image ?? null,
+            // Default to false so the UI shows "off" icons immediately.
+            // Producer events (newProducer / consumeRemoteProducer) will flip these to true.
+            cameraActive: existing?.cameraActive ?? false,
+            micActive: existing?.micActive ?? false,
+          },
+        };
+      });
+    };
+
+    const onDominantSpeaker = (data: { peerId?: string | null }) => {
+      if (cancelled) return;
+      const pid = data?.peerId;
+      set.setDominantSpeakerPeerId(typeof pid === "string" && pid.length > 0 ? pid : null);
     };
 
     const onPeerLeft = (data: { peerId?: string }) => {
       if (cancelled || !data?.peerId) return;
       const pid = data.peerId;
+      set.setDominantSpeakerPeerId((prev) => (prev === pid ? null : prev));
       set.setPeers((prev) => {
         if (!(pid in prev)) return prev;
         const next = { ...prev };
@@ -150,6 +201,7 @@ export function useMediasoupRoomSession(options: MediasoupRoomSessionOptions): v
       socket.off("producerResumed", onProducerResumed);
       socket.off("peerJoined", onPeerJoined);
       socket.off("peerLeft", onPeerLeft);
+      socket.off("dominantSpeaker", onDominantSpeaker);
       for (const c of consumers.values()) {
         try {
           c.close();
@@ -174,33 +226,33 @@ export function useMediasoupRoomSession(options: MediasoupRoomSessionOptions): v
       iceRecoveryRuntime.lastRestartAtByTransportId.clear();
     };
 
-    const maybeRestartTransportIce = async (transport: Transport): Promise<boolean> => {
-      if (cancelled) return false;
+    const maybeRestartTransportIce = async (transport: Transport): Promise<IceRestartOutcome> => {
+      if (cancelled) return "skipped";
 
       const transportId = transport.id;
       if (iceRecoveryRuntime.restartInFlightByTransportId.has(transportId)) {
-        return false;
+        return "skipped";
       }
       const lastRestartAt = iceRecoveryRuntime.lastRestartAtByTransportId.get(transportId) ?? 0;
       if (Date.now() - lastRestartAt < ICE_RESTART_MIN_GAP_MS) {
-        return false;
+        return "skipped";
       }
       if (!socket.connected) {
-        return false;
+        return "skipped";
       }
 
       iceRecoveryRuntime.restartInFlightByTransportId.add(transportId);
       try {
         const ack = await emitRtcAck<RestartIceAck>(socket, "restartIce", { transportId });
         if (!isAckOk(ack) || !("iceParameters" in ack)) {
-          return false;
+          return "failed";
         }
         await transport.restartIce({ iceParameters: ack.iceParameters });
         iceRecoveryRuntime.lastRestartAtByTransportId.set(transportId, Date.now());
-        return true;
+        return "restarted";
       } catch (err) {
-        console.warn("[RTC] restartIce failed", transportId, err);
-        return false;
+        console.warn("[RTC] restartIce threw", transportId, err);
+        return "failed";
       } finally {
         iceRecoveryRuntime.restartInFlightByTransportId.delete(transportId);
       }
@@ -222,13 +274,18 @@ export function useMediasoupRoomSession(options: MediasoupRoomSessionOptions): v
 
         // Temporary network drops are handled by attempting ICE restart in-place.
         set.setStatus("negotiating");
-        void maybeRestartTransportIce(transport).then((restarted) => {
+        void maybeRestartTransportIce(transport).then((outcome) => {
           if (cancelled) return;
-          if (restarted) {
+          if (outcome === "restarted") {
             set.setError(null);
             return;
           }
-          console.warn(`[RTC] ${label} transport remained unstable`, transport.id);
+          // `skipped` means another attempt is in flight or we're inside the debounce window after
+          // a successful restart — staying silent avoids spamming the console while the transport
+          // settles. We only warn on a genuinely attempted-and-failed restart.
+          if (outcome === "failed") {
+            console.warn(`[RTC] ${label} transport remained unstable`, transport.id);
+          }
         });
       });
     };
@@ -305,17 +362,7 @@ export function useMediasoupRoomSession(options: MediasoupRoomSessionOptions): v
       consumers.set(producerId, consumer);
 
       // Sync camera/mic state from the producer's current pause status.
-      if (kind === "video" && resolvedVideoSource === "camera") {
-        set.setPeers((prev) => ({
-          ...prev,
-          [peerId]: { ...(prev[peerId] ?? { peerId }), cameraActive: !raw.producerPaused },
-        }));
-      } else if (kind === "audio") {
-        set.setPeers((prev) => ({
-          ...prev,
-          [peerId]: { ...(prev[peerId] ?? { peerId }), micActive: !raw.producerPaused },
-        }));
-      }
+      setPeerMediaActive(peerId, kind, !raw.producerPaused, resolvedVideoSource);
 
       let metaRefreshTimer: ReturnType<typeof setTimeout> | null = null;
       const clearMetaRefresh = () => {
@@ -376,18 +423,7 @@ export function useMediasoupRoomSession(options: MediasoupRoomSessionOptions): v
       if (data.kind !== "audio" && data.kind !== "video") return;
       const src = producerMediaSourceFromSocket(data.kind, data.mediaSource);
       // New producer → mark the peer's camera/mic active immediately.
-      const pid = data.peerId;
-      if (data.kind === "video" && src === "camera") {
-        set.setPeers((prev) => ({
-          ...prev,
-          [pid]: { ...(prev[pid] ?? { peerId: pid }), cameraActive: true },
-        }));
-      } else if (data.kind === "audio") {
-        set.setPeers((prev) => ({
-          ...prev,
-          [pid]: { ...(prev[pid] ?? { peerId: pid }), micActive: true },
-        }));
-      }
+      setPeerMediaActive(data.peerId, data.kind, true, src);
       void consumeRemoteProducer(data.producerId, data.kind, data.peerId, src).catch((e) => {
         console.error("[RTC] newProducer consume", e);
       });
@@ -398,7 +434,7 @@ export function useMediasoupRoomSession(options: MediasoupRoomSessionOptions): v
       if (
         data.peerId &&
         data.peerId === refs.localUserIdRef.current &&
-        data.producerId === refs.screenShareProducerIdRef.current
+        data.producerId === refs.screenVideoProducerIdRef.current
       ) {
         cleanupLocalScreenShareRef.current();
         return;
@@ -413,18 +449,7 @@ export function useMediasoupRoomSession(options: MediasoupRoomSessionOptions): v
       mediaSource?: string;
     }) => {
       if (cancelled || !data?.peerId || data.peerId === refs.localUserIdRef.current) return;
-      const pid = data.peerId;
-      if (data.kind === "video" && producerMediaSourceFromSocket("video", data.mediaSource) === "camera") {
-        set.setPeers((prev) => ({
-          ...prev,
-          [pid]: { ...(prev[pid] ?? { peerId: pid }), cameraActive: false },
-        }));
-      } else if (data.kind === "audio") {
-        set.setPeers((prev) => ({
-          ...prev,
-          [pid]: { ...(prev[pid] ?? { peerId: pid }), micActive: false },
-        }));
-      }
+      setPeerMediaActive(data.peerId, data.kind, false, data.mediaSource);
     };
 
     const onProducerResumed = (data: {
@@ -434,22 +459,12 @@ export function useMediasoupRoomSession(options: MediasoupRoomSessionOptions): v
       mediaSource?: string;
     }) => {
       if (cancelled || !data?.peerId || data.peerId === refs.localUserIdRef.current) return;
-      const pid = data.peerId;
-      if (data.kind === "video" && producerMediaSourceFromSocket("video", data.mediaSource) === "camera") {
-        set.setPeers((prev) => ({
-          ...prev,
-          [pid]: { ...(prev[pid] ?? { peerId: pid }), cameraActive: true },
-        }));
-      } else if (data.kind === "audio") {
-        set.setPeers((prev) => ({
-          ...prev,
-          [pid]: { ...(prev[pid] ?? { peerId: pid }), micActive: true },
-        }));
-      }
+      setPeerMediaActive(data.peerId, data.kind, true, data.mediaSource);
     };
 
     socket.on("peerJoined", onPeerJoined);
     socket.on("peerLeft", onPeerLeft);
+    socket.on("dominantSpeaker", onDominantSpeaker);
     socket.on("producerPaused", onProducerPaused);
     socket.on("producerResumed", onProducerResumed);
 
@@ -459,8 +474,8 @@ export function useMediasoupRoomSession(options: MediasoupRoomSessionOptions): v
     void (async () => {
       try {
         const joinRes = await emitRtcAck<JoinAck>(socket, "join", {
-          displayName: localDisplayName ?? undefined,
-          image: localProfileImageUrl ?? undefined,
+          displayName: localDisplayNameRef.current ?? undefined,
+          image: localProfileImageUrlRef.current ?? undefined,
         });
         if (cancelled) return;
 
@@ -580,14 +595,14 @@ export function useMediasoupRoomSession(options: MediasoupRoomSessionOptions): v
     };
   }, [
     enabled,
-    localDisplayName,
-    localProfileImageUrl,
     rtcSocket,
     rtcSocketState,
     rtcRoomId,
     cleanupLocalScreenShareRef,
     set,
     refs,
+    localDisplayNameRef,
+    localProfileImageUrlRef,
   ]);
 }
 
@@ -603,13 +618,16 @@ function wipeMediasoupRoomUiState(set: MediasoupRoomSessionSetters): void {
   set.setLocalScreenTrackId(null);
   set.setRemoteTrackMediaSource({});
   set.setLocalMediaDeviceError(null);
+  set.setDominantSpeakerPeerId(null);
 }
 
 function zeroMediasoupRefs(refs: MediasoupRoomSessionRefs): void {
   refs.localStreamRef.current = null;
   refs.videoProducerRef.current = null;
-  refs.screenProducerRef.current = null;
-  refs.screenShareProducerIdRef.current = null;
+  refs.screenVideoProducerRef.current = null;
+  refs.screenVideoProducerIdRef.current = null;
+  refs.screenAudioProducerRef.current = null;
+  refs.screenAudioProducerIdRef.current = null;
   refs.localScreenTrackRef.current = null;
   refs.audioProducerRef.current = null;
   refs.sendTransportRef.current = null;

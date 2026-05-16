@@ -19,7 +19,7 @@ function toRtcTokenPayload(response: RtcTokenApiResponse): RtcTokenPayload {
   throw new Error(response.message ?? "Could not get RTC token");
 }
 
-function rtcTokenCacheTag(roomId: string) {
+export function rtcTokenCacheTag(roomId: string) {
   return { type: "RtcToken" as const, id: roomId };
 }
 

@@ -330,7 +330,7 @@ export function MatchPrepDialog({
           )}
         </div>
 
-        <DialogFooter className="shrink-0 flex-col gap-2 border-t border-border/40 bg-card/90 px-5 py-3 backdrop-blur-sm sm:flex-row sm:justify-end sm:gap-2 sm:px-6">
+        <DialogFooter className="shrink-0 flex-col gap-2 border-t border-border/40 bg-card/90 px-5 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] backdrop-blur-sm sm:flex-row sm:justify-end sm:gap-2 sm:px-6 sm:pb-3">
           {isEdit ? (
             <>
               <Button

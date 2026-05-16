@@ -212,14 +212,14 @@ export function ProfileSetupPhotoField({
   };
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-2">
       <div>
-        <FormLabel className="text-sm font-semibold text-foreground">
+        <FormLabel className="text-xs font-semibold text-foreground sm:text-sm">
           {label}
           {required ? <span className="text-destructive">*</span> : null}
         </FormLabel>
         {description ? (
-          <FormDescription className="text-xs text-muted-foreground mt-1.5 leading-relaxed">
+          <FormDescription className="mt-1 text-[11px] text-muted-foreground leading-snug sm:text-xs">
             {description}
           </FormDescription>
         ) : null}
@@ -227,16 +227,16 @@ export function ProfileSetupPhotoField({
 
       <div
         className={cn(
-          "rounded-xl border border-input bg-background p-4 sm:p-5",
+          "rounded-lg border border-input bg-background p-3 sm:p-4",
           "transition-colors hover:border-primary/25",
         )}
       >
-        <div className="flex flex-col gap-5 sm:flex-row sm:items-stretch sm:gap-6">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-stretch sm:gap-4">
           {/* Preview — left, aligns with form controls like bio / inputs */}
           <div
             className={cn(
-              "relative shrink-0 self-start overflow-hidden rounded-xl border border-border bg-muted/30",
-              "w-[148px] h-[148px] sm:w-[168px] sm:h-[168px]",
+              "relative shrink-0 self-start overflow-hidden rounded-lg border border-border bg-muted/30",
+              "size-[120px] sm:size-[132px]",
             )}
           >
             {showImage ? (
@@ -248,18 +248,18 @@ export function ProfileSetupPhotoField({
                 onError={() => setImageLoadFailed(true)}
               />
             ) : (
-              <div className="flex h-full w-full flex-col items-center justify-center gap-2 px-3 text-center">
+              <div className="flex h-full w-full flex-col items-center justify-center gap-1.5 px-2 text-center">
                 {previewUrl && imageLoadFailed ? (
                   <>
-                    <ImageOff className="h-8 w-8 text-muted-foreground/70" aria-hidden />
-                    <span className="text-[11px] leading-snug text-muted-foreground">
+                    <ImageOff className="size-6 text-muted-foreground/70" aria-hidden />
+                    <span className="text-[10px] leading-snug text-muted-foreground sm:text-[11px]">
                       Couldn’t load this image. Upload or generate a new one.
                     </span>
                   </>
                 ) : (
                   <>
-                    <UserRound className="h-9 w-9 text-muted-foreground/60" aria-hidden />
-                    <span className="text-[11px] leading-snug text-muted-foreground">
+                    <UserRound className="size-7 text-muted-foreground/60" aria-hidden />
+                    <span className="text-[10px] leading-snug text-muted-foreground sm:text-[11px]">
                       Your profile photo
                     </span>
                   </>
@@ -268,8 +268,8 @@ export function ProfileSetupPhotoField({
             )}
           </div>
 
-          <div className="flex min-w-0 flex-1 flex-col justify-center gap-3">
-            <p className="text-xs text-muted-foreground leading-relaxed sm:pt-0.5">
+          <div className="flex min-w-0 flex-1 flex-col justify-center gap-2">
+            <p className="text-[11px] text-muted-foreground leading-snug sm:text-xs sm:leading-relaxed">
               JPEG, PNG, or WebP · up to 5&nbsp;MB. Or create a character avatar — same as a real upload.
             </p>
 
@@ -282,34 +282,46 @@ export function ProfileSetupPhotoField({
               onChange={(e) => void onFileChange(e)}
             />
 
-            <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2 sm:gap-3">
+            <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
               <Button
                 type="button"
                 variant="outline"
-                className="h-11 w-full rounded-xl gap-2 border-input bg-background font-medium shadow-none hover:bg-muted/60"
+                size="sm"
+                className="h-9 w-full gap-1.5 border-input bg-background text-xs font-medium shadow-none hover:bg-muted/60"
                 disabled={disabled || busy}
                 onClick={() => fileRef.current?.click()}
               >
                 {pending === "upload" ? (
-                  <Loader2 className="h-4 w-4 shrink-0 animate-spin" aria-hidden />
+                  <span className="inline-flex items-center gap-1.5">
+                    <Loader2 className="size-3.5 shrink-0 animate-spin" aria-hidden />
+                    Uploading…
+                  </span>
                 ) : (
-                  <Camera className="h-4 w-4 shrink-0" aria-hidden />
+                  <>
+                    <Camera className="size-3.5 shrink-0" aria-hidden />
+                    Upload a photo
+                  </>
                 )}
-                {pending === "upload" ? "Uploading…" : "Upload a photo"}
               </Button>
               <Button
                 type="button"
                 variant="default"
-                className="h-11 w-full rounded-xl gap-2 font-medium shadow-sm hover:opacity-95"
+                size="sm"
+                className="h-9 w-full gap-1.5 text-xs font-medium shadow-sm hover:opacity-95"
                 disabled={disabled || busy}
                 onClick={() => void onGenerateAvatar()}
               >
                 {pending === "generate" ? (
-                  <Loader2 className="h-4 w-4 shrink-0 animate-spin" aria-hidden />
+                  <span className="inline-flex items-center gap-1.5">
+                    <Loader2 className="size-3.5 shrink-0 animate-spin" aria-hidden />
+                    Generating…
+                  </span>
                 ) : (
-                  <Wand2 className="h-4 w-4 shrink-0 opacity-95" aria-hidden />
+                  <>
+                    <Wand2 className="size-3.5 shrink-0 opacity-95" aria-hidden />
+                    Generate avatar
+                  </>
                 )}
-                {pending === "generate" ? "Generating…" : "Generate avatar"}
               </Button>
             </div>
           </div>
@@ -317,7 +329,7 @@ export function ProfileSetupPhotoField({
       </div>
 
       {value.length > 1 ? (
-        <p className="text-xs text-muted-foreground">
+        <p className="text-[11px] text-muted-foreground sm:text-xs">
           {value.length} photos — we’ll use the first as your main picture.
         </p>
       ) : null}

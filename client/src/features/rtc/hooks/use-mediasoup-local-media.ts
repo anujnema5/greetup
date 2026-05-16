@@ -14,6 +14,7 @@
 
 import { useCallback } from "react";
 import type { Producer, Transport } from "mediasoup-client/types";
+import type { Socket } from "socket.io-client";
 import { formatGetUserMediaError } from "@/features/rtc/lib/get-user-media-errors";
 import {
   getCameraCaptureConstraints,
@@ -40,6 +41,30 @@ import type {
   MediasoupLocalMediaSetters,
 } from "@/features/rtc/types/mediasoup-hooks.types";
 
+function setTracksEnabled(tracks: MediaStreamTrack[], enabled: boolean): void {
+  tracks.forEach((track) => {
+    track.enabled = enabled;
+  });
+}
+
+function signalProducer(
+  socket: Socket | null,
+  event: "pauseProducer" | "resumeProducer" | "closeProducer",
+  producerId: string,
+  context: string,
+): void {
+  if (!socket || !producerId) return;
+  void emitRtcAck<SimpleAck>(socket, event, { producerId })
+    .then((ack) => {
+      if (!isAckOk(ack)) {
+        console.warn(`[RTC] ${context} ack`, isAckErr(ack) ? ack.error?.code : "nack");
+      }
+    })
+    .catch((err) => {
+      console.warn(`[RTC] ${context}`, err);
+    });
+}
+
 export function useMediasoupLocalMedia(
   refs: MediasoupLocalMediaRefs,
   setters: MediasoupLocalMediaSetters,
@@ -55,8 +80,10 @@ export function useMediasoupLocalMedia(
     deviceRef,
     localStreamRef,
     videoProducerRef,
-    screenProducerRef,
-    screenShareProducerIdRef,
+    screenVideoProducerRef,
+    screenVideoProducerIdRef,
+    screenAudioProducerRef,
+    screenAudioProducerIdRef,
     localScreenTrackRef,
     audioProducerRef,
     socketRef,
@@ -81,14 +108,23 @@ export function useMediasoupLocalMedia(
 
   const cleanupLocalScreenShare = useCallback(() => {
     setLocalMediaDeviceError(null);
-    const screenPid = screenShareProducerIdRef.current;
+    const screenPid = screenVideoProducerIdRef.current;
+    const screenAudioPid = screenAudioProducerIdRef.current;
     try {
-      screenProducerRef.current?.close();
+      screenVideoProducerRef.current?.close();
     } catch {
       /* ignore */
     }
-    screenProducerRef.current = null;
-    screenShareProducerIdRef.current = null;
+    try {
+      screenAudioProducerRef.current?.track?.stop();
+      screenAudioProducerRef.current?.close();
+    } catch {
+      /* ignore */
+    }
+    screenVideoProducerRef.current = null;
+    screenVideoProducerIdRef.current = null;
+    screenAudioProducerRef.current = null;
+    screenAudioProducerIdRef.current = null;
     const screenTrack = localScreenTrackRef.current;
     localScreenTrackRef.current = null;
     setLocalScreenTrackId(null);
@@ -105,22 +141,17 @@ export function useMediasoupLocalMedia(
       setLocalStream(next);
     }
     const sock = socketRef.current;
-    if (screenPid && sock) {
-      void emitRtcAck<SimpleAck>(sock, "closeProducer", { producerId: screenPid })
-        .then((r) => {
-          if (!isAckOk(r)) {
-            console.warn("[RTC] closeProducer ack", isAckErr(r) ? r.error?.code : "nack");
-          }
-        })
-        .catch((e) => {
-          console.warn("[RTC] closeProducer", e);
-        });
+    signalProducer(sock, "closeProducer", screenPid ?? "", "closeProducer");
+    if (screenAudioPid) {
+      signalProducer(sock, "closeProducer", screenAudioPid, "closeProducer screenAudio");
     }
   }, [
     localScreenTrackRef,
     localStreamRef,
-    screenProducerRef,
-    screenShareProducerIdRef,
+    screenVideoProducerRef,
+    screenVideoProducerIdRef,
+    screenAudioProducerRef,
+    screenAudioProducerIdRef,
     setLocalMediaDeviceError,
     setLocalScreenTrackId,
     setLocalStream,
@@ -146,15 +177,10 @@ export function useMediasoupLocalMedia(
         } catch {
           /* ignore */
         }
-        localStreamRef.current?.getAudioTracks().forEach((t) => {
-          t.enabled = false;
-        });
+        setTracksEnabled(localStreamRef.current?.getAudioTracks() ?? [], false);
         setMicEnabled(false);
         micEnabledRef.current = false;
-        const sock = socketRef.current;
-        if (producerId && sock) {
-          void emitRtcAck<SimpleAck>(sock, "pauseProducer", { producerId }).catch(() => {});
-        }
+        signalProducer(socketRef.current, "pauseProducer", producerId ?? "", "pauseProducer");
         return;
       }
 
@@ -170,15 +196,10 @@ export function useMediasoupLocalMedia(
           } catch {
             /* ignore */
           }
-          localStreamRef.current?.getAudioTracks().forEach((t) => {
-            t.enabled = true;
-          });
+          setTracksEnabled(localStreamRef.current?.getAudioTracks() ?? [], true);
           setMicEnabled(true);
           micEnabledRef.current = true;
-          const sock = socketRef.current;
-          if (sock) {
-            void emitRtcAck<SimpleAck>(sock, "resumeProducer", { producerId }).catch(() => {});
-          }
+          signalProducer(socketRef.current, "resumeProducer", producerId, "resumeProducer");
           return;
         }
         try {
@@ -265,7 +286,7 @@ export function useMediasoupLocalMedia(
         cameraEnabledRef.current = false;
         const sock = socketRef.current;
         if (producerId && sock) {
-          void emitRtcAck<SimpleAck>(sock, "pauseProducer", { producerId }).catch(() => {});
+          signalProducer(sock, "pauseProducer", producerId, "pauseProducer");
         }
         return;
       }
@@ -284,10 +305,7 @@ export function useMediasoupLocalMedia(
           tr.enabled = true;
           setCameraEnabled(true);
           cameraEnabledRef.current = true;
-          const sock = socketRef.current;
-          if (sock) {
-            void emitRtcAck<SimpleAck>(sock, "resumeProducer", { producerId }).catch(() => {});
-          }
+          signalProducer(socketRef.current, "resumeProducer", producerId, "resumeProducer");
           return;
         }
         try {
@@ -371,7 +389,7 @@ export function useMediasoupLocalMedia(
       const device = deviceRef.current;
       if (!send || !device) return;
 
-      if (screenProducerRef.current || localScreenTrackRef.current) {
+      if (screenVideoProducerRef.current || localScreenTrackRef.current) {
         cleanupLocalScreenShare();
         return;
       }
@@ -381,7 +399,7 @@ export function useMediasoupLocalMedia(
       try {
         const stream = await navigator.mediaDevices.getDisplayMedia({
           video: getScreenCaptureConstraints(),
-          audio: false,
+          audio: true,
         });
         if (statusRef.current !== "ready") {
           stream.getTracks().forEach((t) => t.stop());
@@ -401,8 +419,8 @@ export function useMediasoupLocalMedia(
           { mediaSource: "screen" },
           screenVideoEncodingsForDevice(),
         );
-        screenProducerRef.current = producer;
-        screenShareProducerIdRef.current = producer.id;
+        screenVideoProducerRef.current = producer;
+        screenVideoProducerIdRef.current = producer.id;
         localScreenTrackRef.current = track;
         setLocalScreenTrackId(track.id);
         setScreenSharing(true);
@@ -410,6 +428,22 @@ export function useMediasoupLocalMedia(
         localStreamRef.current = merged;
         setLocalStream(merged);
         setLocalMediaDeviceError(null);
+
+        // Produce system audio if the browser captured it (optional — user may decline).
+        const audioTrack = stream.getAudioTracks()[0];
+        if (audioTrack && device.canProduce("audio")) {
+          try {
+            const audioProducer = await send.produce({
+              track: audioTrack,
+              codecOptions: { opusStereo: true, opusDtx: true, opusFec: true },
+              appData: { mediaSource: "screen" },
+            });
+            screenAudioProducerRef.current = audioProducer;
+            screenAudioProducerIdRef.current = audioProducer.id;
+          } catch {
+            audioTrack.stop();
+          }
+        }
 
         track.addEventListener("ended", () => {
           if (localScreenTrackRef.current !== track) return;
@@ -428,8 +462,10 @@ export function useMediasoupLocalMedia(
     localScreenTrackRef,
     localStreamRef,
     rtcRoomTypeRef,
-    screenProducerRef,
-    screenShareProducerIdRef,
+    screenVideoProducerRef,
+    screenVideoProducerIdRef,
+    screenAudioProducerRef,
+    screenAudioProducerIdRef,
     sendTransportRef,
     setLocalMediaDeviceError,
     setLocalScreenTrackId,

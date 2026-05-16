@@ -28,6 +28,12 @@ export type RoomData =
       /** API may send other strings; callers treat unknown values defensively. */
       roomType: RoomSessionType | string;
       title: string;
+      /** Postgres `rooms.status` for circle lifecycle (`scheduled`, `live`, …). */
+      status?: string;
+      /** Redis lobby gate: `"1"` until the host opens the circle for non-host RTC. */
+      lobbyGateActive?: "0" | "1";
+      /** Scheduled start (ISO), when the circle has a start time — used in pre-start lobby. */
+      scheduledStartAt?: string;
     };
 
 /** Parses API `data` envelope — used by RTK Query `transformResponse`. */
@@ -40,12 +46,24 @@ export function parseRoomData(data: unknown): RoomData {
     const rtRaw = d.roomType;
     const roomType: RoomSessionType | string =
       rtRaw === "circle" || rtRaw === "direct" ? rtRaw : String(rtRaw);
+    const lobbyRaw = d.lobbyGateActive;
+    const lobbyGateActive: "0" | "1" | undefined =
+      lobbyRaw === "0" || lobbyRaw === "1" ? lobbyRaw : undefined;
+    const schedRaw = d.scheduledStartAt;
+    const scheduledStartAt =
+      typeof schedRaw === "string" && schedRaw.length > 0 ? schedRaw : undefined;
+    const statusRaw = d.status;
+    const status =
+      typeof statusRaw === "string" && statusRaw.length > 0 ? statusRaw : undefined;
     return {
       sessionKind: "db_room",
       roomId: String(d.roomId),
       hostUserId: String(d.hostUserId),
       roomType,
       title: String(d.title),
+      ...(status ? { status } : {}),
+      ...(lobbyGateActive ? { lobbyGateActive } : {}),
+      ...(scheduledStartAt ? { scheduledStartAt } : {}),
     };
   }
   if ("userA" in d && "userB" in d && "roomId" in d) {

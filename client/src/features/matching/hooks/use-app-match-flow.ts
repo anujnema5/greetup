@@ -3,17 +3,9 @@
 import { useEffect, useCallback, useRef, useTransition } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { setRoomReturnPath } from "@/features/room";
+import { stashCircleRoomBootstrap } from "@/features/matching/lib/circle-room-bootstrap";
+import { circleRoomPath } from "@/features/room/lib/navigation/circle-routes";
 import { useFindMatch } from "./useFindMatch";
-import type { MatchResult } from "./useFindMatch";
-
-/** `/circle/[roomId]` with optional peer + score query params for the video room. */
-function circleRoomUrl(roomId: string, match: Pick<MatchResult, "peerId" | "matchScore">) {
-  const params = new URLSearchParams();
-  if (match.peerId) params.set("peer", match.peerId);
-  if (match.matchScore != null) params.set("score", String(Math.round(match.matchScore)));
-  const query = params.toString();
-  return query ? `/circle/${roomId}?${query}` : `/circle/${roomId}`;
-}
 
 /**
  * Connects matchmaking state to the router: when a match completes, sends the user to the circle room
@@ -60,11 +52,21 @@ export function useAppMatchFlow() {
 
     setRoomReturnPath(pathname);
 
-    const url = circleRoomUrl(roomId, result);
-    startTransition(() => {
-      router.push(url);
+    stashCircleRoomBootstrap(roomId, {
+      peerId: result.peerId ?? null,
+      score: result.matchScore != null ? String(Math.round(result.matchScore)) : null,
     });
-  }, [status, result, router, startTransition]);
+    const target = circleRoomPath(roomId);
+    const alreadyOnCircleRoute =
+      pathname === target || pathname.startsWith("/circle/");
+    startTransition(() => {
+      if (alreadyOnCircleRoute) {
+        router.replace(target);
+      } else {
+        router.push(target);
+      }
+    });
+  }, [status, result, router, startTransition, pathname]);
 
   const handleFindMatch = useCallback(() => {
     if (status === "idle" || status === "error") findAMatch();

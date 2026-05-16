@@ -1,6 +1,14 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import {
+  createContext,
+  useContext,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
@@ -9,6 +17,7 @@ import {
   useTransform,
   useInView,
   AnimatePresence,
+  useReducedMotion,
   type Variants,
 } from "framer-motion";
 import { Logo } from "@/components/logo";
@@ -40,6 +49,32 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useSession } from "@/lib/auth-client";
+
+/* Mobile / reduced-motion: drop scroll-linked nav, fixed blur layers, and looping animations */
+type LandingPerfValue = { isMobile: boolean; lite: boolean };
+const LandingPerfContext = createContext<LandingPerfValue>({ isMobile: false, lite: false });
+
+function useLandingPerf() {
+  return useContext(LandingPerfContext);
+}
+
+function LandingPerfProvider({ children }: { children: React.ReactNode }) {
+  const prefersReduced = useReducedMotion();
+  const [isMobile, setIsMobile] = useState(false);
+
+  useLayoutEffect(() => {
+    const mq = globalThis.matchMedia("(max-width: 767px)");
+    const apply = () => setIsMobile(mq.matches);
+    apply();
+    mq.addEventListener("change", apply);
+    return () => mq.removeEventListener("change", apply);
+  }, []);
+
+  const lite = Boolean(prefersReduced) || isMobile;
+  const value = useMemo(() => ({ isMobile, lite }), [isMobile, lite]);
+
+  return <LandingPerfContext.Provider value={value}>{children}</LandingPerfContext.Provider>;
+}
 
 /* ─── easing ────────────────────────────────────────────────────────────────── */
 const EASE: [number, number, number, number] = [0.22, 1, 0.36, 1];
@@ -193,29 +228,56 @@ const LIVE_STREAMS = [
 ];
 
 /* ─── Navbar ─────────────────────────────────────────────────────────────────── */
-function Navbar({
+function NavbarInner({
   isLoggedIn,
   firstName,
+  lite,
 }: {
   isLoggedIn: boolean;
   firstName: string;
+  lite: boolean;
 }) {
-  const { scrollY } = useScroll();
-  const bg     = useTransform(scrollY, [0, 60], ["rgba(0,0,0,0)", "rgba(18,18,20,0.88)"]);
-  const shadow = useTransform(scrollY, [0, 60], ["0 0 0 rgba(0,0,0,0)", "0 8px 32px rgba(0,0,0,0.28)"]);
+  const cta = (
+    <Button
+      size="sm"
+      className="rounded-full bg-[oklch(88%_0.11_105)] text-[oklch(15%_0.02_110)] hover:brightness-110 shadow-lg shadow-[oklch(88%_0.11_105/0.3)] font-semibold"
+      asChild
+    >
+      <Link href={isLoggedIn ? "/home" : "/register"}>
+        {isLoggedIn ? "Go to home" : "Get started"} <ChevronRight className="size-3.5" />
+      </Link>
+    </Button>
+  );
 
   return (
-    <motion.nav
-      style={{ backgroundColor: bg, boxShadow: shadow }}
-      className="fixed top-0 inset-x-0 z-50 backdrop-blur-xl border-b border-white/4"
-    >
-      <div className="mx-auto max-w-7xl px-4 sm:px-6 py-4 sm:py-5 flex items-center justify-between">
+    <div className="mx-auto max-w-7xl px-4 sm:px-6 py-4 sm:py-5 flex items-center justify-between">
+      {lite ? (
+        <div>
+          <Logo />
+        </div>
+      ) : (
         <motion.div initial={{ opacity: 0, x: -12 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.5, ease: EASE }}>
           <Logo />
         </motion.div>
+      )}
+      {lite ? (
+        <div className="flex items-center gap-2">
+          {isLoggedIn ? (
+            <span className="hidden sm:inline-flex rounded-full border border-white/15 bg-white/8 px-3 py-1 text-xs font-medium text-white/80">
+              Hi, {firstName || "there"}
+            </span>
+          ) : (
+            <Button variant="ghost" size="sm" className="hidden sm:inline-flex text-white/65 hover:text-white hover:bg-white/6 rounded-full" asChild>
+              <Link href="/login">Log in</Link>
+            </Button>
+          )}
+          {cta}
+        </div>
+      ) : (
         <motion.div
           className="flex items-center gap-2"
-          initial={{ opacity: 0, x: 12 }} animate={{ opacity: 1, x: 0 }}
+          initial={{ opacity: 0, x: 12 }}
+          animate={{ opacity: 1, x: 0 }}
           transition={{ duration: 0.5, ease: EASE, delay: 0.1 }}
         >
           {isLoggedIn ? (
@@ -228,36 +290,86 @@ function Navbar({
             </Button>
           )}
           <motion.div whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.96 }}>
-            <Button
-              size="sm"
-              className="rounded-full bg-[oklch(88%_0.11_105)] text-[oklch(15%_0.02_110)] hover:brightness-110 shadow-lg shadow-[oklch(88%_0.11_105/0.3)] font-semibold"
-              asChild
-            >
-              <Link href={isLoggedIn ? "/home" : "/register"}>
-                {isLoggedIn ? "Go to home" : "Get started"} <ChevronRight className="size-3.5" />
-              </Link>
-            </Button>
+            {cta}
           </motion.div>
         </motion.div>
-      </div>
+      )}
+    </div>
+  );
+}
+
+function NavbarScroll({
+  isLoggedIn,
+  firstName,
+}: {
+  isLoggedIn: boolean;
+  firstName: string;
+}) {
+  const { scrollY } = useScroll();
+  const bg = useTransform(scrollY, [0, 60], ["rgba(0,0,0,0)", "rgba(18,18,20,0.88)"]);
+  const shadow = useTransform(scrollY, [0, 60], ["0 0 0 rgba(0,0,0,0)", "0 8px 32px rgba(0,0,0,0.28)"]);
+
+  return (
+    <motion.nav
+      style={{ backgroundColor: bg, boxShadow: shadow }}
+      className="fixed top-0 inset-x-0 z-50 backdrop-blur-xl border-b border-white/4"
+    >
+      <NavbarInner isLoggedIn={isLoggedIn} firstName={firstName} lite={false} />
     </motion.nav>
   );
+}
+
+function Navbar({
+  isLoggedIn,
+  firstName,
+}: {
+  isLoggedIn: boolean;
+  firstName: string;
+}) {
+  const { lite } = useLandingPerf();
+
+  if (lite) {
+    return (
+      <nav className="fixed top-0 inset-x-0 z-50 border-b border-white/8 bg-[oklch(16%_0.012_110/0.94)] supports-[backdrop-filter]:bg-[oklch(16%_0.012_110/0.88)] md:supports-[backdrop-filter]:backdrop-blur-md">
+        <NavbarInner isLoggedIn={isLoggedIn} firstName={firstName} lite />
+      </nav>
+    );
+  }
+
+  return <NavbarScroll isLoggedIn={isLoggedIn} firstName={firstName} />;
 }
 
 /* ─── Hero orb components ────────────────────────────────────────────────────── */
 function FloatingChip({ name, sub, color, letter, x, y, delay }: {
   name: string; sub: string; color: string; letter: string; x: string; y: string; delay: number;
 }) {
+  const { lite } = useLandingPerf();
+  const chipClass =
+    "absolute flex items-center gap-2 max-w-[42vw] sm:max-w-none bg-[oklch(17%_0.015_110/0.92)] border border-white/10 rounded-2xl px-2.5 py-1.5 sm:px-3 sm:py-2 shadow-xl md:backdrop-blur-sm";
+  const pos = { left: x, top: y, transform: "translate(-50%, -50%)" as const };
+
+  if (lite) {
+    return (
+      <div className={chipClass} style={pos}>
+      <div className={`size-6 sm:size-7 rounded-full bg-linear-to-br ${color} flex items-center justify-center text-[10px] sm:text-xs font-bold text-white shrink-0`}>{letter}</div>
+      <div className="min-w-0">
+        <p className="text-[11px] sm:text-xs font-semibold text-white leading-none truncate">{name}</p>
+        <p className="text-[9px] sm:text-[10px] text-white/50 mt-0.5 leading-none truncate">{sub}</p>
+      </div>
+      </div>
+    );
+  }
+
   return (
     <motion.div
-      className="absolute flex items-center gap-2 max-w-[42vw] sm:max-w-none bg-[oklch(17%_0.015_110/0.92)] backdrop-blur-sm border border-white/10 rounded-2xl px-2.5 py-1.5 sm:px-3 sm:py-2 shadow-xl"
+      className={chipClass}
       style={{ left: x, top: y, translateX: "-50%", translateY: "-50%" }}
       initial={{ opacity: 0, scale: 0.7 }}
       animate={{ opacity: 1, scale: 1, y: [0, -8, 0] }}
       transition={{
         opacity: { delay, duration: 0.5 },
-        scale:   { delay, duration: 0.5, ease: EASE },
-        y:       { delay: delay + 0.5, duration: 3.5, repeat: Infinity, ease: "easeInOut" },
+        scale: { delay, duration: 0.5, ease: EASE },
+        y: { delay: delay + 0.5, duration: 3.5, repeat: Infinity, ease: "easeInOut" },
       }}
     >
       <div className={`size-6 sm:size-7 rounded-full bg-linear-to-br ${color} flex items-center justify-center text-[10px] sm:text-xs font-bold text-white shrink-0`}>{letter}</div>
@@ -270,6 +382,33 @@ function FloatingChip({ name, sub, color, letter, x, y, delay }: {
 }
 
 function HeroOrb() {
+  const { lite } = useLandingPerf();
+
+  if (lite) {
+    return (
+      <div className="relative w-full max-w-[280px] sm:max-w-sm mx-auto aspect-square select-none pointer-events-none">
+        <div className="absolute inset-0 rounded-full border border-[oklch(88%_0.11_105/0.15)]" />
+        <div className="absolute inset-[10%] rounded-full border border-dashed border-[oklch(88%_0.11_105/0.12)]" />
+        <div className="absolute inset-[22%] rounded-full border border-[oklch(88%_0.11_105/0.18)]" />
+        <div className="absolute inset-[30%] rounded-full bg-[oklch(88%_0.11_105/0.07)] blur-xl md:blur-2xl" />
+        <div className="absolute inset-[38%] rounded-full bg-[oklch(88%_0.11_105/0.13)] blur-md md:blur-lg" />
+        <div className="absolute inset-[36%] rounded-full bg-linear-to-br from-[oklch(90%_0.13_105)] to-[oklch(75%_0.1_105)] shadow-2xl shadow-[oklch(88%_0.11_105/0.5)]" />
+        <div className="absolute inset-[38%] rounded-full flex items-center justify-center z-10">
+          <Compass className="size-5 text-[oklch(15%_0.02_110)]" />
+        </div>
+        <svg className="absolute inset-0 w-full h-full opacity-40" viewBox="0 0 100 100" preserveAspectRatio="none">
+          {[{ x1: 18, y1: 20, x2: 50, y2: 50 }, { x1: 82, y1: 78, x2: 50, y2: 50 }, { x1: 14, y1: 56, x2: 50, y2: 50 }].map((l, i) => (
+            <line key={i} x1={l.x1} y1={l.y1} x2={l.x2} y2={l.y2} stroke="oklch(88% 0.11 105)" strokeWidth="0.4" strokeDasharray="3 2" opacity={0.35} />
+          ))}
+        </svg>
+        <FloatingChip name="Aarav" sub="Software Engineer · Backend" color="from-violet-500 to-purple-600" letter="A" x="14%" y="20%" delay={0.6} />
+        <FloatingChip name="Noah" sub="Software Engineer · Frontend" color="from-indigo-500 to-blue-600" letter="N" x="82%" y="22%" delay={0.75} />
+        <FloatingChip name="Sofia" sub="Product Designer · UX" color="from-amber-500 to-yellow-600" letter="S" x="86%" y="78%" delay={0.9} />
+        <FloatingChip name="Priya" sub="Music · Indie + Jazz" color="from-emerald-500 to-green-600" letter="P" x="14%" y="60%" delay={1.05} />
+      </div>
+    );
+  }
+
   return (
     <div className="relative w-full max-w-[280px] sm:max-w-sm mx-auto aspect-square select-none pointer-events-none">
       <motion.div className="absolute inset-0 rounded-full border border-[oklch(88%_0.11_105/0.15)]" animate={{ rotate: 360 }} transition={{ duration: 20, repeat: Infinity, ease: "linear" }} />
@@ -310,12 +449,13 @@ function RevealSection({ children, className }: { children: React.ReactNode; cla
 
 /* ─── Communication tab mockups ──────────────────────────────────────────────── */
 function ChatMockup() {
+  const { lite } = useLandingPerf();
   return (
     <div className="flex flex-col gap-3 p-5">
       <motion.div
-        initial={{ opacity: 0, y: -6 }}
+        initial={lite ? { opacity: 1, y: 0 } : { opacity: 0, y: -6 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.35, ease: EASE }}
+        transition={lite ? { duration: 0 } : { duration: 0.35, ease: EASE }}
         className="self-start max-w-[90%] rounded-xl border border-[oklch(88%_0.11_105/0.25)] bg-[oklch(88%_0.11_105/0.08)] px-3 py-2"
       >
         <div className="flex items-start gap-2">
@@ -347,9 +487,11 @@ function ChatMockup() {
       </div>
       {/* typing indicator */}
       <div className="self-start flex items-center gap-1.5 bg-white/6 border border-white/8 px-3.5 py-2.5 rounded-2xl rounded-bl-sm w-fit">
-        {[0, 0.15, 0.3].map((d) => (
-          <motion.div key={d} className="size-1.5 rounded-full bg-white/50" animate={{ y: [0, -4, 0] }} transition={{ duration: 0.8, repeat: Infinity, delay: d }} />
-        ))}
+        {lite
+          ? [0, 1, 2].map((k) => <div key={k} className="size-1.5 rounded-full bg-white/50" />)
+          : [0, 0.15, 0.3].map((d) => (
+              <motion.div key={d} className="size-1.5 rounded-full bg-white/50" animate={{ y: [0, -4, 0] }} transition={{ duration: 0.8, repeat: Infinity, delay: d }} />
+            ))}
       </div>
       {/* input */}
       <div className="mt-1 flex items-center gap-2 rounded-xl bg-white/5 border border-white/8 px-3 py-2.5">
@@ -363,6 +505,7 @@ function ChatMockup() {
 }
 
 function VideoMockup() {
+  const { lite } = useLandingPerf();
   return (
     <div className="relative flex flex-col p-4 gap-3">
       {/* remote video */}
@@ -377,8 +520,12 @@ function VideoMockup() {
           <div className="size-8 rounded-full bg-linear-to-br from-amber-500 to-yellow-600 flex items-center justify-center text-xs font-bold text-white">Y</div>
         </div>
         {/* live badge */}
-        <div className="absolute top-2 left-2 flex items-center gap-1.5 bg-black/50 backdrop-blur-sm rounded-full px-2 py-0.5">
-          <motion.div className="size-1.5 rounded-full bg-red-500" animate={{ opacity: [1, 0.3, 1] }} transition={{ duration: 1.5, repeat: Infinity }} />
+        <div className="absolute top-2 left-2 flex items-center gap-1.5 bg-black/50 md:backdrop-blur-sm rounded-full px-2 py-0.5">
+          {lite ? (
+            <div className="size-1.5 rounded-full bg-red-500" />
+          ) : (
+            <motion.div className="size-1.5 rounded-full bg-red-500" animate={{ opacity: [1, 0.3, 1] }} transition={{ duration: 1.5, repeat: Infinity }} />
+          )}
           <span className="text-[10px] text-white/80 font-medium">LIVE</span>
         </div>
       </div>
@@ -388,24 +535,33 @@ function VideoMockup() {
           { icon: MicOff,  bg: "bg-white/8 border border-white/10",                         color: "text-white/70" },
           { icon: Video,   bg: "bg-white/8 border border-white/10",                         color: "text-white/70" },
           { icon: PhoneOff,bg: "bg-red-500/90",                                              color: "text-white"    },
-        ].map(({ icon: Icon, bg, color }, i) => (
-          <motion.div key={i} whileHover={{ scale: 1.08 }} whileTap={{ scale: 0.94 }} className={cn("size-10 rounded-full flex items-center justify-center cursor-default", bg)}>
-            <Icon className={cn("size-4", color)} />
-          </motion.div>
-        ))}
+        ].map(({ icon: Icon, bg, color }, i) =>
+          lite ? (
+            <div key={i} className={cn("size-10 rounded-full flex items-center justify-center cursor-default", bg)}>
+              <Icon className={cn("size-4", color)} />
+            </div>
+          ) : (
+            <motion.div key={i} whileHover={{ scale: 1.08 }} whileTap={{ scale: 0.94 }} className={cn("size-10 rounded-full flex items-center justify-center cursor-default", bg)}>
+              <Icon className={cn("size-4", color)} />
+            </motion.div>
+          ),
+        )}
       </div>
     </div>
   );
 }
 
 function VoiceMockup() {
+  const { lite } = useLandingPerf();
   return (
     <div className="flex flex-col items-center gap-5 p-6 py-8">
       {/* avatar with pulse */}
       <div className="relative">
-        {[0, 0.4, 0.8].map((d, i) => (
-          <motion.div key={i} className="absolute inset-0 rounded-full border border-[oklch(88%_0.11_105/0.3)]" animate={{ scale: [1, 1.6 + i * 0.2], opacity: [0.5, 0] }} transition={{ duration: 2, repeat: Infinity, ease: "easeOut", delay: d }} />
-        ))}
+        {lite
+          ? null
+          : [0, 0.4, 0.8].map((d, i) => (
+              <motion.div key={i} className="absolute inset-0 rounded-full border border-[oklch(88%_0.11_105/0.3)]" animate={{ scale: [1, 1.6 + i * 0.2], opacity: [0.5, 0] }} transition={{ duration: 2, repeat: Infinity, ease: "easeOut", delay: d }} />
+            ))}
         <div className="relative size-20 rounded-full bg-linear-to-br from-amber-500 to-yellow-600 flex items-center justify-center text-2xl font-bold text-white shadow-xl shadow-amber-500/20">
           N
         </div>
@@ -413,15 +569,23 @@ function VoiceMockup() {
       <div className="text-center">
         <p className="text-sm font-semibold text-white">Noah K.</p>
         <div className="flex items-center gap-1.5 justify-center mt-1">
-          <motion.div className="size-1.5 rounded-full bg-emerald-400" animate={{ opacity: [1, 0.4, 1] }} transition={{ duration: 1.2, repeat: Infinity }} />
+          {lite ? (
+            <div className="size-1.5 rounded-full bg-emerald-400" />
+          ) : (
+            <motion.div className="size-1.5 rounded-full bg-emerald-400" animate={{ opacity: [1, 0.4, 1] }} transition={{ duration: 1.2, repeat: Infinity }} />
+          )}
           <p className="text-[11px] text-emerald-400">Voice call · 2:34</p>
         </div>
       </div>
       {/* voice wave */}
       <div className="flex items-center gap-1">
-        {WAVE_BARS.map((bar, i) => (
-          <motion.div key={i} className="w-1 rounded-full bg-[oklch(88%_0.11_105/0.6)]" animate={{ height: [4, bar.height, 4] }} transition={{ duration: bar.duration, repeat: Infinity, ease: "easeInOut", delay: i * 0.06 }} />
-        ))}
+        {WAVE_BARS.map((bar, i) =>
+          lite ? (
+            <div key={i} className="w-1 rounded-full bg-[oklch(88%_0.11_105/0.6)]" style={{ height: bar.height }} />
+          ) : (
+            <motion.div key={i} className="w-1 rounded-full bg-[oklch(88%_0.11_105/0.6)]" animate={{ height: [4, bar.height, 4] }} transition={{ duration: bar.duration, repeat: Infinity, ease: "easeInOut", delay: i * 0.06 }} />
+          ),
+        )}
       </div>
       {/* controls */}
       <div className="flex justify-center gap-3 mt-1">
@@ -429,18 +593,50 @@ function VoiceMockup() {
           { icon: MicOff,   bg: "bg-white/8 border border-white/10", color: "text-white/60" },
           { icon: PhoneOff, bg: "bg-red-500/90",                     color: "text-white"    },
           { icon: Volume2,  bg: "bg-white/8 border border-white/10", color: "text-white/60" },
-        ].map(({ icon: Icon, bg, color }, i) => (
-          <motion.div key={i} whileHover={{ scale: 1.08 }} whileTap={{ scale: 0.94 }} className={cn("size-10 rounded-full flex items-center justify-center cursor-default", bg)}>
-            <Icon className={cn("size-4", color)} />
-          </motion.div>
-        ))}
+        ].map(({ icon: Icon, bg, color }, i) =>
+          lite ? (
+            <div key={i} className={cn("size-10 rounded-full flex items-center justify-center cursor-default", bg)}>
+              <Icon className={cn("size-4", color)} />
+            </div>
+          ) : (
+            <motion.div key={i} whileHover={{ scale: 1.08 }} whileTap={{ scale: 0.94 }} className={cn("size-10 rounded-full flex items-center justify-center cursor-default", bg)}>
+              <Icon className={cn("size-4", color)} />
+            </motion.div>
+          ),
+        )}
       </div>
     </div>
   );
 }
 
+/* ─── Ambient (skip on narrow screens — largest scroll/composite win on phones) ─ */
+function AmbientBackdrop() {
+  const { isMobile, lite } = useLandingPerf();
+
+  if (isMobile) return null;
+
+  if (lite) {
+    return (
+      <div className="pointer-events-none fixed inset-0 overflow-hidden" aria-hidden>
+        <div className="absolute -top-40 -left-40 w-[600px] h-[600px] rounded-full bg-[oklch(88%_0.11_105/0.06)] blur-[72px]" />
+        <div className="absolute top-1/2 -right-60 w-[500px] h-[500px] rounded-full bg-[oklch(65%_0.15_280/0.07)] blur-[64px]" />
+        <div className="absolute -bottom-40 left-1/3 w-[400px] h-[400px] rounded-full bg-[oklch(88%_0.11_105/0.05)] blur-[64px]" />
+      </div>
+    );
+  }
+
+  return (
+    <div className="pointer-events-none fixed inset-0 overflow-hidden" aria-hidden>
+      <motion.div className="absolute -top-40 -left-40 w-[600px] h-[600px] rounded-full bg-[oklch(88%_0.11_105/0.05)] blur-[120px]" animate={{ scale: [1, 1.1, 1], opacity: [0.5, 0.8, 0.5] }} transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }} />
+      <motion.div className="absolute top-1/2 -right-60 w-[500px] h-[500px] rounded-full bg-[oklch(65%_0.15_280/0.06)] blur-[100px]" animate={{ scale: [1, 1.15, 1], opacity: [0.4, 0.7, 0.4] }} transition={{ duration: 10, repeat: Infinity, ease: "easeInOut", delay: 2 }} />
+      <motion.div className="absolute -bottom-40 left-1/3 w-[400px] h-[400px] rounded-full bg-[oklch(88%_0.11_105/0.04)] blur-[100px]" animate={{ scale: [1, 1.2, 1] }} transition={{ duration: 12, repeat: Infinity, ease: "easeInOut", delay: 4 }} />
+    </div>
+  );
+}
+
 /* ─── Page ───────────────────────────────────────────────────────────────────── */
-export function LandingPageView() {
+function LandingPageInner() {
+  const { lite } = useLandingPerf();
   const [activeTab, setActiveTab] = useState<CommTab>("chat");
   const { data: session } = useSession();
 
@@ -459,12 +655,7 @@ export function LandingPageView() {
   return (
     <div className="relative min-h-screen bg-[oklch(12%_0.012_110)] text-white overflow-x-hidden">
 
-      {/* ambient blobs */}
-      <div className="pointer-events-none fixed inset-0 overflow-hidden">
-        <motion.div className="absolute -top-40 -left-40 w-[600px] h-[600px] rounded-full bg-[oklch(88%_0.11_105/0.05)] blur-[120px]" animate={{ scale: [1, 1.1, 1], opacity: [0.5, 0.8, 0.5] }} transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }} />
-        <motion.div className="absolute top-1/2 -right-60 w-[500px] h-[500px] rounded-full bg-[oklch(65%_0.15_280/0.06)] blur-[100px]" animate={{ scale: [1, 1.15, 1], opacity: [0.4, 0.7, 0.4] }} transition={{ duration: 10, repeat: Infinity, ease: "easeInOut", delay: 2 }} />
-        <motion.div className="absolute -bottom-40 left-1/3 w-[400px] h-[400px] rounded-full bg-[oklch(88%_0.11_105/0.04)] blur-[100px]" animate={{ scale: [1, 1.2, 1] }} transition={{ duration: 12, repeat: Infinity, ease: "easeInOut", delay: 4 }} />
-      </div>
+      <AmbientBackdrop />
 
       <Navbar isLoggedIn={isLoggedIn} firstName={firstName} />
 
@@ -477,11 +668,17 @@ export function LandingPageView() {
             <motion.div variants={fadeUp} className="mb-8">
               <Badge
                 variant="outline"
-                className="border-white/12 bg-white/5 text-white/75 backdrop-blur-sm rounded-full px-4 py-1.5 text-xs gap-2"
+                className="border-white/12 bg-white/5 text-white/75 md:backdrop-blur-sm rounded-full px-4 py-1.5 text-xs gap-2"
               >
                 <span className="relative flex h-2 w-2 shrink-0">
-                  <motion.span className="absolute inline-flex h-full w-full rounded-full bg-[oklch(88%_0.11_105)]" animate={{ scale: [1, 2.2, 1], opacity: [0.7, 0, 0.7] }} transition={{ duration: 2, repeat: Infinity }} />
-                  <span className="relative inline-flex rounded-full h-2 w-2 bg-[oklch(88%_0.11_105)]" />
+                  {lite ? (
+                    <span className="relative inline-flex rounded-full h-2 w-2 bg-[oklch(88%_0.11_105)]" />
+                  ) : (
+                    <>
+                      <motion.span className="absolute inline-flex h-full w-full rounded-full bg-[oklch(88%_0.11_105)]" animate={{ scale: [1, 2.2, 1], opacity: [0.7, 0, 0.7] }} transition={{ duration: 2, repeat: Infinity }} />
+                      <span className="relative inline-flex rounded-full h-2 w-2 bg-[oklch(88%_0.11_105)]" />
+                    </>
+                  )}
                 </span>
                 Now in Beta · Free to join
               </Badge>
@@ -517,7 +714,7 @@ export function LandingPageView() {
                 <Button
                   size="lg"
                   variant="outline"
-                  className="rounded-full border-white/12 bg-white/6 text-white/80 hover:bg-white/10 hover:text-white backdrop-blur-sm px-7"
+                  className="rounded-full border-white/12 bg-white/6 text-white/80 hover:bg-white/10 hover:text-white md:backdrop-blur-sm px-7"
                   asChild
                 >
                   <Link href="#how-it-works">See how it works</Link>
@@ -571,7 +768,7 @@ export function LandingPageView() {
 
           <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-5">
             {FEATURES.map(({ icon: Icon, label, desc, tint, iconClass }) => (
-              <motion.div key={label} variants={cardIn} whileHover={{ y: -6, transition: { duration: 0.25 } }}>
+              <motion.div key={label} variants={cardIn} whileHover={lite ? undefined : { y: -6, transition: { duration: 0.25 } }}>
                 <Card className="relative overflow-hidden border-white/8 bg-[oklch(16%_0.013_110)] h-full shadow-xl p-0 gap-0">
                   <div className={`absolute inset-0 bg-linear-to-br ${tint} opacity-60 pointer-events-none`} />
                   <CardContent className="relative p-6 flex flex-col gap-4">
@@ -659,7 +856,7 @@ export function LandingPageView() {
       {/* ══════════════════ CONNECT INSTANTLY (Chat / Video / Voice) ══════════════════ */}
       <section className="relative py-20 sm:py-28 px-4 sm:px-6 bg-[oklch(13%_0.013_110)] overflow-hidden">
         <div className="pointer-events-none absolute inset-0 flex items-center justify-end pr-0">
-          <div className="w-[400px] h-[400px] rounded-full bg-[oklch(88%_0.11_105/0.05)] blur-[100px]" />
+          <div className="w-[400px] h-[400px] rounded-full bg-[oklch(88%_0.11_105/0.05)] blur-[48px] md:blur-[100px]" />
         </div>
 
         <div className="mx-auto max-w-7xl grid lg:grid-cols-2 gap-16 items-center">
@@ -748,7 +945,7 @@ export function LandingPageView() {
                 </AnimatePresence>
               </Card>
 
-              <div className="absolute -bottom-6 left-1/2 -translate-x-1/2 w-3/4 h-10 bg-[oklch(88%_0.11_105/0.1)] blur-2xl rounded-full" />
+              <div className="absolute -bottom-6 left-1/2 -translate-x-1/2 w-3/4 h-10 bg-[oklch(88%_0.11_105/0.1)] blur-lg md:blur-2xl rounded-full" />
             </motion.div>
           </RevealSection>
         </div>
@@ -757,7 +954,7 @@ export function LandingPageView() {
       {/* ══════════════════ CIRCLES IN ACTION ══════════════════ */}
       <section className="relative py-20 sm:py-28 px-4 sm:px-6 overflow-hidden">
         <div className="pointer-events-none absolute inset-0 flex items-center justify-start pl-0">
-          <div className="w-[400px] h-[400px] rounded-full bg-[oklch(65%_0.15_280/0.05)] blur-[100px]" />
+          <div className="w-[400px] h-[400px] rounded-full bg-[oklch(65%_0.15_280/0.05)] blur-[48px] md:blur-[100px]" />
         </div>
 
         <div className="mx-auto max-w-7xl grid lg:grid-cols-2 gap-16 items-center">
@@ -798,13 +995,27 @@ export function LandingPageView() {
                       "Truth or Dare",
                       "Music Room",
                       "Live Polls",
-                    ].map((chip, i) => (
-                      <motion.button key={chip} initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.5 + i * 0.12, duration: 0.35, ease: EASE }}
-                        className="text-[10px] font-medium px-2.5 py-1 rounded-full border border-[oklch(88%_0.11_105/0.25)] bg-[oklch(88%_0.11_105/0.07)] text-white/70 hover:border-[oklch(88%_0.11_105/0.5)] hover:text-white transition-all cursor-default"
-                      >
-                        {chip}
-                      </motion.button>
-                    ))}
+                    ].map((chip, i) =>
+                      lite ? (
+                        <button
+                          key={chip}
+                          type="button"
+                          className="text-[10px] font-medium px-2.5 py-1 rounded-full border border-[oklch(88%_0.11_105/0.25)] bg-[oklch(88%_0.11_105/0.07)] text-white/70 hover:border-[oklch(88%_0.11_105/0.5)] hover:text-white transition-all cursor-default"
+                        >
+                          {chip}
+                        </button>
+                      ) : (
+                        <motion.button
+                          key={chip}
+                          initial={{ opacity: 0, y: 6 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ delay: 0.5 + i * 0.12, duration: 0.35, ease: EASE }}
+                          className="text-[10px] font-medium px-2.5 py-1 rounded-full border border-[oklch(88%_0.11_105/0.25)] bg-[oklch(88%_0.11_105/0.07)] text-white/70 hover:border-[oklch(88%_0.11_105/0.5)] hover:text-white transition-all cursor-default"
+                        >
+                          {chip}
+                        </motion.button>
+                      ),
+                    )}
                   </div>
                 </div>
                 <div className="mx-4 mb-4 flex items-center gap-2 rounded-xl bg-white/5 border border-white/8 px-3 py-2.5">
@@ -812,7 +1023,7 @@ export function LandingPageView() {
                   <div className="size-6 rounded-lg bg-[oklch(88%_0.11_105/0.15)] flex items-center justify-center"><Send className="size-3 text-[oklch(88%_0.11_105/0.6)]" /></div>
                 </div>
               </Card>
-              <div className="absolute -bottom-6 left-1/2 -translate-x-1/2 w-3/4 h-10 bg-[oklch(88%_0.11_105/0.1)] blur-2xl rounded-full" />
+              <div className="absolute -bottom-6 left-1/2 -translate-x-1/2 w-3/4 h-10 bg-[oklch(88%_0.11_105/0.1)] blur-lg md:blur-2xl rounded-full" />
             </motion.div>
           </RevealSection>
 
@@ -898,11 +1109,15 @@ export function LandingPageView() {
                         <p className="text-xs text-white/55 mt-1">{stream.topic}</p>
                       </div>
                       <div className="inline-flex items-center gap-1 rounded-full border border-red-500/25 bg-red-500/12 px-2 py-1 text-[10px] font-semibold text-red-300">
-                        <motion.span
-                          className="size-1.5 rounded-full bg-red-400"
-                          animate={{ opacity: [1, 0.35, 1] }}
-                          transition={{ duration: 1.3, repeat: Infinity }}
-                        />
+                        {lite ? (
+                          <span className="size-1.5 rounded-full bg-red-400" />
+                        ) : (
+                          <motion.span
+                            className="size-1.5 rounded-full bg-red-400"
+                            animate={{ opacity: [1, 0.35, 1] }}
+                            transition={{ duration: 1.3, repeat: Infinity }}
+                          />
+                        )}
                         LIVE
                       </div>
                     </div>
@@ -958,9 +1173,10 @@ export function LandingPageView() {
                   <div className="size-20 rounded-full border border-[oklch(88%_0.11_105/0.2)] bg-[oklch(17%_0.015_110)] flex items-center justify-center">
                     <span className="text-2xl font-black text-[oklch(88%_0.11_105)]">{step.n}</span>
                   </div>
-                  {[0, 0.7, 1.4].map((d, ri) => (
-                    <motion.div key={ri} className="absolute inset-0 rounded-full border border-[oklch(88%_0.11_105/0.3)]" animate={{ scale: [1, 1.8], opacity: [0.4, 0] }} transition={{ duration: 2.2, repeat: Infinity, ease: "easeOut", delay: i * 0.4 + d }} />
-                  ))}
+                  {!lite &&
+                    [0, 0.7, 1.4].map((d, ri) => (
+                      <motion.div key={ri} className="absolute inset-0 rounded-full border border-[oklch(88%_0.11_105/0.3)]" animate={{ scale: [1, 1.8], opacity: [0.4, 0] }} transition={{ duration: 2.2, repeat: Infinity, ease: "easeOut", delay: i * 0.4 + d }} />
+                    ))}
                 </div>
                 <div>
                   <h3 className="text-lg font-bold text-white mb-2">{step.title}</h3>
@@ -984,7 +1200,7 @@ export function LandingPageView() {
 
           <div className="grid md:grid-cols-3 gap-6">
             {TESTIMONIALS.map((t) => (
-              <motion.div key={t.name} variants={cardIn} whileHover={{ y: -5, transition: { duration: 0.22 } }}>
+              <motion.div key={t.name} variants={cardIn} whileHover={lite ? undefined : { y: -5, transition: { duration: 0.22 } }}>
                 <Card className="border-white/8 bg-[oklch(16%_0.013_110)] h-full shadow-xl p-0 gap-0">
                   <CardContent className="p-7 flex flex-col gap-5 h-full">
                     <div className="flex gap-1">
@@ -1022,13 +1238,19 @@ export function LandingPageView() {
 
       {/* ══════════════════ FINAL CTA ══════════════════ */}
       <section className="relative py-24 sm:py-36 px-4 sm:px-6 overflow-hidden" id="join">
-        <motion.div className="absolute inset-0 flex items-center justify-center pointer-events-none" animate={{ scale: [1, 1.08, 1], opacity: [0.6, 1, 0.6] }} transition={{ duration: 6, repeat: Infinity, ease: "easeInOut" }}>
-          <div className="w-[700px] h-[700px] rounded-full bg-[oklch(88%_0.11_105/0.07)] blur-[130px]" />
-        </motion.div>
+        {lite ? (
+          <div className="absolute inset-0 flex items-center justify-center pointer-events-none" aria-hidden>
+            <div className="w-[min(100vw,700px)] h-[min(100vw,700px)] rounded-full bg-[oklch(88%_0.11_105/0.07)] blur-[64px] md:blur-[130px]" />
+          </div>
+        ) : (
+          <motion.div className="absolute inset-0 flex items-center justify-center pointer-events-none" animate={{ scale: [1, 1.08, 1], opacity: [0.6, 1, 0.6] }} transition={{ duration: 6, repeat: Infinity, ease: "easeInOut" }}>
+            <div className="w-[700px] h-[700px] rounded-full bg-[oklch(88%_0.11_105/0.07)] blur-[130px]" />
+          </motion.div>
+        )}
 
         <RevealSection className="relative mx-auto max-w-3xl text-center">
           <motion.div variants={fadeUp} className="mb-8">
-            <Badge variant="outline" className="border-white/12 bg-white/5 text-white/70 backdrop-blur-sm rounded-full px-4 py-1.5 text-xs gap-2">
+            <Badge variant="outline" className="border-white/12 bg-white/5 text-white/70 md:backdrop-blur-sm rounded-full px-4 py-1.5 text-xs gap-2">
               <MapPin className="size-3 text-[oklch(88%_0.11_105)]" />
               Your people are already here
             </Badge>
@@ -1054,7 +1276,7 @@ export function LandingPageView() {
                 asChild
               >
                 <Link href={isLoggedIn ? "/home" : "/register"}>
-                  {isLoggedIn ? `Continue${firstName ? `, ${firstName}` : ""}` : "Join Greetup — it&apos;s free"} <ArrowRight className="size-5" />
+                  {isLoggedIn ? `Continue${firstName ? `, ${firstName}` : ""}` : "Join Greetup — it's free"} <ArrowRight className="size-5" />
                 </Link>
               </Button>
             </motion.div>
@@ -1079,10 +1301,18 @@ export function LandingPageView() {
               </motion.div>
             ))}
           </motion.div>
-          <motion.p variants={fadeIn} className="text-xs text-white/25">© 2025 Greetup. All rights reserved.</motion.p>
+          <motion.p variants={fadeIn} className="text-xs text-white/25">© 2026 Greetup. All rights reserved.</motion.p>
         </RevealSection>
       </footer>
     </div>
+  );
+}
+
+export function LandingPageView() {
+  return (
+    <LandingPerfProvider>
+      <LandingPageInner />
+    </LandingPerfProvider>
   );
 }
 

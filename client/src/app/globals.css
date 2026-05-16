@@ -252,9 +252,29 @@ html {
   animation: match-orb-ring-breathe 2.6s ease-in-out infinite;
 }
 
+/* RTC dominant mic: soft “live speech” glow (clears when SFU sends silence / null). */
+@keyframes dominant-speaker-glow {
+  0%,
+  100% {
+    box-shadow:
+      0 0 0 2px rgb(16 185 129 / 0.45),
+      0 0 10px rgb(16 185 129 / 0.18);
+  }
+  50% {
+    box-shadow:
+      0 0 0 2px rgb(16 185 129 / 0.9),
+      0 0 16px rgb(16 185 129 / 0.32);
+  }
+}
+
+.dominant-speaker-tile-highlight {
+  animation: dominant-speaker-glow 1.05s ease-in-out infinite;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .animate-match-orb-breathe,
-  .match-orb-ring-pulse {
+  .match-orb-ring-pulse,
+  .dominant-speaker-tile-highlight {
     animation: none !important;
   }
 

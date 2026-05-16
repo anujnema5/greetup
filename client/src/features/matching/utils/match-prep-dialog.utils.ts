@@ -6,8 +6,12 @@ import { cn } from "@/lib/utils";
 
 import type { MatchPrepInitialFormState } from "../types/match-prep.types";
 
+/**
+ * Mobile Chrome: plain `vh` ignores the URL bar. Use `min(90svh, 90dvh)` so height tracks the
+ * visible viewport (small + dynamic) and never assumes extra space behind the browser chrome.
+ */
 export const dialogShellClass = cn(
-  "flex! min-h-0 max-h-[min(92vh,760px)] flex-col! gap-0! overflow-hidden",
+  "flex! min-h-0 max-h-[min(90svh,90dvh,760px)] flex-col! gap-0! overflow-hidden",
   "rounded-2xl border-border bg-card p-0 shadow-xl sm:max-w-lg",
 );
 

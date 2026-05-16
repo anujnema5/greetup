@@ -4,14 +4,14 @@ import { createContext, useContext, useEffect, useMemo } from "react";
 import { useSession } from "@/lib/auth-client";
 import { useAppDispatch, useAppSelector } from "@/lib/redux/hooks";
 import { useGetMyProfileQuery } from "@/features/profile-setup/components/profile-setup-api";
-import { useRoomTabLeaseRtcSync } from "@/features/room";
+import { useRoomTabLeaseRtcSync } from "@/features/room/hooks";
 import {
   selectActiveRoomId,
   selectIsVideoSessionActive,
   selectRtcPrimaryRemoteUserId,
 } from "@/lib/redux/selectors/room-selectors";
 import { setMediaStatus } from "@/lib/redux/slices/room-slice";
-import { deriveRoomRtcState } from "@/features/matching/utils/derive-room-rtc-state";
+import { deriveRoomRtcState } from "@/features/rtc/lib/derive-room-rtc-state";
 import { useGetRtcTokenQuery } from "../api/rtc-api";
 import { useRtcSocket } from "../hooks/use-rtc-socket";
 import { useMediasoupRoom } from "../hooks/use-mediasoup-room";
@@ -22,7 +22,7 @@ import type {
   RemotePeer,
   ScreenShareTileInfo,
 } from "../types/mediasoup-room.types";
-import type { RoomRtcState } from "@/features/matching/types/room.types";
+import type { RoomRtcState } from "../types/rtc-api.types";
 import type { UseRtcSocketReturn } from "../hooks/use-rtc-socket";
 import type { RoomSessionType } from "@/shared/types/room-session";
 
@@ -54,6 +54,7 @@ export type RtcSocketContextValue = RoomRtcState &
     focusedScreenShareKey: string | null;
     setFocusedScreenShareKey: (key: string | null) => void;
     remoteTrackMediaSource: Record<string, ProducerMediaSource>;
+    dominantSpeakerPeerId: string | null;
   };
 
 const RtcSocketContext = createContext<RtcSocketContextValue | null>(null);
@@ -138,7 +139,9 @@ export function RtcSocketProvider({ children }: { children: React.ReactNode }) {
       rtcTokenExpiresInSec: rtc.rtcTokenExpiresInSec,
       rtcTokenLoading: rtc.rtcTokenLoading,
       rtcTokenError: rtc.rtcTokenError,
+      rtcTokenErrorCode: rtc.rtcTokenErrorCode,
       rtcTokenSkipped: rtc.rtcTokenSkipped,
+      refetchRtcToken: rtc.refetchRtcToken,
       rtcSocket,
       rtcSocketState,
       rtcRoomId: activeRoomId,
@@ -166,13 +169,16 @@ export function RtcSocketProvider({ children }: { children: React.ReactNode }) {
       focusedScreenShareKey: mediasoup.focusedScreenShareKey,
       setFocusedScreenShareKey: mediasoup.setFocusedScreenShareKey,
       remoteTrackMediaSource: mediasoup.remoteTrackMediaSource,
+      dominantSpeakerPeerId: mediasoup.dominantSpeakerPeerId,
     }),
     [
       rtc.rtcToken,
       rtc.rtcTokenExpiresInSec,
       rtc.rtcTokenLoading,
       rtc.rtcTokenError,
+      rtc.rtcTokenErrorCode,
       rtc.rtcTokenSkipped,
+      rtc.refetchRtcToken,
       rtcSocket,
       rtcSocketState,
       activeRoomId,
@@ -200,6 +206,7 @@ export function RtcSocketProvider({ children }: { children: React.ReactNode }) {
       mediasoup.focusedScreenShareKey,
       mediasoup.setFocusedScreenShareKey,
       mediasoup.remoteTrackMediaSource,
+      mediasoup.dominantSpeakerPeerId,
     ],
   );
 

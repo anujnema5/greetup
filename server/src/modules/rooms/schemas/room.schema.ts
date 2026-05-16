@@ -49,10 +49,6 @@ export const roomInviteRespondBodySchema = z.object({
   accept: z.boolean(),
 });
 
-/** Back-compat aliases (legacy direct-expand naming). */
-export const expandDirectInviteBodySchema = roomInviteBodySchema;
-export const expandDirectRespondBodySchema = roomInviteRespondBodySchema;
-
 export const updateLiveRoomTitleBodySchema = z.object({
   title: z.string().min(1).max(160).trim(),
 });

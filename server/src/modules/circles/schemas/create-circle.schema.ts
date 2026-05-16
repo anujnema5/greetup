@@ -1,5 +1,7 @@
 import { z } from "zod";
 
+import { LAUNCH_MAX_CIRCLE_PARTICIPANTS } from "@/modules/circles/constants/circle-capacity";
+
 export const circleAdvancedOptionsBodySchema = z
   .object({
     shouldHostStartMeeting: z.boolean().optional(),
@@ -24,15 +26,23 @@ export const createCircleBodySchema = z
     title: z.string().min(1).max(160).trim(),
     description: z.string().max(2000).trim().optional(),
     visibility: z.enum(["private", "public"]),
-    maxParticipants: z.number().int().min(2).max(100),
+    maxParticipants: z.number().int().min(2).max(LAUNCH_MAX_CIRCLE_PARTICIPANTS),
     scheduleMode: z.enum(["instant", "scheduled"]),
     scheduledStartAt: z.string().datetime().optional(),
     scheduledEndAt: z.string().datetime().optional(),
     advancedOptions: circleAdvancedOptionsBodySchema,
     /** User IDs must be accepted connections of the host; deduped server-side. */
-    invitedUserIds: z.array(z.string().min(1)).max(50).optional(),
+    invitedUserIds: z.array(z.string().min(1)).optional(),
   })
   .superRefine((data, ctx) => {
+    const cap = data.maxParticipants - 1;
+    if (data.invitedUserIds && data.invitedUserIds.length > cap) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: `You can invite at most ${cap} ${cap === 1 ? "person" : "people"} for a ${data.maxParticipants}-seat circle (you use one seat).`,
+        path: ["invitedUserIds"],
+      });
+    }
     if (data.scheduleMode === "scheduled" && !data.scheduledStartAt) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,

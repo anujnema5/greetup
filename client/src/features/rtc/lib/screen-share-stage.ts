@@ -2,6 +2,7 @@
  * Multi-participant screen sharing: collect tiles, stable "latest" ordering, and main-stage composition.
  */
 
+import { pickLiveLocalScreenShareVideoTrack } from "@/features/rtc/lib/direct-call-stage";
 import {
   inboundVideoTrackIsSfuScreenShare,
   pickPrimaryParticipantCameraVideoTrack,
@@ -58,9 +59,9 @@ export function collectScreenShareTiles(input: {
     peers,
   } = input;
 
-  if (screenSharing && localStream && localScreenTrackId) {
-    const t = localStream.getVideoTracks().find((x) => x.id === localScreenTrackId);
-    if (t && t.readyState === "live") {
+  if (screenSharing && localStream) {
+    const t = pickLiveLocalScreenShareVideoTrack(localStream, localScreenTrackId);
+    if (t) {
       out.push({
         key: makeLocalScreenShareKey(t.id),
         peerId: "local",
@@ -127,7 +128,8 @@ export function buildMainStageStreamForScreenFocus(input: {
   if (!tile) return null;
   const v = tile.stream.getVideoTracks()[0];
   if (!v || v.readyState !== "live") return null;
-  const audios = audioSourceStream?.getAudioTracks().filter((a) => a.readyState === "live") ?? [];
+  /* Match direct-call merging: any non-ended inbound audio (tab audio can sit in `new` briefly). */
+  const audios = audioSourceStream?.getAudioTracks().filter((a) => a.readyState !== "ended") ?? [];
   return new MediaStream([v, ...audios]);
 }
 

@@ -292,9 +292,7 @@ export async function geocodeLocationSuggestionsByQuery(
       }),
     );
 
-    const parsed = resolvedSuggestions.filter(
-      (item): item is ResolvedLocationSuggestion => item !== null,
-    );
+    const parsed = resolvedSuggestions.filter((item) => item !== null) as ResolvedLocationSuggestion[];
     if (parsed.length) return parsed;
   } catch {
     // Fall back to geocoding search if Places Autocomplete is unavailable.

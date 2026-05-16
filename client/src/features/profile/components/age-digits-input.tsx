@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import type { FocusEventHandler } from "react";
 
 import { Input } from "@/components/ui/input";
@@ -34,18 +34,21 @@ export function AgeDigitsInput({
   ...rest
 }: AgeDigitsInputProps) {
   const safe = Number.isFinite(value) ? value : min;
-  const [text, setText] = useState(() => String(safe));
+  const canonicalText = String(safe);
+  const [text, setText] = useState(() => canonicalText);
+  const [syncedFrom, setSyncedFrom] = useState(() => ({ value, min }));
 
-  useEffect(() => {
-    setText(String(Number.isFinite(value) ? value : min));
-  }, [value, min]);
+  if (syncedFrom.value !== value || syncedFrom.min !== min) {
+    setSyncedFrom({ value, min });
+    setText(canonicalText);
+  }
 
   const applyTyping = (raw: string) => {
     const digits = raw.replace(/\D/g, "").slice(0, 2);
     setText(digits);
     if (digits.length === 2) {
       const n = parseInt(digits, 10);
-      if (!Number.isNaN(n) && n >= min && n <= max) {
+      if (!Number.isNaN(n)) {
         onChange(n);
       }
     }
@@ -55,16 +58,18 @@ export function AgeDigitsInput({
     const digits = text.replace(/\D/g, "").slice(0, 2);
     if (digits === "") {
       setText(String(safe));
+      // Keep RHF in sync: reverting the UI to `safe` must update the form value too ("" would coerce to 0 in Zod).
+      onChange(safe);
       onBlurProp?.(e);
       return;
     }
     let n = parseInt(digits, 10);
     if (Number.isNaN(n)) {
       setText(String(safe));
+      onChange(safe);
       onBlurProp?.(e);
       return;
     }
-    n = Math.min(max, Math.max(min, n));
     setText(String(n));
     onChange(n);
     onBlurProp?.(e);

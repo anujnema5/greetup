@@ -29,12 +29,28 @@ import {
   updateLiveRoomTitleService,
   UpdateLiveRoomTitleError,
 } from "../services/update-live-room-title.service";
+import { mergeRoomAdvancedOptions } from "@/core/database/schema";
+import { isDbRoomSessionClosed } from "@/modules/rooms/lib/room-expiry";
 import { issueRtcTokenService, IssueRtcTokenError } from "../services/issue-rtc-token.service";
 import { joinRoomService, JoinRoomError } from "../services/join-room.service";
+import {
+  openCircleMeetingService,
+  OpenCircleMeetingError,
+} from "../services/open-circle-meeting.service";
+import {
+  hostEndCircleForEveryoneService,
+  HostEndCircleForEveryoneError,
+} from "../services/host-end-circle-for-everyone.service";
+import {
+  leaveCircleRtcSessionForUser,
+  LeaveCircleRtcError,
+} from "../services/leave-circle-rtc-session.service";
 import {
   startRoomSessionService,
   StartRoomSessionError,
 } from "../services/start-room-session.service";
+import { syncCircleRoomExpiryFromClockIfDue } from "../services/circle-room-expiry-sync.service";
+import { deleteSessionRoomRedis } from "../services/session-room-redis.service";
 
 /**
  * GET /api/room/:roomId/rtc-token
@@ -56,7 +72,7 @@ export const handleIssueRtcToken = async (c: Context) => {
     return c.json(ApiResponse.success(data, "RTC token issued", 200), 200);
   } catch (error: unknown) {
     if (error instanceof IssueRtcTokenError) {
-      const status = error.statusCode as 400 | 403 | 404;
+      const status = error.statusCode as 400 | 403 | 404 | 410;
       return c.json(
         ApiResponse.error({
           message: error.message,
@@ -131,6 +147,110 @@ export const handleCreateRoom = async (c: Context) => {
 };
 
 /**
+ * POST /api/room/:roomId/open-meeting
+ * Host clears the lobby gate so non-hosts can obtain RTC tokens (`shouldHostStartMeeting`).
+ */
+export const handleOpenCircleMeeting = async (c: Context) => {
+  const roomId = c.req.param("roomId");
+  const userId = c.get("userId") as string;
+
+  if (!roomId) {
+    return c.json(
+      ApiResponse.error({ message: "roomId is required", statusCode: 400, code: "VALIDATION_ERROR" }),
+      400,
+    );
+  }
+
+  try {
+    await openCircleMeetingService(userId, roomId);
+    return c.json(ApiResponse.success({ roomId }, "Circle opened", 200), 200);
+  } catch (error: unknown) {
+    if (error instanceof OpenCircleMeetingError) {
+      return c.json(
+        ApiResponse.error({
+          message: error.message,
+          statusCode: error.statusCode,
+          code: error.code,
+        }),
+        error.statusCode as 400 | 403 | 404 | 503,
+      );
+    }
+    logger.error("Open circle error", { error });
+    return internalError(c, error);
+  }
+};
+
+/**
+ * POST /api/room/:roomId/leave-circle-rtc
+ * Records the caller as departed. When nobody remains: if `deleteCircleAfterCall`, ends immediately;
+ * else sets `expires_at` to the sooner of empty-room grace, `scheduled_end_at`, or an existing deadline.
+ */
+export const handleLeaveCircleRtc = async (c: Context) => {
+  const roomId = c.req.param("roomId");
+  const userId = c.get("userId") as string;
+
+  if (!roomId) {
+    return c.json(
+      ApiResponse.error({ message: "roomId is required", statusCode: 400, code: "VALIDATION_ERROR" }),
+      400,
+    );
+  }
+
+  try {
+    const result = await leaveCircleRtcSessionForUser(userId, roomId, { httpStrict: true });
+    return c.json(ApiResponse.success(result, "Recorded", 200), 200);
+  } catch (error: unknown) {
+    if (error instanceof LeaveCircleRtcError) {
+      return c.json(
+        ApiResponse.error({
+          message: error.message,
+          statusCode: error.statusCode,
+          code: error.code,
+        }),
+        error.statusCode as 400 | 403 | 404,
+      );
+    }
+    logger.error("Leave circle RTC error", { error });
+    return internalError(c, error);
+  }
+};
+
+/**
+ * POST /api/room/:roomId/host-end-circle
+ * Host-only: ends the live RTC session for everyone (participants marked left, Redis cleared).
+ * Calendar circles with a scheduled start return to `scheduled`; instant circles are ended in Postgres.
+ */
+export const handleHostEndCircleForEveryone = async (c: Context) => {
+  const roomId = c.req.param("roomId");
+  const userId = c.get("userId") as string;
+
+  if (!roomId) {
+    return c.json(
+      ApiResponse.error({ message: "roomId is required", statusCode: 400, code: "VALIDATION_ERROR" }),
+      400,
+    );
+  }
+
+  try {
+    const result = await hostEndCircleForEveryoneService(userId, roomId);
+    return c.json(ApiResponse.success(result, "Circle ended", 200), 200);
+  } catch (error: unknown) {
+    if (error instanceof HostEndCircleForEveryoneError) {
+      return c.json(
+        ApiResponse.error({
+          message: error.message,
+          statusCode: error.statusCode,
+          code: error.code,
+        }),
+        error.statusCode as 400 | 403 | 404,
+      );
+    }
+    logger.error("Host end circle for everyone error", { error });
+    return internalError(c, error);
+  }
+};
+
+/**
  * POST /api/room/:roomId/start
  * Host starts a scheduled DB room: persists live in Postgres, then provisions Redis session state.
  */
@@ -192,7 +312,7 @@ export const handleJoinRoom = async (c: Context) => {
           statusCode: error.statusCode,
           code: error.code,
         }),
-        error.statusCode as 400 | 403 | 404,
+        error.statusCode as 400 | 403 | 404 | 410,
       );
     }
     logger.error("Join room error", { error });
@@ -246,7 +366,7 @@ export const handlePatchRoomTitle = async (c: Context) => {
 };
 
 /**
- * POST /api/room/:roomId/expand-direct/invite
+ * POST /api/room/:roomId/invite
  * Participant invites a connection to upgrade this direct call to a circle (pending until they accept).
  */
 export const handleRoomInvite = async (c: Context) => {
@@ -291,7 +411,7 @@ export const handleRoomInvite = async (c: Context) => {
 };
 
 /**
- * POST /api/room/:roomId/expand-direct/respond
+ * POST /api/room/:roomId/invite/respond
  * Invitee accepts or declines — on accept the room becomes a circle in place.
  */
 export const handleRoomInviteRespond = async (c: Context) => {
@@ -345,15 +465,12 @@ export const handleRoomInviteRespond = async (c: Context) => {
   }
 };
 
-/** Back-compat aliases (legacy direct-expand naming). */
-export const handleExpandDirectInvite = handleRoomInvite;
-export const handleExpandDirectRespond = handleRoomInviteRespond;
-
 /**
  * GET /api/room/:roomId
  * Returns Redis-backed room payload (match pair or DB session room).
  */
 export const handleGetRoom = async (c: Context) => {
+  const userId = c.get("userId");
   const roomId = c.req.param("roomId");
   if (!roomId) {
     return c.json(
@@ -366,13 +483,111 @@ export const handleGetRoom = async (c: Context) => {
     const redis = getRedis();
     const room = await redis.hgetall(`${ROOM_KEYS.ROOM}${roomId}`);
     if (!room || !room.roomId) {
+      let dbRoom = await roomsRepository.findRoomById(roomId);
+      if (!dbRoom) {
+        return c.json(
+          ApiResponse.error({ message: "Room not found", statusCode: 404, code: "NOT_FOUND" }),
+          404,
+        );
+      }
+
+      /** Match rooms: Redis may lag or expire; fall back to Postgres for live direct pairs. */
+      if (dbRoom.roomType === "direct" && dbRoom.status === "live") {
+        const participantIds = await roomsRepository.listActiveParticipantUserIds(roomId);
+        const hostId = dbRoom.hostUserId;
+        const peerId = participantIds.find((id) => id !== hostId) ?? participantIds[1];
+        if (hostId && peerId && participantIds.length >= 2) {
+          return c.json(
+            ApiResponse.success(
+              {
+                roomId,
+                userA: hostId,
+                userB: peerId,
+                matchScore: null,
+              },
+              "Room found",
+            ),
+          );
+        }
+      }
+
+      if (dbRoom.roomType !== "circle") {
+        return c.json(
+          ApiResponse.error({ message: "Room not found", statusCode: 404, code: "NOT_FOUND" }),
+          404,
+        );
+      }
+      await syncCircleRoomExpiryFromClockIfDue(roomId);
+      dbRoom = (await roomsRepository.findRoomById(roomId)) ?? dbRoom;
+      if (isDbRoomSessionClosed(dbRoom)) {
+        return c.json(
+          ApiResponse.error({
+            message: "This room session is no longer available",
+            statusCode: 410,
+            code: "ROOM_EXPIRED",
+          }),
+          410,
+        );
+      }
+      const allowed = await roomsRepository.canUserViewCircleRoomMetadata(userId, dbRoom);
+      if (!allowed) {
+        return c.json(
+          ApiResponse.error({
+            message: "You are not allowed to view this room",
+            statusCode: 403,
+            code: "NOT_ALLOWED",
+          }),
+          403,
+        );
+      }
+      const adv = mergeRoomAdvancedOptions(dbRoom.advancedOptions);
+      const lobbyGateActive: "0" | "1" = adv.shouldHostStartMeeting !== false ? "1" : "0";
+      const scheduledStartAt =
+        dbRoom.scheduledStartAt instanceof Date
+          ? dbRoom.scheduledStartAt.toISOString()
+          : dbRoom.scheduledStartAt
+            ? new Date(dbRoom.scheduledStartAt).toISOString()
+            : null;
       return c.json(
-        ApiResponse.error({ message: "Room not found", statusCode: 404, code: "NOT_FOUND" }),
-        404
+        ApiResponse.success(
+          {
+            sessionKind: "db_room" as const,
+            roomId: dbRoom.id,
+            hostUserId: dbRoom.hostUserId,
+            roomType: dbRoom.roomType,
+            title: dbRoom.title,
+            status: dbRoom.status,
+            lobbyGateActive,
+            scheduledStartAt,
+          },
+          "Room found",
+        ),
       );
     }
 
     if (room.sessionKind === "db_room") {
+      let dbRoom = await roomsRepository.findRoomById(roomId);
+      if (dbRoom?.roomType === "circle") {
+        await syncCircleRoomExpiryFromClockIfDue(roomId);
+        dbRoom = (await roomsRepository.findRoomById(roomId)) ?? dbRoom;
+      }
+      if (dbRoom && isDbRoomSessionClosed(dbRoom)) {
+        await deleteSessionRoomRedis(roomId);
+        return c.json(
+          ApiResponse.error({
+            message: "This room session is no longer available",
+            statusCode: 410,
+            code: "ROOM_EXPIRED",
+          }),
+          410,
+        );
+      }
+      const scheduledStartAt =
+        dbRoom?.scheduledStartAt instanceof Date
+          ? dbRoom.scheduledStartAt.toISOString()
+          : dbRoom?.scheduledStartAt
+            ? new Date(dbRoom.scheduledStartAt).toISOString()
+            : null;
       return c.json(
         ApiResponse.success(
           {
@@ -381,6 +596,13 @@ export const handleGetRoom = async (c: Context) => {
             hostUserId: room.hostUserId,
             roomType: room.roomType,
             title: room.title,
+            ...(dbRoom?.status ? { status: dbRoom.status } : {}),
+            lobbyGateActive:
+              typeof room.lobbyGateActive === "string" &&
+              (room.lobbyGateActive === "0" || room.lobbyGateActive === "1")
+                ? room.lobbyGateActive
+                : "0",
+            scheduledStartAt,
           },
           "Room found",
         ),
