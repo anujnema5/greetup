@@ -47,7 +47,7 @@ import { clearRoomMinimized } from "@/features/room/lib/session/room-sync";
 import {
   DOMINANT_SPEAKER_TILE_RING,
   isDominantSpeakerPeer,
-} from "@/features/room/lib/call/dominant-speaker-tile";
+} from "@/features/room/lib/call/active-speaker";
 import {
   CameraOffAvatar,
   TileSpeakingRings,
@@ -261,7 +261,7 @@ function MinimizedRoomDockPanel() {
         onPointerUp={onDragPointerUp}
         onPointerCancel={onDragPointerUp}
         className={cn(
-          "relative w-full shrink-0 cursor-default overflow-hidden select-none touch-none",
+          "relative w-full shrink-0 cursor-pointer overflow-hidden select-none touch-none [&_*]:cursor-pointer",
           "min-h-[9.75rem] sm:min-h-[12.5rem] md:min-h-[15rem]",
         )}
       >

@@ -14,6 +14,7 @@ import {
   MinimizedRoomDock,
   OnPartnerDisconnected,
   OnDirectExpandedToCircle,
+  OnCircleTitleUpdated,
   OnHostEndedCircle,
 } from "@/features/room";
 import { MatchmakingProvider } from "@/features/matching";
@@ -52,6 +53,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                 <ChatMessagesCacheBridge />
                 <Suspense fallback={null}>
                   <MatchmakingProvider>
+                    <OnCircleTitleUpdated />
                     <OnHostEndedCircle />
                     <OnPartnerDisconnected />
                     <MinimizedRoomDock />

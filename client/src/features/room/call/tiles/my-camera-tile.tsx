@@ -14,7 +14,7 @@ import {
   CALL_TILE_CAMERA_OFF_CLASS,
   CALL_TILE_LOCAL_CLASS,
 } from "@/features/room/call/tiles/tile-styles";
-import { DOMINANT_SPEAKER_TILE_RING } from "@/features/room/lib/call/dominant-speaker-tile";
+import { LIVE_SPEAKER_TILE_RING } from "@/features/room/lib/call/active-speaker";
 
 export function LocalParticipantTile({
   localVideoRef,
@@ -45,7 +45,7 @@ export function LocalParticipantTile({
     <div
       className={cn(
         CALL_TILE_LOCAL_CLASS,
-        isDominantSpeaker && DOMINANT_SPEAKER_TILE_RING,
+        isDominantSpeaker && LIVE_SPEAKER_TILE_RING,
         className,
       )}
     >

@@ -39,13 +39,13 @@ import type { RemoteParticipant, ScreenShareTileInfo } from "@/features/rtc";
 import { hasLiveEnabledVideo, hasLiveVideo } from "@/features/rtc";
 import { useAttachMediaStream } from "@/features/room/hooks/media/use-attach-media-stream";
 import { ScreenShareFilmstrip } from "@/features/room/call/layouts/screen-share/screen-share-strip";
-import { ScreenShareMobileParticipantGrid } from "@/features/room/call/layouts/screen-share/cameras-under-share";
+import { CamerasUnderScreenShare } from "@/features/room/call/layouts/screen-share/cameras-under-screen";
 import {
   DOMINANT_SPEAKER_TILE_RING,
   isDirectCallRemoteSideDominant,
   isDominantSpeakerLocalUser,
   isDominantSpeakerPeer,
-} from "@/features/room/lib/call/dominant-speaker-tile";
+} from "@/features/room/lib/call/active-speaker";
 
 type StageRatio = "16:9" | "1:1";
 
@@ -256,7 +256,7 @@ export function MainStage({
               ) : null}
             </div>
             {!shareStageImmersive ? (
-              <ScreenShareMobileParticipantGrid
+              <CamerasUnderScreenShare
                 localVideoRef={localVideoRef}
                 localVideoLive={localVideoLive}
                 localStream={localStream}

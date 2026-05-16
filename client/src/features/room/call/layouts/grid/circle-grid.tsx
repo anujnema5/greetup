@@ -12,7 +12,7 @@ import { RemoteParticipantTile } from "@/features/room/call/tiles/peer-camera-ti
 import {
   isDominantSpeakerLocalUser,
   isDominantSpeakerPeer,
-} from "@/features/room/lib/call/dominant-speaker-tile";
+} from "@/features/room/lib/call/active-speaker";
 
 const TILES_PER_PAGE = 6;
 const PAGED_GRID = "grid-cols-2 md:grid-cols-3";

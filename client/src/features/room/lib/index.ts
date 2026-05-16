@@ -4,9 +4,7 @@ export * from "./session/room-return-path";
 export * from "./session/room-rtk-cache";
 export * from "./minimized-dock/minimized-dock-focus";
 export * from "./minimized-dock/minimized-dock-main-stage-silence";
-export * from "./call/dominant-speaker-tile";
-export * from "./call/order-participants-for-pagination";
-/** Client hooks: import from `@/features/room/lib/call/use-*` (not this barrel — RSC-safe). */
+export * from "./call/active-speaker";
 export * from "./call/format-call-duration";
 export * from "./navigation/after-call-navigation";
 export * from "./navigation/circle-routes";

@@ -8,9 +8,8 @@
  * Local tile is always built first so it is not the last slot on a page.
  */
 import Image from "next/image";
-import { cloneElement, useEffect, useMemo, useRef, useState, type ReactElement } from "react";
-import { ChevronLeft, ChevronRight, Monitor } from "lucide-react";
-import { sortPeerIds } from "@/features/rtc/lib/remote-participant-streams";
+import { cloneElement, useMemo, useRef, type ReactElement } from "react";
+import { Monitor } from "lucide-react";
 import type { RemoteParticipant, RemotePeer, ScreenShareTileInfo } from "@/features/rtc/types/mediasoup-room.types";
 import {
   hasLiveEnabledVideo,
@@ -27,9 +26,10 @@ import {
   DOMINANT_SPEAKER_TILE_RING,
   isDominantSpeakerLocalUser,
   isDominantSpeakerPeer,
-} from "@/features/room/lib/call/dominant-speaker-tile";
-import { orderRemotePeerIdsForPaginatedTiles } from "@/features/room/lib/call/order-participants-for-pagination";
-import { useStickyDominantAnchorPeerId } from "@/features/room/lib/call/use-sticky-dominant-anchor-peer-id";
+} from "@/features/room/lib/call/active-speaker";
+import { CameraTilePageButtons } from "@/features/room/call/components/pagination/camera-tile-page-buttons";
+import { useTileGridPage } from "@/features/room/hooks/call/use-tile-grid-page";
+import { usePeoplePanelCameraOrder } from "@/features/room/hooks/call/use-people-panel-camera-order";
 import { getProfileImageUrl } from "@/lib/ui/profile-image";
 import { cn } from "@/lib/utils";
 
@@ -38,9 +38,6 @@ const GRID_PAGE_SIZE = 4;
 /** From this many cameras onward, use a 2-column grid for everyone (no “3 stacked + 1 tiny”). */
 const MIN_CAMERAS_FOR_GRID_LAYOUT = 3;
 const CAMERA_TILE_CLASS = "min-h-0 w-full";
-
-const PAGE_NAV_BTN =
-  "flex h-8 w-8 items-center justify-center rounded-full border border-border/80 bg-muted/40 text-foreground transition hover:bg-muted/70";
 
 type ParticipantVideoTileProps = {
   label: string;
@@ -63,12 +60,6 @@ type ParticipantVideoTileProps = {
 
 function shareTileKeyForPeer(tiles: ScreenShareTileInfo[], peerId: string | "local"): string | null {
   return tiles.find((x) => x.peerId === peerId)?.key ?? null;
-}
-
-/** Step raw page index after prev/next; clamps to [0, maxIdx]. */
-function bumpGridPage(raw: number, maxIdx: number, delta: -1 | 1): number {
-  const cur = Math.min(Math.max(0, raw), maxIdx);
-  return delta < 0 ? Math.max(0, cur + delta) : Math.min(maxIdx, cur + delta);
 }
 
 /** Equal-height rows so the camera grid consumes available panel height. */
@@ -364,49 +355,6 @@ function buildCameraTiles(p: CameraTilesContext): ReactElement<ParticipantVideoT
   return tiles;
 }
 
-function TailGridPageNav({
-  pageIndex,
-  pageCount,
-  maxIdx,
-  onPrev,
-  onNext,
-}: {
-  pageIndex: number;
-  pageCount: number;
-  maxIdx: number;
-  onPrev: () => void;
-  onNext: () => void;
-}) {
-  const atFirst = pageIndex <= 0;
-  const atLast = pageIndex >= maxIdx;
-
-  return (
-    <div className="flex shrink-0 items-center justify-center gap-2 pt-0.5">
-      <button
-        type="button"
-        onClick={onPrev}
-        disabled={atFirst}
-        aria-label="Previous camera page"
-        className={cn(PAGE_NAV_BTN, atFirst && "pointer-events-none opacity-40")}
-      >
-        <ChevronLeft className="size-4" aria-hidden />
-      </button>
-      <span className="min-w-13 text-center text-[11px] tabular-nums text-muted-foreground">
-        {pageIndex + 1} / {pageCount}
-      </span>
-      <button
-        type="button"
-        onClick={onNext}
-        disabled={atLast}
-        aria-label="Next camera page"
-        className={cn(PAGE_NAV_BTN, atLast && "pointer-events-none opacity-40")}
-      >
-        <ChevronRight className="size-4" aria-hidden />
-      </button>
-    </div>
-  );
-}
-
 export function RoomCallParticipantsPanel({
   isGroupRoom,
   myName,
@@ -453,11 +401,10 @@ export function RoomCallParticipantsPanel({
   dominantSpeakerPeerId?: string | null;
   dominantSpeakerSpeakingMs?: Record<string, number>;
 }) {
-  const remoteIds = sortPeerIds(Object.keys(remotePeers));
-  const anchorPeerId = useStickyDominantAnchorPeerId(remoteIds, dominantSpeakerPeerId);
-  const orderedRemoteIds = useMemo(
-    () => orderRemotePeerIdsForPaginatedTiles(remoteIds, anchorPeerId, dominantSpeakerSpeakingMs),
-    [remoteIds, anchorPeerId, dominantSpeakerSpeakingMs],
+  const { allPeerIds, peerIdsWithSpeakerFirst, lockedSpeakerPeerId } = usePeoplePanelCameraOrder(
+    remotePeers,
+    dominantSpeakerPeerId,
+    dominantSpeakerSpeakingMs,
   );
   const allowPickShareFromTile = screenShareTiles.length <= 1;
   const localShareKey = shareTileKeyForPeer(screenShareTiles, "local");
@@ -471,11 +418,11 @@ export function RoomCallParticipantsPanel({
   }, [groupGalleryParticipants]);
 
   const expectedCameraCount = useMemo(() => {
-    if (isGroupRoom) return 1 + remoteIds.length;
-    if (remoteIds.length > 0) return 1 + remoteIds.length;
+    if (isGroupRoom) return 1 + allPeerIds.length;
+    if (allPeerIds.length > 0) return 1 + allPeerIds.length;
     if (directPeerLabel.trim()) return 2;
     return 1;
-  }, [directPeerLabel, isGroupRoom, remoteIds]);
+  }, [directPeerLabel, isGroupRoom, allPeerIds]);
 
   const stretchTilesInGrid = expectedCameraCount >= MIN_CAMERAS_FOR_GRID_LAYOUT;
 
@@ -495,7 +442,7 @@ export function RoomCallParticipantsPanel({
         myName,
         onSelectScreenShare,
         peerStreamById,
-        remoteIds: orderedRemoteIds,
+        remoteIds: peerIdsWithSpeakerFirst,
         remotePeerCameraOff,
         remotePeerCameraStream,
         remotePeerMicOff,
@@ -520,7 +467,7 @@ export function RoomCallParticipantsPanel({
       myName,
       onSelectScreenShare,
       peerStreamById,
-      orderedRemoteIds,
+      peerIdsWithSpeakerFirst,
       remotePeerCameraOff,
       remotePeerCameraStream,
       remotePeerMicOff,
@@ -539,13 +486,11 @@ export function RoomCallParticipantsPanel({
   const gridPageCount = useGridLayout ? Math.max(1, Math.ceil(cameraCount / GRID_PAGE_SIZE)) : 1;
   const showGridPagination = useGridLayout && gridPageCount > 1;
 
-  const [gridPageRaw, setGridPageRaw] = useState(0);
-  const gridMaxIdx = gridPageCount - 1;
-  const gridPage = Math.min(Math.max(0, gridPageRaw), gridMaxIdx);
-
-  useEffect(() => {
-    setGridPageRaw(0);
-  }, [anchorPeerId]);
+  const {
+    currentPage: gridPage,
+    goToPreviousPage: gridPrev,
+    goToNextPage: gridNext,
+  } = useTileGridPage(gridPageCount, lockedSpeakerPeerId);
 
   const visibleCameraTiles = useMemo(() => {
     if (!useGridLayout) return cameraTiles;
@@ -595,12 +540,12 @@ export function RoomCallParticipantsPanel({
                     {gridLaidOutTiles}
                   </div>
                   {showGridPagination ? (
-                    <TailGridPageNav
-                      pageIndex={gridPage}
-                      pageCount={gridPageCount}
-                      maxIdx={gridMaxIdx}
-                      onPrev={() => setGridPageRaw((r) => bumpGridPage(r, gridMaxIdx, -1))}
-                      onNext={() => setGridPageRaw((r) => bumpGridPage(r, gridMaxIdx, 1))}
+                    <CameraTilePageButtons
+                      look="peoplePanel"
+                      currentPage={gridPage}
+                      totalPages={gridPageCount}
+                      onPreviousPage={gridPrev}
+                      onNextPage={gridNext}
                     />
                   ) : null}
                 </div>

@@ -23,7 +23,7 @@ import {
   CALL_TILE_REMOTE_CLASS,
   CALL_TILE_REMOTE_NAME_BADGE_CLASS,
 } from "@/features/room/call/tiles/tile-styles";
-import { DOMINANT_SPEAKER_TILE_RING } from "@/features/room/lib/call/dominant-speaker-tile";
+import { LIVE_SPEAKER_TILE_RING } from "@/features/room/lib/call/active-speaker";
 
 export function RemoteParticipantTile({
   participant,
@@ -62,7 +62,7 @@ export function RemoteParticipantTile({
     <div
       className={cn(
         CALL_TILE_REMOTE_CLASS,
-        isDominantSpeaker && DOMINANT_SPEAKER_TILE_RING,
+        isDominantSpeaker && LIVE_SPEAKER_TILE_RING,
         className,
       )}
     >

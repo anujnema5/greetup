@@ -10,6 +10,7 @@ import type { RoomSessionType } from "@/shared/types/room-session";
 import type { EmbeddedCallPolicyLookup } from "@/features/room/embedded-activities";
 import type { RoomActivityId, RoomActivityMeta } from "@/features/room/types/call/room-activity.types";
 import type { CallCapabilities } from "@/features/room/contracts";
+import type { ActiveSpeakerProps } from "@/features/room/types/call/active-speaker-props.types";
 
 export type InCallScreenProps = {
   /** Built in call wiring; drives tabs, layout mode, and future feature flags. */
@@ -97,8 +98,4 @@ export type InCallScreenProps = {
   embeddedCallPolicyLookup?: EmbeddedCallPolicyLookup | null;
   /** When set, circle host can end the session for everyone (separate from Leave). */
   onHostEndCircleForEveryone?: () => void;
-  /** Mediasoup dominant speaker user id (`dominantSpeaker` from rtc-service). */
-  dominantSpeakerPeerId?: string | null;
-  /** Cumulative dominant-speaker ms per peer (same socket event). */
-  dominantSpeakerSpeakingMs?: Record<string, number>;
-};
+} & ActiveSpeakerProps;

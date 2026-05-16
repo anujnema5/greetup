@@ -223,7 +223,6 @@ export function InCallContainer({
     peerId,
     peers,
     isGroupRoom,
-    groupRoomTitle,
   });
 
   useEffect(() => {
