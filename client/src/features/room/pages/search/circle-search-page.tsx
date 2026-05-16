@@ -61,7 +61,7 @@ export function CircleSearchPage() {
       scoreLabel={null}
       myName="You"
       isGroupRoom={false}
-      groupRoomTitle={null}
+      circleDisplayTitle={null}
       circleCanEditTitle={false}
       circleHostUserId={null}
       circleLobbyGateActive={null}

@@ -39,7 +39,7 @@ export type UseMinimizedDockMainStageArgs = {
   remoteMediaStream: MediaStream | null;
   remoteParticipants: RemoteParticipant[];
   remoteTrackMediaSource: Record<string, ProducerMediaSource>;
-  dominantSpeakerPeerId: string | null;
+  liveSpeakerPeerId: string | null;
   /** When `circle`, match URL “primary peer” must not pin the dock — follow dominant speaker instead. */
   rtcRoomType: RoomSessionType | null;
   rtcPrimaryRemoteUserId: string | null;

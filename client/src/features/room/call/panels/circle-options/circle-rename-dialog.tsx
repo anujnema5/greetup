@@ -13,11 +13,11 @@ import {
 import { Input } from "@/components/ui/input";
 import { useUpdateRoomTitleMutation } from "@/features/room/api/room-api";
 import { getRtkMutationErrorMessage } from "@/lib/api/rtk-mutation-error";
+import {
+  IN_CALL_DIALOG_CONTENT_Z,
+  IN_CALL_DIALOG_OVERLAY_Z,
+} from "@/features/room/constants/call/in-call-dialog-layer";
 import { cn } from "@/lib/utils";
-
-/** Stack above in-call chrome. */
-const DIALOG_OVERLAY_Z = "z-240";
-const DIALOG_CONTENT_Z = "z-250";
 
 export type CircleRenameDialogProps = {
   open: boolean;
@@ -68,8 +68,8 @@ export function CircleRenameDialog({
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent
-        className={cn(DIALOG_CONTENT_Z, "sm:max-w-100")}
-        overlayClassName={DIALOG_OVERLAY_Z}
+        className={cn(IN_CALL_DIALOG_CONTENT_Z, "sm:max-w-100")}
+        overlayClassName={IN_CALL_DIALOG_OVERLAY_Z}
         showCloseButton
       >
         <div className="flex items-start gap-3">

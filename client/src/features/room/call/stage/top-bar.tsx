@@ -3,6 +3,7 @@
 import { type ReactNode } from "react";
 import { PictureInPicture2 } from "lucide-react";
 import { CircleCallTitleBadge } from "@/features/room/call/components/circle-call-title-badge";
+import { DEFAULT_CIRCLE_DISPLAY_TITLE } from "@/features/room/constants/call/circle-display";
 import { cn } from "@/lib/utils";
 
 const STAGE_CHROME_BTN =
@@ -41,7 +42,7 @@ export function CallTopBar({
   /** e.g. fullscreen + mute screen audio — rendered before minimize, same row */
   stageTrailingActions?: ReactNode;
 }) {
-  const circleTitle = circleDisplayTitle?.trim() || "Circle";
+  const circleTitle = circleDisplayTitle?.trim() || DEFAULT_CIRCLE_DISPLAY_TITLE;
   const showRightCluster = Boolean(stageTrailingActions) || Boolean(onMinimize);
 
   return (

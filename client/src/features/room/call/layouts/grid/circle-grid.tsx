@@ -10,8 +10,8 @@ import { CALL_TILE_AVATAR_SIZE_COMPACT } from "@/features/room/call/tiles/tile-s
 import { LocalParticipantTile } from "@/features/room/call/tiles/my-camera-tile";
 import { RemoteParticipantTile } from "@/features/room/call/tiles/peer-camera-tile";
 import {
-  isDominantSpeakerLocalUser,
-  isDominantSpeakerPeer,
+  isYouTheLiveSpeaker,
+  isLiveSpeakerOnTile,
 } from "@/features/room/lib/call/active-speaker";
 
 const TILES_PER_PAGE = 6;
@@ -28,7 +28,7 @@ export function CircleGalleryGrid({
   micEnabled,
   cameraEnabled,
   currentUserId = null,
-  dominantSpeakerPeerId = null,
+  liveSpeakerPeerId = null,
 }: {
   participants: RemoteParticipant[];
   localVideoRef: RefObject<HTMLVideoElement | null>;
@@ -40,9 +40,9 @@ export function CircleGalleryGrid({
   micEnabled?: boolean;
   cameraEnabled?: boolean;
   currentUserId?: string | null;
-  dominantSpeakerPeerId?: string | null;
+  liveSpeakerPeerId?: string | null;
 }) {
-  const localDominant = isDominantSpeakerLocalUser(dominantSpeakerPeerId, currentUserId);
+  const localIsLiveSpeaker = isYouTheLiveSpeaker(liveSpeakerPeerId, currentUserId);
   const total = participants.length + 1;
 
   return (
@@ -66,7 +66,7 @@ export function CircleGalleryGrid({
               myAvatarUrl={myAvatarUrl}
               micEnabled={micEnabled}
               cameraEnabled={cameraEnabled}
-              isDominantSpeaker={localDominant}
+              isLiveSpeaker={localIsLiveSpeaker}
               avatarSizeClass={CALL_TILE_AVATAR_SIZE_COMPACT}
               className={spanClass}
             />
@@ -79,8 +79,8 @@ export function CircleGalleryGrid({
             participant={participant}
             className={spanClass}
             avatarSizeClass={CALL_TILE_AVATAR_SIZE_COMPACT}
-            isDominantSpeaker={isDominantSpeakerPeer(
-              dominantSpeakerPeerId,
+            isLiveSpeaker={isLiveSpeakerOnTile(
+              liveSpeakerPeerId,
               participant.peer.peerId,
             )}
           />

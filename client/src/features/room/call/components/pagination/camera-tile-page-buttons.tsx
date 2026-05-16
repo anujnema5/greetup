@@ -95,7 +95,3 @@ export function CameraTilePageButtons({
     </div>
   );
 }
-
-/** @deprecated Use `CameraTilePageButtons`. */
-export const ParticipantPageNav = CameraTilePageButtons;
-export type ParticipantPageNavProps = CameraTilePageButtonsProps;

@@ -28,6 +28,11 @@ import {
 import { Maximize2, Minimize2, Volume2, VolumeX } from "lucide-react";
 import { toast } from "sonner";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
+import { DEFAULT_CIRCLE_DISPLAY_TITLE } from "@/features/room/constants/call/circle-display";
+import {
+  IN_CALL_DIALOG_CONTENT_Z,
+  IN_CALL_DIALOG_OVERLAY_Z,
+} from "@/features/room/constants/call/in-call-dialog-layer";
 import { MOCK_MATCH } from "@/features/room/constants/dev/mock-match";
 import { useCallDisplayData } from "@/features/room/hooks/media/use-call-display-data";
 import { useStageFullscreen } from "@/features/room/hooks/call-ui/use-stage-fullscreen";
@@ -187,8 +192,8 @@ export function InCallScreen({
   onEmbeddedStageActivityChange,
   directRoomActivities: directRoomActivitiesProp,
   embeddedCallPolicyLookup = null,
-  dominantSpeakerPeerId = null,
-  dominantSpeakerSpeakingMs = {},
+  liveSpeakerPeerId = null,
+  liveSpeakerSpeakingMs = {},
   onHostEndCircleForEveryone,
   callCapabilities: callCapabilitiesProp,
 }: InCallScreenProps) {
@@ -381,7 +386,7 @@ export function InCallScreen({
 
   /** Circle route always has `roomId` when `isGroupRoom`; narrows types for options UI. */
   const circleRoomId = isGroupRoom && roomId ? roomId : null;
-  const circleTitle = circleDisplayTitle?.trim() || "Circle";
+  const circleTitle = circleDisplayTitle?.trim() || DEFAULT_CIRCLE_DISPLAY_TITLE;
 
   useEffect(() => {
     if (isGroupRoom) return;
@@ -484,8 +489,8 @@ export function InCallScreen({
       remotePeerCameraStream={remotePeerCameraStream}
       suppressCameraTiles={suppressPeoplePanelCameras}
       currentUserId={currentUserId ?? null}
-      dominantSpeakerPeerId={dominantSpeakerPeerId}
-      dominantSpeakerSpeakingMs={dominantSpeakerSpeakingMs}
+      liveSpeakerPeerId={liveSpeakerPeerId}
+      liveSpeakerSpeakingMs={liveSpeakerSpeakingMs}
     />
   ) : null;
 
@@ -601,8 +606,8 @@ export function InCallScreen({
                   remotePeerCameraStream={remotePeerCameraStream}
                   participantVideosInSidebar={participantVideosInSidebar}
                   shareStageImmersive={shareStageImmersive}
-                  dominantSpeakerPeerId={dominantSpeakerPeerId}
-                  dominantSpeakerSpeakingMs={dominantSpeakerSpeakingMs}
+                  liveSpeakerPeerId={liveSpeakerPeerId}
+                  liveSpeakerSpeakingMs={liveSpeakerSpeakingMs}
                 />
 
                 <StageOverlays
@@ -720,14 +725,15 @@ export function InCallScreen({
               showCloseButton
               aria-describedby={undefined}
               className={cn(
-                /* Above InCallContainer (`z-100`) and in-room dialogs (e.g. `z-200`). */
-                "z-250 gap-0 border-x-0 border-b-0 p-0",
+                /* Above InCallContainer (`z-100`) and in-room dialogs. */
+                IN_CALL_DIALOG_CONTENT_Z,
+                "gap-0 border-x-0 border-b-0 p-0",
                 "fixed! inset-x-0! bottom-0! top-auto! left-0! right-0! w-full! max-w-full!",
                 "translate-x-0! translate-y-0! rounded-t-2xl rounded-b-none",
                 "max-h-(--room-mobile-chat-sheet-max-h)",
               )}
               style={roomMobileChatSheetLayoutCssVars(mobileChatSheetDrag)}
-              overlayClassName="z-240"
+              overlayClassName={IN_CALL_DIALOG_OVERLAY_Z}
             >
               <DialogTitle className="sr-only">
                 {showActivitiesTab ? "People, chat, and activities" : "People and chat"}

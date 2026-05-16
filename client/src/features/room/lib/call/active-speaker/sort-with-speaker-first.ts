@@ -1,4 +1,5 @@
 import type { RemoteParticipant } from "@/features/rtc";
+import { comparePeerIdsForLiveSpeakerGridOrder } from "./compare-speaker-order";
 
 /**
  * Puts the locked live speaker first among remotes, then others by total speaking time,
@@ -14,17 +15,9 @@ export function sortParticipantsWithSpeakerFirst(
   const times = speakingMsByPeer ?? {};
   const firstId = speakerFirstPeerId ?? null;
 
-  return [...participants].sort((a, b) => {
-    const aId = a.peer.peerId;
-    const bId = b.peer.peerId;
-    if (firstId) {
-      if (aId === firstId) return -1;
-      if (bId === firstId) return 1;
-    }
-    const byTime = (times[bId] ?? 0) - (times[aId] ?? 0);
-    if (byTime !== 0) return byTime;
-    return aId.localeCompare(bId);
-  });
+  return [...participants].sort((a, b) =>
+    comparePeerIdsForLiveSpeakerGridOrder(a.peer.peerId, b.peer.peerId, firstId, times),
+  );
 }
 
 export function sortPeerIdsWithSpeakerFirst(
@@ -37,13 +30,7 @@ export function sortPeerIdsWithSpeakerFirst(
   const times = speakingMsByPeer ?? {};
   const firstId = speakerFirstPeerId ?? null;
 
-  return [...peerIds].sort((a, b) => {
-    if (firstId) {
-      if (a === firstId) return -1;
-      if (b === firstId) return 1;
-    }
-    const byTime = (times[b] ?? 0) - (times[a] ?? 0);
-    if (byTime !== 0) return byTime;
-    return a.localeCompare(b);
-  });
+  return [...peerIds].sort((a, b) =>
+    comparePeerIdsForLiveSpeakerGridOrder(a, b, firstId, times),
+  );
 }

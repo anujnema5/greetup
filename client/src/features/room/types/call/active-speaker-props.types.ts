@@ -1,8 +1,5 @@
-/** Props from rtc-service `dominantSpeaker` socket events (live speaker + speaking time). */
-export type ActiveSpeakerProps = {
-  dominantSpeakerPeerId?: string | null;
-  dominantSpeakerSpeakingMs?: Record<string, number>;
+/** Props from rtc-service `dominantSpeaker` socket (live speaker + cumulative speaking ms). */
+export type LiveSpeakerCallProps = {
+  liveSpeakerPeerId?: string | null;
+  liveSpeakerSpeakingMs?: Record<string, number>;
 };
-
-/** @deprecated Use `ActiveSpeakerProps`. */
-export type DominantSpeakerCallState = ActiveSpeakerProps;

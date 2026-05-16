@@ -8,11 +8,11 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { RoomCircleCallOptionActions } from "@/features/room/call/panels/circle-options/circle-call-option-actions";
+import {
+  IN_CALL_DIALOG_CONTENT_Z,
+  IN_CALL_DIALOG_OVERLAY_Z,
+} from "@/features/room/constants/call/in-call-dialog-layer";
 import { cn } from "@/lib/utils";
-
-/** Stack above `InCallContainer` (z-100). */
-const DIALOG_OVERLAY_Z = "z-240";
-const DIALOG_CONTENT_Z = "z-250";
 
 export type RoomCircleCallOptionsDialogProps = {
   open: boolean;
@@ -41,8 +41,8 @@ export function RoomCircleCallOptionsDialog({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
-        className={cn(DIALOG_CONTENT_Z, "gap-0 overflow-hidden p-0 sm:max-w-md")}
-        overlayClassName={DIALOG_OVERLAY_Z}
+        className={cn(IN_CALL_DIALOG_CONTENT_Z, "gap-0 overflow-hidden p-0 sm:max-w-md")}
+        overlayClassName={IN_CALL_DIALOG_OVERLAY_Z}
       >
         <DialogHeader className="space-y-1 border-b px-4 py-4 text-left">
           <DialogTitle>Circle options</DialogTitle>

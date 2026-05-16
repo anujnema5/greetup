@@ -41,10 +41,10 @@ import { useAttachMediaStream } from "@/features/room/hooks/media/use-attach-med
 import { ScreenShareFilmstrip } from "@/features/room/call/layouts/screen-share/screen-share-strip";
 import { CamerasUnderScreenShare } from "@/features/room/call/layouts/screen-share/cameras-under-screen";
 import {
-  DOMINANT_SPEAKER_TILE_RING,
-  isDirectCallRemoteSideDominant,
-  isDominantSpeakerLocalUser,
-  isDominantSpeakerPeer,
+  LIVE_SPEAKER_TILE_RING,
+  isRemoteTileShowingLiveSpeaker,
+  isYouTheLiveSpeaker,
+  isLiveSpeakerOnTile,
 } from "@/features/room/lib/call/active-speaker";
 
 type StageRatio = "16:9" | "1:1";
@@ -94,8 +94,8 @@ export function MainStage({
    * show only the shared screen (not peer/local tiles beside or below it).
    */
   shareStageImmersive = false,
-  dominantSpeakerPeerId = null,
-  dominantSpeakerSpeakingMs = {},
+  liveSpeakerPeerId = null,
+  liveSpeakerSpeakingMs = {},
 }: {
   isGroupRoom: boolean;
   groupGalleryParticipants: RemoteParticipant[];
@@ -140,15 +140,15 @@ export function MainStage({
   participantVideosInSidebar?: boolean;
   shareStageImmersive?: boolean;
   /** SFU mic-dominant user id (rtc-service `dominantSpeaker`). */
-  dominantSpeakerPeerId?: string | null;
-  dominantSpeakerSpeakingMs?: Record<string, number>;
+  liveSpeakerPeerId?: string | null;
+  liveSpeakerSpeakingMs?: Record<string, number>;
 }) {
   const stageActivity = activeRealtimeActivity?.kind === "chess" ? "chess" : activeActivity;
 
-  const localDominant = isDominantSpeakerLocalUser(dominantSpeakerPeerId, currentUserId ?? null);
-  const directRemoteDominant = isDirectCallRemoteSideDominant(
+  const localIsLiveSpeaker = isYouTheLiveSpeaker(liveSpeakerPeerId, currentUserId ?? null);
+  const directRemoteIsLiveSpeaker = isRemoteTileShowingLiveSpeaker(
     isGroupRoom,
-    dominantSpeakerPeerId,
+    liveSpeakerPeerId,
     currentUserId ?? null,
   );
 
@@ -268,8 +268,8 @@ export function MainStage({
                 remoteParticipants={sideParticipants}
                 className="min-h-0 md:flex-1 md:min-h-0 xl:hidden"
                 currentUserId={currentUserId ?? null}
-                dominantSpeakerPeerId={dominantSpeakerPeerId}
-                dominantSpeakerSpeakingMs={dominantSpeakerSpeakingMs}
+                liveSpeakerPeerId={liveSpeakerPeerId}
+                liveSpeakerSpeakingMs={liveSpeakerSpeakingMs}
               />
             ) : null}
           </div>
@@ -286,7 +286,7 @@ export function MainStage({
             micEnabled={micEnabled}
             cameraEnabled={cameraEnabled}
             currentUserId={currentUserId ?? null}
-            dominantSpeakerPeerId={dominantSpeakerPeerId}
+            liveSpeakerPeerId={liveSpeakerPeerId}
           />
         ) : (
           /* 1–6 participants: adaptive single-page grid (featured layout for 3, 2×2 for 4, etc.) */
@@ -297,8 +297,8 @@ export function MainStage({
                   participant={featuredParticipant}
                   className="md:row-span-2"
                   avatarSizeClass={circleTileAvatarSize}
-                  isDominantSpeaker={isDominantSpeakerPeer(
-                    dominantSpeakerPeerId,
+                  isLiveSpeaker={isLiveSpeakerOnTile(
+                    liveSpeakerPeerId,
                     featuredParticipant.peer.peerId,
                   )}
                 />
@@ -312,7 +312,7 @@ export function MainStage({
                 myAvatarUrl={myAvatarUrl}
                 micEnabled={micEnabled}
                 cameraEnabled={cameraEnabled}
-                isDominantSpeaker={localDominant}
+                isLiveSpeaker={localIsLiveSpeaker}
                 avatarSizeClass={circleTileAvatarSize}
               />
               {sideParticipants.map((participant, idx) => (
@@ -321,8 +321,8 @@ export function MainStage({
                   participant={participant}
                   className={groupTileCount === 3 && idx < 2 ? "min-h-0 md:min-h-22" : undefined}
                   avatarSizeClass={circleTileAvatarSize}
-                  isDominantSpeaker={isDominantSpeakerPeer(
-                    dominantSpeakerPeerId,
+                  isLiveSpeaker={isLiveSpeakerOnTile(
+                    liveSpeakerPeerId,
                     participant.peer.peerId,
                   )}
                 />
@@ -353,7 +353,7 @@ export function MainStage({
             <div
               className={cn(
                 "relative min-h-0 min-w-0 flex-1 overflow-hidden rounded-2xl border border-border/60 bg-card",
-                localDominant && DOMINANT_SPEAKER_TILE_RING,
+                localIsLiveSpeaker && LIVE_SPEAKER_TILE_RING,
               )}
             >
               <VideoMirror
@@ -487,7 +487,7 @@ export function MainStage({
                           "max-md:aspect-video max-md:w-full max-md:flex-none",
                           "md:max-xl:flex-1 md:max-xl:min-h-0 md:max-xl:self-stretch",
                           "xl:min-h-0 xl:flex-1 xl:max-h-[48%]",
-                          directRemoteDominant && DOMINANT_SPEAKER_TILE_RING,
+                          directRemoteIsLiveSpeaker && LIVE_SPEAKER_TILE_RING,
                         )}
                       >
                         <video
@@ -525,7 +525,7 @@ export function MainStage({
                           "max-md:aspect-video max-md:w-full max-md:flex-none",
                           "md:max-xl:flex-1 md:max-xl:min-h-0 md:max-xl:self-stretch",
                           "xl:min-h-0 xl:flex-1 xl:max-h-[48%]",
-                          localDominant && DOMINANT_SPEAKER_TILE_RING,
+                          localIsLiveSpeaker && LIVE_SPEAKER_TILE_RING,
                         )}
                       >
                         <video
@@ -562,7 +562,7 @@ export function MainStage({
                   <div
                     className={cn(
                       "relative min-h-0 min-w-0 flex-1 basis-0 overflow-hidden rounded-2xl bg-black",
-                      directRemoteDominant && DOMINANT_SPEAKER_TILE_RING,
+                      directRemoteIsLiveSpeaker && LIVE_SPEAKER_TILE_RING,
                     )}
                   >
                     <VideoMirror
@@ -609,7 +609,7 @@ export function MainStage({
                   <div
                     className={cn(
                       "relative min-h-0 min-w-0 flex-1 basis-0 overflow-hidden rounded-2xl border border-border/60 bg-card",
-                      localDominant && DOMINANT_SPEAKER_TILE_RING,
+                      localIsLiveSpeaker && LIVE_SPEAKER_TILE_RING,
                     )}
                   >
                     <VideoMirror

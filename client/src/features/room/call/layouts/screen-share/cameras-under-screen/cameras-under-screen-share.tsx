@@ -32,10 +32,10 @@ function YourCameraTile({
   micEnabled,
   cameraEnabled,
   currentUserId = null,
-  dominantSpeakerPeerId = null,
+  liveSpeakerPeerId = null,
   className,
 }: LocalPreviewProps & { className?: string }) {
-  const youAreSpeaking = isYouTheLiveSpeaker(dominantSpeakerPeerId, currentUserId);
+  const youAreSpeaking = isYouTheLiveSpeaker(liveSpeakerPeerId, currentUserId);
   return (
     <LocalParticipantTile
       localVideoRef={localVideoRef}
@@ -46,7 +46,7 @@ function YourCameraTile({
       myAvatarUrl={myAvatarUrl}
       micEnabled={micEnabled}
       cameraEnabled={cameraEnabled}
-      isDominantSpeaker={youAreSpeaking}
+      isLiveSpeaker={youAreSpeaking}
       avatarSizeClass={CALL_TILE_AVATAR_SIZE_COMPACT}
       className={className}
     />
@@ -54,7 +54,7 @@ function YourCameraTile({
 }
 
 function localTileProps(p: CamerasUnderScreenShareProps): LocalPreviewProps {
-  const { remoteParticipants: _r, className: _c, dominantSpeakerSpeakingMs: _t, ...rest } = p;
+  const { remoteParticipants: _r, className: _c, liveSpeakerSpeakingMs: _t, ...rest } = p;
   return rest;
 }
 
@@ -63,13 +63,13 @@ function ThreePeopleUnderShare(props: CamerasUnderScreenShareProps) {
   const {
     className,
     remoteParticipants,
-    dominantSpeakerPeerId = null,
-    dominantSpeakerSpeakingMs = {},
+    liveSpeakerPeerId = null,
+    liveSpeakerSpeakingMs = {},
   } = props;
   const { participantsWithSpeakerFirst } = useParticipantsWithSpeakerFirst(
     remoteParticipants,
-    dominantSpeakerPeerId,
-    dominantSpeakerSpeakingMs,
+    liveSpeakerPeerId,
+    liveSpeakerSpeakingMs,
   );
   const [leftRemote, rightRemote] = participantsWithSpeakerFirst;
 
@@ -80,13 +80,13 @@ function ThreePeopleUnderShare(props: CamerasUnderScreenShareProps) {
           participant={leftRemote}
           className="min-h-0 min-w-0"
           avatarSizeClass={CALL_TILE_AVATAR_SIZE_COMPACT}
-          isDominantSpeaker={isLiveSpeakerOnTile(dominantSpeakerPeerId, leftRemote.peer.peerId)}
+          isLiveSpeaker={isLiveSpeakerOnTile(liveSpeakerPeerId, leftRemote.peer.peerId)}
         />
         <RemoteParticipantTile
           participant={rightRemote}
           className="min-h-0 min-w-0"
           avatarSizeClass={CALL_TILE_AVATAR_SIZE_COMPACT}
-          isDominantSpeaker={isLiveSpeakerOnTile(dominantSpeakerPeerId, rightRemote.peer.peerId)}
+          isLiveSpeaker={isLiveSpeakerOnTile(liveSpeakerPeerId, rightRemote.peer.peerId)}
         />
         <YourCameraTile {...localTileProps(props)} className="col-span-2 min-h-0" />
       </div>
@@ -98,14 +98,14 @@ function FourUpPaginatedGrid(props: CamerasUnderScreenShareProps) {
   const {
     className,
     remoteParticipants,
-    dominantSpeakerPeerId = null,
-    dominantSpeakerSpeakingMs = {},
+    liveSpeakerPeerId = null,
+    liveSpeakerSpeakingMs = {},
   } = props;
 
   const { participantsWithSpeakerFirst, lockedSpeakerPeerId } = useParticipantsWithSpeakerFirst(
     remoteParticipants,
-    dominantSpeakerPeerId,
-    dominantSpeakerSpeakingMs,
+    liveSpeakerPeerId,
+    liveSpeakerSpeakingMs,
   );
 
   const total = participantsWithSpeakerFirst.length + 1;
@@ -135,8 +135,8 @@ function FourUpPaginatedGrid(props: CamerasUnderScreenShareProps) {
               participant={participant}
               className="min-h-0 min-w-0"
               avatarSizeClass={CALL_TILE_AVATAR_SIZE_COMPACT}
-              isDominantSpeaker={isLiveSpeakerOnTile(
-                dominantSpeakerPeerId,
+              isLiveSpeaker={isLiveSpeakerOnTile(
+                liveSpeakerPeerId,
                 participant.peer.peerId,
               )}
             />
