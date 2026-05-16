@@ -1,5 +1,6 @@
 import { createSlice, type PayloadAction } from "@reduxjs/toolkit";
 
+import { isCircleSearchRoomId } from "@/features/room/lib/navigation/circle-routes";
 import type { RoomMediaStatus, RoomPeerEntry, RoomSessionPhase } from "@/lib/redux/types/room-slice.types";
 
 export interface RoomSliceState {
@@ -50,9 +51,17 @@ export const roomSlice = createSlice({
         (state.session.phase === "searching" || state.session.phase === "in_call");
 
       if (state.session.activeRoomId !== nextId) {
-        if (rematchRouteChange) {
+        if (rematchRouteChange && isCircleSearchRoomId(nextId)) {
           state.session.phase = "searching";
           state.session.activeRoomId = null;
+          state.session.rtcPrimaryRemoteUserId = null;
+          state.session.directCallPeerLabel = null;
+          state.peers.byUserId = {};
+          return;
+        }
+        if (rematchRouteChange && !isCircleSearchRoomId(nextId)) {
+          state.session.activeRoomId = nextId;
+          state.session.phase = "searching";
           state.session.rtcPrimaryRemoteUserId = null;
           state.session.directCallPeerLabel = null;
           state.peers.byUserId = {};

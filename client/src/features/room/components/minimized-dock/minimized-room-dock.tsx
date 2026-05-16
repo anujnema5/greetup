@@ -9,8 +9,13 @@ import {
   selectDirectCallPeerLabel,
   selectIsRoomMinimized,
   selectIsVideoSessionActive,
+  selectRoomPhase,
   selectRtcPrimaryRemoteUserId,
 } from "@/lib/redux/selectors/room-selectors";
+import {
+  CIRCLE_SEARCH_PATH,
+  circleRoomPath,
+} from "@/features/room/lib/navigation/circle-routes";
 import { expandVideoSession } from "@/lib/redux/slices/room-slice";
 import { isCircleRoomData } from "@/features/matching";
 import { useGetRoomQuery } from "@/features/room/api/room-api";
@@ -64,6 +69,7 @@ function MinimizedRoomDockPanel() {
   const dispatch = useAppDispatch();
   const isActive = useAppSelector(selectIsVideoSessionActive);
   const activeRoomId = useAppSelector(selectActiveRoomId);
+  const roomPhase = useAppSelector(selectRoomPhase);
   const rtcPrimaryRemoteUserId = useAppSelector(selectRtcPrimaryRemoteUserId);
   const directCallPeerLabel = useAppSelector(selectDirectCallPeerLabel);
   const { data: session } = useSession();
@@ -191,13 +197,15 @@ function MinimizedRoomDockPanel() {
     // Keep `ROOM_MINIMIZED_KEY` until `/circle` mounts `InCallContainer` (`useRoomVideo` clears it).
     // Clearing here runs before navigation; `useRoomPageTabLease` cleanup then thinks we fully
     // left the room and dispatches `resetRoomState()`, which tears down RTC and forces re-join.
-    if (activeRoomId) {
-      router.push(`/circle/${activeRoomId}`);
+    if (roomPhase === "searching") {
+      router.push(CIRCLE_SEARCH_PATH);
+    } else if (activeRoomId) {
+      router.push(circleRoomPath(activeRoomId));
     } else {
       clearRoomMinimized();
       router.push("/home");
     }
-  }, [dispatch, router, activeRoomId]);
+  }, [dispatch, router, activeRoomId, roomPhase]);
 
   const clearDockOffset = useCallback(() => {
     try {

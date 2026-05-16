@@ -7,3 +7,4 @@ export * from "./minimized-dock/minimized-dock-main-stage-silence";
 export * from "./call/dominant-speaker-tile";
 export * from "./call/format-call-duration";
 export * from "./navigation/after-call-navigation";
+export * from "./navigation/circle-routes";

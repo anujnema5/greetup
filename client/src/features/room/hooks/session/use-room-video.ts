@@ -27,6 +27,10 @@ import {
 } from "@/features/room/lib/session/room-sync";
 import { useMatchmaking } from "@/features/matching";
 import {
+  goToCircleSearch,
+  resolveApiRoomId,
+} from "@/features/room/lib/navigation/circle-routes";
+import {
   useHostEndCircleForEveryoneMutation,
   useLeaveCircleRtcMutation,
   useLeaveRoomMutation,
@@ -89,22 +93,26 @@ export function useRoomVideo(roomId: string, options?: UseRoomVideoOptions) {
   const beginSearchAfterSkip = useCallback(() => {
     if (skipHandledRef.current) return;
     skipHandledRef.current = true;
+    const apiRoomId = resolveApiRoomId(roomId);
     dispatch(beginSearchingNextCall());
+    goToCircleSearch(router);
     if (isDbCircleCall) {
       void leaveCircleRtcOnly()
         .catch(() => {})
         .finally(() => {
           void matchmaking.restartSearch();
         });
-    } else {
-      void leaveRoom({ roomId })
+    } else if (apiRoomId) {
+      void leaveRoom({ roomId: apiRoomId })
         .unwrap()
         .catch(() => {})
         .finally(() => {
           void matchmaking.restartSearch();
         });
+    } else {
+      void matchmaking.restartSearch();
     }
-  }, [dispatch, isDbCircleCall, leaveCircleRtcOnly, leaveRoom, matchmaking, roomId]);
+  }, [dispatch, isDbCircleCall, leaveCircleRtcOnly, leaveRoom, matchmaking, roomId, router]);
 
   useEffect(() => {
     if (skipSetup) return;
@@ -131,6 +139,10 @@ export function useRoomVideo(roomId: string, options?: UseRoomVideoOptions) {
     if (endHandledRef.current) return;
     endHandledRef.current = true;
     dismissCallUiAndBroadcastEnd();
+    if (!resolveApiRoomId(roomId)) {
+      goToExploreHub();
+      return;
+    }
     if (isDbCircleCall) {
       void leaveCircleRtcOnly().catch(() => {}).finally(goToExploreHub);
     } else {
