@@ -95,6 +95,7 @@ export function MainStage({
    */
   shareStageImmersive = false,
   dominantSpeakerPeerId = null,
+  dominantSpeakerSpeakingMs = {},
 }: {
   isGroupRoom: boolean;
   groupGalleryParticipants: RemoteParticipant[];
@@ -140,6 +141,7 @@ export function MainStage({
   shareStageImmersive?: boolean;
   /** SFU mic-dominant user id (rtc-service `dominantSpeaker`). */
   dominantSpeakerPeerId?: string | null;
+  dominantSpeakerSpeakingMs?: Record<string, number>;
 }) {
   const stageActivity = activeRealtimeActivity?.kind === "chess" ? "chess" : activeActivity;
 
@@ -267,6 +269,7 @@ export function MainStage({
                 className="min-h-0 md:flex-1 md:min-h-0 xl:hidden"
                 currentUserId={currentUserId ?? null}
                 dominantSpeakerPeerId={dominantSpeakerPeerId}
+                dominantSpeakerSpeakingMs={dominantSpeakerSpeakingMs}
               />
             ) : null}
           </div>

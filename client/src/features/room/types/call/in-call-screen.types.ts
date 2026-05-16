@@ -99,4 +99,6 @@ export type InCallScreenProps = {
   onHostEndCircleForEveryone?: () => void;
   /** Mediasoup dominant speaker user id (`dominantSpeaker` from rtc-service). */
   dominantSpeakerPeerId?: string | null;
+  /** Cumulative dominant-speaker ms per peer (same socket event). */
+  dominantSpeakerSpeakingMs?: Record<string, number>;
 };

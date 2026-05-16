@@ -97,6 +97,7 @@ export function useMediasoupRoomSession(options: MediasoupRoomSessionOptions): v
     set.setLocalScreenTrackId(null);
     set.setRemoteTrackMediaSource({});
     set.setDominantSpeakerPeerId(null);
+    set.setDominantSpeakerSpeakingMs({});
     refs.micEnabledRef.current = false;
     refs.cameraEnabledRef.current = false;
     set.setLocalStream(null);
@@ -167,10 +168,16 @@ export function useMediasoupRoomSession(options: MediasoupRoomSessionOptions): v
       });
     };
 
-    const onDominantSpeaker = (data: { peerId?: string | null }) => {
+    const onDominantSpeaker = (data: {
+      peerId?: string | null;
+      speakingMsByPeer?: Record<string, number>;
+    }) => {
       if (cancelled) return;
       const pid = data?.peerId;
       set.setDominantSpeakerPeerId(typeof pid === "string" && pid.length > 0 ? pid : null);
+      if (data?.speakingMsByPeer && typeof data.speakingMsByPeer === "object") {
+        set.setDominantSpeakerSpeakingMs(data.speakingMsByPeer);
+      }
     };
 
     const onPeerLeft = (data: { peerId?: string }) => {
@@ -619,6 +626,7 @@ function wipeMediasoupRoomUiState(set: MediasoupRoomSessionSetters): void {
   set.setRemoteTrackMediaSource({});
   set.setLocalMediaDeviceError(null);
   set.setDominantSpeakerPeerId(null);
+  set.setDominantSpeakerSpeakingMs({});
 }
 
 function zeroMediasoupRefs(refs: MediasoupRoomSessionRefs): void {

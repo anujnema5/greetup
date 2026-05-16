@@ -8,7 +8,7 @@
  * Local tile is always built first so it is not the last slot on a page.
  */
 import Image from "next/image";
-import { cloneElement, useMemo, useRef, useState, type ReactElement } from "react";
+import { cloneElement, useEffect, useMemo, useRef, useState, type ReactElement } from "react";
 import { ChevronLeft, ChevronRight, Monitor } from "lucide-react";
 import { sortPeerIds } from "@/features/rtc/lib/remote-participant-streams";
 import type { RemoteParticipant, RemotePeer, ScreenShareTileInfo } from "@/features/rtc/types/mediasoup-room.types";
@@ -28,6 +28,8 @@ import {
   isDominantSpeakerLocalUser,
   isDominantSpeakerPeer,
 } from "@/features/room/lib/call/dominant-speaker-tile";
+import { orderRemotePeerIdsForPaginatedTiles } from "@/features/room/lib/call/order-participants-for-pagination";
+import { useStickyDominantAnchorPeerId } from "@/features/room/lib/call/use-sticky-dominant-anchor-peer-id";
 import { getProfileImageUrl } from "@/lib/ui/profile-image";
 import { cn } from "@/lib/utils";
 
@@ -427,6 +429,7 @@ export function RoomCallParticipantsPanel({
   suppressCameraTiles = false,
   currentUserId = null,
   dominantSpeakerPeerId = null,
+  dominantSpeakerSpeakingMs = {},
 }: {
   isGroupRoom: boolean;
   myName: string;
@@ -448,8 +451,14 @@ export function RoomCallParticipantsPanel({
   suppressCameraTiles?: boolean;
   currentUserId?: string | null;
   dominantSpeakerPeerId?: string | null;
+  dominantSpeakerSpeakingMs?: Record<string, number>;
 }) {
   const remoteIds = sortPeerIds(Object.keys(remotePeers));
+  const anchorPeerId = useStickyDominantAnchorPeerId(remoteIds, dominantSpeakerPeerId);
+  const orderedRemoteIds = useMemo(
+    () => orderRemotePeerIdsForPaginatedTiles(remoteIds, anchorPeerId, dominantSpeakerSpeakingMs),
+    [remoteIds, anchorPeerId, dominantSpeakerSpeakingMs],
+  );
   const allowPickShareFromTile = screenShareTiles.length <= 1;
   const localShareKey = shareTileKeyForPeer(screenShareTiles, "local");
 
@@ -486,7 +495,7 @@ export function RoomCallParticipantsPanel({
         myName,
         onSelectScreenShare,
         peerStreamById,
-        remoteIds,
+        remoteIds: orderedRemoteIds,
         remotePeerCameraOff,
         remotePeerCameraStream,
         remotePeerMicOff,
@@ -511,7 +520,7 @@ export function RoomCallParticipantsPanel({
       myName,
       onSelectScreenShare,
       peerStreamById,
-      remoteIds,
+      orderedRemoteIds,
       remotePeerCameraOff,
       remotePeerCameraStream,
       remotePeerMicOff,
@@ -533,6 +542,10 @@ export function RoomCallParticipantsPanel({
   const [gridPageRaw, setGridPageRaw] = useState(0);
   const gridMaxIdx = gridPageCount - 1;
   const gridPage = Math.min(Math.max(0, gridPageRaw), gridMaxIdx);
+
+  useEffect(() => {
+    setGridPageRaw(0);
+  }, [anchorPeerId]);
 
   const visibleCameraTiles = useMemo(() => {
     if (!useGridLayout) return cameraTiles;

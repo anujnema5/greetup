@@ -119,6 +119,7 @@ export function InCallContainer({
     setFocusedScreenShareKey,
     remoteTrackMediaSource,
     dominantSpeakerPeerId,
+    dominantSpeakerSpeakingMs,
   } = useRtcSocketContext();
 
   /** DB-backed tiles + policy map; invite gating uses `embeddedStageActivityId` (can run ahead of Redux). */
@@ -442,6 +443,7 @@ export function InCallContainer({
         directRoomActivities={directRoomActivities}
         embeddedCallPolicyLookup={embeddedCallPolicyLookup}
         dominantSpeakerPeerId={dominantSpeakerPeerId}
+        dominantSpeakerSpeakingMs={dominantSpeakerSpeakingMs}
         callCapabilities={callCapabilities}
       />
     </div>

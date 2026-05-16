@@ -93,6 +93,8 @@ export type UseMediasoupRoomReturn = {
   remoteTrackMediaSource: Record<string, ProducerMediaSource>;
   /** SFU active speaker (user id); highlights that participant's tile. */
   dominantSpeakerPeerId: string | null;
+  /** Cumulative dominant-speaker milliseconds per peer (`dominantSpeaker` from rtc-service). */
+  dominantSpeakerSpeakingMs: Record<string, number>;
 };
 
 export type ProducerMediaSource = "camera" | "screen";

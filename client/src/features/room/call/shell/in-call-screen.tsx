@@ -187,6 +187,7 @@ export function InCallScreen({
   directRoomActivities: directRoomActivitiesProp,
   embeddedCallPolicyLookup = null,
   dominantSpeakerPeerId = null,
+  dominantSpeakerSpeakingMs = {},
   onHostEndCircleForEveryone,
   callCapabilities: callCapabilitiesProp,
 }: InCallScreenProps) {
@@ -482,6 +483,7 @@ export function InCallScreen({
       suppressCameraTiles={suppressPeoplePanelCameras}
       currentUserId={currentUserId ?? null}
       dominantSpeakerPeerId={dominantSpeakerPeerId}
+      dominantSpeakerSpeakingMs={dominantSpeakerSpeakingMs}
     />
   ) : null;
 
@@ -598,6 +600,7 @@ export function InCallScreen({
                   participantVideosInSidebar={participantVideosInSidebar}
                   shareStageImmersive={shareStageImmersive}
                   dominantSpeakerPeerId={dominantSpeakerPeerId}
+                  dominantSpeakerSpeakingMs={dominantSpeakerSpeakingMs}
                 />
 
                 <StageOverlays

@@ -7,7 +7,7 @@
  * - **3 people** — top row: two remotes; bottom: your camera full width.
  * - **4+ people** — 2×2 pages with prev/next (4 tiles per page, local included in order).
  */
-import { useCallback, useState, type RefObject } from "react";
+import { useCallback, useEffect, useState, type RefObject } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { RemoteParticipant } from "@/features/rtc";
@@ -18,6 +18,7 @@ import {
   isDominantSpeakerLocalUser,
   isDominantSpeakerPeer,
 } from "@/features/room/lib/call/dominant-speaker-tile";
+import { usePaginatedRemoteOrder } from "@/features/room/lib/call/use-paginated-remote-order";
 
 const TILES_PER_PAGE = 4;
 const SHELL_CLASS = "flex min-h-0 min-w-0 flex-1 flex-col gap-1";
@@ -35,6 +36,7 @@ export type ScreenShareMobileParticipantGridProps = {
   className?: string;
   currentUserId?: string | null;
   dominantSpeakerPeerId?: string | null;
+  dominantSpeakerSpeakingMs?: Record<string, number>;
 };
 
 type LocalPreviewProps = Omit<
@@ -74,14 +76,24 @@ function LocalCameraPreview({
 }
 
 function localPreviewProps(p: ScreenShareMobileParticipantGridProps): LocalPreviewProps {
-  const { remoteParticipants: _r, className: _c, ...rest } = p;
+  const { remoteParticipants: _r, className: _c, dominantSpeakerSpeakingMs: _t, ...rest } = p;
   return rest;
 }
 
 /** You + exactly two remotes: [peer][peer] / [You full width]. */
 function ThreeParticipantShareGrid(props: ScreenShareMobileParticipantGridProps) {
-  const { className, remoteParticipants, dominantSpeakerPeerId = null } = props;
-  const [leftRemote, rightRemote] = remoteParticipants;
+  const {
+    className,
+    remoteParticipants,
+    dominantSpeakerPeerId = null,
+    dominantSpeakerSpeakingMs = {},
+  } = props;
+  const { orderedRemotes } = usePaginatedRemoteOrder(
+    remoteParticipants,
+    dominantSpeakerPeerId,
+    dominantSpeakerSpeakingMs,
+  );
+  const [leftRemote, rightRemote] = orderedRemotes;
 
   return (
     <div className={cn(SHELL_CLASS, className)}>
@@ -108,13 +120,29 @@ function ThreeParticipantShareGrid(props: ScreenShareMobileParticipantGridProps)
 }
 
 function PaginatedFourUpGrid(props: ScreenShareMobileParticipantGridProps) {
-  const { className, remoteParticipants, dominantSpeakerPeerId = null } = props;
-  const total = remoteParticipants.length + 1;
+  const {
+    className,
+    remoteParticipants,
+    dominantSpeakerPeerId = null,
+    dominantSpeakerSpeakingMs = {},
+  } = props;
+
+  const { orderedRemotes, anchorPeerId } = usePaginatedRemoteOrder(
+    remoteParticipants,
+    dominantSpeakerPeerId,
+    dominantSpeakerSpeakingMs,
+  );
+
+  const total = orderedRemotes.length + 1;
   const totalPages = Math.ceil(total / TILES_PER_PAGE);
   const maxPage = Math.max(0, totalPages - 1);
 
   const [page, setPage] = useState(0);
   const viewPage = Math.min(page, maxPage);
+
+  useEffect(() => {
+    setPage(0);
+  }, [anchorPeerId]);
 
   const prev = useCallback(
     () => setPage((p) => Math.max(0, Math.min(p, maxPage) - 1)),
@@ -138,7 +166,7 @@ function PaginatedFourUpGrid(props: ScreenShareMobileParticipantGridProps) {
           if (tileIdx === 0) {
             return <LocalCameraPreview key="local" {...lp} />;
           }
-          const participant = remoteParticipants[tileIdx - 1]!;
+          const participant = orderedRemotes[tileIdx - 1]!;
           return (
             <RemoteParticipantTile
               key={participant.peer.peerId}

@@ -4,7 +4,6 @@
  * Paginated gallery for circle rooms with 7+ participants (6 tiles per page).
  */
 import type { RefObject } from "react";
-import { cn } from "@/lib/utils";
 import type { RemoteParticipant } from "@/features/rtc";
 import { PaginatedTileGrid } from "@/features/room/call/layouts/grid/paginated-tile-grid";
 import { CALL_TILE_AVATAR_SIZE_COMPACT } from "@/features/room/call/tiles/tile-styles";
