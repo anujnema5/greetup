@@ -17,7 +17,10 @@ import {
   circleRoomPath,
 } from "@/features/room/lib/navigation/circle-routes";
 import { expandVideoSession } from "@/lib/redux/slices/room-slice";
-import { isCircleRoomData } from "@/features/matching";
+import {
+  isPersistedCircleSession,
+  resolveCircleHostUserId,
+} from "@/features/matching/types/room.types";
 import { useGetRoomQuery } from "@/features/room/api/room-api";
 import { useRoomVideo } from "@/features/room/hooks/session/use-room-video";
 import { useMinimizedDockMainStage } from "@/features/room/hooks/minimized-dock/use-minimized-dock-main-stage";
@@ -76,23 +79,6 @@ function MinimizedRoomDockPanel() {
   const currentUserId = session?.user?.id ?? null;
   const localProfileImageUrl = session?.user?.image ?? null;
 
-  const { data: dockRoomMeta } = useGetRoomQuery(activeRoomId ?? "", {
-    skip: !activeRoomId || !isActive,
-  });
-  const dockSessionIsCircle = Boolean(dockRoomMeta && isCircleRoomData(dockRoomMeta));
-
-  const dockCircleHostId =
-    dockRoomMeta && isCircleRoomData(dockRoomMeta) ? dockRoomMeta.hostUserId : null;
-
-  const { handleEnd: roomHandleEnd, handleSkip: roomHandleSkip } = useRoomVideo(
-    activeRoomId ?? "",
-    {
-      skipSetup: true,
-      isDbCircleCall: dockSessionIsCircle,
-      circleHostUserId: dockCircleHostId,
-    },
-  );
-
   const {
     localMediaStream,
     remoteMediaStream,
@@ -111,6 +97,21 @@ function MinimizedRoomDockPanel() {
     localMediaDeviceError,
     clearLocalMediaDeviceError,
   } = useRtcSocketContext();
+
+  const { data: dockRoomMeta } = useGetRoomQuery(activeRoomId ?? "", {
+    skip: !activeRoomId || !isActive,
+  });
+  const dockSessionIsCircle = isPersistedCircleSession(dockRoomMeta, rtcRoomType);
+  const dockCircleHostId = resolveCircleHostUserId(dockRoomMeta);
+
+  const { handleEnd: roomHandleEnd, handleSkip: roomHandleSkip } = useRoomVideo(
+    activeRoomId ?? "",
+    {
+      skipSetup: true,
+      isDbCircleCall: dockSessionIsCircle,
+      circleHostUserId: dockCircleHostId,
+    },
+  );
 
   const dockStage = useMinimizedDockMainStage({
     mainStageShowsScreen,

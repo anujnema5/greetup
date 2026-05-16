@@ -20,14 +20,10 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { IN_CALL_DROPDOWN_Z } from "@/features/room/constants/call/in-call-dialog-layer";
-import type { OnRemoveCircleParticipant } from "@/features/room/types/call/participant-remove.types";
+import type { ParticipantRemoveTarget } from "@/features/room/types/call/participant-remove.types";
 import { cn } from "@/lib/utils";
 
-export type ParticipantRemoveTarget = {
-  userId: string;
-  displayName: string;
-  restrict: boolean;
-};
+export type { ParticipantRemoveTarget } from "@/features/room/types/call/participant-remove.types";
 
 type ParticipantKickMenuButtonProps = {
   participantLabel: string;
@@ -63,12 +59,15 @@ export function ParticipantKickMenuButton({
             "inline-flex shrink-0 cursor-pointer items-center justify-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40",
             disabled && "cursor-not-allowed opacity-50",
             isTile && !embedded && "size-7 rounded-md border border-white/15 bg-black/60 text-white shadow-sm backdrop-blur-sm hover:bg-black/75",
-            isTile && embedded && "size-5 rounded-[5px] text-white/75 hover:bg-white/10",
+            isTile && embedded && "size-6 rounded-[5px] text-white/80 hover:bg-white/10",
             !isTile && "size-8 rounded-md text-muted-foreground hover:bg-muted hover:text-foreground",
             className,
           )}
         >
-          <MoreVertical size={isTile ? 14 : 16} strokeWidth={2.2} />
+          <MoreVertical
+            className={cn("shrink-0", isTile ? "size-3.5" : "size-4")}
+            strokeWidth={2.25}
+          />
         </button>
       </DropdownMenuTrigger>
       <DropdownMenuContent
@@ -76,15 +75,15 @@ export function ParticipantKickMenuButton({
         side={isTile ? "top" : "bottom"}
         sideOffset={6}
         collisionPadding={12}
-        className={cn(IN_CALL_DROPDOWN_Z, "w-52")}
+        className={cn(IN_CALL_DROPDOWN_Z, "w-44 text-xs")}
         onPointerDown={(e) => e.stopPropagation()}
       >
         <DropdownMenuItem onSelect={onRequestRemove}>
-          <UserMinus size={14} />
+          <UserMinus className="size-3.5 shrink-0" strokeWidth={2.25} />
           Remove from circle
         </DropdownMenuItem>
         <DropdownMenuItem variant="destructive" onSelect={onRequestRestrict}>
-          <Ban size={14} />
+          <Ban className="size-3.5 shrink-0" strokeWidth={2.25} />
           Remove and restrict
         </DropdownMenuItem>
       </DropdownMenuContent>

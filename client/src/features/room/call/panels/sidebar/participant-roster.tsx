@@ -6,9 +6,11 @@ import type { RemotePeer } from "@/features/rtc/types/mediasoup-room.types";
 import {
   ParticipantKickMenuButton,
   ParticipantRemoveConfirmDialog,
-  type ParticipantRemoveTarget,
 } from "@/features/room/call/components/participant-kick-actions";
-import type { OnRemoveCircleParticipant } from "@/features/room/types/call/participant-remove.types";
+import type {
+  OnRemoveCircleParticipant,
+  ParticipantRemoveTarget,
+} from "@/features/room/types/call/participant-remove.types";
 import { getProfileImageUrl } from "@/lib/ui/profile-image";
 
 type RosterRow = {

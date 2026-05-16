@@ -11,7 +11,12 @@ import type { EmbeddedCallPolicyLookup } from "@/features/room/embedded-activiti
 import type { RoomActivityId, RoomActivityMeta } from "@/features/room/types/call/room-activity.types";
 import type { CallCapabilities } from "@/features/room/contracts";
 import type { LiveSpeakerCallProps } from "@/features/room/types/call/active-speaker-props.types";
-import type { OnRemoveCircleParticipant } from "@/features/room/types/call/participant-remove.types";
+import type {
+  CircleParticipantKickProps,
+  OnRemoveCircleParticipant,
+} from "@/features/room/types/call/participant-remove.types";
+
+export type { CircleParticipantKickProps };
 
 export type InCallScreenProps = {
   /** Built in call wiring; drives tabs, layout mode, and future feature flags. */
@@ -104,10 +109,3 @@ export type InCallScreenProps = {
   kickingUserId?: string | null;
   isCircleHost?: boolean;
 } & LiveSpeakerCallProps;
-
-/** Passed to main-stage remote participant tiles for host kick controls. */
-export type CircleParticipantKickProps = {
-  isCircleHost?: boolean;
-  onKickParticipant?: (userId: string, displayName: string) => void | Promise<void>;
-  kickingUserId?: string | null;
-};

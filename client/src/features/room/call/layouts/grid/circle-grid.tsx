@@ -13,7 +13,7 @@ import {
   isYouTheLiveSpeaker,
   isLiveSpeakerOnTile,
 } from "@/features/room/lib/call/active-speaker";
-import type { CircleParticipantKickProps } from "@/features/room/types/call/in-call-screen.types";
+import type { CircleParticipantKickProps } from "@/features/room/types/call/participant-remove.types";
 
 const TILES_PER_PAGE = 6;
 const PAGED_GRID = "grid-cols-2 md:grid-cols-3";

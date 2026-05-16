@@ -216,9 +216,9 @@ export const roomParticipants = pgTable(
   ],
 );
 
-/** Host-banned users for a circle; cannot rejoin while the row exists. */
-export const circleRestrictedUsers = pgTable(
-  "circle_restricted_users",
+/** Host-banned users for a room; cannot rejoin while the row exists. */
+export const roomRestrictedUsers = pgTable(
+  "room_restricted_users",
   {
     id: uuid("id").defaultRandom().primaryKey(),
     roomId: uuid("room_id")
@@ -233,10 +233,12 @@ export const circleRestrictedUsers = pgTable(
     createdAt: timestamp("created_at").defaultNow().notNull(),
   },
   (table) => [
-    uniqueIndex("circle_restricted_users_room_user_unique").on(table.roomId, table.userId),
-    index("circle_restricted_users_room_id_idx").on(table.roomId),
+    uniqueIndex("room_restricted_users_room_user_unique").on(table.roomId, table.userId),
+    index("room_restricted_users_room_id_idx").on(table.roomId),
   ],
 );
+
+export type RoomRestrictedUser = typeof roomRestrictedUsers.$inferSelect;
 
 export const roomFriendInvites = pgTable(
   "room_friend_invites",
@@ -293,23 +295,23 @@ export const roomsRelations = relations(rooms, ({ one, many }) => ({
   }),
   participants: many(roomParticipants),
   friendInvites: many(roomFriendInvites),
-  restrictedUsers: many(circleRestrictedUsers),
+  restrictedUsers: many(roomRestrictedUsers),
 }));
 
-export const circleRestrictedUsersRelations = relations(circleRestrictedUsers, ({ one }) => ({
+export const roomRestrictedUsersRelations = relations(roomRestrictedUsers, ({ one }) => ({
   room: one(rooms, {
-    fields: [circleRestrictedUsers.roomId],
+    fields: [roomRestrictedUsers.roomId],
     references: [rooms.id],
   }),
   user: one(users, {
-    fields: [circleRestrictedUsers.userId],
+    fields: [roomRestrictedUsers.userId],
     references: [users.id],
-    relationName: "circleRestrictedUser",
+    relationName: "roomRestrictedUser",
   }),
   restrictedBy: one(users, {
-    fields: [circleRestrictedUsers.restrictedByUserId],
+    fields: [roomRestrictedUsers.restrictedByUserId],
     references: [users.id],
-    relationName: "circleRestrictedBy",
+    relationName: "roomRestrictedBy",
   }),
 }));
 

@@ -8,7 +8,7 @@ import { roomsRepository } from "@/modules/rooms/repositories/rooms.repository";
 import { isDbRoomSessionClosed } from "@/modules/rooms/lib/room-expiry";
 import { deleteSessionRoomRedis } from "@/modules/rooms/services/session-room-redis.service";
 import { maybeAutoStartScheduledCircleFromDb } from "@/modules/rooms/services/maybe-auto-start-scheduled-circle.service";
-import { circleRestrictedUsersRepository } from "@/modules/rooms/repositories/circle-restricted-users.repository";
+import { roomRestrictedUsersRepository } from "@/modules/rooms/repositories/room-restricted-users.repository";
 import { syncCircleRoomExpiryFromClockIfDue } from "@/modules/rooms/services/circle-room-expiry-sync.service";
 
 export type JoinRoomErrorCode =
@@ -70,7 +70,7 @@ export async function joinRoomService(userId: string, roomId: string): Promise<v
   if (room.roomType === "circle" && room.status !== "live") {
     if (
       userId !== room.hostUserId &&
-      (await circleRestrictedUsersRepository.isUserRestricted(roomId, userId))
+      (await roomRestrictedUsersRepository.isRoomRestrictedUser(roomId, userId))
     ) {
       throw new JoinRoomError(
         "You are not allowed to rejoin this circle",
@@ -177,7 +177,7 @@ async function ensureCircleRoomParticipation(
     return;
   }
 
-  if (await circleRestrictedUsersRepository.isUserRestricted(roomId, userId)) {
+  if (await roomRestrictedUsersRepository.isRoomRestrictedUser(roomId, userId)) {
     throw new JoinRoomError(
       "You are not allowed to rejoin this circle",
       "RESTRICTED",

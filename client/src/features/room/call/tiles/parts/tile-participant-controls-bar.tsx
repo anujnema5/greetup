@@ -5,9 +5,11 @@ import { MicOff, VideoOff } from "lucide-react";
 import {
   ParticipantKickMenuButton,
   ParticipantRemoveConfirmDialog,
-  type ParticipantRemoveTarget,
 } from "@/features/room/call/components/participant-kick-actions";
-import type { OnRemoveCircleParticipant } from "@/features/room/types/call/participant-remove.types";
+import type {
+  OnRemoveCircleParticipant,
+  ParticipantRemoveTarget,
+} from "@/features/room/types/call/participant-remove.types";
 import { cn } from "@/lib/utils";
 
 /** Shared shell for local + remote tile bottom-right controls. */

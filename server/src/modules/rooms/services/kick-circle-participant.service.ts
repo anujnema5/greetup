@@ -6,7 +6,7 @@ import { emitToUser } from "@/core/socket/socket";
 import { isDbRoomSessionClosed } from "@/modules/rooms/lib/room-expiry";
 import { CIRCLE_ROOM_SOCKET_EVENTS } from "@/modules/rooms/constants/circle-room-socket.events";
 import { roomsRepository } from "@/modules/rooms/repositories/rooms.repository";
-import { circleRestrictedUsersRepository } from "@/modules/rooms/repositories/circle-restricted-users.repository";
+import { roomRestrictedUsersRepository } from "@/modules/rooms/repositories/room-restricted-users.repository";
 import { notifyRtcServiceKickPeer } from "@/modules/rooms/services/rtc-kick-peer.service";
 import { clearUserActiveRtcRoom } from "@/modules/rooms/services/user-active-rtc-room-redis.service";
 
@@ -114,7 +114,7 @@ export async function kickCircleParticipantService(
 
   let restricted = false;
   if (options.restrict) {
-    await circleRestrictedUsersRepository.restrictUser(roomId, targetUserId, hostUserId);
+    await roomRestrictedUsersRepository.addRoomRestrictedUser(roomId, targetUserId, hostUserId);
     restricted = true;
   }
 

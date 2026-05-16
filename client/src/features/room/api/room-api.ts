@@ -13,6 +13,7 @@ import type {
   UpdateRoomTitleMutationResult,
   RoomApiEnvelope,
 } from "../types/api/room-api.types";
+import type { KickCircleParticipantRequest } from "@/features/room/types/call/participant-remove.types";
 import { parseListRoomEmbeddedActivitiesResponse } from "@/features/room/embedded-activities/parse/parse-list-response";
 import type { RoomEmbeddedActivityDto } from "@/features/room/embedded-activities/types";
 
@@ -188,10 +189,7 @@ export const roomApi = baseApi.injectEndpoints({
       ],
     }),
 
-    kickCircleParticipant: build.mutation<
-      void,
-      { roomId: string; userId: string; restrict?: boolean }
-    >({
+    kickCircleParticipant: build.mutation<void, KickCircleParticipantRequest>({
       query: ({ roomId, userId, restrict }) => ({
         url: ROOM.kickParticipant(roomId, userId),
         method: "POST",

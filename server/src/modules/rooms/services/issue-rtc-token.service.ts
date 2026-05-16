@@ -12,7 +12,7 @@ import {
   getOrCreateRoomConversation,
   ensureRoomConversationParticipant,
 } from "@/modules/chat/services/room-conversation.service";
-import { circleRestrictedUsersRepository } from "@/modules/rooms/repositories/circle-restricted-users.repository";
+import { roomRestrictedUsersRepository } from "@/modules/rooms/repositories/room-restricted-users.repository";
 import { setUserActiveRtcRoom } from "@/modules/rooms/services/user-active-rtc-room-redis.service";
 import { isRoomSessionType } from "@/shared/types/room-session";
 
@@ -89,7 +89,7 @@ export async function issueRtcTokenService(userId: string, roomId: string) {
   if (
     room.roomType === "circle" &&
     !isHost &&
-    (await circleRestrictedUsersRepository.isUserRestricted(roomId, userId))
+    (await roomRestrictedUsersRepository.isRoomRestrictedUser(roomId, userId))
   ) {
     throw new IssueRtcTokenError(
       "You are not allowed to rejoin this circle",

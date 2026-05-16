@@ -40,6 +40,7 @@ import { getRtkMutationErrorMessage } from "@/lib/api/rtk-mutation-error";
 
 export type UseRoomVideoOptions = {
   skipSetup?: boolean;
+  /** Native circle or 1:1 expanded to circle (same Postgres `rooms` row). */
   isDbCircleCall?: boolean;
   circleHostUserId?: string | null;
 };
@@ -237,6 +238,7 @@ export function useRoomVideo(roomId: string, options?: UseRoomVideoOptions) {
     handleHostEndCircleForEveryone,
     handleKickParticipant: isDbCircleCall && isCircleHost ? handleKickParticipant : undefined,
     kickingUserId,
+    isCircleHost,
     handleSkip,
     handleMinimize,
     roomId,

@@ -1,7 +1,7 @@
 import type { RefObject } from "react";
 import type { RemoteParticipant } from "@/features/rtc";
 import type { LiveSpeakerCallProps } from "@/features/room/types/call/active-speaker-props.types";
-import type { CircleParticipantKickProps } from "@/features/room/types/call/in-call-screen.types";
+import type { CircleParticipantKickProps } from "@/features/room/types/call/participant-remove.types";
 
 export type CamerasUnderScreenShareProps = {
   localVideoRef: RefObject<HTMLVideoElement | null>;

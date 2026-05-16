@@ -36,7 +36,7 @@ import {
   VideoMirror,
 } from "@/features/room/call/tiles/tile-primitives";
 import type { RemoteParticipant, ScreenShareTileInfo } from "@/features/rtc";
-import type { CircleParticipantKickProps } from "@/features/room/types/call/in-call-screen.types";
+import type { CircleParticipantKickProps } from "@/features/room/types/call/participant-remove.types";
 import { hasLiveEnabledVideo, hasLiveVideo } from "@/features/rtc";
 import { useAttachMediaStream } from "@/features/room/hooks/media/use-attach-media-stream";
 import { ScreenShareFilmstrip } from "@/features/room/call/layouts/screen-share/screen-share-strip";
