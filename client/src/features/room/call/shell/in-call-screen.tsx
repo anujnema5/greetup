@@ -195,6 +195,9 @@ export function InCallScreen({
   liveSpeakerPeerId = null,
   liveSpeakerSpeakingMs = {},
   onHostEndCircleForEveryone,
+  onKickParticipant,
+  kickingUserId = null,
+  isCircleHost = false,
   callCapabilities: callCapabilitiesProp,
 }: InCallScreenProps) {
   /** `is_active` catalog tiles from `InCallContainer` (empty until loaded or when none enabled). */
@@ -491,6 +494,9 @@ export function InCallScreen({
       currentUserId={currentUserId ?? null}
       liveSpeakerPeerId={liveSpeakerPeerId}
       liveSpeakerSpeakingMs={liveSpeakerSpeakingMs}
+      isCircleHost={isCircleHost}
+      onKickParticipant={onKickParticipant}
+      kickingUserId={kickingUserId}
     />
   ) : null;
 
@@ -608,6 +614,9 @@ export function InCallScreen({
                   shareStageImmersive={shareStageImmersive}
                   liveSpeakerPeerId={liveSpeakerPeerId}
                   liveSpeakerSpeakingMs={liveSpeakerSpeakingMs}
+                  isCircleHost={isCircleHost}
+                  onKickParticipant={onKickParticipant}
+                  kickingUserId={kickingUserId}
                 />
 
                 <StageOverlays

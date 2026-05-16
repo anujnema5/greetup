@@ -198,6 +198,12 @@ export function useMediasoupRoomSession(options: MediasoupRoomSessionOptions): v
       });
     };
 
+    const onKicked = () => {
+      if (cancelled) return;
+      set.setError("removed_from_circle");
+      set.setStatus("error");
+    };
+
     const cleanupMedia = (sendT: Transport | null, recvT: Transport | null) => {
       if (socket.connected) {
         socket.emit("leave");
@@ -208,6 +214,7 @@ export function useMediasoupRoomSession(options: MediasoupRoomSessionOptions): v
       socket.off("producerResumed", onProducerResumed);
       socket.off("peerJoined", onPeerJoined);
       socket.off("peerLeft", onPeerLeft);
+      socket.off("kicked", onKicked);
       socket.off("dominantSpeaker", onDominantSpeaker);
       for (const c of consumers.values()) {
         try {
@@ -471,6 +478,7 @@ export function useMediasoupRoomSession(options: MediasoupRoomSessionOptions): v
 
     socket.on("peerJoined", onPeerJoined);
     socket.on("peerLeft", onPeerLeft);
+    socket.on("kicked", onKicked);
     socket.on("dominantSpeaker", onDominantSpeaker);
     socket.on("producerPaused", onProducerPaused);
     socket.on("producerResumed", onProducerResumed);

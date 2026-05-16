@@ -54,6 +54,7 @@ export {
   OnPartnerDisconnected,
   OnDirectExpandedToCircle,
   OnHostEndedCircle,
+  OnParticipantRemovedFromCircle,
 } from "./listeners";
 export {
   roomApi,
@@ -66,6 +67,7 @@ export {
   useOpenCircleMeetingMutation,
   useLeaveCircleRtcMutation,
   useHostEndCircleForEveryoneMutation,
+  useKickCircleParticipantMutation,
   useRoomInviteMutation,
   useRoomInviteRespondMutation,
   useUpdateRoomTitleMutation,

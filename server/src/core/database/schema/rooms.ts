@@ -216,6 +216,28 @@ export const roomParticipants = pgTable(
   ],
 );
 
+/** Host-banned users for a circle; cannot rejoin while the row exists. */
+export const circleRestrictedUsers = pgTable(
+  "circle_restricted_users",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    roomId: uuid("room_id")
+      .notNull()
+      .references(() => rooms.id, { onDelete: "cascade" }),
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    restrictedByUserId: text("restricted_by_user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+  },
+  (table) => [
+    uniqueIndex("circle_restricted_users_room_user_unique").on(table.roomId, table.userId),
+    index("circle_restricted_users_room_id_idx").on(table.roomId),
+  ],
+);
+
 export const roomFriendInvites = pgTable(
   "room_friend_invites",
   {
@@ -271,6 +293,24 @@ export const roomsRelations = relations(rooms, ({ one, many }) => ({
   }),
   participants: many(roomParticipants),
   friendInvites: many(roomFriendInvites),
+  restrictedUsers: many(circleRestrictedUsers),
+}));
+
+export const circleRestrictedUsersRelations = relations(circleRestrictedUsers, ({ one }) => ({
+  room: one(rooms, {
+    fields: [circleRestrictedUsers.roomId],
+    references: [rooms.id],
+  }),
+  user: one(users, {
+    fields: [circleRestrictedUsers.userId],
+    references: [users.id],
+    relationName: "circleRestrictedUser",
+  }),
+  restrictedBy: one(users, {
+    fields: [circleRestrictedUsers.restrictedByUserId],
+    references: [users.id],
+    relationName: "circleRestrictedBy",
+  }),
 }));
 
 export const roomParticipantsRelations = relations(roomParticipants, ({ one }) => ({

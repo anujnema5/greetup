@@ -14,15 +14,16 @@ import { cn } from "@/lib/utils";
 import {
   CameraOffAvatar,
   TileNameBadge,
-  TileMediaStatus,
   TileSpeakingRings,
 } from "@/features/room/call/tiles/tile-primitives";
+import { ParticipantTileControlsBar } from "@/features/room/call/tiles/parts/tile-participant-controls-bar";
 import {
   CALL_TILE_AVATAR_SIZE_MAIN,
   CALL_TILE_CAMERA_OFF_CLASS,
   CALL_TILE_REMOTE_CLASS,
   CALL_TILE_REMOTE_NAME_BADGE_CLASS,
 } from "@/features/room/call/tiles/tile-styles";
+import type { OnRemoveCircleParticipant } from "@/features/room/types/call/participant-remove.types";
 import { LIVE_SPEAKER_TILE_RING } from "@/features/room/lib/call/active-speaker";
 
 export function RemoteParticipantTile({
@@ -30,12 +31,18 @@ export function RemoteParticipantTile({
   className,
   isLiveSpeaker = false,
   avatarSizeClass = CALL_TILE_AVATAR_SIZE_MAIN,
+  canKick = false,
+  kickingUserId = null,
+  onKickParticipant,
 }: {
   participant: RemoteParticipant;
   className?: string;
   /** From rtc-service `dominantSpeaker` (mic level + silence clears). */
   isLiveSpeaker?: boolean;
   avatarSizeClass?: string;
+  canKick?: boolean;
+  kickingUserId?: string | null;
+  onKickParticipant?: OnRemoveCircleParticipant;
 }) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const { peer, stream } = participant;
@@ -88,9 +95,14 @@ export function RemoteParticipantTile({
 
       <TileNameBadge className={CALL_TILE_REMOTE_NAME_BADGE_CLASS}>{label}</TileNameBadge>
 
-      <TileMediaStatus
+      <ParticipantTileControlsBar
         micOn={micOff ? false : undefined}
         cameraOn={cameraOff ? false : undefined}
+        userId={peer.peerId}
+        displayName={label}
+        canKick={canKick}
+        kickingUserId={kickingUserId}
+        onKickParticipant={onKickParticipant}
       />
     </div>
   );

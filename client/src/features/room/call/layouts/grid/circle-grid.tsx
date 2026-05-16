@@ -13,6 +13,7 @@ import {
   isYouTheLiveSpeaker,
   isLiveSpeakerOnTile,
 } from "@/features/room/lib/call/active-speaker";
+import type { CircleParticipantKickProps } from "@/features/room/types/call/in-call-screen.types";
 
 const TILES_PER_PAGE = 6;
 const PAGED_GRID = "grid-cols-2 md:grid-cols-3";
@@ -29,6 +30,9 @@ export function CircleGalleryGrid({
   cameraEnabled,
   currentUserId = null,
   liveSpeakerPeerId = null,
+  isCircleHost = false,
+  onKickParticipant,
+  kickingUserId = null,
 }: {
   participants: RemoteParticipant[];
   localVideoRef: RefObject<HTMLVideoElement | null>;
@@ -41,8 +45,13 @@ export function CircleGalleryGrid({
   cameraEnabled?: boolean;
   currentUserId?: string | null;
   liveSpeakerPeerId?: string | null;
-}) {
+} & CircleParticipantKickProps) {
   const localIsLiveSpeaker = isYouTheLiveSpeaker(liveSpeakerPeerId, currentUserId);
+  const remoteKickProps = {
+    canKick: Boolean(isCircleHost && onKickParticipant),
+    onKickParticipant,
+    kickingUserId,
+  };
   const total = participants.length + 1;
 
   return (
@@ -83,6 +92,7 @@ export function CircleGalleryGrid({
               liveSpeakerPeerId,
               participant.peer.peerId,
             )}
+            {...remoteKickProps}
           />
         );
       }}

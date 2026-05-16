@@ -434,6 +434,9 @@ export function InCallContainer({
         onHostEndCircleForEveryone={
           isDbCircleCall && circleCanEditTitle ? video.handleHostEndCircleForEveryone : undefined
         }
+        onKickParticipant={video.handleKickParticipant}
+        kickingUserId={video.kickingUserId}
+        isCircleHost={isDbCircleCall && circleCanEditTitle}
         screenShareTiles={screenShareTiles}
         focusedScreenShareKey={focusedScreenShareKey}
         onSelectScreenShare={setFocusedScreenShareKey}

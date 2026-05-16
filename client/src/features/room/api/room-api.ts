@@ -188,6 +188,23 @@ export const roomApi = baseApi.injectEndpoints({
       ],
     }),
 
+    kickCircleParticipant: build.mutation<
+      void,
+      { roomId: string; userId: string; restrict?: boolean }
+    >({
+      query: ({ roomId, userId, restrict }) => ({
+        url: ROOM.kickParticipant(roomId, userId),
+        method: "POST",
+        body: restrict ? { restrict: true } : undefined,
+      }),
+      transformResponse: assertJoinRoomOk,
+      invalidatesTags: (_r, _e, { roomId }) => [
+        rtcTokenCacheTag(roomId),
+        roomEntityTag(roomId),
+        ...invalidateRoomAndPeersCallStatusTags(roomId),
+      ],
+    }),
+
     roomInvite: build.mutation<
       RoomInviteMutationResult,
       RoomInviteMutationArg
@@ -235,6 +252,7 @@ export const {
   useOpenCircleMeetingMutation,
   useLeaveCircleRtcMutation,
   useHostEndCircleForEveryoneMutation,
+  useKickCircleParticipantMutation,
   useRoomInviteMutation,
   useRoomInviteRespondMutation,
   useUpdateRoomTitleMutation,

@@ -3,6 +3,7 @@
  */
 export const CIRCLE_ROOM_SOCKET_EVENTS = {
   hostEndedForEveryone: "circle:host_ended_for_everyone",
+  participantRemoved: "circle:participant_removed",
   titleUpdated: "circle:title_updated",
 } as const;
 
@@ -13,6 +14,18 @@ export type CircleHostEndedForEveryonePayload = {
 export function parseCircleHostEndedForEveryonePayload(
   raw: unknown,
 ): CircleHostEndedForEveryonePayload | null {
+  if (!raw || typeof raw !== "object") return null;
+  const roomId = (raw as { roomId?: unknown }).roomId;
+  return typeof roomId === "string" && roomId.length > 0 ? { roomId } : null;
+}
+
+export type CircleParticipantRemovedPayload = {
+  roomId: string;
+};
+
+export function parseCircleParticipantRemovedPayload(
+  raw: unknown,
+): CircleParticipantRemovedPayload | null {
   if (!raw || typeof raw !== "object") return null;
   const roomId = (raw as { roomId?: unknown }).roomId;
   return typeof roomId === "string" && roomId.length > 0 ? { roomId } : null;

@@ -12,6 +12,7 @@ import {
   getOrCreateRoomConversation,
   ensureRoomConversationParticipant,
 } from "@/modules/chat/services/room-conversation.service";
+import { circleRestrictedUsersRepository } from "@/modules/rooms/repositories/circle-restricted-users.repository";
 import { setUserActiveRtcRoom } from "@/modules/rooms/services/user-active-rtc-room-redis.service";
 import { isRoomSessionType } from "@/shared/types/room-session";
 
@@ -21,6 +22,7 @@ export type IssueRtcTokenErrorCode =
   | "LOBBY_NOT_READY"
   | "ROOM_EXPIRED"
   | "NOT_ALLOWED"
+  | "RESTRICTED"
   | "UNSUPPORTED_ROOM_TYPE"
   | "LOBBY_WAITING_FOR_HOST";
 
@@ -83,6 +85,19 @@ export async function issueRtcTokenService(userId: string, roomId: string) {
   }
 
   const isHost = room.hostUserId === userId;
+
+  if (
+    room.roomType === "circle" &&
+    !isHost &&
+    (await circleRestrictedUsersRepository.isUserRestricted(roomId, userId))
+  ) {
+    throw new IssueRtcTokenError(
+      "You are not allowed to rejoin this circle",
+      "RESTRICTED",
+      403,
+    );
+  }
+
   const isParticipant = isHost || (await roomsRepository.isUserRoomParticipant(roomId, userId));
 
   if (!isParticipant) {

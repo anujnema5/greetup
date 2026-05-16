@@ -36,6 +36,7 @@ import {
   VideoMirror,
 } from "@/features/room/call/tiles/tile-primitives";
 import type { RemoteParticipant, ScreenShareTileInfo } from "@/features/rtc";
+import type { CircleParticipantKickProps } from "@/features/room/types/call/in-call-screen.types";
 import { hasLiveEnabledVideo, hasLiveVideo } from "@/features/rtc";
 import { useAttachMediaStream } from "@/features/room/hooks/media/use-attach-media-stream";
 import { ScreenShareFilmstrip } from "@/features/room/call/layouts/screen-share/screen-share-strip";
@@ -96,6 +97,9 @@ export function MainStage({
   shareStageImmersive = false,
   liveSpeakerPeerId = null,
   liveSpeakerSpeakingMs = {},
+  isCircleHost = false,
+  onKickParticipant,
+  kickingUserId = null,
 }: {
   isGroupRoom: boolean;
   groupGalleryParticipants: RemoteParticipant[];
@@ -142,8 +146,13 @@ export function MainStage({
   /** SFU mic-dominant user id (rtc-service `dominantSpeaker`). */
   liveSpeakerPeerId?: string | null;
   liveSpeakerSpeakingMs?: Record<string, number>;
-}) {
+} & CircleParticipantKickProps) {
   const stageActivity = activeRealtimeActivity?.kind === "chess" ? "chess" : activeActivity;
+  const remoteKickProps = {
+    canKick: Boolean(isCircleHost && onKickParticipant),
+    onKickParticipant,
+    kickingUserId,
+  };
 
   const localIsLiveSpeaker = isYouTheLiveSpeaker(liveSpeakerPeerId, currentUserId ?? null);
   const directRemoteIsLiveSpeaker = isRemoteTileShowingLiveSpeaker(
@@ -270,6 +279,9 @@ export function MainStage({
                 currentUserId={currentUserId ?? null}
                 liveSpeakerPeerId={liveSpeakerPeerId}
                 liveSpeakerSpeakingMs={liveSpeakerSpeakingMs}
+                isCircleHost={isCircleHost}
+                onKickParticipant={onKickParticipant}
+                kickingUserId={kickingUserId}
               />
             ) : null}
           </div>
@@ -287,6 +299,9 @@ export function MainStage({
             cameraEnabled={cameraEnabled}
             currentUserId={currentUserId ?? null}
             liveSpeakerPeerId={liveSpeakerPeerId}
+            isCircleHost={isCircleHost}
+            onKickParticipant={onKickParticipant}
+            kickingUserId={kickingUserId}
           />
         ) : (
           /* 1–6 participants: adaptive single-page grid (featured layout for 3, 2×2 for 4, etc.) */
@@ -301,6 +316,7 @@ export function MainStage({
                     liveSpeakerPeerId,
                     featuredParticipant.peer.peerId,
                   )}
+                  {...remoteKickProps}
                 />
               ) : null}
               <LocalParticipantTile
@@ -325,6 +341,7 @@ export function MainStage({
                     liveSpeakerPeerId,
                     participant.peer.peerId,
                   )}
+                  {...remoteKickProps}
                 />
               ))}
             </div>
