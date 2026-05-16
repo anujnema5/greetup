@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 import { useSession } from "@/lib/auth-client";
@@ -32,6 +32,7 @@ import {
 } from "@/features/room/lib/navigation/circle-routes";
 import {
   useHostEndCircleForEveryoneMutation,
+  useKickCircleParticipantMutation,
   useLeaveCircleRtcMutation,
   useLeaveRoomMutation,
 } from "@/features/room/api/room-api";
@@ -39,6 +40,7 @@ import { getRtkMutationErrorMessage } from "@/lib/api/rtk-mutation-error";
 
 export type UseRoomVideoOptions = {
   skipSetup?: boolean;
+  /** Native circle or 1:1 expanded to circle (same Postgres `rooms` row). */
   isDbCircleCall?: boolean;
   circleHostUserId?: string | null;
 };
@@ -54,6 +56,8 @@ export function useRoomVideo(roomId: string, options?: UseRoomVideoOptions) {
   const [leaveRoom] = useLeaveRoomMutation();
   const [leaveCircleRtc] = useLeaveCircleRtcMutation();
   const [hostEndCircleForEveryone] = useHostEndCircleForEveryoneMutation();
+  const [kickCircleParticipant] = useKickCircleParticipantMutation();
+  const [kickingUserId, setKickingUserId] = useState<string | null>(null);
   const skipHandledRef = useRef(false);
   const endHandledRef = useRef(false);
   const hostEndHandledRef = useRef(false);
@@ -198,5 +202,45 @@ export function useRoomVideo(roomId: string, options?: UseRoomVideoOptions) {
     router.replace(dest);
   }, [dispatch, router]);
 
-  return { handleEnd, handleHostEndCircleForEveryone, handleSkip, handleMinimize, roomId };
+  const handleKickParticipant = useCallback(
+    async (
+      targetUserId: string,
+      displayName: string,
+      options?: { restrict?: boolean },
+    ) => {
+      if (!isDbCircleCall || !isCircleHost) return;
+      if (kickingUserId) return;
+
+      const restrict = options?.restrict === true;
+      setKickingUserId(targetUserId);
+      try {
+        await kickCircleParticipant({
+          roomId,
+          userId: targetUserId,
+          restrict,
+        }).unwrap();
+        toast.success(
+          restrict
+            ? `${displayName} was removed and can't rejoin this circle`
+            : `${displayName} was removed from the circle`,
+        );
+      } catch (e: unknown) {
+        toast.error(getRtkMutationErrorMessage(e, "Could not remove participant"));
+      } finally {
+        setKickingUserId(null);
+      }
+    },
+    [isCircleHost, isDbCircleCall, kickCircleParticipant, kickingUserId, roomId],
+  );
+
+  return {
+    handleEnd,
+    handleHostEndCircleForEveryone,
+    handleKickParticipant: isDbCircleCall && isCircleHost ? handleKickParticipant : undefined,
+    kickingUserId,
+    isCircleHost,
+    handleSkip,
+    handleMinimize,
+    roomId,
+  };
 }

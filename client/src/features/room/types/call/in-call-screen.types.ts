@@ -11,6 +11,12 @@ import type { EmbeddedCallPolicyLookup } from "@/features/room/embedded-activiti
 import type { RoomActivityId, RoomActivityMeta } from "@/features/room/types/call/room-activity.types";
 import type { CallCapabilities } from "@/features/room/contracts";
 import type { LiveSpeakerCallProps } from "@/features/room/types/call/active-speaker-props.types";
+import type {
+  CircleParticipantKickProps,
+  OnRemoveCircleParticipant,
+} from "@/features/room/types/call/participant-remove.types";
+
+export type { CircleParticipantKickProps };
 
 export type InCallScreenProps = {
   /** Built in call wiring; drives tabs, layout mode, and future feature flags. */
@@ -98,4 +104,8 @@ export type InCallScreenProps = {
   embeddedCallPolicyLookup?: EmbeddedCallPolicyLookup | null;
   /** When set, circle host can end the session for everyone (separate from Leave). */
   onHostEndCircleForEveryone?: () => void;
+  /** Circle host: remove one participant from the live call (optional restrict). */
+  onKickParticipant?: OnRemoveCircleParticipant;
+  kickingUserId?: string | null;
+  isCircleHost?: boolean;
 } & LiveSpeakerCallProps;

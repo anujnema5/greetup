@@ -17,6 +17,14 @@ import { useTileGridPage } from "@/features/room/hooks/call/use-tile-grid-page";
 import { cn } from "@/lib/utils";
 import type { CamerasUnderScreenShareProps } from "./types";
 
+function remoteKickProps(p: CamerasUnderScreenShareProps) {
+  return {
+    canKick: Boolean(p.isCircleHost && p.onKickParticipant),
+    onKickParticipant: p.onKickParticipant,
+    kickingUserId: p.kickingUserId ?? null,
+  };
+}
+
 const TILES_PER_PAGE = 4;
 const SHELL_CLASS = "flex min-h-0 min-w-0 flex-1 flex-col gap-1";
 
@@ -72,6 +80,7 @@ function ThreePeopleUnderShare(props: CamerasUnderScreenShareProps) {
     liveSpeakerSpeakingMs,
   );
   const [leftRemote, rightRemote] = participantsWithSpeakerFirst;
+  const kick = remoteKickProps(props);
 
   return (
     <div className={cn(SHELL_CLASS, className)}>
@@ -81,12 +90,14 @@ function ThreePeopleUnderShare(props: CamerasUnderScreenShareProps) {
           className="min-h-0 min-w-0"
           avatarSizeClass={CALL_TILE_AVATAR_SIZE_COMPACT}
           isLiveSpeaker={isLiveSpeakerOnTile(liveSpeakerPeerId, leftRemote.peer.peerId)}
+          {...kick}
         />
         <RemoteParticipantTile
           participant={rightRemote}
           className="min-h-0 min-w-0"
           avatarSizeClass={CALL_TILE_AVATAR_SIZE_COMPACT}
           isLiveSpeaker={isLiveSpeakerOnTile(liveSpeakerPeerId, rightRemote.peer.peerId)}
+          {...kick}
         />
         <YourCameraTile {...localTileProps(props)} className="col-span-2 min-h-0" />
       </div>
@@ -119,6 +130,7 @@ function FourUpPaginatedGrid(props: CamerasUnderScreenShareProps) {
   const pageEnd = Math.min(pageStart + TILES_PER_PAGE, total);
   const tilesOnPage = pageEnd - pageStart;
   const localProps = localTileProps(props);
+  const kick = remoteKickProps(props);
 
   return (
     <div className={cn(SHELL_CLASS, className)}>
@@ -139,6 +151,7 @@ function FourUpPaginatedGrid(props: CamerasUnderScreenShareProps) {
                 liveSpeakerPeerId,
                 participant.peer.peerId,
               )}
+              {...kick}
             />
           );
         })}

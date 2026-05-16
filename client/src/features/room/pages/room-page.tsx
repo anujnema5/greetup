@@ -8,7 +8,13 @@ import {
 } from "@/lib/redux/selectors/room-selectors";
 import { useSession } from "@/lib/auth-client";
 import { useRoom } from "@/features/matching";
-import { isCircleRoomData, isRoomGroupLayout } from "@/features/matching/types/room.types";
+import {
+  isCircleHostUser,
+  isCircleRoomData,
+  isPersistedCircleSession,
+  isRoomGroupLayout,
+  resolveCircleHostUserId,
+} from "@/features/matching/types/room.types";
 import { InCallContainer } from "@/features/room/call/shell/in-call-container";
 import { useRoomJoinAndStartVideo } from "@/features/room/hooks/session/use-room-join-and-start-video";
 
@@ -37,20 +43,9 @@ export function RoomPage() {
   const scoreLabel = score != null && String(score).length > 0 ? `${String(score)}% match` : null;
   const isCircleRoom = isRoomGroupLayout(room, rtcRoomType);
   const uid = session?.user?.id;
-  const circleCanEditTitle = (() => {
-    if (!isCircleRoom || !uid || !room) return false;
-    if (isCircleRoomData(room)) return room.hostUserId === uid;
-    if ("userA" in room && room.roomType === "circle" && room.hostUserId) {
-      return room.hostUserId === uid;
-    }
-    return false;
-  })();
-  const circleHostUserId =
-    room && isCircleRoomData(room)
-      ? room.hostUserId
-      : room && "hostUserId" in room && typeof room.hostUserId === "string"
-        ? room.hostUserId
-        : null;
+  const circleHostUserId = resolveCircleHostUserId(room);
+  const circleCanEditTitle = isCircleHostUser(room, uid, rtcRoomType);
+  const isPersistedCircleCall = isPersistedCircleSession(room, rtcRoomType);
   const circleLobbyGateActive =
     room && isCircleRoomData(room) ? (room.lobbyGateActive ?? null) : null;
   const rematchLanding = isSearchingNext && Boolean(peerId);
@@ -137,7 +132,7 @@ export function RoomPage() {
         circleRoomStatus={
           room && isCircleRoomData(room) && room.status ? room.status : null
         }
-        isDbCircleCall={Boolean(room && isCircleRoomData(room))}
+        isDbCircleCall={isPersistedCircleCall}
       />
     );
   }

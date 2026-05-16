@@ -16,6 +16,7 @@ import {
   OnDirectExpandedToCircle,
   OnCircleTitleUpdated,
   OnHostEndedCircle,
+  OnParticipantRemovedFromCircle,
 } from "@/features/room";
 import { MatchmakingProvider } from "@/features/matching";
 import { NotificationsRealtimeBridge } from "@/features/notifications";
@@ -55,6 +56,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                   <MatchmakingProvider>
                     <OnCircleTitleUpdated />
                     <OnHostEndedCircle />
+                    <OnParticipantRemovedFromCircle />
                     <OnPartnerDisconnected />
                     <MinimizedRoomDock />
                     {children}

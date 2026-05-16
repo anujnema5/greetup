@@ -44,6 +44,12 @@ All paths below are from the **repository root** (`docs/...`).
 | [matching/matching-engine.md](matching/matching-engine.md) | Matching engine: Redis model, HTTP API, modules, flows |
 | [matching/matching-service-plan.md](matching/matching-service-plan.md) | Original plan: Redis keys, lifecycle, milestones |
 
+## Product
+
+| Doc | What it is |
+|-----|------------|
+| [product/greetup-product-overview.md](product/greetup-product-overview.md) | **Product vision**, users, pillars, journeys, glossary (start here for “what is Greetup?”) |
+
 ## Product & system design
 
 | Doc | What it is |
@@ -51,6 +57,7 @@ All paths below are from the **repository root** (`docs/...`).
 | [design/chat-system-design.md](design/chat-system-design.md) | Chat system design |
 | [design/matching-system-design.md](design/matching-system-design.md) | Matching / matchmaking (see also [matching/matching-engine.md](matching/matching-engine.md)) |
 | [design/room-activities-and-chess.md](design/room-activities-and-chess.md) | Room activities & chess lifecycle |
+| [design/convoiq-greetup-architecture.md](design/convoiq-greetup-architecture.md) | **ConvoIQ × Greetup** — full stack: SFU tap, voiceiq-service, server hooks, phases |
 | [design/authentication.md](design/authentication.md) | Better Auth, Firebase Phone, cookies, Next ↔ Hono |
 | [design/minimized-room-dock-plan.md](design/minimized-room-dock-plan.md) | Minimized call dock: dominant vs pin vs screen share, tasks for implementation |
 | [design/minimized-room-dock-hinglish-guide.md](design/minimized-room-dock-hinglish-guide.md) | **A–Z Hinglish:** full dock feature, flows, Redux/RTC, problems + fixes (beginner-friendly) |
@@ -69,6 +76,7 @@ All paths below are from the **repository root** (`docs/...`).
 ```text
 docs/
   README.md              ← index (this file)
+  product/               # Vision, journeys, glossary
   getting-started/       # Local development
   operations/            # Deploy, email
   realtime/              # rtc-service, mediasoup, WebRTC, Redis

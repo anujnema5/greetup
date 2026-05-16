@@ -9,6 +9,7 @@ import {
   type DominantSpeakerSocketPayload,
   isMicProducerForDominantUI,
 } from "@/modules/rtc/peer/dominant-speaker";
+import { KICKED_SOCKET_EVENT } from "@/modules/rtc/signaling/kicked-event";
 import * as peerRepository from "@/modules/rtc/peer/peer.repository";
 import type { PeerRecord } from "@/modules/rtc/peer/peer.types";
 import { mediaSourceFromProducerAppData, type ProducerMediaSource } from "@/modules/rtc/peer/media-source";
@@ -629,6 +630,28 @@ export class PeerSessionService {
     }
 
     logger.info("Peer session removed", { userId, roomId });
+  }
+
+  /**
+   * Removes one peer from the SFU room (internal webhook). Notifies the target, tears down
+   * mediasoup state, and disconnects their socket so they cannot keep signaling.
+   */
+  async kickPeer(roomId: string, targetUserId: string): Promise<{ ok: true; removed: boolean }> {
+    const session = this.sessions.get(targetUserId);
+    if (!session || session.roomId !== roomId) {
+      return { ok: true, removed: false };
+    }
+
+    const { socket } = session;
+    socket.emit(KICKED_SOCKET_EVENT, { roomId });
+    await this.removeSession(targetUserId, {
+      skipRedis: false,
+      skipSocketLeave: false,
+      releaseRoomIfEmpty: true,
+    });
+    socket.disconnect(true);
+    logger.info("Peer kicked from room", { roomId, targetUserId });
+    return { ok: true, removed: true };
   }
 
   async forceTeardownMediasoupRoom(roomId: string): Promise<{ ok: true; removedSessions: number }> {

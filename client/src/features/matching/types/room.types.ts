@@ -110,6 +110,42 @@ export function isRoomGroupLayout(
 }
 
 /**
+ * Postgres-backed circle session: native scheduled circles **or** a 1:1 match
+ * promoted in place (`room_type = circle`, Redis match payload + `hostUserId`).
+ */
+export function isPersistedCircleSession(
+  room: RoomData | null | undefined,
+  rtcRoomType: RoomSessionType | null | undefined,
+): boolean {
+  if (rtcRoomType === "circle") return true;
+  if (room && isCircleRoomData(room) && room.roomType === "circle") return true;
+  if (room && "userA" in room && room.roomType === "circle") return true;
+  return false;
+}
+
+/** `rooms.host_user_id` from GET `/room/:id` (db_room or expanded match payload). */
+export function resolveCircleHostUserId(
+  room: RoomData | null | undefined,
+): string | null {
+  if (!room) return null;
+  if (isCircleRoomData(room)) return room.hostUserId;
+  if ("hostUserId" in room && typeof room.hostUserId === "string" && room.hostUserId.length > 0) {
+    return room.hostUserId;
+  }
+  return null;
+}
+
+export function isCircleHostUser(
+  room: RoomData | null | undefined,
+  userId: string | null | undefined,
+  rtcRoomType: RoomSessionType | null | undefined,
+): boolean {
+  if (!userId || !isPersistedCircleSession(room, rtcRoomType)) return false;
+  const hostId = resolveCircleHostUserId(room);
+  return Boolean(hostId && hostId === userId);
+}
+
+/**
  * RTC credential fields returned by `useRoom`.
  * Derived from `getRtcToken` (RTK Query) + room gating.
  */

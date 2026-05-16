@@ -4,7 +4,6 @@ import type { RefObject } from "react";
 import { cn } from "@/lib/utils";
 import {
   CameraOffAvatar,
-  TileMediaStatus,
   TileNameBadge,
   TileSpeakingRings,
   VideoMirror,
@@ -14,6 +13,7 @@ import {
   CALL_TILE_CAMERA_OFF_CLASS,
   CALL_TILE_LOCAL_CLASS,
 } from "@/features/room/call/tiles/tile-styles";
+import { TileMediaControlsBar } from "@/features/room/call/tiles/parts/tile-participant-controls-bar";
 import { LIVE_SPEAKER_TILE_RING } from "@/features/room/lib/call/active-speaker";
 
 export function LocalParticipantTile({
@@ -70,7 +70,7 @@ export function LocalParticipantTile({
         </div>
       ) : null}
       <TileNameBadge>You</TileNameBadge>
-      <TileMediaStatus micOn={micEnabled} cameraOn={cameraEnabled} />
+      <TileMediaControlsBar micOn={micEnabled} cameraOn={cameraEnabled} />
     </div>
   );
 }

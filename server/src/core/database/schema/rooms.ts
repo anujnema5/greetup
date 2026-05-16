@@ -216,6 +216,30 @@ export const roomParticipants = pgTable(
   ],
 );
 
+/** Host-banned users for a room; cannot rejoin while the row exists. */
+export const roomRestrictedUsers = pgTable(
+  "room_restricted_users",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    roomId: uuid("room_id")
+      .notNull()
+      .references(() => rooms.id, { onDelete: "cascade" }),
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    restrictedByUserId: text("restricted_by_user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+  },
+  (table) => [
+    uniqueIndex("room_restricted_users_room_user_unique").on(table.roomId, table.userId),
+    index("room_restricted_users_room_id_idx").on(table.roomId),
+  ],
+);
+
+export type RoomRestrictedUser = typeof roomRestrictedUsers.$inferSelect;
+
 export const roomFriendInvites = pgTable(
   "room_friend_invites",
   {
@@ -271,6 +295,24 @@ export const roomsRelations = relations(rooms, ({ one, many }) => ({
   }),
   participants: many(roomParticipants),
   friendInvites: many(roomFriendInvites),
+  restrictedUsers: many(roomRestrictedUsers),
+}));
+
+export const roomRestrictedUsersRelations = relations(roomRestrictedUsers, ({ one }) => ({
+  room: one(rooms, {
+    fields: [roomRestrictedUsers.roomId],
+    references: [rooms.id],
+  }),
+  user: one(users, {
+    fields: [roomRestrictedUsers.userId],
+    references: [users.id],
+    relationName: "roomRestrictedUser",
+  }),
+  restrictedBy: one(users, {
+    fields: [roomRestrictedUsers.restrictedByUserId],
+    references: [users.id],
+    relationName: "roomRestrictedBy",
+  }),
 }));
 
 export const roomParticipantsRelations = relations(roomParticipants, ({ one }) => ({

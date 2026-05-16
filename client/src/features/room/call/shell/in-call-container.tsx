@@ -52,7 +52,10 @@ export type InCallContainerProps = {
   circleScheduledStartAt?: string | null;
   /** Postgres circle lifecycle from GET room (`scheduled`, `live`, …). */
   circleRoomStatus?: string | null;
-  /** True for a persisted circle room (`sessionKind: "db_room"`), not a Redis match pair. */
+  /**
+   * True for a Postgres circle session: native `db_room` **or** a 1:1 match expanded
+   * in place (`room_type = circle` on the same `roomId`).
+   */
   isDbCircleCall?: boolean;
 };
 
@@ -432,8 +435,13 @@ export function InCallContainer({
         circleDisplayTitle={circleDisplayTitle}
         circleCanEditTitle={circleCanEditTitle}
         onHostEndCircleForEveryone={
-          isDbCircleCall && circleCanEditTitle ? video.handleHostEndCircleForEveryone : undefined
+          isDbCircleCall && video.isCircleHost
+            ? video.handleHostEndCircleForEveryone
+            : undefined
         }
+        onKickParticipant={video.handleKickParticipant}
+        kickingUserId={video.kickingUserId}
+        isCircleHost={video.isCircleHost}
         screenShareTiles={screenShareTiles}
         focusedScreenShareKey={focusedScreenShareKey}
         onSelectScreenShare={setFocusedScreenShareKey}

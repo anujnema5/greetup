@@ -20,4 +20,11 @@ export {
   useGetMatchPeerPreviewQuery,
 } from "./api/matching-api";
 export type * from "./types";
-export { isCircleRoomData, isDirectMatchRoom, isRoomGroupLayout } from "./types/room.types";
+export {
+  isCircleHostUser,
+  isCircleRoomData,
+  isDirectMatchRoom,
+  isPersistedCircleSession,
+  isRoomGroupLayout,
+  resolveCircleHostUserId,
+} from "./types/room.types";

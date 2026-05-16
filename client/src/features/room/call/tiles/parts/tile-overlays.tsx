@@ -1,8 +1,8 @@
 "use client";
 
 import type { CSSProperties, ReactNode } from "react";
-import { MicOff, VideoOff } from "lucide-react";
 import { useAudioLevel } from "@/features/room/hooks/media/use-audio-level";
+import { TileMediaControlsBar } from "@/features/room/call/tiles/parts/tile-participant-controls-bar";
 import { cn } from "@/lib/utils";
 
 // ─── TileNameBadge ────────────────────────────────────────────────────────────
@@ -49,22 +49,7 @@ export function TileMediaStatus({
   cameraOn?: boolean;
   className?: string;
 }) {
-  const showMicOff = micOn === false;
-  const showCameraOff = cameraOn === false;
-
-  if (!showMicOff && !showCameraOff) return null;
-
-  return (
-    <div
-      className={cn(
-        "absolute bottom-2 right-2 z-10 flex items-center gap-1.5 rounded-full border border-white/10 bg-black/58 px-2 py-[5px] backdrop-blur-[10px]",
-        className,
-      )}
-    >
-      {showMicOff && <MicOff size={12} strokeWidth={2.2} className="shrink-0 text-red-400" />}
-      {showCameraOff && <VideoOff size={12} strokeWidth={2.2} className="shrink-0 text-red-400" />}
-    </div>
-  );
+  return <TileMediaControlsBar micOn={micOn} cameraOn={cameraOn} className={className} />;
 }
 
 // ─── TileSpeakingRings ────────────────────────────────────────────────────────

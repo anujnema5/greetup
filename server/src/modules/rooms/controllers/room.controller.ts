@@ -42,6 +42,10 @@ import {
   HostEndCircleForEveryoneError,
 } from "../services/host-end-circle-for-everyone.service";
 import {
+  kickCircleParticipantService,
+  KickCircleParticipantError,
+} from "../services/kick-circle-participant.service";
+import {
   leaveCircleRtcSessionForUser,
   LeaveCircleRtcError,
 } from "../services/leave-circle-rtc-session.service";
@@ -246,6 +250,58 @@ export const handleHostEndCircleForEveryone = async (c: Context) => {
       );
     }
     logger.error("Host end circle for everyone error", { error });
+    return internalError(c, error);
+  }
+};
+
+/**
+ * POST /api/room/:roomId/kick/:userId
+ * Host-only: removes one participant from the live circle and disconnects their RTC session.
+ */
+export const handleKickCircleParticipant = async (c: Context) => {
+  const roomId = c.req.param("roomId");
+  const targetUserId = c.req.param("userId");
+  const hostUserId = c.get("userId") as string;
+
+  if (!roomId || !targetUserId) {
+    return c.json(
+      ApiResponse.error({
+        message: "roomId and userId are required",
+        statusCode: 400,
+        code: "VALIDATION_ERROR",
+      }),
+      400,
+    );
+  }
+
+  let restrict = false;
+  try {
+    const body = await c.req.json<{ restrict?: boolean }>();
+    restrict = body?.restrict === true;
+  } catch {
+    restrict = false;
+  }
+
+  try {
+    const result = await kickCircleParticipantService(hostUserId, roomId, targetUserId, {
+      restrict,
+    });
+    const message = result.restricted
+      ? "Participant removed and restricted"
+      : "Participant removed";
+    return c.json(ApiResponse.success(result, message, 200), 200);
+  } catch (error: unknown) {
+    if (error instanceof KickCircleParticipantError) {
+      return c.json(
+        ApiResponse.error({
+          message: error.message,
+          statusCode: error.statusCode,
+          code: error.code,
+        }),
+        error.statusCode as 400 | 403 | 404,
+      );
+    }
+    logger.error("Kick circle participant error", { error });
     return internalError(c, error);
   }
 };

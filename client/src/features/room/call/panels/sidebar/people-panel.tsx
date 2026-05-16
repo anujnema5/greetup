@@ -21,12 +21,18 @@ import {
   useRerenderOnVideoTrackMuteCycle,
 } from "@/features/room/hooks/media/use-attach-media-stream";
 import { SharedScreensChooser } from "@/features/room/call/layouts/screen-share/screen-share-strip";
-import { TileMediaStatus, TileNameBadge, TileSpeakingRings } from "@/features/room/call/tiles/tile-primitives";
+import { TileNameBadge, TileSpeakingRings } from "@/features/room/call/tiles/tile-primitives";
 import {
   LIVE_SPEAKER_TILE_RING,
   isYouTheLiveSpeaker,
   isLiveSpeakerOnTile,
 } from "@/features/room/lib/call/active-speaker";
+import {
+  ParticipantTileControlsBar,
+  TileMediaControlsBar,
+} from "@/features/room/call/tiles/parts/tile-participant-controls-bar";
+import type { OnRemoveCircleParticipant } from "@/features/room/types/call/participant-remove.types";
+import { CircleParticipantRoster } from "@/features/room/call/panels/sidebar/participant-roster";
 import { CameraTilePageButtons } from "@/features/room/call/components/pagination/camera-tile-page-buttons";
 import { useTileGridPage } from "@/features/room/hooks/call/use-tile-grid-page";
 import { usePeoplePanelCameraOrder } from "@/features/room/hooks/call/use-people-panel-camera-order";
@@ -56,6 +62,10 @@ type ParticipantVideoTileProps = {
   /** `fill` = stretch with grid `1fr` rows; `square` = 1:1; `video` = 16:9 column strip. */
   tileAspect?: "video" | "square" | "fill";
   isLiveSpeaker?: boolean;
+  participantUserId?: string;
+  canKick?: boolean;
+  kickingUserId?: string | null;
+  onKickParticipant?: OnRemoveCircleParticipant;
 };
 
 function shareTileKeyForPeer(tiles: ScreenShareTileInfo[], peerId: string | "local"): string | null {
@@ -84,6 +94,10 @@ function ParticipantVideoTile({
   tileClassName,
   tileAspect = "video",
   isLiveSpeaker = false,
+  participantUserId,
+  canKick = false,
+  kickingUserId = null,
+  onKickParticipant,
 }: ParticipantVideoTileProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const muteCycle = useRerenderOnVideoTrackMuteCycle(stream);
@@ -115,7 +129,7 @@ function ParticipantVideoTile({
     tileAspect === "square" && "aspect-square",
     tileAspect === "video" && "aspect-video",
     shareIsFocused && "ring-2 ring-primary ring-offset-2 ring-offset-background",
-    // Avoid stacking primary + emerald rings + glow in the same corner as `TileMediaStatus`.
+    // Avoid stacking primary + emerald rings + glow in the same corner as tile controls.
     isLiveSpeaker && !shareIsFocused && LIVE_SPEAKER_TILE_RING,
     canPickShare && "cursor-pointer transition-[box-shadow,transform] hover:ring-2 hover:ring-primary/50",
     tileClassName,
@@ -170,13 +184,28 @@ function ParticipantVideoTile({
       >
         {label}
       </TileNameBadge>
-      <TileMediaStatus
-        micOn={!micOff}
-        cameraOn={!cameraOff}
-        className={cn(
-          (shareIsFocused || isLiveSpeaker) && "bottom-3 right-3 z-20 sm:bottom-3.5 sm:right-3.5",
-        )}
-      />
+      {isSelf || !participantUserId ? (
+        <TileMediaControlsBar
+          micOn={!micOff}
+          cameraOn={!cameraOff}
+          className={cn(
+            (shareIsFocused || isLiveSpeaker) && "bottom-3 right-3 sm:bottom-3.5 sm:right-3.5",
+          )}
+        />
+      ) : (
+        <ParticipantTileControlsBar
+          micOn={!micOff}
+          cameraOn={!cameraOff}
+          userId={participantUserId}
+          displayName={label}
+          canKick={canKick}
+          kickingUserId={kickingUserId}
+          onKickParticipant={onKickParticipant}
+          className={cn(
+            (shareIsFocused || isLiveSpeaker) && "bottom-3 right-3 sm:bottom-3.5 sm:right-3.5",
+          )}
+        />
+      )}
       {sharingScreen ? (
         <div className="pointer-events-none absolute left-2 top-2 flex items-center gap-1 rounded-md bg-black/55 px-1.5 py-0.5 text-[10px] font-semibold text-white/95 backdrop-blur-sm">
           <Monitor size={12} className="shrink-0" />
@@ -249,15 +278,22 @@ type CameraTilesContext = {
   stretchTilesInGrid: boolean;
   currentUserId: string | null;
   liveSpeakerPeerId: string | null;
+  isCircleHost?: boolean;
+  onKickParticipant?: OnRemoveCircleParticipant;
+  kickingUserId?: string | null;
 };
 
 function buildCameraTiles(p: CameraTilesContext): ReactElement<ParticipantVideoTileProps>[] {
   const aspect = p.stretchTilesInGrid ? ("fill" as const) : ("video" as const);
+  const canKickRemote = Boolean(p.isCircleHost && p.onKickParticipant);
   const base = {
     allowPickShareFromTile: p.allowPickShareFromTile,
     onSelectShare: p.onSelectScreenShare,
     tileClassName: CAMERA_TILE_CLASS,
     tileAspect: aspect,
+    canKick: canKickRemote,
+    kickingUserId: p.kickingUserId ?? null,
+    onKickParticipant: p.onKickParticipant,
   } as const;
 
   /** Local preview first so it never lands as the last tile in a 2×2 page. */
@@ -295,6 +331,7 @@ function buildCameraTiles(p: CameraTilesContext): ReactElement<ParticipantVideoT
           cameraOff={peer.cameraActive === false}
           micOff={peer.micActive === false}
           imageUrl={peer.image}
+          participantUserId={id}
           sharingScreen={p.screenShareTiles.some((t) => t.peerId === id)}
           shareTileKey={shareKey}
           shareIsFocused={Boolean(shareKey && p.focusedScreenShareKey === shareKey)}
@@ -319,6 +356,7 @@ function buildCameraTiles(p: CameraTilesContext): ReactElement<ParticipantVideoT
           cameraOff={peer.cameraActive === false || p.remotePeerCameraOff}
           micOff={peer.micActive === false || p.remotePeerMicOff}
           imageUrl={peer.image ?? p.directPeerAvatarUrl}
+          participantUserId={id}
           sharingScreen={p.screenShareTiles.some((t) => t.peerId === id)}
           shareTileKey={shareKey}
           shareIsFocused={Boolean(shareKey && p.focusedScreenShareKey === shareKey)}
@@ -378,6 +416,9 @@ export function RoomCallParticipantsPanel({
   currentUserId = null,
   liveSpeakerPeerId = null,
   liveSpeakerSpeakingMs = {},
+  isCircleHost = false,
+  onKickParticipant,
+  kickingUserId = null,
 }: {
   isGroupRoom: boolean;
   myName: string;
@@ -400,6 +441,9 @@ export function RoomCallParticipantsPanel({
   currentUserId?: string | null;
   liveSpeakerPeerId?: string | null;
   liveSpeakerSpeakingMs?: Record<string, number>;
+  isCircleHost?: boolean;
+  onKickParticipant?: OnRemoveCircleParticipant;
+  kickingUserId?: string | null;
 }) {
   const { allPeerIds, peerIdsWithSpeakerFirst, lockedSpeakerPeerId } = usePeoplePanelCameraOrder(
     remotePeers,
@@ -452,6 +496,9 @@ export function RoomCallParticipantsPanel({
         stretchTilesInGrid,
         currentUserId,
         liveSpeakerPeerId,
+        isCircleHost,
+        onKickParticipant,
+        kickingUserId,
       }),
     [
       allowPickShareFromTile,
@@ -477,6 +524,9 @@ export function RoomCallParticipantsPanel({
       stretchTilesInGrid,
       currentUserId,
       liveSpeakerPeerId,
+      isCircleHost,
+      onKickParticipant,
+      kickingUserId,
     ],
   );
 
@@ -503,8 +553,22 @@ export function RoomCallParticipantsPanel({
     [useGridLayout, visibleCameraTiles],
   );
 
+  const showParticipantRoster = isGroupRoom;
+
   return (
     <div className="flex h-full min-h-0 min-w-0 flex-1 flex-col gap-4 overflow-y-auto p-3">
+      {showParticipantRoster ? (
+        <CircleParticipantRoster
+          myName={myName}
+          myAvatarUrl={myAvatarUrl}
+          currentUserId={currentUserId}
+          remotePeers={remotePeers}
+          isHost={isCircleHost}
+          kickingUserId={kickingUserId}
+          onKickParticipant={onKickParticipant}
+        />
+      ) : null}
+
       {screenShareTiles.length > 0 && onSelectScreenShare ? (
         <section className="shrink-0">
           <h3 className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
