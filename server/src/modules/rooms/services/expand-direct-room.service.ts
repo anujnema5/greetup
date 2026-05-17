@@ -109,10 +109,6 @@ export async function createRoomInviteService(
     await emitInviteSocket(existing.id, roomId, inviterUserId, inviteeUserId, room.title);
     return { inviteId: existing.id };
   }
-  if (existing?.status === "accepted") {
-    throw new RoomInviteError("An invite for this user is already accepted", "ALREADY_IN_ROOM", 400);
-  }
-
   const inviteId = await roomInviteRepository.upsertPendingFriendInvite({
     roomId,
     inviterUserId,
