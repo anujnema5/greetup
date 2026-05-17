@@ -1,7 +1,7 @@
 import { getRedis } from "@/core/redis";
 import { USER_PRESENCE_KEYS } from "@/core/redis/keys";
 import { roomsRepository } from "@/modules/rooms/repositories/rooms.repository";
-import { getUsersActiveRtcRooms } from "@/modules/rooms/services/user-active-rtc-room-redis.service";
+import { getUsersActiveRtcRooms } from "@/modules/rooms/services/rtc/user-active-rtc-room-redis.service";
 
 export type PeerCallStatusDto = {
   isOnline: boolean;

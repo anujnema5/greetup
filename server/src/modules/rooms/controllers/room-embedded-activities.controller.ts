@@ -1,6 +1,6 @@
 import type { Context } from "hono";
 
-import { getRoomEmbeddedActivitiesCatalog } from "@/modules/rooms/services/room-embedded-activities.service";
+import { getRoomEmbeddedActivitiesCatalog } from "@/modules/rooms/services/activity/room-embedded-activities.service";
 import { ApiResponse, internalError } from "@/shared/responses";
 
 /**

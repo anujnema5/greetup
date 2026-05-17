@@ -72,7 +72,16 @@ export class PeerSessionService {
       releaseRoomIfEmpty: false,
     });
 
-    const roomResult = await roomService.getOrCreateLocalRoom(roomId);
+    let roomResult = await roomService.getOrCreateLocalRoom(roomId);
+    if (!roomResult.ok && roomResult.code === "WRONG_INSTANCE") {
+      const peerIds = await peerRepository.listPeerIdsInRoom(roomId);
+      const onlySelfOrEmpty =
+        peerIds.length === 0 || (peerIds.length === 1 && peerIds[0] === userId);
+      if (onlySelfOrEmpty) {
+        await roomService.forceClearRoomRedis(roomId);
+        roomResult = await roomService.getOrCreateLocalRoom(roomId);
+      }
+    }
     if (!roomResult.ok) {
       return { ok: false, code: "WRONG_INSTANCE", ownerInstanceId: roomResult.ownerInstanceId };
     }
@@ -664,6 +673,7 @@ export class PeerSessionService {
       });
     }
     await this.releaseRoomAndTaps(roomId);
+    await roomService.forceClearRoomRedis(roomId);
     logger.info("forceTeardownMediasoupRoom", { roomId, removedSessions: userIds.length });
     return { ok: true, removedSessions: userIds.length };
   }

@@ -3,8 +3,8 @@ import {
   CIRCLE_SESSION_MAX_MS,
   DIRECT_SESSION_MAX_MS,
   SCHEDULED_EMPTY_ROOM_GRACE_MS,
-} from "@/modules/rooms/constants/room-session-limits";
-import { SCHEDULED_JOIN_GRACE_AFTER_START_MINUTES } from "@/modules/rooms/constants/scheduled-circle-join-grace";
+} from "@/modules/rooms/constants/session/room-session-limits";
+import { SCHEDULED_JOIN_GRACE_AFTER_START_MINUTES } from "@/modules/rooms/constants/session/scheduled-circle-join-grace";
 import {
   evaluateRoomSessionEndReason,
   roomSessionClosedMessage,
@@ -103,6 +103,18 @@ describe("evaluateRoomSessionEndReason", () => {
       evaluateRoomSessionEndReason(
         baseRoom({ startedAt: lastLeftAt }),
         { activeCount: 0, lastLeftAt },
+        now,
+      ),
+    ).toBe("empty_room_2h");
+  });
+
+  it("returns empty_room_2h when lastLeftAt is an ISO string from SQL", () => {
+    const lastLeftAt = "2026-05-17T10:00:00.000Z";
+    const now = new Date(new Date(lastLeftAt).getTime() + SCHEDULED_EMPTY_ROOM_GRACE_MS + 1);
+    expect(
+      evaluateRoomSessionEndReason(
+        baseRoom({ startedAt: new Date(lastLeftAt) }),
+        { activeCount: 0, lastLeftAt: lastLeftAt as unknown as Date },
         now,
       ),
     ).toBe("empty_room_2h");

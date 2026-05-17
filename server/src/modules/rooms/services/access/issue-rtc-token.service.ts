@@ -3,15 +3,15 @@ import { mergeRoomAdvancedOptions } from "@/core/database/schema";
 import { getRedis } from "@/core/redis";
 import { ROOM_KEYS } from "@/core/redis/keys";
 import { roomsRepository } from "@/modules/rooms/repositories/rooms.repository";
-import { maybeAutoStartScheduledCircleFromDb } from "@/modules/rooms/services/maybe-auto-start-scheduled-circle.service";
-import { assertRoomSessionOpenOnAccess } from "@/modules/rooms/services/reconcile-room-session-on-access.service";
-import { isScheduledCircleBeforeStartTime } from "@/modules/rooms/lib/scheduled-circle-lobby";
+import { maybeAutoStartScheduledCircleFromDb } from "@/modules/rooms/services/session/maybe-auto-start-scheduled-circle.service";
+import { assertRoomSessionOpenOnAccess } from "@/modules/rooms/services/session/reconcile-room-session-on-access.service";
+import { isScheduledCircleBeforeStartTime } from "@/modules/rooms/lib/session/scheduled-circle-lobby";
 import {
   getOrCreateRoomConversation,
   ensureRoomConversationParticipant,
 } from "@/modules/chat/services/room-conversation.service";
 import { roomRestrictedUsersRepository } from "@/modules/rooms/repositories/room-restricted-users.repository";
-import { setUserActiveRtcRoom } from "@/modules/rooms/services/user-active-rtc-room-redis.service";
+import { setUserActiveRtcRoom } from "@/modules/rooms/services/rtc/user-active-rtc-room-redis.service";
 import { isRoomSessionType } from "@/shared/types/room-session";
 
 export type IssueRtcTokenErrorCode =

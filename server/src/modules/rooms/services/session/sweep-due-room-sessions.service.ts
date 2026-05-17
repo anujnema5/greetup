@@ -1,6 +1,6 @@
 import logger from "@/core/logging";
 import { roomsRepository } from "@/modules/rooms/repositories/rooms.repository";
-import { reconcileRoomSessionOnAccess } from "@/modules/rooms/services/reconcile-room-session-on-access.service";
+import { reconcileRoomSessionOnAccess } from "@/modules/rooms/services/session/reconcile-room-session-on-access.service";
 import type {
   SweepDueRoomSessionsOptions,
   SweepDueRoomSessionsResult,

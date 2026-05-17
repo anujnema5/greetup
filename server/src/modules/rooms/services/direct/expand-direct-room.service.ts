@@ -8,16 +8,16 @@ import {
   canHostInviteUserToRoom,
   getRoomInvitePreferencesForUsers,
 } from "@/modules/profile/services/room-invite-preferences.service";
-import { DIRECT_EXPAND_SOCKET_EVENTS } from "@/modules/rooms/constants/direct-expand-socket.events";
+import { DIRECT_EXPAND_SOCKET_EVENTS } from "@/modules/rooms/constants/events/direct-expand-socket.events";
 import {
   DirectRoomExpandConflictError,
   roomInviteRepository,
 } from "@/modules/rooms/repositories/expand-direct-room.repository";
 import { roomsRepository } from "@/modules/rooms/repositories/rooms.repository";
-import { syncCircleRoomTitleFromParticipants } from "@/modules/rooms/services/circle-participant-title.service";
-import { notifyRtcServiceRoomType } from "@/modules/rooms/services/notify-rtc-room-type.service";
-import { canInviteWithoutExceedingCapacity } from "@/modules/rooms/lib/room-invite-capacity";
-import { patchSessionRoomRedisRoomType } from "@/modules/rooms/services/session-room-redis.service";
+import { syncCircleRoomTitleFromParticipants } from "@/modules/rooms/services/circle/circle-participant-title.service";
+import { notifyRtcServiceRoomType } from "@/modules/rooms/services/rtc/notify-rtc-room-type.service";
+import { canInviteWithoutExceedingCapacity } from "@/modules/rooms/lib/session/room-invite-capacity";
+import { patchSessionRoomRedisRoomType } from "@/modules/rooms/services/rtc/session-room-redis.service";
 
 export class RoomInviteError extends Error {
   constructor(

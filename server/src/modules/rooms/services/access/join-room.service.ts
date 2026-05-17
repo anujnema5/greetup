@@ -5,8 +5,8 @@ import { roomFriendInvites, roomParticipants } from "@/core/database/schema";
 import { getRedis } from "@/core/redis";
 import { ROOM_KEYS } from "@/core/redis/keys";
 import { roomsRepository } from "@/modules/rooms/repositories/rooms.repository";
-import { maybeAutoStartScheduledCircleFromDb } from "@/modules/rooms/services/maybe-auto-start-scheduled-circle.service";
-import { assertRoomSessionOpenOnAccess } from "@/modules/rooms/services/reconcile-room-session-on-access.service";
+import { maybeAutoStartScheduledCircleFromDb } from "@/modules/rooms/services/session/maybe-auto-start-scheduled-circle.service";
+import { assertRoomSessionOpenOnAccess } from "@/modules/rooms/services/session/reconcile-room-session-on-access.service";
 import { roomRestrictedUsersRepository } from "@/modules/rooms/repositories/room-restricted-users.repository";
 
 export type JoinRoomErrorCode =

@@ -5,7 +5,7 @@ import { emitToUser } from "@/core/socket/socket";
 import logger from "@/core/logging";
 import { getRedis } from "@/core/redis";
 import { ROOM_KEYS, ROOM_TTL } from "@/core/redis/keys";
-import { clearUserActiveRtcRoom } from "@/modules/rooms/services/user-active-rtc-room-redis.service";
+import { clearUserActiveRtcRoom } from "@/modules/rooms/services/rtc/user-active-rtc-room-redis.service";
 import { ensureProfileSnapshotCached } from "@/modules/user/services/profile-snapshot-cache.service";
 import {
   createRoomBodySchema,
@@ -24,42 +24,42 @@ import {
   createRoomInviteService,
   respondRoomInviteService,
   RoomInviteError,
-} from "../services/expand-direct-room.service";
+} from "../services/direct/expand-direct-room.service";
 import {
   updateLiveRoomTitleService,
   UpdateLiveRoomTitleError,
-} from "../services/update-live-room-title.service";
+} from "../services/circle/update-live-room-title.service";
 import { mergeRoomAdvancedOptions } from "@/core/database/schema";
-import { isDbRoomSessionClosed } from "@/modules/rooms/lib/room-expiry";
-import { roomSessionTimingPayload } from "@/modules/rooms/lib/room-session-timing-payload";
+import { isDbRoomSessionClosed } from "@/modules/rooms/lib/expiry/room-expiry";
+import { roomSessionTimingPayload } from "@/modules/rooms/lib/expiry/room-session-timing-payload";
 import {
   reconcileRoomSessionOnAccess,
   roomSessionClosedMessage,
-} from "@/modules/rooms/services/reconcile-room-session-on-access.service";
-import { issueRtcTokenService, IssueRtcTokenError } from "../services/issue-rtc-token.service";
-import { joinRoomService, JoinRoomError } from "../services/join-room.service";
+} from "@/modules/rooms/services/session/reconcile-room-session-on-access.service";
+import { issueRtcTokenService, IssueRtcTokenError } from "../services/access/issue-rtc-token.service";
+import { joinRoomService, JoinRoomError } from "../services/access/join-room.service";
 import {
   openCircleMeetingService,
   OpenCircleMeetingError,
-} from "../services/open-circle-meeting.service";
+} from "../services/access/open-circle-meeting.service";
 import {
   hostEndCircleForEveryoneService,
   HostEndCircleForEveryoneError,
-} from "../services/host-end-circle-for-everyone.service";
+} from "../services/participation/host-end-circle-for-everyone.service";
 import {
   kickCircleParticipantService,
   KickCircleParticipantError,
-} from "../services/kick-circle-participant.service";
+} from "../services/participation/kick-circle-participant.service";
 import {
   leaveCircleRtcSessionForUser,
   LeaveCircleRtcError,
-} from "../services/leave-circle-rtc-session.service";
+} from "../services/participation/leave-circle-rtc-session.service";
 import {
   startRoomSessionService,
   StartRoomSessionError,
-} from "../services/start-room-session.service";
-import { syncCircleRoomExpiryFromClockIfDue } from "../services/circle-room-expiry-sync.service";
-import { deleteSessionRoomRedis } from "../services/session-room-redis.service";
+} from "../services/session/start-room-session.service";
+import { syncCircleRoomExpiryFromClockIfDue } from "../services/session/circle-room-expiry-sync.service";
+import { deleteSessionRoomRedis } from "../services/rtc/session-room-redis.service";
 
 /**
  * GET /api/room/:roomId/rtc-token

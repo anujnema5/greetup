@@ -2,7 +2,7 @@ import { mergeRoomAdvancedOptions } from "@/core/database/schema";
 import {
   CIRCLE_SESSION_MAX_MS,
   DIRECT_SESSION_MAX_MS,
-} from "@/modules/rooms/constants/room-session-limits";
+} from "@/modules/rooms/constants/session/room-session-limits";
 import type {
   CircleUpgradeExpiryParams,
   DbRoomSessionRow,

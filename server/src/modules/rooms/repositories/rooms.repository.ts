@@ -27,13 +27,13 @@ import {
   computeExpiryFieldsForRoom,
   computeLiveSessionExpiresAt,
   computeRoomExpiryFields,
-} from "@/modules/rooms/lib/room-expiry";
+} from "@/modules/rooms/lib/expiry/room-expiry";
 import {
   CIRCLE_SESSION_MAX_MINUTES,
   DIRECT_SESSION_MAX_MINUTES,
   SCHEDULED_EMPTY_ROOM_GRACE_MINUTES,
-} from "@/modules/rooms/constants/room-session-limits";
-import { SCHEDULED_JOIN_GRACE_AFTER_START_MINUTES } from "@/modules/rooms/constants/scheduled-circle-join-grace";
+} from "@/modules/rooms/constants/session/room-session-limits";
+import { SCHEDULED_JOIN_GRACE_AFTER_START_MINUTES } from "@/modules/rooms/constants/session/scheduled-circle-join-grace";
 import type { RoomSessionType } from "@/shared/types/room-session";
 
 /** Candidates for background sweep / list-circles (reconcile applies exact rules). */

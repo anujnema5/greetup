@@ -8,7 +8,7 @@ import {
   getRoomInvitePreferencesForUsers,
 } from "@/modules/profile/services/room-invite-preferences.service";
 import { roomsRepository } from "@/modules/rooms/repositories/rooms.repository";
-import { provisionSessionRoomRedis } from "@/modules/rooms/services/session-room-redis.service";
+import { provisionSessionRoomRedis } from "@/modules/rooms/services/rtc/session-room-redis.service";
 import type { CreateCircleBody } from "../schemas/create-circle.schema";
 import { CreateCircleError } from "../types/create-circle.types";
 

@@ -15,7 +15,7 @@ import {
   ensureDirectRoomActivityContext,
   RoomActivityError,
   type RoomActivityErrorCode,
-} from "@/modules/rooms/services/room-activity.service";
+} from "@/modules/rooms/services/activity/room-activity.service";
 
 const CHESS_INVITE_TTL_SEC = 90;
 const CHESS_ACTIVE_TTL_SEC = 4 * 60 * 60;

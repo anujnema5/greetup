@@ -1,15 +1,16 @@
 import type { InferSelectModel } from "drizzle-orm";
 
 import type { rooms } from "@/core/database/schema";
-import { SCHEDULED_JOIN_GRACE_AFTER_START_MINUTES } from "@/modules/rooms/constants/scheduled-circle-join-grace";
-import { SCHEDULED_EMPTY_ROOM_GRACE_MS } from "@/modules/rooms/constants/room-session-limits";
+import { SCHEDULED_JOIN_GRACE_AFTER_START_MINUTES } from "@/modules/rooms/constants/session/scheduled-circle-join-grace";
+import { SCHEDULED_EMPTY_ROOM_GRACE_MS } from "@/modules/rooms/constants/session/room-session-limits";
 import {
   computeCalendarEndForScheduledRoom,
   computeIsExpired,
   isLiveSessionCapExceeded,
   isPastDeadline,
-} from "@/modules/rooms/lib/room-expiry";
+} from "@/modules/rooms/lib/expiry/room-expiry";
 import type { RoomSessionEndReason } from "@/modules/rooms/types";
+import { coerceRoomDate } from "@/modules/rooms/lib/session/coerce-room-date";
 
 export type RoomRowForReconcile = Pick<
   InferSelectModel<typeof rooms>,
@@ -77,7 +78,7 @@ export function evaluateRoomSessionEndReason(
       return null;
     }
 
-    const emptySince = presence.lastLeftAt ?? room.startedAt;
+    const emptySince = coerceRoomDate(presence.lastLeftAt ?? room.startedAt);
     if (emptySince && now.getTime() - emptySince.getTime() >= SCHEDULED_EMPTY_ROOM_GRACE_MS) {
       return "empty_room_2h";
     }

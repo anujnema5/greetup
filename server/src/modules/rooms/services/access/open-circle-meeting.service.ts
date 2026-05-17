@@ -1,7 +1,7 @@
-import { isScheduledCircleBeforeStartTime } from "@/modules/rooms/lib/scheduled-circle-lobby";
-import { assertRoomSessionOpenOnAccess } from "@/modules/rooms/services/reconcile-room-session-on-access.service";
-import { roomsRepository } from "../repositories/rooms.repository";
-import { clearCircleLobbyGateInRedis } from "./session-room-redis.service";
+import { isScheduledCircleBeforeStartTime } from "@/modules/rooms/lib/session/scheduled-circle-lobby";
+import { assertRoomSessionOpenOnAccess } from "@/modules/rooms/services/session/reconcile-room-session-on-access.service";
+import { roomsRepository } from "../../repositories/rooms.repository";
+import { clearCircleLobbyGateInRedis } from "../rtc/session-room-redis.service";
 
 export type OpenCircleMeetingErrorCode =
   | "ROOM_NOT_FOUND"

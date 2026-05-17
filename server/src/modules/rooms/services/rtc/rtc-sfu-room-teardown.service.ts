@@ -5,8 +5,9 @@ import config from "@/shared/config/config";
  * Best-effort: tells rtc-service to evict peers, release VoiceIQ taps, close the mediasoup Router,
  * and clear `rtc:room:*` Redis keys for this replica.
  *
- * **Intended caller:** host “end circle for everyone” only (`hostEndCircleForEveryoneService`),
- * after `deleteSessionRoomRedis(roomId)` so the scheduled slot can stay in Postgres without a live SFU.
+ * **Callers:** host “end circle for everyone”, and when the last participant leaves a live circle
+ * (so rejoin can claim a fresh SFU on the current rtc replica). Also clears stale `rtc:room:*` keys
+ * when the webhook hits a different process than the recorded owner.
  */
 export async function notifyRtcServiceSfuRoomTeardown(roomId: string): Promise<void> {
   const base = config.rtcServiceBaseUrl;

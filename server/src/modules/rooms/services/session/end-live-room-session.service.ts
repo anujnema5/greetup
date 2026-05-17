@@ -4,12 +4,12 @@ import { db } from "@/core/database";
 import { roomParticipants, rooms } from "@/core/database/schema";
 import logger from "@/core/logging";
 import { emitToUser } from "@/core/socket/socket";
-import { CIRCLE_ROOM_SOCKET_EVENTS } from "@/modules/rooms/constants/circle-room-socket.events";
-import { computeRoomExpiryFields, isDbRoomSessionClosed } from "@/modules/rooms/lib/room-expiry";
+import { CIRCLE_ROOM_SOCKET_EVENTS } from "@/modules/rooms/constants/events/circle-room-socket.events";
+import { computeRoomExpiryFields, isDbRoomSessionClosed } from "@/modules/rooms/lib/expiry/room-expiry";
 import { roomsRepository } from "@/modules/rooms/repositories/rooms.repository";
-import { notifyRtcServiceSfuRoomTeardown } from "@/modules/rooms/services/rtc-sfu-room-teardown.service";
-import { deleteSessionRoomRedis } from "@/modules/rooms/services/session-room-redis.service";
-import { clearUserActiveRtcRoom } from "@/modules/rooms/services/user-active-rtc-room-redis.service";
+import { notifyRtcServiceSfuRoomTeardown } from "@/modules/rooms/services/rtc/rtc-sfu-room-teardown.service";
+import { deleteSessionRoomRedis } from "@/modules/rooms/services/rtc/session-room-redis.service";
+import { clearUserActiveRtcRoom } from "@/modules/rooms/services/rtc/user-active-rtc-room-redis.service";
 import type {
   EndLiveRoomSessionOptions,
   EndLiveRoomSessionResult,

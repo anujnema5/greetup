@@ -1,8 +1,8 @@
 import { roomsRepository } from "@/modules/rooms/repositories/rooms.repository";
-import { endLiveRoomSession } from "@/modules/rooms/services/end-live-room-session.service";
-import { clearUserActiveRtcRoom } from "@/modules/rooms/services/user-active-rtc-room-redis.service";
-import { isDbRoomSessionClosed } from "@/modules/rooms/lib/room-expiry";
-import { deleteSessionRoomRedis } from "@/modules/rooms/services/session-room-redis.service";
+import { endLiveRoomSession } from "@/modules/rooms/services/session/end-live-room-session.service";
+import { clearUserActiveRtcRoom } from "@/modules/rooms/services/rtc/user-active-rtc-room-redis.service";
+import { isDbRoomSessionClosed } from "@/modules/rooms/lib/expiry/room-expiry";
+import { deleteSessionRoomRedis } from "@/modules/rooms/services/rtc/session-room-redis.service";
 
 export type HostEndCircleForEveryoneErrorCode = "ROOM_NOT_FOUND" | "NOT_HOST" | "INVALID_STATE";
 

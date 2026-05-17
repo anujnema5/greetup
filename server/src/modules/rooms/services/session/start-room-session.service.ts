@@ -1,6 +1,6 @@
 import { mergeRoomAdvancedOptions } from "@/core/database/schema";
 import { roomsRepository } from "@/modules/rooms/repositories/rooms.repository";
-import { assertRoomSessionOpenOnAccess } from "@/modules/rooms/services/reconcile-room-session-on-access.service";
+import { assertRoomSessionOpenOnAccess } from "@/modules/rooms/services/session/reconcile-room-session-on-access.service";
 
 import { runLiveCircleAfterMarkLive } from "./live-circle-after-mark-live.service";
 

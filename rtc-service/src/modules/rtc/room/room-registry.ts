@@ -38,7 +38,13 @@ export async function getOrCreateLocalRoom(roomId: string): Promise<LocalRoomRes
   let owner = await redis.get(ownerKey);
 
   if (owner && owner !== instanceId) {
-    return { ok: false, code: "WRONG_INSTANCE", ownerInstanceId: owner };
+    const peerCount = await redis.scard(Keys.roomPeers(roomId));
+    if (peerCount === 0) {
+      await forceClearRoomRedis(roomId);
+      owner = null;
+    } else {
+      return { ok: false, code: "WRONG_INSTANCE", ownerInstanceId: owner };
+    }
   }
 
   if (!owner) {
@@ -81,12 +87,18 @@ export async function getOrCreateLocalRoom(roomId: string): Promise<LocalRoomRes
   return { ok: true, room };
 }
 
+/** Clears cross-replica RTC room metadata (owner, router hash, peer set). */
+export async function forceClearRoomRedis(roomId: string): Promise<void> {
+  const redis = getRedis();
+  await redis.del(Keys.roomOwner(roomId), Keys.room(roomId), Keys.roomPeers(roomId));
+}
+
 export async function releaseRoom(roomId: string): Promise<void> {
   const redis = getRedis();
   const ownerKey = Keys.roomOwner(roomId);
   const owner = await redis.get(ownerKey);
   if (owner === env.rtcInstanceId) {
-    await redis.del(ownerKey, Keys.room(roomId), Keys.roomPeers(roomId));
+    await forceClearRoomRedis(roomId);
   }
   await teardownLocalRoom(roomId);
 }

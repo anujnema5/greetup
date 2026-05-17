@@ -3,17 +3,18 @@ import { and, eq, isNull, sql } from "drizzle-orm";
 import { db } from "@/core/database";
 import { roomParticipants, rooms } from "@/core/database/schema";
 import logger from "@/core/logging";
-import { SCHEDULED_JOIN_GRACE_AFTER_START_MINUTES } from "@/modules/rooms/constants/scheduled-circle-join-grace";
+import { SCHEDULED_JOIN_GRACE_AFTER_START_MINUTES } from "@/modules/rooms/constants/session/scheduled-circle-join-grace";
+import { coerceRoomDate } from "@/modules/rooms/lib/session/coerce-room-date";
 import {
   evaluateRoomSessionEndReason,
   roomSessionClosedMessage,
   type ParticipantPresence,
   type RoomRowForReconcile,
-} from "@/modules/rooms/lib/reconcile-room-session-eval";
-import { isDbRoomSessionClosed } from "@/modules/rooms/lib/room-expiry";
+} from "@/modules/rooms/lib/session/reconcile-room-session-eval";
+import { isDbRoomSessionClosed } from "@/modules/rooms/lib/expiry/room-expiry";
 import { roomsRepository } from "@/modules/rooms/repositories/rooms.repository";
-import { endLiveRoomSession } from "@/modules/rooms/services/end-live-room-session.service";
-import { deleteSessionRoomRedis } from "@/modules/rooms/services/session-room-redis.service";
+import { endLiveRoomSession } from "@/modules/rooms/services/session/end-live-room-session.service";
+import { deleteSessionRoomRedis } from "@/modules/rooms/services/rtc/session-room-redis.service";
 import type { ReconcileRoomSessionResult, RoomSessionEndReason } from "@/modules/rooms/types";
 
 export { roomSessionClosedMessage };
@@ -33,7 +34,7 @@ async function loadParticipantPresence(roomId: string): Promise<ParticipantPrese
 
   return {
     activeCount: countRow?.n ?? 0,
-    lastLeftAt: leftRow?.lastLeftAt ?? null,
+    lastLeftAt: coerceRoomDate(leftRow?.lastLeftAt ?? null),
   };
 }
 

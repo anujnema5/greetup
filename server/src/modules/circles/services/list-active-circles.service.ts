@@ -1,6 +1,6 @@
 import { mergeRoomAdvancedOptions } from "@/core/database/schema";
 import { roomsRepository } from "@/modules/rooms/repositories/rooms.repository";
-import { deleteSessionRoomRedisMany } from "@/modules/rooms/services/session-room-redis.service";
+import { deleteSessionRoomRedisMany } from "@/modules/rooms/services/rtc/session-room-redis.service";
 import { ActiveCircleItem, ActiveCirclesResult, FriendInvitedCircleItem } from "../types";
 
 const DEFAULT_PUBLIC_LIMIT = 10;

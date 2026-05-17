@@ -1,6 +1,6 @@
 import logger from "@/core/logging";
 import config from "@/shared/config/config";
-import { sweepDueRoomSessions } from "@/modules/rooms/services/sweep-due-room-sessions.service";
+import { sweepDueRoomSessions } from "@/modules/rooms/services/session/sweep-due-room-sessions.service";
 
 let sweepTimer: ReturnType<typeof setInterval> | null = null;
 let sweepInFlight = false;
