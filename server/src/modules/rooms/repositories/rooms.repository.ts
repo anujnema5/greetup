@@ -23,9 +23,58 @@ import {
   users,
   type RoomAdvancedOptions,
 } from "@/core/database/schema";
-import { computeRoomExpiryFields } from "@/modules/rooms/lib/room-expiry";
+import {
+  computeExpiryFieldsForRoom,
+  computeLiveSessionExpiresAt,
+  computeRoomExpiryFields,
+} from "@/modules/rooms/lib/room-expiry";
+import {
+  CIRCLE_SESSION_MAX_MINUTES,
+  DIRECT_SESSION_MAX_MINUTES,
+  SCHEDULED_EMPTY_ROOM_GRACE_MINUTES,
+} from "@/modules/rooms/constants/room-session-limits";
 import { SCHEDULED_JOIN_GRACE_AFTER_START_MINUTES } from "@/modules/rooms/constants/scheduled-circle-join-grace";
 import type { RoomSessionType } from "@/shared/types/room-session";
+
+/** Candidates for background sweep / list-circles (reconcile applies exact rules). */
+function roomSessionSweepCandidatesWhere() {
+  return or(
+    and(
+      eq(rooms.roomType, "circle"),
+      eq(rooms.status, "scheduled"),
+      isNotNull(rooms.scheduledStartAt),
+      sql`(${rooms.scheduledStartAt} + (${SCHEDULED_JOIN_GRACE_AFTER_START_MINUTES} * interval '1 minute')) <= NOW()`,
+    ),
+    and(
+      eq(rooms.status, "live"),
+      inArray(rooms.roomType, ["direct", "circle"]),
+      or(
+        eq(rooms.isExpired, true),
+        and(isNotNull(rooms.expiresAt), sql`${rooms.expiresAt} <= NOW()`),
+        and(
+          isNotNull(rooms.startedAt),
+          sql`(
+            (${rooms.roomType} = 'direct' AND ${rooms.startedAt} + (${DIRECT_SESSION_MAX_MINUTES} * interval '1 minute') <= NOW())
+            OR (${rooms.roomType} = 'circle' AND ${rooms.startedAt} + (${CIRCLE_SESSION_MAX_MINUTES} * interval '1 minute') <= NOW())
+          )`,
+        ),
+        and(
+          sql`NOT EXISTS (
+            SELECT 1 FROM ${roomParticipants} rp
+            WHERE rp.room_id = ${rooms.id} AND rp.left_at IS NULL
+          )`,
+          sql`(
+            COALESCE(
+              (SELECT MAX(rp.left_at) FROM ${roomParticipants} rp WHERE rp.room_id = ${rooms.id}),
+              ${rooms.startedAt}
+            ) + (${SCHEDULED_EMPTY_ROOM_GRACE_MINUTES} * interval '1 minute')
+          ) <= NOW()`,
+          or(isNull(rooms.scheduledStartAt), sql`${rooms.scheduledStartAt} <= NOW()`),
+        ),
+      ),
+    ),
+  );
+}
 
 /** Shared predicate: circle rows that should be marked `is_expired` from wall-clock (see `syncPastDueCircleRoomExpiry`). */
 function circleRoomsPastDueForSyncWhere() {
@@ -713,11 +762,7 @@ export const roomsRepository = {
       .innerJoin(users, eq(rooms.hostUserId, users.id))
       .leftJoin(
         roomParticipants,
-        and(
-          eq(roomParticipants.roomId, rooms.id),
-          eq(roomParticipants.userId, userId),
-          isNull(roomParticipants.leftAt),
-        ),
+        and(eq(roomParticipants.roomId, rooms.id), eq(roomParticipants.userId, userId)),
       )
       .where(
         and(
@@ -725,7 +770,15 @@ export const roomsRepository = {
           inArray(rooms.status, ["live", "scheduled"]),
           notExists(friendInviteExists),
           roomsRepository._activeCircleListingPredicate(),
-          or(eq(rooms.hostUserId, userId), isNotNull(roomParticipants.userId)),
+          or(
+            eq(rooms.hostUserId, userId),
+            and(isNotNull(roomParticipants.userId), isNull(roomParticipants.leftAt)),
+            and(
+              isNotNull(roomParticipants.userId),
+              isNotNull(roomParticipants.leftAt),
+              inArray(rooms.status, ["live", "scheduled"]),
+            ),
+          ),
         ),
       )
       .orderBy(
@@ -802,6 +855,61 @@ export const roomsRepository = {
    * After someone joins/rejoins a live circle, reset `expires_at` / `is_expired` from schedule
    * (clears an empty-room grace deadline once the session has people again).
    */
+  /**
+   * Room ids that may need {@link reconcileRoomSessionOnAccess} (cap, calendar, empty 2h, join grace).
+   */
+  async listRoomIdsDueForSessionSweep(limit = 100): Promise<string[]> {
+    const rows = await db
+      .select({ id: rooms.id })
+      .from(rooms)
+      .where(roomSessionSweepCandidatesWhere())
+      .limit(limit);
+    return rows.map((r) => r.id);
+  },
+
+  /**
+   * New per-session timer when everyone had left and someone joins/rejoins a still-live room.
+   */
+  async restartLiveSessionClockIfNoActiveParticipants(roomId: string): Promise<void> {
+    const row = await db.query.rooms.findFirst({
+      where: and(eq(rooms.id, roomId), eq(rooms.status, "live")),
+      columns: {
+        roomType: true,
+        startedAt: true,
+        scheduledStartAt: true,
+        scheduledEndAt: true,
+        advancedOptions: true,
+      },
+    });
+    if (!row) return;
+
+    const [countRow] = await db
+      .select({ n: sql<number>`cast(count(*) as int)` })
+      .from(roomParticipants)
+      .where(and(eq(roomParticipants.roomId, roomId), isNull(roomParticipants.leftAt)));
+    if ((countRow?.n ?? 0) > 0) return;
+
+    const now = new Date();
+    const expiresAt = computeLiveSessionExpiresAt({
+      roomType: row.roomType,
+      status: "live",
+      startedAt: now,
+      scheduledStartAt: row.scheduledStartAt,
+      scheduledEndAt: row.scheduledEndAt,
+      advancedOptions: row.advancedOptions,
+    });
+
+    await db
+      .update(rooms)
+      .set({
+        startedAt: now,
+        expiresAt,
+        isExpired: false,
+        updatedAt: now,
+      })
+      .where(eq(rooms.id, roomId));
+  },
+
   async refreshLiveCircleExpiryAfterParticipantJoin(roomId: string): Promise<void> {
     const row = await db.query.rooms.findFirst({
       where: and(eq(rooms.id, roomId), eq(rooms.roomType, "circle"), eq(rooms.status, "live")),

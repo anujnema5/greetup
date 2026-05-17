@@ -21,6 +21,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { AddToCircleDialog } from "@/features/room/components/dialogs/add-to-circle-dialog";
 import { CircleLobbyOverlay } from "@/features/room/components/lobby/circle-lobby-overlay";
+import { useRoomSessionExpiryWarnings } from "@/features/room/hooks/session/use-room-session-expiry-warnings";
 import { InCallScreen } from "@/features/room/call/shell/in-call-screen";
 import { useRemoteParticipantLabel } from "@/features/room/hooks/media/use-remote-participant-label";
 import { useRoomVideo } from "@/features/room/hooks/session/use-room-video";
@@ -124,6 +125,8 @@ export function InCallContainer({
     dominantSpeakerPeerId: liveSpeakerPeerId,
     dominantSpeakerSpeakingMs: liveSpeakerSpeakingMs,
   } = useRtcSocketContext();
+
+  useRoomSessionExpiryWarnings(roomId, mediasoupStatus === "ready");
 
   /** DB-backed tiles + policy map; invite gating uses `embeddedStageActivityId` (can run ahead of Redux). */
   const { directRoomActivities, embeddedCallPolicyLookup } = useRoomEmbeddedActivitiesCatalog();

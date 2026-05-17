@@ -1,7 +1,5 @@
 # Room / Circle — Call kab start, kab band? (Hinglish guide)
 
-> **Visual version:** [room-session-lifecycle-hinglish.html](./room-session-lifecycle-hinglish.html) — timeline, priority ladder, dark UI (browser me kholo).
-
 Yeh document **sari conditions ek jagah** rakhta hai: direct call, instant circle, scheduled circle, direct → circle upgrade, host actions, aur time limits.
 
 **Teen hisse:**
@@ -455,16 +453,16 @@ Reason codes: `expires_at_past`, `join_grace_missed`, `session_cap`, `calendar_e
 
 # Implementation checklist (dev)
 
-- [ ] Constants: `DIRECT_SESSION_MAX_MS`, `CIRCLE_SESSION_MAX_MS`, `SCHEDULED_EMPTY_ROOM_GRACE_MS`  
-- [ ] `computeSessionExpiresAt(room)` — per type + scheduled calendar cap  
-- [ ] Set `expires_at` on: direct create, mark live, expand direct→circle  
+- [x] Constants: `DIRECT_SESSION_MAX_MS`, `CIRCLE_SESSION_MAX_MS`, `SCHEDULED_EMPTY_ROOM_GRACE_MS`  
+- [x] `computeLiveSessionExpiresAt` / `computeSessionCapDeadline` — per type + scheduled calendar cap  
+- [x] Set `expires_at` on: direct create, mark live, expand direct→circle  
 - [ ] **Empty room 2h** on scheduled live (timer reset on join)  
+- [x] **`endLiveRoomSession`** shared executor — idempotent full teardown  
 - [ ] **Auto-end** job / sync: past `expires_at` → teardown (not only `is_expired`)  
 - [ ] Direct rooms: `isDbRoomSessionClosed` on RTC token  
 - [ ] Host end instant: verify always `ended` + teardown  
 - [ ] Client warnings (optional)  
 - [ ] **`reconcileRoomSessionOnAccess`** — join + token + GET (Part C)  
-- [ ] **`endLiveRoomSession`** shared executor — idempotent full teardown  
 - [ ] **R5 empty 2h** — `last left_at` / no active participants  
 - [ ] Join error messages — reason-specific Hinglish/English copy  
 

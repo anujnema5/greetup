@@ -1,6 +1,6 @@
 import { mergeRoomAdvancedOptions } from "@/core/database/schema";
 import { roomsRepository } from "@/modules/rooms/repositories/rooms.repository";
-import { syncCircleRoomExpiryFromClockIfDue } from "@/modules/rooms/services/circle-room-expiry-sync.service";
+import { assertRoomSessionOpenOnAccess } from "@/modules/rooms/services/reconcile-room-session-on-access.service";
 
 import { runLiveCircleAfterMarkLive } from "./live-circle-after-mark-live.service";
 
@@ -23,7 +23,11 @@ export class StartRoomSessionError extends Error {
  * Host starts a previously scheduled DB room: PG → live, then Redis session key.
  */
 export async function startRoomSessionService(hostUserId: string, roomId: string) {
-  await syncCircleRoomExpiryFromClockIfDue(roomId);
+  const access = await assertRoomSessionOpenOnAccess(roomId);
+  if (!access.ok) {
+    throw new StartRoomSessionError(access.message, "INVALID_STATE");
+  }
+
   const existing = await roomsRepository.findRoomById(roomId);
 
   if (!existing) {

@@ -5,11 +5,9 @@ import { roomFriendInvites, roomParticipants } from "@/core/database/schema";
 import { getRedis } from "@/core/redis";
 import { ROOM_KEYS } from "@/core/redis/keys";
 import { roomsRepository } from "@/modules/rooms/repositories/rooms.repository";
-import { isDbRoomSessionClosed } from "@/modules/rooms/lib/room-expiry";
-import { deleteSessionRoomRedis } from "@/modules/rooms/services/session-room-redis.service";
 import { maybeAutoStartScheduledCircleFromDb } from "@/modules/rooms/services/maybe-auto-start-scheduled-circle.service";
+import { assertRoomSessionOpenOnAccess } from "@/modules/rooms/services/reconcile-room-session-on-access.service";
 import { roomRestrictedUsersRepository } from "@/modules/rooms/repositories/room-restricted-users.repository";
-import { syncCircleRoomExpiryFromClockIfDue } from "@/modules/rooms/services/circle-room-expiry-sync.service";
 
 export type JoinRoomErrorCode =
   | "ROOM_NOT_FOUND"
@@ -48,18 +46,16 @@ export async function joinRoomService(userId: string, roomId: string): Promise<v
     }
   }
 
-  if (room.roomType === "circle") {
-    await syncCircleRoomExpiryFromClockIfDue(roomId);
+  if (room.roomType === "direct" || room.roomType === "circle") {
+    const access = await assertRoomSessionOpenOnAccess(roomId);
+    if (!access.ok) {
+      throw new JoinRoomError(access.message, "ROOM_EXPIRED", 410);
+    }
     room = (await roomsRepository.findRoomById(roomId)) ?? room;
   }
 
   if (room.roomType !== "direct" && room.roomType !== "circle") {
     throw new JoinRoomError("Unsupported room type", "UNSUPPORTED_ROOM_TYPE", 400);
-  }
-
-  if (room.roomType === "circle" && isDbRoomSessionClosed(room)) {
-    await deleteSessionRoomRedis(roomId);
-    throw new JoinRoomError("This circle is no longer available", "ROOM_EXPIRED", 410);
   }
 
   /**

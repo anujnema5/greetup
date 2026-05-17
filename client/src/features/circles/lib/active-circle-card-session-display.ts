@@ -17,3 +17,10 @@ export function activeCircleCardShowsLiveSession(circle: ActiveCircleItem): bool
 
   return !earlyEmptySlot;
 }
+
+/** Host may edit title/time/invites until the circle is an ongoing live session. */
+export function activeCircleHostCanEditSchedule(circle: ActiveCircleItem): boolean {
+  if (!circle.scheduledStartAt) return false;
+  if (circle.status === "scheduled") return true;
+  return circle.status === "live" && !activeCircleCardShowsLiveSession(circle);
+}

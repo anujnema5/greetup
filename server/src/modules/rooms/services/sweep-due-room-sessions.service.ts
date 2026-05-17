@@ -1,0 +1,39 @@
+import logger from "@/core/logging";
+import { roomsRepository } from "@/modules/rooms/repositories/rooms.repository";
+import { reconcileRoomSessionOnAccess } from "@/modules/rooms/services/reconcile-room-session-on-access.service";
+import type {
+  SweepDueRoomSessionsOptions,
+  SweepDueRoomSessionsResult,
+} from "@/modules/rooms/types";
+
+/**
+ * Background / list-circles: full session teardown for wall-clock due rooms (not only `is_expired`).
+ */
+export async function sweepDueRoomSessions(
+  options: SweepDueRoomSessionsOptions = {},
+): Promise<SweepDueRoomSessionsResult> {
+  const maxRooms = options.maxRooms ?? 100;
+  const candidateIds = await roomsRepository.listRoomIdsDueForSessionSweep(maxRooms);
+  const endedIds: string[] = [];
+
+  for (const roomId of candidateIds) {
+    const result = await reconcileRoomSessionOnAccess(roomId);
+    if (result.closed && !result.alreadyWasClosed) {
+      endedIds.push(roomId);
+    }
+  }
+
+  if (endedIds.length > 0) {
+    logger.info("room_session_sweep", {
+      candidates: candidateIds.length,
+      ended: endedIds.length,
+      roomIds: endedIds,
+    });
+  }
+
+  return {
+    candidates: candidateIds.length,
+    ended: endedIds.length,
+    roomIds: endedIds,
+  };
+}

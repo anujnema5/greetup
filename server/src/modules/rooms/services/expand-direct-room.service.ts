@@ -16,6 +16,7 @@ import {
 import { roomsRepository } from "@/modules/rooms/repositories/rooms.repository";
 import { syncCircleRoomTitleFromParticipants } from "@/modules/rooms/services/circle-participant-title.service";
 import { notifyRtcServiceRoomType } from "@/modules/rooms/services/notify-rtc-room-type.service";
+import { canInviteWithoutExceedingCapacity } from "@/modules/rooms/lib/room-invite-capacity";
 import { patchSessionRoomRedisRoomType } from "@/modules/rooms/services/session-room-redis.service";
 
 export class RoomInviteError extends Error {
@@ -42,7 +43,8 @@ export type RoomInviteErrorCode =
   | "INVITE_NOT_FOUND"
   | "NOT_YOUR_INVITE"
   | "INVITE_NOT_PENDING"
-  | "ROOM_CHANGED";
+  | "ROOM_CHANGED"
+  | "ROOM_FULL";
 
 export async function createRoomInviteService(
   inviterUserId: string,

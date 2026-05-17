@@ -17,6 +17,7 @@
     "db:seed:dev-users": "bun src/core/database/seed/seed-dev-users.ts",
     "build": "tsc",
     "typecheck": "tsc --noEmit",
+    "test": "bun test",
     "start": "bun src/index.ts",
     "docker:up": "docker compose up -d"
   },

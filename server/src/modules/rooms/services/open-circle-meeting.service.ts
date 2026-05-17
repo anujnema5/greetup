@@ -1,5 +1,5 @@
 import { isScheduledCircleBeforeStartTime } from "@/modules/rooms/lib/scheduled-circle-lobby";
-import { syncCircleRoomExpiryFromClockIfDue } from "@/modules/rooms/services/circle-room-expiry-sync.service";
+import { assertRoomSessionOpenOnAccess } from "@/modules/rooms/services/reconcile-room-session-on-access.service";
 import { roomsRepository } from "../repositories/rooms.repository";
 import { clearCircleLobbyGateInRedis } from "./session-room-redis.service";
 
@@ -26,7 +26,11 @@ export class OpenCircleMeetingError extends Error {
  * Idempotent when the gate is already open.
  */
 export async function openCircleMeetingService(userId: string, roomId: string): Promise<void> {
-  await syncCircleRoomExpiryFromClockIfDue(roomId);
+  const access = await assertRoomSessionOpenOnAccess(roomId);
+  if (!access.ok) {
+    throw new OpenCircleMeetingError(access.message, "INVALID_STATE", 410);
+  }
+
   let room = await roomsRepository.findRoomById(roomId);
   if (!room) {
     throw new OpenCircleMeetingError("Room not found", "ROOM_NOT_FOUND", 404);

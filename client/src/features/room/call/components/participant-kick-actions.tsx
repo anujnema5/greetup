@@ -14,6 +14,10 @@ import {
 } from "@/components/ui/alert-dialog";
 import { buttonVariants } from "@/components/ui/button";
 import {
+  COMPACT_DIALOG_DESCRIPTION,
+  COMPACT_DIALOG_TITLE,
+} from "@/lib/ui/compact-dialog-typography";
+import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,

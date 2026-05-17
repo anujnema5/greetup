@@ -20,6 +20,9 @@ export type RoomData =
       title?: string;
       /** Present when expanded circle: DB `rooms.host_user_id`. */
       hostUserId?: string;
+      /** Live session timing from Postgres when the pair row is `live`. */
+      startedAt?: string | null;
+      expiresAt?: string | null;
     }
   | {
       sessionKind: "db_room";
@@ -34,6 +37,8 @@ export type RoomData =
       lobbyGateActive?: "0" | "1";
       /** Scheduled start (ISO), when the circle has a start time — used in pre-start lobby. */
       scheduledStartAt?: string;
+      startedAt?: string | null;
+      expiresAt?: string | null;
     };
 
 /** Parses API `data` envelope — used by RTK Query `transformResponse`. */
@@ -55,6 +60,10 @@ export function parseRoomData(data: unknown): RoomData {
     const statusRaw = d.status;
     const status =
       typeof statusRaw === "string" && statusRaw.length > 0 ? statusRaw : undefined;
+    const startedAt =
+      typeof d.startedAt === "string" && d.startedAt.length > 0 ? d.startedAt : null;
+    const expiresAt =
+      typeof d.expiresAt === "string" && d.expiresAt.length > 0 ? d.expiresAt : null;
     return {
       sessionKind: "db_room",
       roomId: String(d.roomId),
@@ -64,6 +73,8 @@ export function parseRoomData(data: unknown): RoomData {
       ...(status ? { status } : {}),
       ...(lobbyGateActive ? { lobbyGateActive } : {}),
       ...(scheduledStartAt ? { scheduledStartAt } : {}),
+      ...(startedAt ? { startedAt } : {}),
+      ...(expiresAt ? { expiresAt } : {}),
     };
   }
   if ("userA" in d && "userB" in d && "roomId" in d) {
@@ -71,6 +82,10 @@ export function parseRoomData(data: unknown): RoomData {
     const rt = d.roomType;
     const title = d.title;
     const hostUserId = d.hostUserId;
+    const startedAt =
+      typeof d.startedAt === "string" && d.startedAt.length > 0 ? d.startedAt : null;
+    const expiresAt =
+      typeof d.expiresAt === "string" && d.expiresAt.length > 0 ? d.expiresAt : null;
     return {
       roomId: String(d.roomId),
       userA: String(d.userA),
@@ -81,6 +96,8 @@ export function parseRoomData(data: unknown): RoomData {
       roomType: rt === "circle" || rt === "direct" ? rt : undefined,
       title: typeof title === "string" ? title : undefined,
       hostUserId: typeof hostUserId === "string" ? hostUserId : undefined,
+      ...(startedAt ? { startedAt } : {}),
+      ...(expiresAt ? { expiresAt } : {}),
     };
   }
   throw new Error("Unexpected room payload");

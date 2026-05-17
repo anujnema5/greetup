@@ -59,6 +59,8 @@ All paths below are from the **repository root** (`docs/...`).
 | [design/room-activities-and-chess.md](design/room-activities-and-chess.md) | Room activities & chess lifecycle |
 | [design/room-session-lifecycle-hinglish.md](design/room-session-lifecycle-hinglish.md) | **Hinglish:** circle/direct call kab start/band — per-session limits, scheduled slot, host end |
 | [design/room-session-lifecycle-hinglish.html](design/room-session-lifecycle-hinglish.html) | Same guide — **visual HTML** (timeline, priority ladder, dark UI) |
+| [design/room-session-lifecycle-hinglish.md](design/room-session-lifecycle-hinglish.md) | **Hinglish:** circle/direct call kab start/band — per-session limits, scheduled slot, host end |
+| [design/room-session-lifecycle-hinglish.html](design/room-session-lifecycle-hinglish.html) | Same guide — **visual HTML** (timeline, priority ladder, dark UI) |
 | [design/convoiq-greetup-architecture.md](design/convoiq-greetup-architecture.md) | **ConvoIQ × Greetup** — full stack: SFU tap, voiceiq-service, server hooks, phases |
 | [design/authentication.md](design/authentication.md) | Better Auth, Firebase Phone, cookies, Next ↔ Hono |
 | [design/minimized-room-dock-plan.md](design/minimized-room-dock-plan.md) | Minimized call dock: dominant vs pin vs screen share, tasks for implementation |

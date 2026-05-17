@@ -36,7 +36,10 @@
 | `constants/direct-call/` | 1:1 recovery timing |
 | `constants/dev/` | Mock match fixture |
 | `components/minimized-dock/` | Floating dock + hydration |
-| `components/lobby/` | Pre-call lobby overlay |
+| `components/lobby/` | Pre-join view + lobby overlay (RTC gates) |
+| `hooks/lobby/` | Lobby preview media, pre-join actions |
+| `lib/call/circle-pre-join.ts` | Pure pre-join state from GET room |
+| `hooks/session/use-circle-room-entry.ts` | Meet-style join gate on `RoomPage` |
 | `components/dialogs/` | Add-to-circle dialog |
 | `api/` | Room HTTP (RTK) |
 
