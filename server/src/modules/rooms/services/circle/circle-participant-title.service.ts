@@ -1,6 +1,6 @@
 import { roomInviteRepository } from "@/modules/rooms/repositories/expand-direct-room.repository";
 import { roomsRepository } from "@/modules/rooms/repositories/rooms.repository";
-import { patchSessionRoomRedisTitle } from "@/modules/rooms/services/session-room-redis.service";
+import { patchSessionRoomRedisTitle } from "@/modules/rooms/services/rtc/session-room-redis.service";
 
 const TITLE_MAX = 160;
 

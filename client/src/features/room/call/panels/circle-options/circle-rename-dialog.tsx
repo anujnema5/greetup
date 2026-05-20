@@ -18,6 +18,11 @@ import {
   IN_CALL_DIALOG_OVERLAY_Z,
 } from "@/features/room/constants/call/in-call-dialog-layer";
 import { cn } from "@/lib/utils";
+import {
+  COMPACT_DIALOG_DESCRIPTION,
+  COMPACT_DIALOG_ICON_WRAP,
+  COMPACT_DIALOG_TITLE,
+} from "@/lib/ui/compact-dialog-typography";
 
 export type CircleRenameDialogProps = {
   open: boolean;

@@ -1,4 +1,5 @@
 import {
+  forceClearRoomRedis,
   getOrCreateLocalRoom,
   getLocalRoom,
   releaseRoom,
@@ -13,5 +14,6 @@ export const roomService = {
   getOrCreateLocalRoom,
   getLocalRoom,
   releaseRoom,
+  forceClearRoomRedis,
   getRoomRecord: roomRepository.getRoomRecord,
 };

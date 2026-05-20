@@ -1,8 +1,8 @@
 import type { RoomSessionType } from "@/shared/types/room-session";
 
-import { notifyCircleStarted } from "../notifications";
-import { roomsRepository } from "../repositories/rooms.repository";
-import { provisionSessionRoomRedis } from "./session-room-redis.service";
+import { notifyCircleStarted } from "../../notifications";
+import { roomsRepository } from "../../repositories/rooms.repository";
+import { provisionSessionRoomRedis } from "../rtc/session-room-redis.service";
 
 /**
  * Shared follow-up when a circle room row becomes `live` from `scheduled`:

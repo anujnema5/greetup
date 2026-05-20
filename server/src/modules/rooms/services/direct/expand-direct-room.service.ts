@@ -8,15 +8,16 @@ import {
   canHostInviteUserToRoom,
   getRoomInvitePreferencesForUsers,
 } from "@/modules/profile/services/room-invite-preferences.service";
-import { DIRECT_EXPAND_SOCKET_EVENTS } from "@/modules/rooms/constants/direct-expand-socket.events";
+import { DIRECT_EXPAND_SOCKET_EVENTS } from "@/modules/rooms/constants/events/direct-expand-socket.events";
 import {
   DirectRoomExpandConflictError,
   roomInviteRepository,
 } from "@/modules/rooms/repositories/expand-direct-room.repository";
 import { roomsRepository } from "@/modules/rooms/repositories/rooms.repository";
-import { syncCircleRoomTitleFromParticipants } from "@/modules/rooms/services/circle-participant-title.service";
-import { notifyRtcServiceRoomType } from "@/modules/rooms/services/notify-rtc-room-type.service";
-import { patchSessionRoomRedisRoomType } from "@/modules/rooms/services/session-room-redis.service";
+import { syncCircleRoomTitleFromParticipants } from "@/modules/rooms/services/circle/circle-participant-title.service";
+import { notifyRtcServiceRoomType } from "@/modules/rooms/services/rtc/notify-rtc-room-type.service";
+import { canInviteWithoutExceedingCapacity } from "@/modules/rooms/lib/session/room-invite-capacity";
+import { patchSessionRoomRedisRoomType } from "@/modules/rooms/services/rtc/session-room-redis.service";
 
 export class RoomInviteError extends Error {
   constructor(
@@ -42,7 +43,8 @@ export type RoomInviteErrorCode =
   | "INVITE_NOT_FOUND"
   | "NOT_YOUR_INVITE"
   | "INVITE_NOT_PENDING"
-  | "ROOM_CHANGED";
+  | "ROOM_CHANGED"
+  | "ROOM_FULL";
 
 export async function createRoomInviteService(
   inviterUserId: string,
@@ -109,10 +111,6 @@ export async function createRoomInviteService(
     await emitInviteSocket(existing.id, roomId, inviterUserId, inviteeUserId, room.title);
     return { inviteId: existing.id };
   }
-  if (existing?.status === "accepted") {
-    throw new RoomInviteError("An invite for this user is already accepted", "ALREADY_IN_ROOM", 400);
-  }
-
   const inviteId = await roomInviteRepository.upsertPendingFriendInvite({
     roomId,
     inviterUserId,

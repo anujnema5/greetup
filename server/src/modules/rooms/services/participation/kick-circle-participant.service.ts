@@ -3,12 +3,13 @@ import { and, eq, isNull } from "drizzle-orm";
 import { db } from "@/core/database";
 import { roomParticipants, rooms } from "@/core/database/schema";
 import { emitToUser } from "@/core/socket/socket";
-import { isDbRoomSessionClosed } from "@/modules/rooms/lib/room-expiry";
-import { CIRCLE_ROOM_SOCKET_EVENTS } from "@/modules/rooms/constants/circle-room-socket.events";
+import { isDbRoomSessionClosed } from "@/modules/rooms/lib/expiry/room-expiry";
+import { CIRCLE_ROOM_SOCKET_EVENTS } from "@/modules/rooms/constants/events/circle-room-socket.events";
+import { roomInviteRepository } from "@/modules/rooms/repositories/expand-direct-room.repository";
 import { roomsRepository } from "@/modules/rooms/repositories/rooms.repository";
 import { roomRestrictedUsersRepository } from "@/modules/rooms/repositories/room-restricted-users.repository";
-import { notifyRtcServiceKickPeer } from "@/modules/rooms/services/rtc-kick-peer.service";
-import { clearUserActiveRtcRoom } from "@/modules/rooms/services/user-active-rtc-room-redis.service";
+import { notifyRtcServiceKickPeer } from "@/modules/rooms/services/rtc/rtc-kick-peer.service";
+import { clearUserActiveRtcRoom } from "@/modules/rooms/services/rtc/user-active-rtc-room-redis.service";
 
 export type KickCircleParticipantOptions = {
   /** When true, the user cannot rejoin this circle until the restriction is cleared. */
@@ -110,6 +111,7 @@ export async function kickCircleParticipantService(
 
   await clearUserActiveRtcRoom(targetUserId);
   await notifyRtcServiceKickPeer(roomId, targetUserId);
+  await roomInviteRepository.cancelFriendInviteForRoomInvitee(roomId, targetUserId);
   emitToUser(targetUserId, CIRCLE_ROOM_SOCKET_EVENTS.participantRemoved, { roomId });
 
   let restricted = false;

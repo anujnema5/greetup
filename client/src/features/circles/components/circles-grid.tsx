@@ -10,7 +10,11 @@ import { useStartScheduledCircleMutation } from "@/features/room/api/room-api";
 import { cn } from "@/lib/utils";
 import { formatScheduledStart } from "@/lib/datetime/format-scheduled-start";
 import { scheduledStartTimeDisclaimerCompact } from "@/features/circles/constants/scheduled-circle-join-grace";
-import { activeCircleCardShowsLiveSession } from "@/features/circles/lib/active-circle-card-session-display";
+import {
+  activeCircleCardShowsLiveSession,
+  activeCircleHostCanEditSchedule,
+} from "@/features/circles/lib/active-circle-card-session-display";
+import { circleRoomPath } from "@/features/room/lib/navigation/circle-routes";
 import { useListActiveCirclesQuery } from "../api/circles-api";
 import { useStartCircleModal } from "./start-circle-modal-provider";
 import type { ActiveCircleItem } from "../types/circles-api.types";
@@ -57,13 +61,13 @@ function CircleCard({
   const isLive = activeCircleCardShowsLiveSession(circle);
   const scheduledLabel = formatScheduledStart(circle.scheduledStartAt);
   const isHost = Boolean(currentUserId && circle.host.userId === currentUserId);
-  const showEdit = isHost && circle.status === "scheduled" && circle.scheduledStartAt && onEditScheduled;
+  const canEditSchedule = activeCircleHostCanEditSchedule(circle);
+  const showEdit = isHost && canEditSchedule && onEditScheduled;
   const showStartNow =
     Boolean(onStartScheduledNow) &&
     isHost &&
     !isLive &&
-    circle.status === "scheduled" &&
-    Boolean(circle.scheduledStartAt);
+    canEditSchedule;
 
   return (
     <div
@@ -277,7 +281,7 @@ function CirclesGridInner() {
       try {
         await startScheduledCircle(circle.id).unwrap();
         toast.success("Circle is live — opening room…");
-        router.push(`/circle/${circle.id}`);
+        router.push(circleRoomPath(circle.id));
       } catch (e: unknown) {
         toast.error(getRtkMutationErrorMessage(e, "Could not start this circle yet"));
       }
@@ -289,7 +293,7 @@ function CirclesGridInner() {
 
   const goToCircleRoom = useCallback(
     (circle: ActiveCircleItem) => {
-      router.push(`/circle/${circle.id}`);
+      router.push(circleRoomPath(circle.id));
     },
     [router],
   );

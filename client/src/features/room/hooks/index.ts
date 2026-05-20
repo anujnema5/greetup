@@ -1,6 +1,7 @@
 export { useRoomVideo } from "./session/use-room-video";
 export type { UseRoomVideoOptions } from "./session/use-room-video";
 export { useRoomJoinAndStartVideo } from "./session/use-room-join-and-start-video";
+export { useRoomSessionExpiryWarnings } from "./session/use-room-session-expiry-warnings";
 export { useClientMounted } from "./session/use-client-mounted";
 export { useRoomUi } from "./session/use-room-ui";
 

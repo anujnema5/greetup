@@ -1,5 +1,5 @@
 import { roomsRepository } from "@/modules/rooms/repositories/rooms.repository";
-import { deleteSessionRoomRedis } from "@/modules/rooms/services/session-room-redis.service";
+import { deleteSessionRoomRedis } from "@/modules/rooms/services/rtc/session-room-redis.service";
 
 /**
  * Aligns `rooms.is_expired` with wall-clock for one circle (`expires_at` past, or scheduled + join

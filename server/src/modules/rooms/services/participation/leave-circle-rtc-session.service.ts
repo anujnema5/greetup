@@ -3,10 +3,11 @@ import { and, eq, isNull, sql } from "drizzle-orm";
 import { db } from "@/core/database";
 import { mergeRoomAdvancedOptions, roomParticipants, rooms } from "@/core/database/schema";
 import logger from "@/core/logging";
-import { isDbRoomSessionClosed } from "@/modules/rooms/lib/room-expiry";
+import { isDbRoomSessionClosed } from "@/modules/rooms/lib/expiry/room-expiry";
 import { roomsRepository } from "@/modules/rooms/repositories/rooms.repository";
-import { deleteSessionRoomRedis } from "@/modules/rooms/services/session-room-redis.service";
-import { clearUserActiveRtcRoom } from "@/modules/rooms/services/user-active-rtc-room-redis.service";
+import { deleteSessionRoomRedis } from "@/modules/rooms/services/rtc/session-room-redis.service";
+import { notifyRtcServiceSfuRoomTeardown } from "@/modules/rooms/services/rtc/rtc-sfu-room-teardown.service";
+import { clearUserActiveRtcRoom } from "@/modules/rooms/services/rtc/user-active-rtc-room-redis.service";
 
 export type LeaveCircleRtcErrorCode =
   | "ROOM_NOT_FOUND"
@@ -91,6 +92,7 @@ export async function leaveCircleRtcSessionForUser(
 
   const now = new Date();
   let roomEnded = false;
+  let lastParticipantLeft = false;
 
   await db.transaction(async (tx) => {
     await tx
@@ -114,6 +116,8 @@ export async function leaveCircleRtcSessionForUser(
       return;
     }
 
+    lastParticipantLeft = true;
+
     if (adv.deleteCircleAfterCall) {
       const [updated] = await tx
         .update(rooms)
@@ -133,6 +137,9 @@ export async function leaveCircleRtcSessionForUser(
   await clearUserActiveRtcRoom(userId);
   if (roomEnded) {
     await deleteSessionRoomRedis(roomId);
+  }
+  if (lastParticipantLeft) {
+    await notifyRtcServiceSfuRoomTeardown(roomId);
   }
   return { roomEnded };
 }

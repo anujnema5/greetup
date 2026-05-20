@@ -5,7 +5,7 @@ import { emitToUser } from "@/core/socket/socket";
 import logger from "@/core/logging";
 import { getRedis } from "@/core/redis";
 import { ROOM_KEYS, ROOM_TTL } from "@/core/redis/keys";
-import { clearUserActiveRtcRoom } from "@/modules/rooms/services/user-active-rtc-room-redis.service";
+import { clearUserActiveRtcRoom } from "@/modules/rooms/services/rtc/user-active-rtc-room-redis.service";
 import { ensureProfileSnapshotCached } from "@/modules/user/services/profile-snapshot-cache.service";
 import {
   createRoomBodySchema,
@@ -24,37 +24,42 @@ import {
   createRoomInviteService,
   respondRoomInviteService,
   RoomInviteError,
-} from "../services/expand-direct-room.service";
+} from "../services/direct/expand-direct-room.service";
 import {
   updateLiveRoomTitleService,
   UpdateLiveRoomTitleError,
-} from "../services/update-live-room-title.service";
+} from "../services/circle/update-live-room-title.service";
 import { mergeRoomAdvancedOptions } from "@/core/database/schema";
-import { isDbRoomSessionClosed } from "@/modules/rooms/lib/room-expiry";
-import { issueRtcTokenService, IssueRtcTokenError } from "../services/issue-rtc-token.service";
-import { joinRoomService, JoinRoomError } from "../services/join-room.service";
+import { isDbRoomSessionClosed } from "@/modules/rooms/lib/expiry/room-expiry";
+import { roomSessionTimingPayload } from "@/modules/rooms/lib/expiry/room-session-timing-payload";
+import {
+  reconcileRoomSessionOnAccess,
+  roomSessionClosedMessage,
+} from "@/modules/rooms/services/session/reconcile-room-session-on-access.service";
+import { issueRtcTokenService, IssueRtcTokenError } from "../services/access/issue-rtc-token.service";
+import { joinRoomService, JoinRoomError } from "../services/access/join-room.service";
 import {
   openCircleMeetingService,
   OpenCircleMeetingError,
-} from "../services/open-circle-meeting.service";
+} from "../services/access/open-circle-meeting.service";
 import {
   hostEndCircleForEveryoneService,
   HostEndCircleForEveryoneError,
-} from "../services/host-end-circle-for-everyone.service";
+} from "../services/participation/host-end-circle-for-everyone.service";
 import {
   kickCircleParticipantService,
   KickCircleParticipantError,
-} from "../services/kick-circle-participant.service";
+} from "../services/participation/kick-circle-participant.service";
 import {
   leaveCircleRtcSessionForUser,
   LeaveCircleRtcError,
-} from "../services/leave-circle-rtc-session.service";
+} from "../services/participation/leave-circle-rtc-session.service";
 import {
   startRoomSessionService,
   StartRoomSessionError,
-} from "../services/start-room-session.service";
-import { syncCircleRoomExpiryFromClockIfDue } from "../services/circle-room-expiry-sync.service";
-import { deleteSessionRoomRedis } from "../services/session-room-redis.service";
+} from "../services/session/start-room-session.service";
+import { syncCircleRoomExpiryFromClockIfDue } from "../services/session/circle-room-expiry-sync.service";
+import { deleteSessionRoomRedis } from "../services/rtc/session-room-redis.service";
 
 /**
  * GET /api/room/:roomId/rtc-token
@@ -549,6 +554,18 @@ export const handleGetRoom = async (c: Context) => {
 
       /** Match rooms: Redis may lag or expire; fall back to Postgres for live direct pairs. */
       if (dbRoom.roomType === "direct" && dbRoom.status === "live") {
+        const reconciled = await reconcileRoomSessionOnAccess(roomId);
+        if (reconciled.closed) {
+          return c.json(
+            ApiResponse.error({
+              message: roomSessionClosedMessage(reconciled.reason),
+              statusCode: 410,
+              code: "ROOM_EXPIRED",
+            }),
+            410,
+          );
+        }
+        dbRoom = (await roomsRepository.findRoomById(roomId)) ?? dbRoom;
         const participantIds = await roomsRepository.listActiveParticipantUserIds(roomId);
         const hostId = dbRoom.hostUserId;
         const peerId = participantIds.find((id) => id !== hostId) ?? participantIds[1];
@@ -560,6 +577,7 @@ export const handleGetRoom = async (c: Context) => {
                 userA: hostId,
                 userB: peerId,
                 matchScore: null,
+                ...roomSessionTimingPayload(dbRoom),
               },
               "Room found",
             ),
@@ -573,18 +591,18 @@ export const handleGetRoom = async (c: Context) => {
           404,
         );
       }
-      await syncCircleRoomExpiryFromClockIfDue(roomId);
-      dbRoom = (await roomsRepository.findRoomById(roomId)) ?? dbRoom;
-      if (isDbRoomSessionClosed(dbRoom)) {
+      const reconciled = await reconcileRoomSessionOnAccess(roomId);
+      if (reconciled.closed) {
         return c.json(
           ApiResponse.error({
-            message: "This room session is no longer available",
+            message: roomSessionClosedMessage(reconciled.reason),
             statusCode: 410,
             code: "ROOM_EXPIRED",
           }),
           410,
         );
       }
+      dbRoom = (await roomsRepository.findRoomById(roomId)) ?? dbRoom;
       const allowed = await roomsRepository.canUserViewCircleRoomMetadata(userId, dbRoom);
       if (!allowed) {
         return c.json(
@@ -615,6 +633,7 @@ export const handleGetRoom = async (c: Context) => {
             status: dbRoom.status,
             lobbyGateActive,
             scheduledStartAt,
+            ...roomSessionTimingPayload(dbRoom),
           },
           "Room found",
         ),
@@ -623,8 +642,19 @@ export const handleGetRoom = async (c: Context) => {
 
     if (room.sessionKind === "db_room") {
       let dbRoom = await roomsRepository.findRoomById(roomId);
-      if (dbRoom?.roomType === "circle") {
-        await syncCircleRoomExpiryFromClockIfDue(roomId);
+      if (dbRoom?.roomType === "circle" || dbRoom?.roomType === "direct") {
+        const reconciled = await reconcileRoomSessionOnAccess(roomId);
+        if (reconciled.closed) {
+          await deleteSessionRoomRedis(roomId);
+          return c.json(
+            ApiResponse.error({
+              message: roomSessionClosedMessage(reconciled.reason),
+              statusCode: 410,
+              code: "ROOM_EXPIRED",
+            }),
+            410,
+          );
+        }
         dbRoom = (await roomsRepository.findRoomById(roomId)) ?? dbRoom;
       }
       if (dbRoom && isDbRoomSessionClosed(dbRoom)) {
@@ -659,6 +689,7 @@ export const handleGetRoom = async (c: Context) => {
                 ? room.lobbyGateActive
                 : "0",
             scheduledStartAt,
+            ...(dbRoom ? roomSessionTimingPayload(dbRoom) : {}),
           },
           "Room found",
         ),

@@ -1,6 +1,6 @@
 import { mergeRoomAdvancedOptions } from "@/core/database/schema";
 import { roomsRepository } from "@/modules/rooms/repositories/rooms.repository";
-import { deleteSessionRoomRedisMany } from "@/modules/rooms/services/session-room-redis.service";
+import { deleteSessionRoomRedisMany } from "@/modules/rooms/services/rtc/session-room-redis.service";
 import { ActiveCircleItem, ActiveCirclesResult, FriendInvitedCircleItem } from "../types";
 
 const DEFAULT_PUBLIC_LIMIT = 10;
@@ -65,7 +65,7 @@ export async function listActiveCirclesService(
   publicLimit = DEFAULT_PUBLIC_LIMIT,
   cursor?: string,
 ): Promise<ActiveCirclesResult> {
-  // Marks expired circles: `expires_at` past, or scheduled + start + join grace past (see roomsRepository).
+  /** Light sync on list — avoid full teardown on every dashboard load (background sweep handles that). */
   const expiredIds = await roomsRepository.syncPastDueCircleRoomExpiry();
   await deleteSessionRoomRedisMany(expiredIds);
 

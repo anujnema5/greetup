@@ -1,0 +1,915 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Room / Circle — Call kab start, kab band?</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #0f1419;
+      --surface: #1a222d;
+      --surface-2: #232d3b;
+      --border: #2d3a4d;
+      --text: #e8edf4;
+      --muted: #8b9cb3;
+      --accent: #5b9cf5;
+      --accent-soft: rgba(91, 156, 245, 0.12);
+      --now: #f0a030;
+      --now-soft: rgba(240, 160, 48, 0.15);
+      --target: #3dd68c;
+      --target-soft: rgba(61, 214, 140, 0.12);
+      --danger: #f07178;
+      --danger-soft: rgba(240, 113, 120, 0.12);
+      --purple: #c792ea;
+      --sans: "DM Sans", system-ui, sans-serif;
+      --mono: "JetBrains Mono", monospace;
+      --sidebar: 240px;
+      --radius: 12px;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: var(--sans);
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.6;
+      font-size: 15px;
+    }
+
+    /* Sidebar */
+    .sidebar {
+      position: fixed;
+      top: 0; left: 0;
+      width: var(--sidebar);
+      height: 100vh;
+      background: var(--surface);
+      border-right: 1px solid var(--border);
+      padding: 1.25rem 0;
+      overflow-y: auto;
+      z-index: 50;
+    }
+    .sidebar-brand {
+      padding: 0 1.25rem 1rem;
+      border-bottom: 1px solid var(--border);
+      margin-bottom: 1rem;
+    }
+    .sidebar-brand h1 {
+      font-size: 0.95rem;
+      font-weight: 700;
+      line-height: 1.35;
+    }
+    .sidebar-brand p {
+      font-size: 0.75rem;
+      color: var(--muted);
+      margin-top: 0.35rem;
+    }
+    .nav-group {
+      font-size: 0.65rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--muted);
+      padding: 0.75rem 1.25rem 0.35rem;
+    }
+    .sidebar a {
+      display: block;
+      padding: 0.4rem 1.25rem;
+      color: var(--muted);
+      text-decoration: none;
+      font-size: 0.82rem;
+      border-left: 2px solid transparent;
+      transition: color 0.15s, border-color 0.15s, background 0.15s;
+    }
+    .sidebar a:hover { color: var(--text); background: var(--surface-2); }
+    .sidebar a.active { color: var(--accent); border-left-color: var(--accent); }
+
+    /* Main */
+    main {
+      margin-left: var(--sidebar);
+      max-width: 920px;
+      padding: 2.5rem 2rem 4rem;
+    }
+
+    .hero {
+      margin-bottom: 2.5rem;
+    }
+    .hero h2 {
+      font-size: 1.85rem;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      margin-bottom: 0.75rem;
+    }
+    .hero-lead { color: var(--muted); font-size: 1.05rem; max-width: 42rem; }
+
+    .pill-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      margin-top: 1.25rem;
+    }
+    .pill {
+      font-size: 0.75rem;
+      font-weight: 600;
+      padding: 0.35rem 0.75rem;
+      border-radius: 999px;
+      border: 1px solid var(--border);
+    }
+    .pill-now { background: var(--now-soft); border-color: rgba(240,160,48,0.35); color: #ffc966; }
+    .pill-target { background: var(--target-soft); border-color: rgba(61,214,140,0.35); color: var(--target); }
+
+    section { margin-bottom: 3rem; scroll-margin-top: 1.5rem; }
+    section > h3 {
+      font-size: 1.35rem;
+      font-weight: 700;
+      margin-bottom: 1rem;
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+    }
+    .section-badge {
+      font-size: 0.65rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      padding: 0.2rem 0.5rem;
+      border-radius: 6px;
+    }
+    .badge-now { background: var(--now-soft); color: #ffc966; }
+    .badge-target { background: var(--target-soft); color: var(--target); }
+    .badge-reconcile { background: rgba(199, 146, 234, 0.15); color: var(--purple); }
+    .pill-reconcile { background: rgba(199, 146, 234, 0.12); border-color: rgba(199, 146, 234, 0.35); color: var(--purple); }
+
+    .flow-vertical {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.35rem;
+      padding: 1.25rem;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      margin: 1rem 0;
+      font-size: 0.85rem;
+    }
+    .flow-vertical .fv-box {
+      padding: 0.55rem 1rem;
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      text-align: center;
+      min-width: 220px;
+    }
+    .flow-vertical .fv-box.highlight { border-color: var(--purple); color: var(--purple); font-weight: 600; }
+    .flow-vertical .fv-box.danger { border-color: var(--danger); color: var(--danger); }
+    .flow-vertical .fv-arrow { color: var(--muted); font-size: 1rem; }
+    .flow-branch { font-size: 0.78rem; color: var(--muted); }
+
+    /* Glossary cards */
+    .card-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      gap: 0.75rem;
+    }
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1rem 1.1rem;
+    }
+    .card h4 {
+      font-size: 0.9rem;
+      font-weight: 700;
+      margin-bottom: 0.4rem;
+      color: var(--accent);
+    }
+    .card p { font-size: 0.85rem; color: var(--muted); }
+
+    /* Room types */
+    .type-row {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+      gap: 0.6rem;
+    }
+    .type-chip {
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 0.85rem 1rem;
+    }
+    .type-chip strong { display: block; font-size: 0.88rem; margin-bottom: 0.25rem; }
+    .type-chip span { font-size: 0.8rem; color: var(--muted); }
+
+    /* Rules accordion-style blocks */
+    .rule-block {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      margin-bottom: 0.75rem;
+      overflow: hidden;
+    }
+    .rule-head {
+      padding: 0.85rem 1.1rem;
+      font-weight: 600;
+      font-size: 0.92rem;
+      background: var(--surface-2);
+      border-bottom: 1px solid var(--border);
+    }
+    .rule-body { padding: 1rem 1.1rem; font-size: 0.88rem; color: var(--muted); }
+    .rule-body ul { margin: 0.5rem 0 0 1.1rem; }
+    .rule-body li { margin-bottom: 0.35rem; }
+    .rule-body strong { color: var(--text); }
+
+    /* Priority ladder */
+    .priority-ladder {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+    .priority-item {
+      display: grid;
+      grid-template-columns: 2.5rem 1fr auto;
+      gap: 1rem;
+      align-items: center;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 0.75rem 1rem;
+    }
+    .priority-num {
+      width: 2.5rem; height: 2.5rem;
+      border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+      font-weight: 700;
+      font-size: 0.9rem;
+    }
+    .p1 .priority-num { background: var(--danger-soft); color: var(--danger); }
+    .p2 .priority-num { background: var(--danger-soft); color: #ff9a9f; }
+    .p3 .priority-num { background: var(--now-soft); color: #ffc966; }
+    .p-mid .priority-num { background: var(--accent-soft); color: var(--accent); }
+    .p-low .priority-num { background: var(--surface-2); color: var(--muted); }
+    .priority-item .cond { font-weight: 600; font-size: 0.9rem; }
+    .priority-item .result {
+      font-size: 0.8rem;
+      color: var(--target);
+      text-align: right;
+      white-space: nowrap;
+    }
+
+    /* Timeline visual */
+    .timeline-wrap {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1.25rem;
+      overflow-x: auto;
+    }
+    .timeline-title { font-weight: 600; margin-bottom: 1rem; font-size: 0.95rem; }
+    .timeline {
+      position: relative;
+      height: 88px;
+      min-width: 640px;
+      margin-top: 0.5rem;
+    }
+    .timeline-track {
+      position: absolute;
+      left: 0; right: 0;
+      top: 44px;
+      height: 4px;
+      background: var(--border);
+      border-radius: 2px;
+    }
+    .timeline-segment {
+      position: absolute;
+      top: 42px;
+      height: 8px;
+      border-radius: 4px;
+    }
+    .seg-booking { background: linear-gradient(90deg, #3dd68c55, #3dd68c); top: 40px; height: 12px; }
+    .seg-session { background: linear-gradient(90deg, #f0a03055, #f0a030); }
+    .timeline-marker {
+      position: absolute;
+      top: 0;
+      transform: translateX(-50%);
+      text-align: center;
+      font-size: 0.7rem;
+    }
+    .timeline-marker .dot {
+      width: 10px; height: 10px;
+      border-radius: 50%;
+      margin: 0 auto 4px;
+      border: 2px solid var(--bg);
+    }
+    .timeline-marker .time { font-weight: 700; color: var(--text); font-size: 0.75rem; }
+    .timeline-marker .label { color: var(--muted); max-width: 72px; line-height: 1.2; }
+    .dot-booking { background: var(--target); }
+    .dot-session { background: var(--now); }
+    .dot-end { background: var(--danger); }
+
+    .legend {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 1rem;
+      margin-top: 1rem;
+      font-size: 0.78rem;
+      color: var(--muted);
+    }
+    .legend span { display: flex; align-items: center; gap: 0.4rem; }
+    .legend i {
+      width: 12px; height: 12px;
+      border-radius: 3px;
+      display: inline-block;
+    }
+
+    /* Formula */
+    .formula-box {
+      background: #0d1117;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1.1rem 1.25rem;
+      font-family: var(--mono);
+      font-size: 0.8rem;
+      line-height: 1.8;
+      color: #abb2bf;
+      margin: 1rem 0;
+    }
+    .formula-box .kw { color: var(--purple); }
+    .formula-box .fn { color: #61afef; }
+    .formula-box .cm { color: #5c6370; }
+
+    /* Limits big numbers */
+    .limits-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1rem;
+    }
+    @media (max-width: 560px) { .limits-row { grid-template-columns: 1fr; } }
+    .limit-card {
+      text-align: center;
+      padding: 1.5rem;
+      border-radius: var(--radius);
+      border: 1px solid var(--border);
+    }
+    .limit-card.direct { background: linear-gradient(145deg, rgba(91,156,245,0.08), transparent); }
+    .limit-card.circle { background: linear-gradient(145deg, rgba(61,214,140,0.08), transparent); }
+    .limit-card .big {
+      font-size: 2.5rem;
+      font-weight: 700;
+      line-height: 1;
+      margin: 0.5rem 0;
+    }
+    .limit-card.direct .big { color: var(--accent); }
+    .limit-card.circle .big { color: var(--target); }
+    .limit-card .sub { font-size: 0.85rem; color: var(--muted); }
+
+    /* Golden rules */
+    .golden-list {
+      list-style: none;
+      counter-reset: g;
+    }
+    .golden-list li {
+      counter-increment: g;
+      display: flex;
+      gap: 1rem;
+      padding: 0.85rem 0;
+      border-bottom: 1px solid var(--border);
+      font-size: 0.9rem;
+    }
+    .golden-list li::before {
+      content: counter(g);
+      flex-shrink: 0;
+      width: 1.75rem; height: 1.75rem;
+      background: var(--target-soft);
+      color: var(--target);
+      border-radius: 8px;
+      display: flex; align-items: center; justify-content: center;
+      font-weight: 700;
+      font-size: 0.8rem;
+    }
+
+    /* Examples */
+    .example-card {
+      border-left: 3px solid var(--accent);
+      background: var(--surface);
+      padding: 1rem 1.15rem;
+      border-radius: 0 var(--radius) var(--radius) 0;
+      margin-bottom: 0.75rem;
+    }
+    .example-card h5 { font-size: 0.88rem; margin-bottom: 0.4rem; }
+    .example-card p { font-size: 0.85rem; color: var(--muted); }
+    .example-card .out { color: var(--target); font-weight: 600; margin-top: 0.35rem; }
+
+    /* Table */
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.85rem;
+      background: var(--surface);
+      border-radius: var(--radius);
+      overflow: hidden;
+      border: 1px solid var(--border);
+    }
+    th, td {
+      padding: 0.65rem 0.9rem;
+      text-align: left;
+      border-bottom: 1px solid var(--border);
+    }
+    th {
+      background: var(--surface-2);
+      font-weight: 600;
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      color: var(--muted);
+    }
+    td code {
+      font-family: var(--mono);
+      font-size: 0.78rem;
+      background: var(--surface-2);
+      padding: 0.15rem 0.4rem;
+      border-radius: 4px;
+      color: var(--purple);
+    }
+
+    /* Checklist */
+    .checklist { list-style: none; }
+    .checklist li {
+      display: flex;
+      align-items: flex-start;
+      gap: 0.6rem;
+      padding: 0.5rem 0;
+      font-size: 0.88rem;
+      color: var(--muted);
+    }
+    .checklist li::before {
+      content: "";
+      width: 1.1rem; height: 1.1rem;
+      border: 2px solid var(--border);
+      border-radius: 4px;
+      flex-shrink: 0;
+      margin-top: 0.15rem;
+    }
+
+    /* Flow diagram */
+    .flow {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 0.5rem;
+      margin: 1rem 0;
+    }
+    .flow-box {
+      padding: 0.5rem 0.85rem;
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      font-size: 0.8rem;
+      font-weight: 500;
+    }
+    .flow-arrow { color: var(--muted); font-size: 1.1rem; }
+
+    .compare-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1rem;
+    }
+    @media (max-width: 640px) {
+      .sidebar { display: none; }
+      main { margin-left: 0; padding: 1.5rem 1rem; }
+      .compare-2 { grid-template-columns: 1fr; }
+      .priority-item { grid-template-columns: 2.5rem 1fr; }
+      .priority-item .result { text-align: left; grid-column: 2; }
+    }
+
+    footer {
+      margin-top: 3rem;
+      padding-top: 1.5rem;
+      border-top: 1px solid var(--border);
+      font-size: 0.78rem;
+      color: var(--muted);
+    }
+    a.md-link { color: var(--accent); }
+  </style>
+</head>
+<body>
+
+  <nav class="sidebar" aria-label="Sections">
+    <div class="sidebar-brand">
+      <h1>Call kab band?</h1>
+      <p>Room & circle lifecycle — Hinglish</p>
+    </div>
+    <div class="nav-group">Start</div>
+    <a href="#glossary">4 words</a>
+    <a href="#types">Room types</a>
+    <a href="#limits">Time limits</a>
+    <div class="nav-group">Part A — Abhi code</div>
+    <a href="#part-a">Overview</a>
+    <div class="nav-group">Part B — Target</div>
+    <a href="#golden">Golden rules</a>
+    <a href="#session">Per session</a>
+    <a href="#scheduled">Scheduled</a>
+    <a href="#priority">Priority table</a>
+    <a href="#timeline">Timeline example</a>
+    <a href="#examples">Examples</a>
+    <div class="nav-group">Part C — Join repair</div>
+    <a href="#reconcile">Stale DB fix</a>
+    <a href="#reconcile-flow">Join flow</a>
+    <a href="#reconcile-checks">R1–R6 checks</a>
+    <div class="nav-group">Reference</div>
+    <a href="#db">DB fields</a>
+    <a href="#checklist">Checklist</a>
+  </nav>
+
+  <main>
+    <header class="hero" id="top">
+      <h2>Room / Circle — Call kab start, kab band?</h2>
+      <p class="hero-lead">
+        Direct call, instant circle, scheduled meeting, host actions — sab rules ek jagah.
+        Pehle samjho <strong style="color:var(--text)">abhi kya chal raha hai</strong>, phir <strong style="color:var(--target)">kya implement karna hai</strong>.
+      </p>
+      <div class="pill-row">
+        <span class="pill pill-now">Part A — Aaj ka code</span>
+        <span class="pill pill-target">Part B — Target policy</span>
+        <span class="pill pill-reconcile">Part C — Join par verify</span>
+      </div>
+    </header>
+
+    <!-- Glossary -->
+    <section id="glossary">
+      <h3>Pehle 4 words samjho</h3>
+      <div class="card-grid">
+        <article class="card">
+          <h4>Lobby</h4>
+          <p>Room me ho, wait / preview — <strong style="color:var(--text)">video call abhi nahi</strong> (8 PM se pehle).</p>
+        </article>
+        <article class="card">
+          <h4>Live session</h4>
+          <p>Asli call — RTC, camera, mic. Timer yahi se start hota hai.</p>
+        </article>
+        <article class="card">
+          <h4>Booking</h4>
+          <p>Calendar slot: 8 PM start, 10 PM tak. Banate waqt fix.</p>
+        </article>
+        <article class="card">
+          <h4>Per session</h4>
+          <p>Ek baar live → max 2h (direct) ya 3h (circle). Sab chale gaye = naya session.</p>
+        </article>
+      </div>
+    </section>
+
+    <!-- Types -->
+    <section id="types">
+      <h3>Room ke types</h3>
+      <div class="type-row">
+        <div class="type-chip"><strong>Direct 1:1</strong><span>Match / friend call</span></div>
+        <div class="type-chip"><strong>Instant circle</strong><span>Abhi start, no 8 PM slot</span></div>
+        <div class="type-chip"><strong>Scheduled circle</strong><span>8 PM meeting book</span></div>
+        <div class="type-chip"><strong>Direct → circle</strong><span>1:1 se group upgrade</span></div>
+      </div>
+    </section>
+
+    <!-- Limits visual -->
+    <section id="limits">
+      <h3>Per session — kitni der? <span class="section-badge badge-target">Target</span></h3>
+      <div class="limits-row">
+        <div class="limit-card direct">
+          <div class="sub">Direct 1:1</div>
+          <div class="big">2h</div>
+          <div class="sub">live start + 2 ghante</div>
+        </div>
+        <div class="limit-card circle">
+          <div class="sub">Circle (instant / scheduled live)</div>
+          <div class="big">3h</div>
+          <div class="sub">live start + 3 ghante</div>
+        </div>
+      </div>
+      <div class="flow">
+        <span class="flow-box">Live start</span>
+        <span class="flow-arrow">→</span>
+        <span class="flow-box">Timer chalta hai</span>
+        <span class="flow-arrow">→</span>
+        <span class="flow-box">Sab leave / Host end</span>
+        <span class="flow-arrow">→</span>
+        <span class="flow-box" style="border-color:var(--target);color:var(--target)">Naya session = naya timer</span>
+      </div>
+    </section>
+
+    <!-- PART A -->
+    <section id="part-a">
+      <h3>Part A — Aaj code me kya hai <span class="section-badge badge-now">Abhi</span></h3>
+
+      <article class="rule-block">
+        <div class="rule-head">A1 — 2h join grace (meeting start hi nahi hui)</div>
+        <div class="rule-body">
+          <ul>
+            <li>8 PM scheduled, par kabhi <strong>live</strong> nahi hui</li>
+            <li>8 PM + <strong>2 ghante</strong> → circle <strong>expired</strong></li>
+            <li><strong>Alag</strong> hai “room khali 2 ghante” se — woh alag rule (B3)</li>
+          </ul>
+        </div>
+      </article>
+
+      <article class="rule-block">
+        <div class="rule-head">A4 — Host “End for everyone”</div>
+        <div class="rule-body">
+          <div class="compare-2">
+            <div>
+              <strong>Instant circle</strong>
+              <p>Poora end — sab disconnect, SFU band</p>
+            </div>
+            <div>
+              <strong>Scheduled circle</strong>
+              <p>Live band, slot calendar me reh sakta hai (wapas scheduled)</p>
+            </div>
+          </div>
+        </div>
+      </article>
+
+      <article class="rule-block">
+        <div class="rule-head">A2, A7 — expires_at & Redis 2h</div>
+        <div class="rule-body">
+          <ul>
+            <li><code>expires_at</code> — circles ke liye; direct often <strong>null</strong></li>
+            <li>Expired → join/token band, par <strong>har baar call se nahi nikalte</strong></li>
+            <li>Redis <code>ROOM_TTL = 2h</code> — sirf cache, call end rule <strong>nahi</strong></li>
+          </ul>
+        </div>
+      </article>
+    </section>
+
+    <!-- Golden rules -->
+    <section id="golden">
+      <h3>Golden rules <span class="section-badge badge-target">Target</span></h3>
+      <ol class="golden-list">
+        <li><span><strong>Per session</strong> — har live call ki apni max duration</span></li>
+        <li><span><strong>Booking window</strong> — scheduled: 8–10 PM jaisa slot</span></li>
+        <li><span><strong>Host end</strong> — button = turant band (instant = poora end)</span></li>
+        <li><span><strong>Khali room 2h</strong> — scheduled, koi active nahi → room end</span></li>
+        <li><span><strong>Naya session</strong> — sab gaye, dubara live = naya timer (booking ke bahar mat jao)</span></li>
+      </ol>
+    </section>
+
+    <!-- Session + scheduled -->
+    <section id="session">
+      <h3>6:01 wala sawal — dubara start?</h3>
+      <div class="card" style="margin-bottom:1rem;border-color:rgba(61,214,140,0.3)">
+        <h4 style="color:var(--target)">Haan, naya session = naya 3 ghante</h4>
+        <p style="margin-top:0.5rem">Lekin scheduled me <strong style="color:var(--text)">10 PM ke baad</strong> dubara live nahi. Aur 8 PM se pehle sirf lobby (recommended).</p>
+      </div>
+    </section>
+
+    <section id="scheduled">
+      <h3>Scheduled circle — do clocks</h3>
+      <div class="compare-2" style="margin-bottom:1rem">
+        <article class="card">
+          <h4 style="color:var(--target)">Calendar (booking)</h4>
+          <p>8 PM – 10 PM fix. 10 PM ke <strong>baad call nahi</strong>.</p>
+        </article>
+        <article class="card">
+          <h4 style="color:var(--now)">Session (live)</h4>
+          <p>3 PM live → 6 PM = 3h cap. Lekin calendar ke hisaab se <strong>10 PM</strong> tak allow.</p>
+        </article>
+      </div>
+      <pre class="formula-box"><span class="cm">// Scheduled — end time</span>
+<span class="fn">session_end</span>   = live_started_at + <span class="kw">3 hours</span>
+<span class="fn">calendar_end</span> = scheduled_end (ya start + expiration minutes)
+<span class="fn">expires_at</span>    = <span class="fn">min</span>(session_end, calendar_end)   <span class="cm">// jo pehle aaye, wahan band</span></pre>
+    </section>
+
+    <!-- Timeline -->
+    <section id="timeline">
+      <h3>Timeline — 8–10 PM meeting, 3 PM early start</h3>
+      <div class="timeline-wrap">
+        <div class="timeline-title">3 PM live → session cap 6 PM · Booking window 8–10 PM · Hard stop 10 PM</div>
+        <div class="timeline" role="img" aria-label="Timeline from 3 PM to 10 PM">
+          <div class="timeline-track"></div>
+          <div class="timeline-segment seg-session" style="left:8%; width:22%;" title="3h session"></div>
+          <div class="timeline-segment seg-booking" style="left:42%; width:38%;" title="Booking 8-10 PM"></div>
+
+          <div class="timeline-marker" style="left:10%;">
+            <div class="dot dot-session"></div>
+            <div class="time">3 PM</div>
+            <div class="label">Early live</div>
+          </div>
+          <div class="timeline-marker" style="left:30%;">
+            <div class="dot dot-end"></div>
+            <div class="time">6 PM</div>
+            <div class="label">Session 3h cap</div>
+          </div>
+          <div class="timeline-marker" style="left:45%;">
+            <div class="dot dot-booking"></div>
+            <div class="time">8 PM</div>
+            <div class="label">Scheduled start</div>
+          </div>
+          <div class="timeline-marker" style="left:78%;">
+            <div class="dot dot-end"></div>
+            <div class="time">10 PM</div>
+            <div class="label">Calendar end</div>
+          </div>
+        </div>
+        <div class="legend">
+          <span><i style="background:var(--now)"></i> Session timer (3h)</span>
+          <span><i style="background:var(--target)"></i> Booking window</span>
+          <span><i style="background:var(--danger)"></i> Band hone ke points</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- Priority -->
+    <section id="priority">
+      <h3>Call kab band? — Priority (upar = pehle)</h3>
+      <div class="priority-ladder">
+        <div class="priority-item p1">
+          <div class="priority-num">1</div>
+          <div class="cond">Host End for everyone</div>
+          <div class="result">Turant band</div>
+        </div>
+        <div class="priority-item p2">
+          <div class="priority-num">2</div>
+          <div class="cond">Remove + restrict</div>
+          <div class="result">User nahi aa sakta</div>
+        </div>
+        <div class="priority-item p3">
+          <div class="priority-num">3</div>
+          <div class="cond">Per session (2h / 3h)</div>
+          <div class="result">Auto-end session</div>
+        </div>
+        <div class="priority-item p-mid">
+          <div class="priority-num">4</div>
+          <div class="cond">Calendar end (10 PM)</div>
+          <div class="result">Uske baad live nahi</div>
+        </div>
+        <div class="priority-item p-mid">
+          <div class="priority-num">5</div>
+          <div class="cond">Khali room 2h</div>
+          <div class="result">Room end</div>
+        </div>
+        <div class="priority-item p-low">
+          <div class="priority-num">6</div>
+          <div class="cond">Join grace — kabhi live nahi</div>
+          <div class="result">Expired</div>
+        </div>
+        <div class="priority-item p-low">
+          <div class="priority-num">7</div>
+          <div class="cond">deleteCircleAfterCall + last leave</div>
+          <div class="result">Circle end</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Examples -->
+    <section id="examples">
+      <h3>Examples</h3>
+      <article class="example-card">
+        <h5>Instant — 5 PM start, 5:30 Host End</h5>
+        <p class="out">→ 5:30 sab band. 3h timer matter nahi.</p>
+      </article>
+      <article class="example-card">
+        <h5>Instant — 5 PM start, koi end nahi</h5>
+        <p class="out">→ Max 8 PM (5+3h), phir auto-end.</p>
+      </article>
+      <article class="example-card">
+        <h5>Scheduled 8–10, 3 PM early, sab 6 PM gaye</h5>
+        <p>Session 1 → 6 PM band ho sakti. 8 PM naya session? Haan (10 PM se pehle). 6:01 same session? Nahi — sab left = naya session.</p>
+      </article>
+      <article class="example-card">
+        <h5>Scheduled 8 PM, kabhi live nahi, 10 PM</h5>
+        <p class="out">→ Expired — meeting start nahi hui.</p>
+      </article>
+    </section>
+
+    <!-- PART C Reconcile -->
+    <section id="reconcile">
+      <h3>Part C — Join-time repair <span class="section-badge badge-reconcile">Stale DB</span></h3>
+      <div class="card" style="margin-bottom:1rem;border-color:rgba(199,146,234,0.35)">
+        <h4 style="color:var(--purple)">Problem</h4>
+        <p style="margin-top:0.5rem;font-size:0.88rem;color:var(--muted)">
+          Call band honi chahiye thi par DB me abhi <code style="color:var(--purple)">live</code> / <code style="color:var(--purple)">is_expired=false</code>.
+          Koi join kare → <strong style="color:var(--text)">pehle verify + end</strong>, phir allow ya reject.
+        </p>
+      </div>
+      <table style="margin-bottom:1rem">
+        <thead><tr><th>Entry point</th><th>Kab reconcile</th></tr></thead>
+        <tbody>
+          <tr><td><code>POST /join</code></td><td><strong>Pehla step</strong> — participant se pehle</td></tr>
+          <tr><td><code>POST /rtc-token</code></td><td>Token se pehle (direct + circle)</td></tr>
+          <tr><td><code>GET /room</code></td><td>Metadata load se pehle</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section id="reconcile-flow">
+      <h3>Join flow</h3>
+      <div class="flow-vertical">
+        <div class="fv-box">User → POST /join</div>
+        <span class="fv-arrow">↓</span>
+        <div class="fv-box highlight">reconcileRoomSessionOnAccess(roomId)</div>
+        <span class="fv-arrow">↓</span>
+        <div class="fv-box">should end? → endLiveSession(reason)</div>
+        <span class="fv-arrow">↓</span>
+        <div class="fv-box">reload room</div>
+        <span class="fv-arrow">↓</span>
+        <div class="fv-box danger">closed? → 410 ROOM_EXPIRED</div>
+        <span class="fv-arrow">↓</span>
+        <div class="fv-box">warna → normal lobby / live join</div>
+      </div>
+    </section>
+
+    <section id="reconcile-checks">
+      <h3>Checks R1–R6 (pehla match → end)</h3>
+      <div class="priority-ladder">
+        <div class="priority-item p-mid">
+          <div class="priority-num">R1</div>
+          <div class="cond">expires_at past / is_expired</div>
+          <div class="result">End + sync flags</div>
+        </div>
+        <div class="priority-item p-mid">
+          <div class="priority-num">R2</div>
+          <div class="cond">Scheduled, kabhi live nahi, +2h grace</div>
+          <div class="result">Expire listing</div>
+        </div>
+        <div class="priority-item p3">
+          <div class="priority-num">R3</div>
+          <div class="cond">Per-session cap (2h / 3h)</div>
+          <div class="result">End session</div>
+        </div>
+        <div class="priority-item p-mid">
+          <div class="priority-num">R4</div>
+          <div class="cond">Calendar end past</div>
+          <div class="result">End session</div>
+        </div>
+        <div class="priority-item p1">
+          <div class="priority-num">R5</div>
+          <div class="cond"><strong>0 active + khali ≥ 2h</strong></div>
+          <div class="result">End (tumhara case)</div>
+        </div>
+        <div class="priority-item p-low">
+          <div class="priority-num">R6</div>
+          <div class="cond">Already should be ended</div>
+          <div class="result">Idempotent end</div>
+        </div>
+      </div>
+      <article class="example-card" style="border-left-color:var(--purple);margin-top:1rem">
+        <h5>End = poora band (sirf is_expired nahi)</h5>
+        <p>left_at sab par · status ended · Redis del · SFU teardown · optional socket</p>
+      </article>
+    </section>
+
+    <!-- DB -->
+    <section id="db">
+      <h3>DB fields</h3>
+      <table>
+        <thead><tr><th>Column</th><th>Use</th></tr></thead>
+        <tbody>
+          <tr><td><code>scheduled_start_at</code></td><td>Booking start (8 PM)</td></tr>
+          <tr><td><code>scheduled_end_at</code></td><td>Booking end (10 PM)</td></tr>
+          <tr><td><code>started_at</code></td><td>Kab live hui</td></tr>
+          <tr><td><code>expires_at</code></td><td>Enforced deadline</td></tr>
+          <tr><td><code>ended_at</code></td><td>Kab band hui</td></tr>
+          <tr><td><code>is_expired</code></td><td>Join / listing block</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <!-- Checklist -->
+    <section id="checklist">
+      <h3>Implementation checklist</h3>
+      <ul class="checklist">
+        <li>Constants: DIRECT 2h, CIRCLE 3h, EMPTY 2h</li>
+        <li>computeSessionExpiresAt(room)</li>
+        <li>Set expires_at on create / mark live / expand</li>
+        <li>Empty room 2h + reset on join</li>
+        <li>Auto-end: teardown, not only is_expired</li>
+        <li>Direct: RTC token check expired</li>
+        <li>Host end instant: always ended + teardown</li>
+        <li>Client warnings 15m / 5m (optional)</li>
+        <li><strong>reconcileRoomSessionOnAccess</strong> — join + token + GET</li>
+        <li><strong>endLiveRoomSession</strong> — idempotent teardown</li>
+        <li><strong>R5</strong> — 0 active, khali ≥ 2h</li>
+        <li>Join errors — reason-specific messages</li>
+      </ul>
+    </section>
+
+    <footer>
+      <p>Greetup / Circlo — room session lifecycle (Hinglish). Markdown: <a class="md-link" href="room-session-lifecycle-hinglish.md">room-session-lifecycle-hinglish.md</a></p>
+      <p style="margin-top:0.5rem">Last updated: per-session, scheduled calendar, host end, <strong>join-time reconcile (Part C)</strong>.</p>
+    </footer>
+  </main>
+
+  <script>
+    const links = document.querySelectorAll(".sidebar a");
+    const sections = [...links].map(a => document.querySelector(a.getAttribute("href"))).filter(Boolean);
+    const obs = new IntersectionObserver(entries => {
+      entries.forEach(e => {
+        if (!e.isIntersecting) return;
+        const id = e.target.id;
+        links.forEach(a => a.classList.toggle("active", a.getAttribute("href") === "#" + id));
+      });
+    }, { rootMargin: "-20% 0px -70% 0px" });
+    sections.forEach(s => obs.observe(s));
+  </script>
+</body>
+</html>

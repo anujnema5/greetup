@@ -25,7 +25,7 @@ export function RoomCircleCallOptionActions({
 }: RoomCircleCallOptionActionsProps) {
   const copyJoinLink = () => {
     if (typeof window === "undefined") return;
-    const url = `${window.location.origin}/circle/${encodeURIComponent(roomId)}`;
+    const url = `${window.location.origin}/circle/lobby/${encodeURIComponent(roomId)}`;
     void navigator.clipboard
       .writeText(url)
       .then(() => toast.success("Circle link copied"))

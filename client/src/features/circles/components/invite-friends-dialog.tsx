@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Loader2, Search } from "lucide-react";
+import { Loader2, Search, UserPlus } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -15,6 +15,14 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
+import {
+  COMPACT_DIALOG_BODY,
+  COMPACT_DIALOG_CAPTION,
+  COMPACT_DIALOG_DESCRIPTION,
+  COMPACT_DIALOG_ICON_WRAP,
+  COMPACT_DIALOG_LABEL,
+  COMPACT_DIALOG_TITLE,
+} from "@/lib/ui/compact-dialog-typography";
 import type { ConnectionListItem } from "@/features/connections/types/connections-api.types";
 
 export type InviteFriendsDialogProps = {
@@ -132,7 +140,7 @@ export function InviteFriendsDialog({
 
         <div className="min-h-0 flex-1 overflow-y-auto px-2 py-2">
           {connectionsLoading ? (
-            <div className="flex items-center justify-center gap-2 py-12 text-sm text-muted-foreground">
+            <div className={cn("flex items-center justify-center gap-2 py-12", COMPACT_DIALOG_BODY)}>
               <Loader2 className="size-5 animate-spin" />
               Loading connections…
             </div>
@@ -176,7 +184,7 @@ export function InviteFriendsDialog({
                       >
                         {!peer.image ? label.slice(0, 1).toUpperCase() : null}
                       </span>
-                      <span className="min-w-0 flex-1 truncate text-[15px] font-medium">
+                      <span className={cn("min-w-0 flex-1 truncate font-medium", COMPACT_DIALOG_LABEL)}>
                         {label}
                       </span>
                     </label>

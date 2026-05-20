@@ -58,6 +58,11 @@ function parsePort(raw: string | undefined, fallback: number): number {
   return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
 }
 
+function parseNonNegativeInt(raw: string | undefined, fallback: number): number {
+  const parsed = Number.parseInt(raw ?? "", 10);
+  return Number.isFinite(parsed) && parsed >= 0 ? parsed : fallback;
+}
+
 const config = {
   env: nodeEnv,
   port: parsePort(process.env.PORT, 5300),
@@ -117,6 +122,15 @@ const config = {
   /** AES-256-GCM message encryption key (32 bytes / 64 hex chars). Loaded from Doppler. */
   messageEncryptionKey: optionalEnv("MESSAGE_ENCRYPTION_KEY"),
   messageEncryptionKeyPrevious: optionalEnv("MESSAGE_ENCRYPTION_KEY_PREVIOUS"),
+
+  /**
+   * Background sweep for past-due live/scheduled rooms (full reconcile + teardown).
+   * `0` disables the interval. Default 60_000 ms.
+   */
+  roomSessionSweepIntervalMs: parseNonNegativeInt(
+    optionalEnv("ROOM_SESSION_SWEEP_INTERVAL_MS"),
+    60_000,
+  ),
 };
 
 export default config;

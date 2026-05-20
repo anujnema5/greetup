@@ -1,8 +1,8 @@
 import config from "@/shared/config/config";
 import logger from "@/core/logging";
-import { clearUserActiveRtcRoom, getUserActiveRtcRoomId } from "@/modules/rooms/services/user-active-rtc-room-redis.service";
-import { finalizeDirectMatchRoomSession } from "@/modules/rooms/services/finalize-direct-match-room.service";
-import { leaveCircleRtcSessionInternal } from "@/modules/rooms/services/leave-circle-rtc-session.service";
+import { clearUserActiveRtcRoom, getUserActiveRtcRoomId } from "@/modules/rooms/services/rtc/user-active-rtc-room-redis.service";
+import { finalizeDirectMatchRoomSession } from "@/modules/rooms/services/direct/finalize-direct-match-room.service";
+import { leaveCircleRtcSessionInternal } from "@/modules/rooms/services/participation/leave-circle-rtc-session.service";
 import { roomsRepository } from "@/modules/rooms/repositories/rooms.repository";
 
 import type { UserMatchState } from "../types/match.types";

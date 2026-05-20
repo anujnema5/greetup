@@ -3,9 +3,9 @@ import { eq } from "drizzle-orm";
 import { db } from "@/core/database";
 import { roomParticipants } from "@/core/database/schema";
 import { emitToUser } from "@/core/socket/socket";
-import { CIRCLE_ROOM_SOCKET_EVENTS } from "@/modules/rooms/constants/circle-room-socket.events";
+import { CIRCLE_ROOM_SOCKET_EVENTS } from "@/modules/rooms/constants/events/circle-room-socket.events";
 import { roomsRepository } from "@/modules/rooms/repositories/rooms.repository";
-import { patchSessionRoomRedisTitle } from "@/modules/rooms/services/session-room-redis.service";
+import { patchSessionRoomRedisTitle } from "@/modules/rooms/services/rtc/session-room-redis.service";
 
 async function emitCircleTitleUpdated(roomId: string, title: string): Promise<void> {
   const rows = await db

@@ -1,8 +1,8 @@
 import logger from "@/core/logging";
 import { mergeRoomAdvancedOptions } from "@/core/database/schema";
 
-import { isDbRoomSessionClosed } from "../lib/room-expiry";
-import { roomsRepository } from "../repositories/rooms.repository";
+import { isDbRoomSessionClosed } from "../../lib/expiry/room-expiry";
+import { roomsRepository } from "../../repositories/rooms.repository";
 import { runLiveCircleAfterMarkLive } from "./live-circle-after-mark-live.service";
 
 /**
