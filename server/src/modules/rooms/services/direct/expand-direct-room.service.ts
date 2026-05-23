@@ -14,6 +14,7 @@ import {
   roomInviteRepository,
 } from "@/modules/rooms/repositories/expand-direct-room.repository";
 import { roomsRepository } from "@/modules/rooms/repositories/rooms.repository";
+import { roomParticipantsRepository } from "@/modules/rooms/repositories/room-participants.repository";
 import { syncCircleRoomTitleFromParticipants } from "@/modules/rooms/services/circle/circle-participant-title.service";
 import { notifyRtcServiceRoomType } from "@/modules/rooms/services/rtc/notify-rtc-room-type.service";
 import { canInviteWithoutExceedingCapacity } from "@/modules/rooms/lib/session/room-invite-capacity";
@@ -66,7 +67,7 @@ export async function createRoomInviteService(
     throw new RoomInviteError("This room type does not support invites", "NOT_DIRECT", 400);
   }
 
-  const inviterOk = await roomsRepository.isUserRoomParticipant(roomId, inviterUserId);
+  const inviterOk = await roomParticipantsRepository.isUserRoomParticipant(roomId, inviterUserId);
   if (!inviterOk) {
     throw new RoomInviteError("You are not in this room", "NOT_PARTICIPANT", 403);
   }
@@ -98,7 +99,7 @@ export async function createRoomInviteService(
     throw new RoomInviteError("User is already in another call", "INVITEE_BUSY", 400);
   }
 
-  if (await roomsRepository.isUserRoomParticipant(roomId, inviteeUserId)) {
+  if (await roomParticipantsRepository.isUserRoomParticipant(roomId, inviteeUserId)) {
     throw new RoomInviteError("User is already in this room", "ALREADY_IN_ROOM", 400);
   }
 
@@ -132,7 +133,7 @@ async function emitInviteSocket(
   roomTitle: string,
 ): Promise<void> {
   const inviterDisplayName = await roomInviteRepository.findDisplayLabelForUser(inviterUserId);
-  const others = (await roomsRepository.listActiveParticipantUserIds(roomId)).filter(
+  const others = (await roomParticipantsRepository.listActiveParticipantUserIds(roomId)).filter(
     (id) => id !== inviteeUserId,
   );
   const names: string[] = [];
@@ -216,7 +217,7 @@ export async function respondRoomInviteService(
 
   void notifyRtcServiceRoomType(roomId, "circle");
 
-  const notifyIds = await roomsRepository.listActiveParticipantUserIds(roomId);
+  const notifyIds = await roomParticipantsRepository.listActiveParticipantUserIds(roomId);
   for (const uid of notifyIds) {
     emitToUser(uid, DIRECT_EXPAND_SOCKET_EVENTS.becameCircle, { roomId });
   }

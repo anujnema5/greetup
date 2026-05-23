@@ -1,10 +1,9 @@
-import { and, eq, inArray, isNull, sql } from "drizzle-orm";
-
-import { db } from "@/core/database";
-import { roomFriendInvites, roomParticipants } from "@/core/database/schema";
 import { getRedis } from "@/core/redis";
 import { ROOM_KEYS } from "@/core/redis/keys";
 import { roomsRepository } from "@/modules/rooms/repositories/rooms.repository";
+import { roomSessionsRepository } from "@/modules/rooms/repositories/room-sessions.repository";
+import { roomParticipantsRepository } from "@/modules/rooms/repositories/room-participants.repository";
+import { roomInvitesRepository } from "@/modules/rooms/repositories/room-invites.repository";
 import { maybeAutoStartScheduledCircleFromDb } from "@/modules/rooms/services/session/maybe-auto-start-scheduled-circle.service";
 import { assertRoomSessionOpenOnAccess } from "@/modules/rooms/services/session/reconcile-room-session-on-access.service";
 import { roomRestrictedUsersRepository } from "@/modules/rooms/repositories/room-restricted-users.repository";
@@ -75,14 +74,7 @@ export async function joinRoomService(userId: string, roomId: string): Promise<v
       );
     }
 
-    const activeLobby = await db.query.roomParticipants.findFirst({
-      where: and(
-        eq(roomParticipants.roomId, roomId),
-        eq(roomParticipants.userId, userId),
-        isNull(roomParticipants.leftAt),
-      ),
-      columns: { id: true },
-    });
+    const activeLobby = await roomParticipantsRepository.isUserRoomParticipant(roomId, userId);
     if (activeLobby) {
       return;
     }
@@ -94,14 +86,7 @@ export async function joinRoomService(userId: string, roomId: string): Promise<v
     throw new JoinRoomError("Room is not live yet", "ROOM_NOT_LIVE", 400);
   }
 
-  const active = await db.query.roomParticipants.findFirst({
-    where: and(
-      eq(roomParticipants.roomId, roomId),
-      eq(roomParticipants.userId, userId),
-      isNull(roomParticipants.leftAt),
-    ),
-    columns: { id: true },
-  });
+  const active = await roomParticipantsRepository.isUserRoomParticipant(roomId, userId);
 
   if (active) {
     return;
@@ -113,7 +98,7 @@ export async function joinRoomService(userId: string, roomId: string): Promise<v
   }
 
   await ensureCircleRoomParticipation(userId, roomId, room);
-  await roomsRepository.refreshLiveCircleExpiryAfterParticipantJoin(roomId);
+  await roomSessionsRepository.refreshLiveCircleExpiryAfterParticipantJoin(roomId);
 }
 
 async function ensureDirectRoomParticipation(
@@ -122,40 +107,37 @@ async function ensureDirectRoomParticipation(
   room: NonNullable<Awaited<ReturnType<typeof roomsRepository.findRoomById>>>,
 ): Promise<void> {
   if (room.hostUserId === userId) {
-    await addOrReactivateHostRow(roomId, userId);
+    await roomParticipantsRepository.addOrReactivateHostRow(roomId, userId);
     return;
   }
 
-  const anyRow = await db.query.roomParticipants.findFirst({
-    where: and(eq(roomParticipants.roomId, roomId), eq(roomParticipants.userId, userId)),
-    columns: { role: true, leftAt: true },
-  });
+  const anyRow = await roomParticipantsRepository.findRoomParticipant(roomId, userId);
 
   if (anyRow) {
     if (anyRow.leftAt != null) {
       if (anyRow.role === "host") {
-        await addOrReactivateHostRow(roomId, userId);
+        await roomParticipantsRepository.addOrReactivateHostRow(roomId, userId);
       } else {
-        await addOrReactivateParticipantRow(roomId, userId);
+        await roomParticipantsRepository.addOrReactivateParticipantRow(roomId, userId);
       }
     }
     return;
   }
 
   const pair = await readMatchPairFromRedis(roomId);
-  if (pair && (pair.userA === userId || pair.userB === userId)) {
+    if (pair && (pair.userA === userId || pair.userB === userId)) {
     if (pair.userA === userId) {
-      await addOrReactivateHostRow(roomId, userId);
+      await roomParticipantsRepository.addOrReactivateHostRow(roomId, userId);
     } else {
-      await addOrReactivateParticipantRow(roomId, userId);
+      await roomParticipantsRepository.addOrReactivateParticipantRow(roomId, userId);
     }
     return;
   }
 
   if (room.visibility === "private") {
-    const invite = await findFriendInvite(roomId, userId);
+    const invite = await roomInvitesRepository.findFriendInvite(roomId, userId);
     if (invite) {
-      await addOrReactivateParticipantRow(roomId, userId);
+      await roomParticipantsRepository.addOrReactivateParticipantRow(roomId, userId);
       return;
     }
   }
@@ -169,7 +151,7 @@ async function ensureCircleRoomParticipation(
   room: NonNullable<Awaited<ReturnType<typeof roomsRepository.findRoomById>>>,
 ): Promise<void> {
   if (room.hostUserId === userId) {
-    await addOrReactivateHostRow(roomId, userId);
+    await roomParticipantsRepository.addOrReactivateHostRow(roomId, userId);
     return;
   }
 
@@ -181,12 +163,14 @@ async function ensureCircleRoomParticipation(
     );
   }
 
-  const [countRow] = await db
-    .select({ n: sql<number>`cast(count(*) as int)` })
-    .from(roomParticipants)
-    .where(and(eq(roomParticipants.roomId, roomId), isNull(roomParticipants.leftAt)));
+  const priorRow = await roomParticipantsRepository.wasUserRoomParticipant(roomId, userId);
 
-  const n = countRow?.n ?? 0;
+  if (priorRow) {
+    await roomParticipantsRepository.addOrReactivateParticipantRow(roomId, userId);
+    return;
+  }
+
+  const n = await roomParticipantsRepository.countActiveParticipants(roomId);
   if (n >= room.maxParticipants) {
     throw new JoinRoomError(
       `This circle is full (${room.maxParticipants} seats including the host).`,
@@ -196,16 +180,16 @@ async function ensureCircleRoomParticipation(
   }
 
   if (room.visibility === "public") {
-    await addOrReactivateParticipantRow(roomId, userId);
+    await roomParticipantsRepository.addOrReactivateParticipantRow(roomId, userId);
     return;
   }
 
-  const invite = await findFriendInvite(roomId, userId);
+  const invite = await roomInvitesRepository.findFriendInvite(roomId, userId);
   if (!invite) {
     throw new JoinRoomError("You are not allowed to join this room", "NOT_ALLOWED", 403);
   }
 
-  await addOrReactivateParticipantRow(roomId, userId);
+  await roomParticipantsRepository.addOrReactivateParticipantRow(roomId, userId);
 }
 
 async function readMatchPairFromRedis(
@@ -224,54 +208,4 @@ async function readMatchPairFromRedis(
   return { userA, userB };
 }
 
-async function findFriendInvite(roomId: string, userId: string) {
-  return db.query.roomFriendInvites.findFirst({
-    where: and(
-      eq(roomFriendInvites.roomId, roomId),
-      eq(roomFriendInvites.inviteeUserId, userId),
-      inArray(roomFriendInvites.status, ["pending", "accepted"]),
-    ),
-    columns: { id: true },
-  });
-}
 
-async function addOrReactivateParticipantRow(roomId: string, userId: string): Promise<void> {
-  const now = new Date();
-  await db
-    .insert(roomParticipants)
-    .values({
-      roomId,
-      userId,
-      role: "participant",
-      joinedAt: now,
-    })
-    .onConflictDoUpdate({
-      target: [roomParticipants.roomId, roomParticipants.userId],
-      set: {
-        leftAt: null,
-        joinedAt: now,
-        updatedAt: now,
-      },
-    });
-}
-
-async function addOrReactivateHostRow(roomId: string, userId: string): Promise<void> {
-  const now = new Date();
-  await db
-    .insert(roomParticipants)
-    .values({
-      roomId,
-      userId,
-      role: "host",
-      joinedAt: now,
-    })
-    .onConflictDoUpdate({
-      target: [roomParticipants.roomId, roomParticipants.userId],
-      set: {
-        leftAt: null,
-        joinedAt: now,
-        updatedAt: now,
-        role: "host",
-      },
-    });
-}

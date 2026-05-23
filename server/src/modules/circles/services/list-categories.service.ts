@@ -1,5 +1,5 @@
-import { roomsRepository } from "@/modules/rooms/repositories/rooms.repository";
+import { roomCategoriesRepository } from "@/modules/rooms/repositories/room-categories.repository";
 
 export async function listCircleCategoriesService() {
-  return roomsRepository.listActiveCategories();
+  return roomCategoriesRepository.listActiveCategories();
 }

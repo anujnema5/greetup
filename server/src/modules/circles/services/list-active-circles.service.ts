@@ -1,5 +1,6 @@
 import { mergeRoomAdvancedOptions } from "@/core/database/schema";
-import { roomsRepository } from "@/modules/rooms/repositories/rooms.repository";
+import { activeCirclesListingsRepository } from "@/modules/rooms/repositories/active-circles-listings.repository";
+import { roomSessionsRepository } from "@/modules/rooms/repositories/room-sessions.repository";
 import { deleteSessionRoomRedisMany } from "@/modules/rooms/services/rtc/session-room-redis.service";
 import { ActiveCircleItem, ActiveCirclesResult, FriendInvitedCircleItem } from "../types";
 
@@ -66,13 +67,13 @@ export async function listActiveCirclesService(
   cursor?: string,
 ): Promise<ActiveCirclesResult> {
   /** Light sync on list — avoid full teardown on every dashboard load (background sweep handles that). */
-  const expiredIds = await roomsRepository.syncPastDueCircleRoomExpiry();
+  const expiredIds = await roomSessionsRepository.syncPastDueCircleRoomExpiry();
   await deleteSessionRoomRedisMany(expiredIds);
 
   const [friendInvitedRows, joinedRows, publicRows] = await Promise.all([
-    roomsRepository.listFriendInvitedCircles(userId),
-    roomsRepository.listJoinedCircles(userId),
-    roomsRepository.listPublicCircles(userId, publicLimit, cursor),
+    activeCirclesListingsRepository.listFriendInvitedCircles(userId),
+    activeCirclesListingsRepository.listJoinedCircles(userId),
+    activeCirclesListingsRepository.listPublicCircles(userId, publicLimit, cursor),
   ]);
 
   const friendInvited: FriendInvitedCircleItem[] = friendInvitedRows.map((row) => ({

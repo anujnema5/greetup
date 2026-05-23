@@ -7,6 +7,7 @@ import { isDbRoomSessionClosed } from "@/modules/rooms/lib/expiry/room-expiry";
 import { CIRCLE_ROOM_SOCKET_EVENTS } from "@/modules/rooms/constants/events/circle-room-socket.events";
 import { roomInviteRepository } from "@/modules/rooms/repositories/expand-direct-room.repository";
 import { roomsRepository } from "@/modules/rooms/repositories/rooms.repository";
+import { roomParticipantsRepository } from "@/modules/rooms/repositories/room-participants.repository";
 import { roomRestrictedUsersRepository } from "@/modules/rooms/repositories/room-restricted-users.repository";
 import { notifyRtcServiceKickPeer } from "@/modules/rooms/services/rtc/rtc-kick-peer.service";
 import { clearUserActiveRtcRoom } from "@/modules/rooms/services/rtc/user-active-rtc-room-redis.service";
@@ -80,14 +81,7 @@ export async function kickCircleParticipantService(
     throw new KickCircleParticipantError("Room is not live", "INVALID_STATE", 400);
   }
 
-  const activeTarget = await db.query.roomParticipants.findFirst({
-    where: and(
-      eq(roomParticipants.roomId, roomId),
-      eq(roomParticipants.userId, targetUserId),
-      isNull(roomParticipants.leftAt),
-    ),
-    columns: { id: true },
-  });
+  const activeTarget = await roomParticipantsRepository.isUserRoomParticipant(roomId, targetUserId);
 
   if (!activeTarget) {
     throw new KickCircleParticipantError(
@@ -97,17 +91,7 @@ export async function kickCircleParticipantService(
     );
   }
 
-  const now = new Date();
-  await db
-    .update(roomParticipants)
-    .set({ leftAt: now, updatedAt: now })
-    .where(
-      and(
-        eq(roomParticipants.roomId, roomId),
-        eq(roomParticipants.userId, targetUserId),
-        isNull(roomParticipants.leftAt),
-      ),
-    );
+  await roomParticipantsRepository.markParticipantLeft(roomId, targetUserId);
 
   await clearUserActiveRtcRoom(targetUserId);
   await notifyRtcServiceKickPeer(roomId, targetUserId);

@@ -59,9 +59,8 @@
 | `InCallContainer` | RTC + API orchestration for `/circle/[roomId]` |
 | `InCallScreen` | Full in-call layout |
 | `MainStage` | Video stage (tiles / share) |
-| `OnHostEndedCircle` | Socket: host ended circle for everyone |
-| `OnDirectExpandedToCircle` | Socket: direct call expanded to circle |
-| `OnPartnerDisconnected` | Socket: 1:1 partner left |
+| `RoomSocketBridge` | Composes in-call socket listeners (mount in `layout` inside `MatchmakingProvider`) |
+| `OnDirectExpandedToCircle` | Socket: direct call expanded to circle (mount outside bridge — has dialog UI) |
 
 ## Add a new in-call activity
 

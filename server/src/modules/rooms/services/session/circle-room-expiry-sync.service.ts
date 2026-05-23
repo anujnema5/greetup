@@ -1,4 +1,4 @@
-import { roomsRepository } from "@/modules/rooms/repositories/rooms.repository";
+import { roomSessionsRepository } from "@/modules/rooms/repositories/room-sessions.repository";
 import { deleteSessionRoomRedis } from "@/modules/rooms/services/rtc/session-room-redis.service";
 
 /**
@@ -7,6 +7,6 @@ import { deleteSessionRoomRedis } from "@/modules/rooms/services/rtc/session-roo
  * the client never hit the list endpoint.
  */
 export async function syncCircleRoomExpiryFromClockIfDue(roomId: string): Promise<void> {
-  const did = await roomsRepository.syncCircleRoomExpiryIfPastDue(roomId);
+  const did = await roomSessionsRepository.syncCircleRoomExpiryIfPastDue(roomId);
   if (did) await deleteSessionRoomRedis(roomId);
 }

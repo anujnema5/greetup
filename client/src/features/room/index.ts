@@ -50,11 +50,13 @@ export type { InCallContainerProps } from "./call";
 export { MinimizedRoomDock } from "./components/minimized-dock/minimized-room-dock";
 export { RoomMinimizedHydration } from "./components/minimized-dock/room-minimized-hydration";
 export {
-  OnCircleTitleUpdated,
-  OnPartnerDisconnected,
+  RoomSocketBridge,
   OnDirectExpandedToCircle,
+  OnCircleTitleUpdated,
+  OnCircleOpenedForJoin,
   OnHostEndedCircle,
   OnParticipantRemovedFromCircle,
+  OnPartnerDisconnected,
 } from "./listeners";
 export {
   roomApi,

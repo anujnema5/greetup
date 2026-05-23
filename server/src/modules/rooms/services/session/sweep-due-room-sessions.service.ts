@@ -1,5 +1,5 @@
 import logger from "@/core/logging";
-import { roomsRepository } from "@/modules/rooms/repositories/rooms.repository";
+import { roomSessionsRepository } from "@/modules/rooms/repositories/room-sessions.repository";
 import { reconcileRoomSessionOnAccess } from "@/modules/rooms/services/session/reconcile-room-session-on-access.service";
 import type {
   SweepDueRoomSessionsOptions,
@@ -13,7 +13,7 @@ export async function sweepDueRoomSessions(
   options: SweepDueRoomSessionsOptions = {},
 ): Promise<SweepDueRoomSessionsResult> {
   const maxRooms = options.maxRooms ?? 100;
-  const candidateIds = await roomsRepository.listRoomIdsDueForSessionSweep(maxRooms);
+  const candidateIds = await roomSessionsRepository.listRoomIdsDueForSessionSweep(maxRooms);
   const endedIds: string[] = [];
 
   for (const roomId of candidateIds) {

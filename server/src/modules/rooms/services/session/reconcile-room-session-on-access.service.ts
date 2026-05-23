@@ -1,10 +1,4 @@
-import { and, eq, isNull, sql } from "drizzle-orm";
-
-import { db } from "@/core/database";
-import { roomParticipants, rooms } from "@/core/database/schema";
 import logger from "@/core/logging";
-import { SCHEDULED_JOIN_GRACE_AFTER_START_MINUTES } from "@/modules/rooms/constants/session/scheduled-circle-join-grace";
-import { coerceRoomDate } from "@/modules/rooms/lib/session/coerce-room-date";
 import {
   evaluateRoomSessionEndReason,
   roomSessionClosedMessage,
@@ -13,50 +7,12 @@ import {
 } from "@/modules/rooms/lib/session/reconcile-room-session-eval";
 import { isDbRoomSessionClosed } from "@/modules/rooms/lib/expiry/room-expiry";
 import { roomsRepository } from "@/modules/rooms/repositories/rooms.repository";
+import { roomSessionsRepository } from "@/modules/rooms/repositories/room-sessions.repository";
 import { endLiveRoomSession } from "@/modules/rooms/services/session/end-live-room-session.service";
 import { deleteSessionRoomRedis } from "@/modules/rooms/services/rtc/session-room-redis.service";
 import type { ReconcileRoomSessionResult, RoomSessionEndReason } from "@/modules/rooms/types";
 
 export { roomSessionClosedMessage };
-
-async function loadParticipantPresence(roomId: string): Promise<ParticipantPresence> {
-  const [countRow] = await db
-    .select({ n: sql<number>`cast(count(*) as int)` })
-    .from(roomParticipants)
-    .where(and(eq(roomParticipants.roomId, roomId), isNull(roomParticipants.leftAt)));
-
-  const [leftRow] = await db
-    .select({
-      lastLeftAt: sql<Date | null>`max(${roomParticipants.leftAt})`,
-    })
-    .from(roomParticipants)
-    .where(eq(roomParticipants.roomId, roomId));
-
-  return {
-    activeCount: countRow?.n ?? 0,
-    lastLeftAt: coerceRoomDate(leftRow?.lastLeftAt ?? null),
-  };
-}
-
-async function expireScheduledJoinGraceMissed(roomId: string): Promise<boolean> {
-  const [row] = await db
-    .update(rooms)
-    .set({ isExpired: true, updatedAt: new Date() })
-    .where(
-      and(
-        eq(rooms.id, roomId),
-        eq(rooms.roomType, "circle"),
-        eq(rooms.status, "scheduled"),
-        sql`(${rooms.scheduledStartAt} + (${SCHEDULED_JOIN_GRACE_AFTER_START_MINUTES} * interval '1 minute')) < NOW()`,
-      ),
-    )
-    .returning({ id: rooms.id });
-
-  if (row) {
-    await deleteSessionRoomRedis(roomId);
-  }
-  return Boolean(row);
-}
 
 function toReconcileRow(
   room: NonNullable<Awaited<ReturnType<typeof roomsRepository.findRoomById>>>,
@@ -91,7 +47,7 @@ export async function reconcileRoomSessionOnAccess(
   }
 
   const row = toReconcileRow(room);
-  const presence = await loadParticipantPresence(roomId);
+  const presence = await roomSessionsRepository.loadParticipantPresence(roomId);
   const endReason = evaluateRoomSessionEndReason(row, presence);
 
   if (!endReason) {
@@ -103,8 +59,9 @@ export async function reconcileRoomSessionOnAccess(
   }
 
   if (endReason === "join_grace_missed") {
-    const expired = await expireScheduledJoinGraceMissed(roomId);
+    const expired = await roomSessionsRepository.expireScheduledJoinGraceMissed(roomId);
     if (expired) {
+      await deleteSessionRoomRedis(roomId);
       logger.info("room_session_reconciled", { roomId, reason: endReason });
     }
     return {

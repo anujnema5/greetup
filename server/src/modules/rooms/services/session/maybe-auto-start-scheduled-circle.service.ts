@@ -3,6 +3,7 @@ import { mergeRoomAdvancedOptions } from "@/core/database/schema";
 
 import { isDbRoomSessionClosed } from "../../lib/expiry/room-expiry";
 import { roomsRepository } from "../../repositories/rooms.repository";
+import { roomSessionsRepository } from "../../repositories/room-sessions.repository";
 import { runLiveCircleAfterMarkLive } from "./live-circle-after-mark-live.service";
 
 /**
@@ -35,7 +36,7 @@ export async function maybeAutoStartScheduledCircleFromDb(roomId: string): Promi
   const now = new Date();
   if (now.getTime() < room.scheduledStartAt.getTime()) return;
 
-  const row = await roomsRepository.markRoomLive(roomId, now);
+  const row = await roomSessionsRepository.markRoomLive(roomId, now);
   if (!row) return;
 
   await runLiveCircleAfterMarkLive({

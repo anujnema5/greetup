@@ -1,7 +1,8 @@
 import type { RoomSessionType } from "@/shared/types/room-session";
 
 import { notifyCircleStarted } from "../../notifications";
-import { roomsRepository } from "../../repositories/rooms.repository";
+import { roomInvitesRepository } from "../../repositories/room-invites.repository";
+import { emitCircleOpenedForJoin } from "@/modules/rooms/socket/circle-room-socket.handler";
 import { provisionSessionRoomRedis } from "../rtc/session-room-redis.service";
 
 /**
@@ -25,9 +26,13 @@ export async function runLiveCircleAfterMarkLive(params: {
     lobbyGateActive: params.lobbyGateActive,
   });
 
+  if (!params.lobbyGateActive) {
+    await emitCircleOpenedForJoin(params.roomId, { excludeUserId: params.hostUserId });
+  }
+
   if (!params.notifyInvitees) return;
 
-  const invitees = await roomsRepository.listActiveFriendInviteeUserIds(params.roomId);
+  const invitees = await roomInvitesRepository.listActiveFriendInviteeUserIds(params.roomId);
   if (invitees.length === 0) return;
 
   await Promise.all(

@@ -6,4 +6,6 @@ export const CIRCLE_ROOM_SOCKET_EVENTS = {
   participantRemoved: "circle:participant_removed",
   /** Host renamed the live circle; clients update in-call title. */
   titleUpdated: "circle:title_updated",
+  /** Circle is joinable for RTC (lobby gate cleared or live without host gate). */
+  openedForJoin: "circle:opened_for_join",
 } as const;
