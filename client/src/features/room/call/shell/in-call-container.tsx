@@ -21,6 +21,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { AddToCircleDialog } from "@/features/room/components/dialogs/add-to-circle-dialog";
 import { CircleLobbyOverlay } from "@/features/room/components/lobby/circle-lobby-overlay";
+import { useCircleNsfwModeration } from "@/features/moderation/hooks/use-circle-nsfw-moderation";
 import { useRoomSessionExpiryWarnings } from "@/features/room/hooks/session/use-room-session-expiry-warnings";
 import { InCallScreen } from "@/features/room/call/shell/in-call-screen";
 import { useRemoteParticipantLabel } from "@/features/room/hooks/media/use-remote-participant-label";
@@ -127,6 +128,16 @@ export function InCallContainer({
   } = useRtcSocketContext();
 
   useRoomSessionExpiryWarnings(roomId, mediasoupStatus === "ready");
+
+  const localStreamForNsfw = localCompositeStream ?? localMediaStream;
+  useCircleNsfwModeration({
+    roomId,
+    enabled: isDbCircleCall,
+    localStream: localStreamForNsfw,
+    mediasoupReady: mediasoupStatus === "ready",
+    cameraEnabled,
+    screenSharing,
+  });
 
   /** DB-backed tiles + policy map; invite gating uses `embeddedStageActivityId` (can run ahead of Redux). */
   const { directRoomActivities, embeddedCallPolicyLookup } = useRoomEmbeddedActivitiesCatalog();

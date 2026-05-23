@@ -13,6 +13,7 @@ import {
   roomInviteBodySchema,
   roomInviteRespondBodySchema,
   updateLiveRoomTitleBodySchema,
+  reportCircleNsfwViolationBodySchema,
   matchCompletedBodySchema,
   matchFailedBodySchema,
   matchProposalCancelledBodySchema,
@@ -54,6 +55,10 @@ import {
   kickCircleParticipantService,
   KickCircleParticipantError,
 } from "../services/participation/kick-circle-participant.service";
+import {
+  reportCircleNsfwViolationService,
+  ReportCircleNsfwViolationError,
+} from "../services/moderation/report-circle-nsfw-violation.service";
 import {
   leaveCircleRtcSessionForUser,
   LeaveCircleRtcError,
@@ -311,6 +316,55 @@ export const handleKickCircleParticipant = async (c: Context) => {
       );
     }
     logger.error("Kick circle participant error", { error });
+    return internalError(c, error);
+  }
+};
+
+/**
+ * POST /api/room/:roomId/nsfw-violation
+ * Client-detected NSFW on the caller's own video: kick self from circle, record strike, ban on repeat.
+ */
+export const handleReportCircleNsfwViolation = async (c: Context) => {
+  const roomId = c.req.param("roomId");
+  const userId = c.get("userId") as string;
+
+  if (!roomId) {
+    return c.json(
+      ApiResponse.error({ message: "roomId is required", statusCode: 400, code: "VALIDATION_ERROR" }),
+      400,
+    );
+  }
+
+  let body = {};
+  try {
+    const raw = await c.req.json();
+    const parsed = reportCircleNsfwViolationBodySchema.safeParse(raw);
+    if (!parsed.success) {
+      return zodBodyValidationError(c, parsed.error);
+    }
+    body = parsed.data;
+  } catch {
+    body = {};
+  }
+
+  try {
+    const result = await reportCircleNsfwViolationService(userId, roomId, body);
+    return c.json(
+      ApiResponse.success(result, "NSFW policy violation recorded", 200),
+      200,
+    );
+  } catch (error: unknown) {
+    if (error instanceof ReportCircleNsfwViolationError) {
+      return c.json(
+        ApiResponse.error({
+          message: error.message,
+          statusCode: error.statusCode,
+          code: error.code,
+        }),
+        error.statusCode as 400 | 403 | 404 | 429,
+      );
+    }
+    logger.error("Report circle NSFW violation error", { error });
     return internalError(c, error);
   }
 };

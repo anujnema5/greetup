@@ -48,7 +48,19 @@ export function OnParticipantRemovedFromCircle() {
 
       if (!userIsInThisCircleSession(snapshotRef.current, parsed.roomId)) return;
 
-      toast.info("You were removed from this circle.");
+      if (parsed.reason === "nsfw") {
+        if (parsed.strikeCount != null && parsed.strikeCount >= 2) {
+          toast.error(
+            "Your account was suspended for repeated inappropriate video. Contact support if you believe this is a mistake.",
+          );
+        } else {
+          toast.warning(
+            "You were removed from this circle for inappropriate video. This is your only warning — a second violation will suspend your account.",
+          );
+        }
+      } else {
+        toast.info("You were removed from this circle.");
+      }
       clearRoomStorage();
       dispatch(endVideoSession());
 

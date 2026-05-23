@@ -84,6 +84,7 @@ export const API_ENDPOINTS = {
       `/room/${roomId}/host-end-circle` as const,
     kickParticipant: (roomId: string, userId: string) =>
       `/room/${roomId}/kick/${userId}` as const,
+    nsfwViolation: (roomId: string) => `/room/${roomId}/nsfw-violation` as const,
     updateTitle: (roomId: string) => `/room/${roomId}/title` as const,
     rtcToken: (roomId: string) => `/room/${roomId}/rtc-token` as const,
     invite: (roomId: string) => `/room/${roomId}/invite` as const,

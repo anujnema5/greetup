@@ -53,6 +53,18 @@ export const updateLiveRoomTitleBodySchema = z.object({
   title: z.string().min(1).max(160).trim(),
 });
 
+export const reportCircleNsfwViolationBodySchema = z.object({
+  clientScores: z
+    .array(
+      z.object({
+        className: z.string().min(1).max(32),
+        probability: z.number().min(0).max(1),
+      }),
+    )
+    .max(8)
+    .optional(),
+});
+
 export type CreateRoomBody = z.infer<typeof createRoomBodySchema>;
 export type MatchCompletedBody = z.infer<typeof matchCompletedBodySchema>;
 export type MatchFailedBody = z.infer<typeof matchFailedBodySchema>;

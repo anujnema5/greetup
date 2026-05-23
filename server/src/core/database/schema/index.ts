@@ -39,3 +39,4 @@ export * from "./room-embedded-activities";
 export * from "./notifications";
 export * from "./chat";
 export * from "./prompts";
+export * from "./moderation";
