@@ -1,4 +1,6 @@
+export { RoomSocketBridge } from "./room-socket-bridge";
 export { OnCircleTitleUpdated } from "./on-circle-title-updated";
+export { OnCircleOpenedForJoin } from "./on-circle-opened-for-join";
 export { OnHostEndedCircle } from "./on-host-ended-circle";
 export { OnParticipantRemovedFromCircle } from "./on-participant-removed-from-circle";
 export { OnDirectExpandedToCircle } from "./on-direct-expanded-to-circle";

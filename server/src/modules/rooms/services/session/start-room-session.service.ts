@@ -1,5 +1,6 @@
 import { mergeRoomAdvancedOptions } from "@/core/database/schema";
 import { roomsRepository } from "@/modules/rooms/repositories/rooms.repository";
+import { roomSessionsRepository } from "@/modules/rooms/repositories/room-sessions.repository";
 import { assertRoomSessionOpenOnAccess } from "@/modules/rooms/services/session/reconcile-room-session-on-access.service";
 
 import { runLiveCircleAfterMarkLive } from "./live-circle-after-mark-live.service";
@@ -46,7 +47,7 @@ export async function startRoomSessionService(hostUserId: string, roomId: string
   }
 
   const now = new Date();
-  const row = await roomsRepository.markRoomLive(roomId, now);
+  const row = await roomSessionsRepository.markRoomLive(roomId, now);
 
   if (!row) {
     throw new StartRoomSessionError(

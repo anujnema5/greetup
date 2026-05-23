@@ -19,7 +19,11 @@ import {
   matchProposedBodySchema,
 } from "../schemas/room.schema";
 import { zodBodyValidationError } from "../lib/http-responses";
+import { roomAccessRepository } from "../repositories/room-access.repository";
+import { roomCategoriesRepository } from "../repositories/room-categories.repository";
+import { roomCreationRepository } from "../repositories/room-creation.repository";
 import { roomsRepository } from "../repositories/rooms.repository";
+import { roomParticipantsRepository } from "../repositories/room-participants.repository";
 import {
   createRoomInviteService,
   respondRoomInviteService,
@@ -112,7 +116,7 @@ export const handleCreateRoom = async (c: Context) => {
 
     const { attemptId, pairId, users } = parsed.data;
 
-    const category = await roomsRepository.findActiveCategoryBySlug("match");
+    const category = await roomCategoriesRepository.findActiveCategoryBySlug("match");
     if (!category) {
       logger.error("room_categories missing slug=match — run db:seed");
       return c.json(
@@ -126,7 +130,7 @@ export const handleCreateRoom = async (c: Context) => {
     }
 
     const roomId = randomUUID();
-    await roomsRepository.createMatchPairRoom({
+    await roomCreationRepository.createMatchPairRoom({
       roomId,
       hostUserId: users[0],
       peerUserId: users[1],
@@ -566,7 +570,7 @@ export const handleGetRoom = async (c: Context) => {
           );
         }
         dbRoom = (await roomsRepository.findRoomById(roomId)) ?? dbRoom;
-        const participantIds = await roomsRepository.listActiveParticipantUserIds(roomId);
+        const participantIds = await roomParticipantsRepository.listActiveParticipantUserIds(roomId);
         const hostId = dbRoom.hostUserId;
         const peerId = participantIds.find((id) => id !== hostId) ?? participantIds[1];
         if (hostId && peerId && participantIds.length >= 2) {
@@ -603,7 +607,7 @@ export const handleGetRoom = async (c: Context) => {
         );
       }
       dbRoom = (await roomsRepository.findRoomById(roomId)) ?? dbRoom;
-      const allowed = await roomsRepository.canUserViewCircleRoomMetadata(userId, dbRoom);
+      const allowed = await roomAccessRepository.canUserViewCircleRoomMetadata(userId, dbRoom);
       if (!allowed) {
         return c.json(
           ApiResponse.error({

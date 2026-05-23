@@ -7,7 +7,8 @@ import {
   canHostInviteUserToRoom,
   getRoomInvitePreferencesForUsers,
 } from "@/modules/profile/services/room-invite-preferences.service";
-import { roomsRepository } from "@/modules/rooms/repositories/rooms.repository";
+import { roomCategoriesRepository } from "@/modules/rooms/repositories/room-categories.repository";
+import { roomCreationRepository } from "@/modules/rooms/repositories/room-creation.repository";
 import { provisionSessionRoomRedis } from "@/modules/rooms/services/rtc/session-room-redis.service";
 import type { CreateCircleBody } from "../schemas/create-circle.schema";
 import { CreateCircleError } from "../types/create-circle.types";
@@ -84,7 +85,7 @@ export async function createCircleService(
   hostUserId: string,
   body: CreateCircleBody,
 ) {
-  const category = await roomsRepository.findActiveCategoryById(body.categoryId);
+  const category = await roomCategoriesRepository.findActiveCategoryById(body.categoryId);
 
   if (!category) {
     throw new CreateCircleError("Category not found or inactive", "CATEGORY_NOT_FOUND");
@@ -131,7 +132,7 @@ export async function createCircleService(
 
   const roomType = body.roomType ?? "circle";
 
-  const row = await roomsRepository.createRoomWithHostAndInvites({
+  const row = await roomCreationRepository.createRoomWithHostAndInvites({
     categoryId: body.categoryId,
     hostUserId,
     title: body.title,

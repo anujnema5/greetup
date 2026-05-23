@@ -1,6 +1,7 @@
 import { isScheduledCircleBeforeStartTime } from "@/modules/rooms/lib/session/scheduled-circle-lobby";
 import { assertRoomSessionOpenOnAccess } from "@/modules/rooms/services/session/reconcile-room-session-on-access.service";
 import { roomsRepository } from "../../repositories/rooms.repository";
+import { emitCircleOpenedForJoin } from "@/modules/rooms/socket/circle-room-socket.handler";
 import { clearCircleLobbyGateInRedis } from "../rtc/session-room-redis.service";
 
 export type OpenCircleMeetingErrorCode =
@@ -60,4 +61,6 @@ export async function openCircleMeetingService(userId: string, roomId: string): 
       503,
     );
   }
+
+  await emitCircleOpenedForJoin(roomId, { excludeUserId: userId });
 }

@@ -2,6 +2,7 @@ import type { InferSelectModel } from "drizzle-orm";
 
 import { rooms } from "@/core/database/schema";
 import { roomsRepository } from "@/modules/rooms/repositories/rooms.repository";
+import { roomParticipantsRepository } from "@/modules/rooms/repositories/room-participants.repository";
 
 export type RoomActivityErrorCode =
   | "ROOM_NOT_FOUND"
@@ -50,12 +51,12 @@ export async function ensureDirectRoomActivityContext(
     );
   }
 
-  const isParticipant = await roomsRepository.isUserRoomParticipant(roomId, userId);
+  const isParticipant = await roomParticipantsRepository.isUserRoomParticipant(roomId, userId);
   if (!isParticipant) {
     throw new RoomActivityError("You are not in this room", "NOT_PARTICIPANT", 403);
   }
 
-  const participants = await roomsRepository.listActiveParticipantUserIds(roomId);
+  const participants = await roomParticipantsRepository.listActiveParticipantUserIds(roomId);
   const peerUserId = participants.find((id) => id !== userId);
   if (!peerUserId) {
     throw new RoomActivityError(

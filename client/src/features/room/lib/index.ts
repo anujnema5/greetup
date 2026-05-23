@@ -2,6 +2,7 @@ export * from "./session/room-sync";
 export * from "./session/room-tab-lease";
 export * from "./session/room-return-path";
 export * from "./session/room-rtk-cache";
+export * from "./session/circle-room-listener";
 export * from "./minimized-dock/minimized-dock-focus";
 export * from "./minimized-dock/minimized-dock-main-stage-silence";
 export * from "./call/active-speaker";

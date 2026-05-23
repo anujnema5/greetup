@@ -12,11 +12,8 @@ import { Toaster } from "@/components/ui/sonner";
 import {
   RoomMinimizedHydration,
   MinimizedRoomDock,
-  OnPartnerDisconnected,
+  RoomSocketBridge,
   OnDirectExpandedToCircle,
-  OnCircleTitleUpdated,
-  OnHostEndedCircle,
-  OnParticipantRemovedFromCircle,
 } from "@/features/room";
 import { MatchmakingProvider } from "@/features/matching";
 import { NotificationsRealtimeBridge } from "@/features/notifications";
@@ -54,10 +51,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                 <ChatMessagesCacheBridge />
                 <Suspense fallback={null}>
                   <MatchmakingProvider>
-                    <OnCircleTitleUpdated />
-                    <OnHostEndedCircle />
-                    <OnParticipantRemovedFromCircle />
-                    <OnPartnerDisconnected />
+                    <RoomSocketBridge />
                     <MinimizedRoomDock />
                     {children}
                   </MatchmakingProvider>

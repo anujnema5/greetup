@@ -5,6 +5,9 @@ import {
   resolveValidatedInviteeIds,
 } from "./create-circle.service";
 import type { RoomAdvancedOptions } from "@/core/database/schema";
+import { roomCategoriesRepository } from "@/modules/rooms/repositories/room-categories.repository";
+import { roomInvitesRepository } from "@/modules/rooms/repositories/room-invites.repository";
+import { roomScheduledCirclesRepository } from "@/modules/rooms/repositories/room-scheduled-circles.repository";
 import { roomsRepository } from "@/modules/rooms/repositories/rooms.repository";
 
 import type { UpdateScheduledCircleBody } from "../schemas/update-scheduled-circle.schema";
@@ -45,7 +48,7 @@ export async function updateScheduledCircleService(
   }
 
   if (body.categoryId !== undefined) {
-    const cat = await roomsRepository.findActiveCategoryById(body.categoryId);
+    const cat = await roomCategoriesRepository.findActiveCategoryById(body.categoryId);
     if (!cat) {
       throw new UpdateScheduledCircleError(
         "Category not found or inactive",
@@ -103,10 +106,10 @@ export async function updateScheduledCircleService(
   const advancedOptionsPatch: Partial<RoomAdvancedOptions> | undefined =
     body.advancedOptions === undefined ? undefined : (body.advancedOptions as Partial<RoomAdvancedOptions>);
 
-  const beforePending = await roomsRepository.listPendingInviteeUserIds(roomId);
+  const beforePending = await roomInvitesRepository.listPendingInviteeUserIds(roomId);
   const beforeSet = new Set(beforePending);
 
-  const result = await roomsRepository.updateScheduledCircleByHost({
+  const result = await roomScheduledCirclesRepository.updateScheduledCircleByHost({
     roomId,
     hostUserId,
     title: body.title,

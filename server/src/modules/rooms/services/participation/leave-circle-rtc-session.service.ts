@@ -1,10 +1,9 @@
-import { and, eq, isNull, sql } from "drizzle-orm";
-
-import { db } from "@/core/database";
-import { mergeRoomAdvancedOptions, roomParticipants, rooms } from "@/core/database/schema";
+import { mergeRoomAdvancedOptions } from "@/core/database/schema";
 import logger from "@/core/logging";
 import { isDbRoomSessionClosed } from "@/modules/rooms/lib/expiry/room-expiry";
 import { roomsRepository } from "@/modules/rooms/repositories/rooms.repository";
+import { roomSessionsRepository } from "@/modules/rooms/repositories/room-sessions.repository";
+import { roomParticipantsRepository } from "@/modules/rooms/repositories/room-participants.repository";
 import { deleteSessionRoomRedis } from "@/modules/rooms/services/rtc/session-room-redis.service";
 import { notifyRtcServiceSfuRoomTeardown } from "@/modules/rooms/services/rtc/rtc-sfu-room-teardown.service";
 import { clearUserActiveRtcRoom } from "@/modules/rooms/services/rtc/user-active-rtc-room-redis.service";
@@ -63,22 +62,12 @@ export async function leaveCircleRtcSessionForUser(
 
   const adv = mergeRoomAdvancedOptions(room.advancedOptions);
 
-  const activeBefore = await db.query.roomParticipants.findFirst({
-    where: and(
-      eq(roomParticipants.roomId, roomId),
-      eq(roomParticipants.userId, userId),
-      isNull(roomParticipants.leftAt),
-    ),
-    columns: { id: true },
-  });
+  const activeBefore = await roomParticipantsRepository.isUserRoomParticipant(roomId, userId);
 
   if (!activeBefore) {
     await clearUserActiveRtcRoom(userId);
     if (httpStrict) {
-      const anyRow = await db.query.roomParticipants.findFirst({
-        where: and(eq(roomParticipants.roomId, roomId), eq(roomParticipants.userId, userId)),
-        columns: { id: true },
-      });
+      const anyRow = await roomParticipantsRepository.wasUserRoomParticipant(roomId, userId);
       if (!anyRow) {
         throw new LeaveCircleRtcError(
           "You are not in this call",
@@ -91,48 +80,13 @@ export async function leaveCircleRtcSessionForUser(
   }
 
   const now = new Date();
-  let roomEnded = false;
-  let lastParticipantLeft = false;
 
-  await db.transaction(async (tx) => {
-    await tx
-      .update(roomParticipants)
-      .set({ leftAt: now, updatedAt: now })
-      .where(
-        and(
-          eq(roomParticipants.roomId, roomId),
-          eq(roomParticipants.userId, userId),
-          isNull(roomParticipants.leftAt),
-        ),
-      );
-
-    const [countRow] = await tx
-      .select({ n: sql<number>`cast(count(*) as int)` })
-      .from(roomParticipants)
-      .where(and(eq(roomParticipants.roomId, roomId), isNull(roomParticipants.leftAt)));
-
-    const activeLeft = countRow?.n ?? 0;
-    if (activeLeft > 0) {
-      return;
-    }
-
-    lastParticipantLeft = true;
-
-    if (adv.deleteCircleAfterCall) {
-      const [updated] = await tx
-        .update(rooms)
-        .set({
-          status: "ended",
-          endedAt: now,
-          expiresAt: now,
-          isExpired: true,
-          updatedAt: now,
-        })
-        .where(and(eq(rooms.id, roomId), eq(rooms.roomType, "circle"), eq(rooms.status, "live")))
-        .returning({ id: rooms.id });
-      roomEnded = Boolean(updated);
-    }
-  });
+  const { lastParticipantLeft, roomEnded } = await roomSessionsRepository.leaveAndMaybeEndRoomTx(
+    roomId,
+    userId,
+    now,
+    adv.deleteCircleAfterCall ?? false,
+  );
 
   await clearUserActiveRtcRoom(userId);
   if (roomEnded) {

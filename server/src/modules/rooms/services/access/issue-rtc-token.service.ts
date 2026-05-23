@@ -3,6 +3,8 @@ import { mergeRoomAdvancedOptions } from "@/core/database/schema";
 import { getRedis } from "@/core/redis";
 import { ROOM_KEYS } from "@/core/redis/keys";
 import { roomsRepository } from "@/modules/rooms/repositories/rooms.repository";
+import { roomSessionsRepository } from "@/modules/rooms/repositories/room-sessions.repository";
+import { roomParticipantsRepository } from "@/modules/rooms/repositories/room-participants.repository";
 import { maybeAutoStartScheduledCircleFromDb } from "@/modules/rooms/services/session/maybe-auto-start-scheduled-circle.service";
 import { assertRoomSessionOpenOnAccess } from "@/modules/rooms/services/session/reconcile-room-session-on-access.service";
 import { isScheduledCircleBeforeStartTime } from "@/modules/rooms/lib/session/scheduled-circle-lobby";
@@ -80,7 +82,7 @@ export async function issueRtcTokenService(userId: string, roomId: string) {
     throw new IssueRtcTokenError("Room is not live yet", "ROOM_NOT_LIVE", 400);
   }
 
-  await roomsRepository.restartLiveSessionClockIfNoActiveParticipants(roomId);
+  await roomSessionsRepository.restartLiveSessionClockIfNoActiveParticipants(roomId);
 
   const isHost = room.hostUserId === userId;
 
@@ -96,7 +98,10 @@ export async function issueRtcTokenService(userId: string, roomId: string) {
     );
   }
 
-  const isParticipant = isHost || (await roomsRepository.isUserRoomParticipant(roomId, userId));
+  const isParticipant =
+    isHost ||
+    (await roomParticipantsRepository.isUserRoomParticipant(roomId, userId)) ||
+    (await roomParticipantsRepository.wasUserRoomParticipant(roomId, userId));
 
   if (!isParticipant) {
     throw new IssueRtcTokenError(

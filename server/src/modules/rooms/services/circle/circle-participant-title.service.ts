@@ -1,5 +1,6 @@
 import { roomInviteRepository } from "@/modules/rooms/repositories/expand-direct-room.repository";
 import { roomsRepository } from "@/modules/rooms/repositories/rooms.repository";
+import { roomParticipantsRepository } from "@/modules/rooms/repositories/room-participants.repository";
 import { patchSessionRoomRedisTitle } from "@/modules/rooms/services/rtc/session-room-redis.service";
 
 const TITLE_MAX = 160;
@@ -30,7 +31,7 @@ export function formatCircleTitleFromDisplayLabels(labels: string[]): string {
  * Used when a direct call becomes a circle so the room name matches who is on the call.
  */
 export async function syncCircleRoomTitleFromParticipants(roomId: string): Promise<string> {
-  const ids = await roomsRepository.listActiveParticipantUserIds(roomId);
+  const ids = await roomParticipantsRepository.listActiveParticipantUserIds(roomId);
   const pairs =
     ids.length > 0
       ? await Promise.all(
