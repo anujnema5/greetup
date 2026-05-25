@@ -4,19 +4,23 @@ import { useEffect, useRef } from "react";
 import { toast } from "sonner";
 import { useGetRoomQuery } from "@/features/room/api/room-api";
 import {
-  ROOM_SESSION_EXPIRY_POLL_MS,
   ROOM_SESSION_WARNING_COPY,
   ROOM_SESSION_WARNING_MINUTES,
 } from "@/features/room/constants/session/room-session-warnings";
 import { resolveRoomExpiresAtIso } from "@/features/room/lib/session/resolve-room-expires-at";
 
+const REFRESH_BEFORE_FIRST_WARNING_MS = 16 * 60_000;
+
 /**
  * Toasts at 15m and 5m before server `expires_at` (per-session cap or scheduled calendar end).
+ * Avoids 60s polling during calls — schedules timeouts and one refresh before the warning window.
  */
 export function useRoomSessionExpiryWarnings(roomId: string, enabled: boolean): void {
-  const { data: room } = useGetRoomQuery(roomId, {
+  const { data: room, refetch } = useGetRoomQuery(roomId, {
     skip: !enabled || !roomId,
-    pollingInterval: enabled ? ROOM_SESSION_EXPIRY_POLL_MS : 0,
+    pollingInterval: 0,
+    refetchOnFocus: false,
+    refetchOnReconnect: true,
   });
 
   const expiresAtIso = resolveRoomExpiresAtIso(room);
@@ -53,8 +57,17 @@ export function useRoomSessionExpiryWarnings(roomId: string, enabled: boolean): 
       }
     }
 
+    const msUntilRefresh = expiresAtMs - REFRESH_BEFORE_FIRST_WARNING_MS - Date.now();
+    if (msUntilRefresh > 0) {
+      timers.push(
+        setTimeout(() => {
+          void refetch();
+        }, msUntilRefresh),
+      );
+    }
+
     return () => {
       for (const t of timers) clearTimeout(t);
     };
-  }, [enabled, expiresAtIso, roomId]);
+  }, [enabled, expiresAtIso, roomId, refetch]);
 }

@@ -2,26 +2,20 @@
 
 import { useEffect, useRef } from "react";
 import { useReportCircleNsfwViolationMutation } from "@/features/room/api/room-api";
+import { NSFW_HITS_BEFORE_REPORT, NSFW_SCAN_INTERVAL_MS } from "@/features/moderation/lib/nsfw-config";
+import { isNsfwLogEnabled, logNsfwLoopStarted, logNsfwReported, logNsfwScan, logNsfwSkipped } from "@/features/moderation/lib/nsfw-log";
 import { classifyStreamFrame } from "@/features/moderation/lib/nsfw-scanner";
 import { isNsfwPrediction } from "@/features/moderation/lib/nsfw-thresholds";
-
-const SCAN_INTERVAL_MS = 12_000;
-/** Require two consecutive positive scans before reporting (reduces false positives). */
-const CONSECUTIVE_HITS_REQUIRED = 2;
 
 export type UseCircleNsfwModerationArgs = {
   roomId: string;
   enabled: boolean;
-  /** Local camera and/or screen composite stream while in call. */
   localStream: MediaStream | null;
   mediasoupReady: boolean;
   cameraEnabled: boolean;
   screenSharing: boolean;
 };
 
-/**
- * Periodically samples the user's own outbound video on-device and self-reports to the server on violation.
- */
 export function useCircleNsfwModeration({
   roomId,
   enabled,
@@ -31,66 +25,73 @@ export function useCircleNsfwModeration({
   screenSharing,
 }: UseCircleNsfwModerationArgs): void {
   const [reportViolation] = useReportCircleNsfwViolationMutation();
-  const consecutiveHitsRef = useRef(0);
-  const reportingRef = useRef(false);
+  const reportRef = useRef(reportViolation);
+  const streamRef = useRef(localStream);
 
   useEffect(() => {
-    if (!enabled || !mediasoupReady || !localStream) {
-      consecutiveHitsRef.current = 0;
-      return;
-    }
+    reportRef.current = reportViolation;
+  });
+  const scanActive = enabled || isNsfwLogEnabled();
+  const hasVideo = cameraEnabled || screenSharing;
 
-    const hasOutboundVideo = cameraEnabled || screenSharing;
-    if (!hasOutboundVideo) {
-      consecutiveHitsRef.current = 0;
-      return;
-    }
+  useEffect(() => {
+    streamRef.current = localStream;
+  });
+
+  useEffect(() => {
+    if (!scanActive || !mediasoupReady || !hasVideo) return;
 
     let cancelled = false;
+    let consecutiveHits = 0;
+    let scanNumber = 0;
+    let reporting = false;
+
+    logNsfwLoopStarted(roomId, enabled, scanActive && !enabled);
 
     const tick = async () => {
-      if (cancelled || reportingRef.current) return;
-      if (typeof document !== "undefined" && document.visibilityState === "hidden") {
+      const stream = streamRef.current;
+      if (cancelled || reporting || !stream) return;
+      if (typeof document !== "undefined" && document.visibilityState === "hidden") return;
+
+      scanNumber += 1;
+      const predictions = await classifyStreamFrame(stream);
+      if (cancelled || !predictions) {
+        if (!predictions) logNsfwSkipped("no frame / classify failed");
         return;
       }
 
-      const predictions = await classifyStreamFrame(localStream);
-      if (cancelled || !predictions) return;
+      const flagged = isNsfwPrediction(predictions);
+      consecutiveHits = flagged ? consecutiveHits + 1 : 0;
+      const willReport = enabled && flagged && consecutiveHits >= NSFW_HITS_BEFORE_REPORT;
 
-      if (isNsfwPrediction(predictions)) {
-        consecutiveHitsRef.current += 1;
-      } else {
-        consecutiveHitsRef.current = 0;
-        return;
-      }
+      logNsfwScan({
+        roomId,
+        scanNumber,
+        flagged,
+        hitCount: consecutiveHits,
+        willReport,
+        predictions,
+      });
 
-      if (consecutiveHitsRef.current < CONSECUTIVE_HITS_REQUIRED) return;
+      if (!willReport) return;
 
-      reportingRef.current = true;
+      reporting = true;
       try {
-        await reportViolation({ roomId, clientScores: predictions }).unwrap();
+        await reportRef.current({ roomId, clientScores: predictions }).unwrap();
+        logNsfwReported(roomId, predictions);
       } catch {
-        reportingRef.current = false;
-        consecutiveHitsRef.current = 0;
+        logNsfwSkipped("report failed");
+        reporting = false;
+        consecutiveHits = 0;
       }
     };
 
-    const id = window.setInterval(() => {
-      void tick();
-    }, SCAN_INTERVAL_MS);
+    void tick();
+    const intervalId = window.setInterval(() => void tick(), NSFW_SCAN_INTERVAL_MS);
 
     return () => {
       cancelled = true;
-      window.clearInterval(id);
-      consecutiveHitsRef.current = 0;
+      window.clearInterval(intervalId);
     };
-  }, [
-    cameraEnabled,
-    enabled,
-    localStream,
-    mediasoupReady,
-    reportViolation,
-    roomId,
-    screenSharing,
-  ]);
+  }, [enabled, hasVideo, mediasoupReady, roomId, scanActive]);
 }

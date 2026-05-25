@@ -1,4 +1,3 @@
-/** nsfwjs class names returned by the model. */
 export type NsfwClassName = "Drawing" | "Hentai" | "Neutral" | "Porn" | "Sexy";
 
 export type NsfwPrediction = {
@@ -6,7 +5,6 @@ export type NsfwPrediction = {
   probability: number;
 };
 
-/** Matches chat pre-upload policy in docs/design/chat-system-design.md */
 export function isNsfwPrediction(predictions: NsfwPrediction[]): boolean {
   return (
     predictions.some(

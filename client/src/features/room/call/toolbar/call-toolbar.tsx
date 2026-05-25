@@ -230,8 +230,6 @@ export function RoomVideoToolbar({
   onSkip,
   onEnd,
   onHostEndCircleForEveryone,
-  elapsed: _elapsed,
-  formatDuration: _formatDuration,
   showPeopleTab = false,
   showActivitiesTab = false,
 }: {
@@ -259,8 +257,6 @@ export function RoomVideoToolbar({
   onEnd: () => void;
   /** Circle host: ends the DB session for everyone (optional; omit for guests / non-circles). */
   onHostEndCircleForEveryone?: () => void;
-  elapsed: number;
-  formatDuration: (seconds: number) => string;
   showPeopleTab?: boolean;
   showActivitiesTab?: boolean;
 }) {

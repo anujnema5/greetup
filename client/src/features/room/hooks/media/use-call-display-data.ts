@@ -18,8 +18,6 @@ import {
   videoTrackIdsFromScreenShareTilesForPeer,
 } from "@/features/rtc/lib/screen-share-stage";
 import { useAttachMediaStream } from "@/features/room/hooks/media/use-attach-media-stream";
-import { useCallElapsedSeconds } from "@/features/room/hooks/media/use-call-elapsed-seconds";
-import { formatCallDuration } from "@/features/room/lib/call/format-call-duration";
 import type { RoomSessionType } from "@/shared/types/room-session";
 
 export type UseCallDisplayDataArgs = {
@@ -45,8 +43,6 @@ export function useCallDisplayData(p: UseCallDisplayDataArgs) {
   const remoteVideoRef = useRef<HTMLVideoElement>(null);
   const peerCameraInsetRef = useRef<HTMLVideoElement>(null);
   const localVideoRef = useRef<HTMLVideoElement>(null);
-
-  const elapsed = useCallElapsedSeconds(true);
 
   /** Partner camera-off must not hide the main stage when it is a screen share (or other non-camera video). */
   const remoteVideoLive =
@@ -125,8 +121,6 @@ export function useCallDisplayData(p: UseCallDisplayDataArgs) {
     mediaTogglesReady,
     showScreenShare,
     mediaBusy,
-    elapsed,
-    formatDuration: formatCallDuration,
     screenShareMainLayout,
   };
 }

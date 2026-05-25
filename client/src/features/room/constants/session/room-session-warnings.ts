@@ -11,5 +11,5 @@ export const ROOM_SESSION_WARNING_COPY: Record<
   5: "This call will end in about 5 minutes.",
 };
 
-/** Poll GET `/room/:id` while in-call so `expires_at` stays fresh after session restart. */
+/** Legacy interval — expiry warnings now use scheduled refetch instead of in-call polling. */
 export const ROOM_SESSION_EXPIRY_POLL_MS = 60_000;

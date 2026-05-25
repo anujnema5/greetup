@@ -1,33 +1,30 @@
+import { NSFW_MODEL_INPUT_PX } from "./nsfw-config";
+import { logNsfwModelReady } from "./nsfw-log";
 import type { NsfwPrediction } from "./nsfw-thresholds";
 
-const SAMPLE_SIZE = 224;
-
 type NsfwModel = {
-  classify: (
-    image: HTMLCanvasElement | HTMLImageElement | HTMLVideoElement,
-  ) => Promise<NsfwPrediction[]>;
+  classify: (image: HTMLCanvasElement) => Promise<NsfwPrediction[]>;
 };
 
 let modelPromise: Promise<NsfwModel> | null = null;
 
-async function loadModel(): Promise<NsfwModel> {
+function loadModel(): Promise<NsfwModel> {
   if (!modelPromise) {
-    modelPromise = import("nsfwjs").then((mod) => mod.load() as Promise<NsfwModel>);
+    modelPromise = import("nsfwjs")
+      .then((m) => m.load() as Promise<NsfwModel>)
+      .then((model) => {
+        logNsfwModelReady();
+        return model;
+      });
   }
   return modelPromise;
 }
 
-function getActiveVideoTrack(stream: MediaStream): MediaStreamTrack | null {
-  return stream.getVideoTracks().find((t) => t.readyState === "live" && t.enabled) ?? null;
-}
-
-/**
- * Classifies one frame from a live MediaStream (camera or screen). Never uploads pixels.
- */
 export async function classifyStreamFrame(
   stream: MediaStream,
 ): Promise<NsfwPrediction[] | null> {
-  const track = getActiveVideoTrack(stream);
+  const track =
+    stream.getVideoTracks().find((t) => t.readyState === "live" && t.enabled) ?? null;
   if (!track) return null;
 
   const video = document.createElement("video");
@@ -38,20 +35,19 @@ export async function classifyStreamFrame(
   try {
     await video.play();
     if (video.readyState < HTMLMediaElement.HAVE_CURRENT_DATA) {
-      await new Promise<void>((resolve) => {
-        video.onloadeddata = () => resolve();
+      await new Promise<void>((r) => {
+        video.onloadeddata = () => r();
       });
     }
 
     const canvas = document.createElement("canvas");
-    canvas.width = SAMPLE_SIZE;
-    canvas.height = SAMPLE_SIZE;
+    canvas.width = NSFW_MODEL_INPUT_PX;
+    canvas.height = NSFW_MODEL_INPUT_PX;
     const ctx = canvas.getContext("2d");
     if (!ctx) return null;
-    ctx.drawImage(video, 0, 0, SAMPLE_SIZE, SAMPLE_SIZE);
+    ctx.drawImage(video, 0, 0, NSFW_MODEL_INPUT_PX, NSFW_MODEL_INPUT_PX);
 
-    const model = await loadModel();
-    return (await model.classify(canvas)) as NsfwPrediction[];
+    return (await loadModel()).classify(canvas);
   } catch {
     return null;
   } finally {

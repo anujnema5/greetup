@@ -35,6 +35,7 @@ import {
 } from "@/features/room/constants/call/in-call-dialog-layer";
 import { MOCK_MATCH } from "@/features/room/constants/dev/mock-match";
 import { useCallDisplayData } from "@/features/room/hooks/media/use-call-display-data";
+import { useCallRenderDebug } from "@/features/room/hooks/debug/use-call-render-debug";
 import { useStageFullscreen } from "@/features/room/hooks/call-ui/use-stage-fullscreen";
 import type { InCallScreenProps } from "@/features/room/types/call/in-call-screen.types";
 import type { RoomActivityId } from "@/features/room/types/call/room-activity.types";
@@ -200,6 +201,8 @@ export function InCallScreen({
   isCircleHost = false,
   callCapabilities: callCapabilitiesProp,
 }: InCallScreenProps) {
+  useCallRenderDebug("InCallScreen", { roomId, mediaStatus, cameraEnabled, screenSharing });
+
   /** `is_active` catalog tiles from `InCallContainer` (empty until loaded or when none enabled). */
   const activeDirectRoomActivities = directRoomActivitiesProp ?? [];
   const showActivitiesTab =
@@ -323,8 +326,6 @@ export function InCallScreen({
     mediaTogglesReady,
     showScreenShare,
     mediaBusy,
-    elapsed,
-    formatDuration,
     screenShareMainLayout,
   } = useCallDisplayData({
     remoteStream,
@@ -541,8 +542,6 @@ export function InCallScreen({
     showSkip,
     onSkip,
     onEnd,
-    elapsed,
-    formatDuration,
     showPeopleTab,
     showActivitiesTab,
     onHostEndCircleForEveryone,

@@ -1,0 +1,432 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>How NSFW moderation works in live circles</title>
+  <style>
+    :root {
+      --bg: #f8f6ff;
+      --card: #ffffff;
+      --text: #1e1b2e;
+      --muted: #5c5670;
+      --accent: #6d4aff;
+      --accent-soft: #ebe4ff;
+      --ok: #0d9f6e;
+      --warn: #d97706;
+      --danger: #dc2626;
+      --border: #e8e4f0;
+      --radius: 16px;
+      --shadow: 0 8px 30px rgba(109, 74, 255, 0.08);
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
+      background: linear-gradient(160deg, #f8f6ff 0%, #fff 40%, #f0faf7 100%);
+      color: var(--text);
+      line-height: 1.65;
+      padding: 2rem 1.25rem 4rem;
+    }
+
+    .wrap {
+      max-width: 720px;
+      margin: 0 auto;
+    }
+
+    header {
+      text-align: center;
+      margin-bottom: 2.5rem;
+    }
+
+    .badge {
+      display: inline-block;
+      background: var(--accent-soft);
+      color: var(--accent);
+      font-size: 0.8rem;
+      font-weight: 600;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      padding: 0.35rem 0.85rem;
+      border-radius: 999px;
+      margin-bottom: 1rem;
+    }
+
+    h1 {
+      font-size: clamp(1.75rem, 5vw, 2.25rem);
+      font-weight: 700;
+      line-height: 1.2;
+      margin-bottom: 0.75rem;
+    }
+
+    .subtitle {
+      color: var(--muted);
+      font-size: 1.05rem;
+      max-width: 540px;
+      margin: 0 auto;
+    }
+
+    section {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1.5rem 1.75rem;
+      margin-bottom: 1.25rem;
+      box-shadow: var(--shadow);
+    }
+
+    h2 {
+      font-size: 1.15rem;
+      margin-bottom: 0.85rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    h2 .icon {
+      width: 28px;
+      height: 28px;
+      background: var(--accent-soft);
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.95rem;
+    }
+
+    p, li {
+      color: var(--text);
+      font-size: 1rem;
+    }
+
+    p + p { margin-top: 0.75rem; }
+
+    ul {
+      margin: 0.75rem 0 0 1.25rem;
+    }
+
+    li { margin-bottom: 0.4rem; }
+
+    .steps {
+      list-style: none;
+      margin: 0;
+      padding: 0;
+      counter-reset: step;
+    }
+
+    .steps li {
+      position: relative;
+      padding-left: 3rem;
+      margin-bottom: 1.25rem;
+      counter-increment: step;
+    }
+
+    .steps li::before {
+      content: counter(step);
+      position: absolute;
+      left: 0;
+      top: 0;
+      width: 2rem;
+      height: 2rem;
+      background: var(--accent);
+      color: white;
+      font-weight: 700;
+      font-size: 0.9rem;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .steps li strong {
+      display: block;
+      margin-bottom: 0.2rem;
+      font-size: 1.02rem;
+    }
+
+    .flow {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+      margin-top: 1rem;
+      padding: 1rem;
+      background: var(--bg);
+      border-radius: 12px;
+      font-size: 0.95rem;
+    }
+
+    .flow-row {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+    }
+
+    .box {
+      background: var(--card);
+      border: 1px solid var(--border);
+      padding: 0.45rem 0.75rem;
+      border-radius: 8px;
+      font-weight: 500;
+    }
+
+    .box.client { border-color: #93c5fd; background: #eff6ff; }
+    .box.server { border-color: #c4b5fd; background: #f5f3ff; }
+    .box.db { border-color: #86efac; background: #f0fdf4; }
+
+    .arrow {
+      color: var(--muted);
+      font-size: 1.1rem;
+    }
+
+    .cards {
+      display: grid;
+      gap: 0.75rem;
+      margin-top: 0.75rem;
+    }
+
+    @media (min-width: 520px) {
+      .cards { grid-template-columns: 1fr 1fr; }
+    }
+
+    .mini-card {
+      padding: 1rem;
+      border-radius: 12px;
+      border: 1px solid var(--border);
+    }
+
+    .mini-card.warn {
+      background: #fffbeb;
+      border-color: #fde68a;
+    }
+
+    .mini-card.danger {
+      background: #fef2f2;
+      border-color: #fecaca;
+    }
+
+    .mini-card h3 {
+      font-size: 0.9rem;
+      margin-bottom: 0.35rem;
+    }
+
+    .mini-card p {
+      font-size: 0.88rem;
+      color: var(--muted);
+      margin: 0;
+    }
+
+    .privacy {
+      background: linear-gradient(135deg, #f0fdf4, #ecfdf5);
+      border-color: #bbf7d0;
+    }
+
+    .privacy li { color: #14532d; }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.92rem;
+      margin-top: 0.75rem;
+    }
+
+    th, td {
+      text-align: left;
+      padding: 0.6rem 0.5rem;
+      border-bottom: 1px solid var(--border);
+    }
+
+    th {
+      color: var(--muted);
+      font-weight: 600;
+      font-size: 0.8rem;
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+    }
+
+    footer {
+      text-align: center;
+      color: var(--muted);
+      font-size: 0.85rem;
+      margin-top: 2rem;
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <span class="badge">Live circles · Safety</span>
+      <h1>How we keep circles safe from inappropriate video</h1>
+      <p class="subtitle">
+        A simple guide to how Greetup checks video during a call — on your phone or computer — and what happens if something is not allowed.
+      </p>
+    </header>
+
+    <section>
+      <h2><span class="icon">💡</span> What is this?</h2>
+      <p>
+        When someone joins a <strong>live circle</strong> (group video call) with their <strong>camera</strong> on,
+        our app quietly looks at <strong>their own video</strong> from time to time — only on their device.
+      </p>
+      <p>
+        We use a small AI model called <strong>nsfwjs</strong> to guess if the picture looks inappropriate.
+        If it does, we <strong>remove only that person</strong> from the call. Other people can keep talking.
+      </p>
+      <p>
+        <strong>Important:</strong> We do not send video or screenshots to our servers. The check happens on the user's device. The server only gets a small “something went wrong” message with scores — not the image.
+      </p>
+    </section>
+
+    <section>
+      <h2><span class="icon">🎯</span> Big idea in one sentence</h2>
+      <p style="font-size: 1.1rem; font-weight: 500; color: var(--accent);">
+        Your phone checks your own camera → if it’s sure something is wrong twice in a row → it tells the server → the server kicks you and saves a record.
+      </p>
+    </section>
+
+    <section>
+      <h2><span class="icon">👣</span> Step by step (while you are in a call)</h2>
+      <ol class="steps">
+        <li>
+          <strong>You join a circle with camera on</strong>
+          The safety check only runs when your camera is on — not for screen share.
+        </li>
+        <li>
+          <strong>Every 12 seconds, we take one tiny snapshot</strong>
+          Think of it like a single photo frame, drawn on your device into a small square (224×224 pixels). Nobody else sees this snapshot.
+        </li>
+        <li>
+          <strong>The AI gives scores</strong>
+          It labels the frame things like “Neutral”, “Porn”, “Sexy”, etc., each with a number from 0 to 1 (how sure it is).
+        </li>
+        <li>
+          <strong>We compare scores to our rules</strong>
+          For example: “Porn” or “Hentai” above 70% counts as bad. “Sexy” needs to be above 85% (stricter, fewer mistakes).
+        </li>
+        <li>
+          <strong>We need two bad results in a row</strong>
+          One bad frame might be a mistake (bad lighting, beach photo, etc.). So we only act after <strong>two checks in a row</strong> say it’s bad (~24 seconds apart).
+        </li>
+        <li>
+          <strong>Your app tells our server</strong>
+          It sends: which room you were in + the score numbers. Still no image.
+        </li>
+        <li>
+          <strong>The server removes you from that circle only</strong>
+          You get kicked from the call. You cannot rejoin that same circle. Everyone else stays in the call.
+        </li>
+        <li>
+          <strong>We save one row in the database</strong>
+          Table: <code>nsfw_moderation_events</code> — who, which room, when, what action we took, and the scores (for support / appeals later).
+        </li>
+      </ol>
+    </section>
+
+    <section>
+      <h2><span class="icon">🔄</span> Picture of the flow</h2>
+      <div class="flow">
+        <div class="flow-row">
+          <span class="box client">Your device</span>
+          <span class="arrow">→</span>
+          <span>Camera frame every 12s</span>
+        </div>
+        <div class="flow-row">
+          <span class="box client">nsfwjs on device</span>
+          <span class="arrow">→</span>
+          <span>Scores (no upload)</span>
+        </div>
+        <div class="flow-row">
+          <span class="box client">2 bad checks?</span>
+          <span class="arrow">→</span>
+          <span class="box server">POST /room/…/nsfw-violation</span>
+        </div>
+        <div class="flow-row">
+          <span class="box server">Server</span>
+          <span class="arrow">→</span>
+          <span>Kick you + save event</span>
+        </div>
+        <div class="flow-row">
+          <span class="box db">Database</span>
+          <span class="arrow">+</span>
+          <span>Socket message to your app</span>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <h2><span class="icon">⚖️</span> What happens to the user?</h2>
+      <div class="cards">
+        <div class="mini-card warn">
+          <h3>First time (strike 1)</h3>
+          <p>
+            Removed from the circle. A warning message explains this was inappropriate video.
+            This is your <strong>only warning</strong> — counted for 90 days.
+          </p>
+        </div>
+        <div class="mini-card danger">
+          <h3>Second time (strike 2)</h3>
+          <p>
+            Removed again, and your <strong>account is banned</strong> (<code>is_banned = yes</code>).
+            You cannot use the app like a normal user until an admin fixes it.
+          </p>
+        </div>
+      </div>
+      <p style="margin-top: 1rem;">
+        Strikes older than <strong>90 days</strong> do not count toward that “second time” rule anymore.
+      </p>
+    </section>
+
+    <section>
+      <h2><span class="icon">🗄️</span> What we store (database)</h2>
+      <p>We use a table called <strong>nsfw_moderation_events</strong> — one row per incident:</p>
+      <table>
+        <thead>
+          <tr>
+            <th>Field</th>
+            <th>Meaning (simple)</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td>user_id</td><td>Who broke the rule</td></tr>
+          <tr><td>room_id</td><td>Which circle call</td></tr>
+          <tr><td>source</td><td>Right now: <code>live_circle_self</code> (their own video)</td></tr>
+          <tr><td>strike_index</td><td>1st, 2nd strike in the last 90 days</td></tr>
+          <tr><td>action_taken</td><td>Warned + kicked, or account banned</td></tr>
+          <tr><td>client_scores</td><td>AI numbers only — not a photo</td></tr>
+          <tr><td>overturned</td><td>For future appeals (if we undo a strike)</td></tr>
+        </tbody>
+      </table>
+      <p style="margin-top: 0.75rem;">
+        The <code>users</code> table only keeps <strong>is_banned</strong> (yes / no / temporarily) for login and search — not a strike counter column.
+      </p>
+    </section>
+
+    <section>
+      <h2><span class="icon">🛡️</span> Privacy & safety notes</h2>
+      <ul class="privacy" style="list-style: disc; margin-left: 1.25rem;">
+        <li>Video stays on the device during the check.</li>
+        <li>We only scan <strong>your own camera</strong> — not screen share (saves load; fewer false alarms).</li>
+        <li>Checks pause when the browser tab is hidden.</li>
+        <li>Checks stop when the camera is off.</li>
+        <li>The server decides the kick and ban — the client only reports “I failed the check.”</li>
+      </ul>
+    </section>
+
+    <section>
+      <h2><span class="icon">📁</span> Where is the code?</h2>
+      <ul>
+        <li><strong>Client scanner:</strong> <code>client/src/features/moderation/</code></li>
+        <li><strong>Hook in call UI:</strong> <code>InCallContainer</code> → <code>useCircleNsfwModeration</code></li>
+        <li><strong>Server API:</strong> <code>POST /api/room/:roomId/nsfw-violation</code></li>
+        <li><strong>Server logic:</strong> <code>report-circle-nsfw-violation.service.ts</code></li>
+        <li><strong>Schema:</strong> <code>server/src/core/database/schema/moderation.ts</code></li>
+      </ul>
+    </section>
+
+    <footer>
+      Greetup / Circlo — NSFW moderation for live circles · Open this file in any browser
+    </footer>
+  </div>
+</body>
+</html>
