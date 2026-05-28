@@ -58,4 +58,6 @@ export type RequestConnectionResult = {
 export type RespondConnectionMutationArg = {
   connectionId: string;
   peerUsername?: string | null;
+  /** Refreshes in-call peer hover preview when set. */
+  peerUserId?: string | null;
 };

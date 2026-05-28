@@ -21,7 +21,11 @@ import {
   useRerenderOnVideoTrackMuteCycle,
 } from "@/features/room/hooks/media/use-attach-media-stream";
 import { SharedScreensChooser } from "@/features/room/call/layouts/screen-share/screen-share-strip";
-import { TileNameBadge, TileSpeakingRings } from "@/features/room/call/tiles/tile-primitives";
+import {
+  PeerProfileHoverSnippet,
+  TileNameBadge,
+  TileSpeakingRings,
+} from "@/features/room/call/tiles/tile-primitives";
 import {
   LIVE_SPEAKER_TILE_RING,
   isYouTheLiveSpeaker,
@@ -147,14 +151,14 @@ function ParticipantVideoTile({
           autoPlay
           muted
           className={cn(
-            "absolute inset-0 h-full w-full object-cover",
+            "pointer-events-none absolute inset-0 h-full w-full object-cover",
             mirrored && "-scale-x-100",
             mirrored && !videoReady && "opacity-0",
           )}
         />
       ) : null}
       {!videoReady ? (
-        <div className="absolute inset-0 flex items-center justify-center bg-muted/30">
+        <div className="pointer-events-none absolute inset-0 flex items-center justify-center bg-muted/30">
           <TileSpeakingRings stream={micOff ? null : stream}>
             <div className="relative h-16 w-16 overflow-hidden rounded-full border border-border bg-muted shadow-sm">
               {imageUrl?.trim() ? (
@@ -176,14 +180,25 @@ function ParticipantVideoTile({
           </TileSpeakingRings>
         </div>
       ) : null}
-      <TileNameBadge
-        className={cn(
-          "max-w-[min(100%-4rem,12rem)] truncate border-white/10 bg-black/55 text-white/90",
-          isSelf && "border-primary/30",
-        )}
-      >
-        {label}
-      </TileNameBadge>
+      {isSelf || !participantUserId ? (
+        <TileNameBadge
+          className={cn(
+            "max-w-[min(100%-4rem,12rem)] truncate border-white/10 bg-black/55 text-white/90",
+            isSelf && "border-primary/30",
+          )}
+        >
+          {label}
+        </TileNameBadge>
+      ) : (
+        <PeerProfileHoverSnippet
+          peerUserId={participantUserId}
+          fallbackDisplayName={label}
+          fallbackImageUrl={imageUrl}
+          badgeClassName="max-w-[min(100%-4rem,12rem)] truncate border-white/10 bg-black/55 text-white/90"
+        >
+          {label}
+        </PeerProfileHoverSnippet>
+      )}
       {isSelf || !participantUserId ? (
         <TileMediaControlsBar
           micOn={!micOff}

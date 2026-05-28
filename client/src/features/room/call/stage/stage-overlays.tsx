@@ -134,7 +134,7 @@ export function StageOverlays({
               className="absolute inset-0 h-full w-full object-cover"
             />
           ) : (
-            <div className="absolute inset-0 flex items-center justify-center border border-border/60 bg-muted">
+            <div className="pointer-events-none absolute inset-0 flex items-center justify-center border border-border/60 bg-muted">
               <TileSpeakingRings stream={localStream ?? null}>
                 <CameraOffAvatar
                   name={myName}

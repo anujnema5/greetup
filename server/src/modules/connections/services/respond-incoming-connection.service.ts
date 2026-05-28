@@ -1,5 +1,6 @@
 import { userConnectionsRepository } from "../repositories/user-connections.repository";
 import { notifyConnectionRequestAccepted } from "../notifications";
+import { emitConnectionUpdated } from "../socket/emit-connection-updated";
 
 export type RespondIncomingResult =
   | { ok: true }
@@ -35,11 +36,16 @@ export async function acceptIncomingConnectionService(
     return gate;
   }
   await userConnectionsRepository.updateStatusById(connectionId, "accepted");
-  if (row && row.requesterId) {
+  if (row?.requesterId) {
     await notifyConnectionRequestAccepted({
       recipientUserId: row.requesterId,
       actorUserId: viewerId,
       connectionId,
+    });
+    emitConnectionUpdated(row.requesterId, {
+      peerUserId: viewerId,
+      connectionId,
+      status: "accepted",
     });
   }
   return { ok: true };
@@ -55,5 +61,12 @@ export async function rejectIncomingConnectionService(
     return gate;
   }
   await userConnectionsRepository.updateStatusById(connectionId, "rejected");
+  if (row?.requesterId) {
+    emitConnectionUpdated(row.requesterId, {
+      peerUserId: viewerId,
+      connectionId,
+      status: "rejected",
+    });
+  }
   return { ok: true };
 }

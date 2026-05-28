@@ -151,6 +151,7 @@ export function InCallScreen({
   mediaStatus = "idle",
   mediaError = null,
   peerLabel = MOCK_MATCH.name,
+  directRemotePeerUserId = null,
   scoreLabel = null,
   micEnabled = true,
   cameraEnabled = true,
@@ -594,6 +595,7 @@ export function InCallScreen({
                   localStream={localStream}
                   mainStageShowsScreen={mainStageShowsScreen}
                   peerLabel={peerLabel}
+                  directRemotePeerUserId={directRemotePeerUserId}
                   peerInitials={peerInitials}
                   myName={myName}
                   currentUserId={currentUserId}

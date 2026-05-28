@@ -1,10 +1,21 @@
+import { eq } from "drizzle-orm";
+
+import { db } from "@/core/database";
+import { users } from "@/core/database/schema";
 import { getRedis } from "@/core/redis";
 import { USER_CACHE_KEYS, USER_PRESENCE_KEYS } from "@/core/redis/keys";
+import { userConnectionsRepository } from "@/modules/connections/repositories/user-connections.repository";
+import {
+  resolveConnectionForPublicProfile,
+  type PublicProfileConnectionState,
+} from "@/modules/profile/lib/resolve-public-profile-connection";
 import { ensureProfileSnapshotCached } from "@/modules/user/services/profile-snapshot-cache.service";
 import { generateMatchInsight, type InsightProfileSnapshot } from "./match-insight.service";
 
 export type MatchPeerPreview = {
   displayName: string;
+  /** Primary profession label from profile snapshot. */
+  profession: string | null;
   headline: string | null;
   initials: string;
   interestTags: string[];
@@ -12,6 +23,9 @@ export type MatchPeerPreview = {
   image?: string;
   isOnline: boolean;
   insight: string | null;
+  username: string | null;
+  connectionState: PublicProfileConnectionState;
+  connectionId: string | null;
 };
 
 type SnapshotInterest = { interest?: { displayName?: string | null; name?: string | null } | null };
@@ -163,12 +177,44 @@ async function fetchSnapshot(userId: string): Promise<unknown> {
 function fallback(_peerUserId: string, isOnline: boolean): MatchPeerPreview {
   return {
     displayName: "Someone",
+    profession: null,
     headline: null,
     initials: "?",
     interestTags: [],
     moreInterestsCount: 0,
     isOnline,
     insight: null,
+    username: null,
+    connectionState: "none",
+    connectionId: null,
+  };
+}
+
+async function fetchPeerSocialMeta(viewerId: string, peerUserId: string) {
+  const [userRow, connectionRows] = await Promise.all([
+    db.query.users.findFirst({
+      where: eq(users.id, peerUserId),
+      columns: { username: true },
+    }),
+    viewerId === peerUserId
+      ? Promise.resolve([])
+      : userConnectionsRepository.findAllBetween(viewerId, peerUserId),
+  ]);
+
+  const { connectionState, connectionId } = resolveConnectionForPublicProfile(
+    connectionRows.map((row) => ({
+      id: row.id,
+      requesterId: row.requesterId,
+      addresseeId: row.addresseeId,
+      status: row.status,
+    })),
+    viewerId,
+  );
+
+  return {
+    username: userRow?.username ?? null,
+    connectionState,
+    connectionId,
   };
 }
 
@@ -178,10 +224,11 @@ export async function getMatchPeerPreview(
 ): Promise<MatchPeerPreview> {
   const redis = getRedis();
 
-  const [myRaw, peerRaw, isOnline] = await Promise.all([
+  const [myRaw, peerRaw, isOnline, social] = await Promise.all([
     fetchSnapshot(myUserId),
     fetchSnapshot(peerUserId),
     redis.sismember(USER_PRESENCE_KEYS.ONLINE_USERS_SET, peerUserId).then((v) => v === 1),
+    fetchPeerSocialMeta(myUserId, peerUserId),
   ]);
 
   const peerData = parseSnapshotData(peerRaw);
@@ -206,14 +253,20 @@ export async function getMatchPeerPreview(
 
   // const insight = await generateMatchInsight(meForInsight, peerForInsight);
 
+  const profession = peerData.professions[0] ?? null;
+
   return {
     displayName: peerData.displayName,
+    profession,
     headline: peerData.preview.headline,
     initials: peerData.preview.initials,
     interestTags: peerData.preview.interestTags,
     moreInterestsCount: peerData.preview.moreInterestsCount,
     isOnline,
-    insight: '',
+    insight: "",
     image: peerData.image,
+    username: social.username,
+    connectionState: social.connectionState,
+    connectionId: social.connectionId,
   };
 }

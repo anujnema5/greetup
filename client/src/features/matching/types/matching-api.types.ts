@@ -2,9 +2,13 @@
  * Matching API — RTK Query / fetch shapes (align with server match routes where applicable).
  */
 
+import type { PublicProfileConnectionState } from "@/features/user-profile/types/public-profile.types";
+
 /** GET `/matching/peer-preview/:peerUserId` — “Match found” card fields */
 export interface MatchPeerPreview {
   displayName: string;
+  /** Primary profession from profile snapshot. */
+  profession: string | null;
   headline: string | null;
   initials: string;
   interestTags: string[];
@@ -12,6 +16,9 @@ export interface MatchPeerPreview {
   isOnline: boolean;
   insight: string | null;
   image: string | null;
+  username: string | null;
+  connectionState: PublicProfileConnectionState;
+  connectionId: string | null;
 }
 
 export interface FindMatchResponse {

@@ -427,6 +427,7 @@ export function InCallContainer({
         localMediaDeviceError={localMediaDeviceError}
         onDismissLocalMediaDeviceError={clearLocalMediaDeviceError}
         peerLabel={peerLabel}
+        directRemotePeerUserId={peerId}
         scoreLabel={scoreLabel}
         myName={myName}
         currentUserId={session?.user?.id ?? null}

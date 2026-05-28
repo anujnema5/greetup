@@ -10,6 +10,11 @@ export type {
 export type { RoomCallRightPanelTab } from "./call/room-call-panel.types";
 export type { RoomActivityId, RoomActivityMeta } from "./call/room-activity.types";
 export type {
+  PeerProfileHoverDisplay,
+  PeerProfileHoverFallback,
+  PeerProfileHoverSnippetProps,
+} from "./call/peer-profile-hover.types";
+export type {
   MinimizedDockMainStage,
   MinimizedDockSideStrip,
   UseMinimizedDockMainStageArgs,

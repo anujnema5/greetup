@@ -1,10 +1,10 @@
 "use client";
 
 import { useEffect } from "react";
-import { useDispatch } from "react-redux";
 import { toast } from "sonner";
-
+import { syncConnectionFromNotification } from "@/features/connections/lib/realtime";
 import { baseApi } from "@/lib/api";
+import { useAppDispatch } from "@/lib/redux/hooks";
 import { useSocket } from "@/lib/socket";
 import { notificationInvalidationTags } from "../constants";
 
@@ -13,11 +13,15 @@ type NotificationSocketPayload = {
     id?: string;
     title?: string;
     body?: string;
+    type?: string;
+    actorUserId?: string | null;
+    entityId?: string;
+    entityType?: string;
   };
 };
 
 export function NotificationsRealtimeBridge() {
-  const dispatch = useDispatch();
+  const dispatch = useAppDispatch();
   const { socket } = useSocket();
 
   useEffect(() => {
@@ -31,6 +35,7 @@ export function NotificationsRealtimeBridge() {
 
     const onNotificationNew = (payload?: NotificationSocketPayload) => {
       invalidateNotificationCaches();
+      syncConnectionFromNotification(dispatch, payload?.notification);
       const title = payload?.notification?.title?.trim();
       const body = payload?.notification?.body?.trim();
       if (!title && !body) return;

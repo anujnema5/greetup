@@ -37,6 +37,8 @@ export type InCallScreenProps = {
   mediaStatus?: MediasoupRoomStatus;
   mediaError?: string | null;
   peerLabel?: string;
+  /** Direct 1:1 — primary remote user id for profile hover on the stage name badge. */
+  directRemotePeerUserId?: string | null;
   scoreLabel?: string | null;
   micEnabled?: boolean;
   cameraEnabled?: boolean;

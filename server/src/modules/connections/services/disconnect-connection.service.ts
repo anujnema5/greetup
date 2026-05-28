@@ -1,4 +1,5 @@
 import { userConnectionsRepository } from "../repositories/user-connections.repository";
+import { emitConnectionUpdatedToPeer } from "../socket/emit-connection-updated";
 
 export type DisconnectConnectionResult =
   | { ok: true }
@@ -24,6 +25,7 @@ export async function disconnectConnectionService(
   }
 
   await userConnectionsRepository.cancelAcceptedConnectionAsPeer(connectionId, viewerId);
+  emitConnectionUpdatedToPeer(viewerId, row, "none");
   return { ok: true };
 }
 
