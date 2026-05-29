@@ -1,9 +1,7 @@
 'use client';
 
-import { useEffect, useLayoutEffect, useRef, useState } from 'react';
-import Image from 'next/image';
+import { useState } from 'react';
 import { MoreVertical } from 'lucide-react';
-import { nameInitials } from '@/lib/utils/name-initials';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import {
@@ -19,151 +17,44 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { MAX_MESSAGE_CONTENT_LENGTH } from '../constants';
+import {
+  MAX_MESSAGE_CONTENT_LENGTH,
+  MESSAGE_BUBBLE_PAD_CLASS,
+  MESSAGE_BUBBLE_TEXT_CLASS,
+  MESSAGE_AVATAR_CLASS,
+  MESSAGE_ROW_GAP,
+  MESSAGE_STATUS_ICONS,
+} from '../constants';
+import { useMessageEdit } from '../hooks/use-message-edit';
 import { formatSystemPayload } from '../lib/format-system-payload';
-import type { Message, Reaction } from '../types/chat.types';
-
-type ClusterPosition = 'single' | 'first' | 'middle' | 'last';
+import {
+  bubbleCornerRadius,
+  formatMessageTime,
+  formatReplyPreview,
+  senderLabel,
+  type ClusterPosition,
+} from '../lib/message-display';
+import { MessageSenderAvatar } from './message-sender-avatar';
+import type { Message } from '../types/chat.types';
 
 interface MessageBubbleProps {
   message: Message;
   isOwn: boolean;
   currentUserId: string;
-  /** Resolved message being replied to (from the loaded thread). */
   replyToMessage?: Message | null;
-  /** Position within a consecutive run from the same sender (Instagram-style grouping). */
   clusterPosition?: ClusterPosition;
-  /** Avatar + name row (first message in a run from this peer in a circle). */
   showPeerHeader?: boolean;
-  /** Spacer under avatar when continuing a run from this peer. */
   peerColumnGutter?: boolean;
-  /** Avatar on the left for direct / connection threads (non-group). */
   showDirectPeerAvatar?: boolean;
   onToggleReaction?: (messageId: string, emoji: string) => void;
   onReply?: (message: Message) => void;
   onEditMessage?: (messageId: string, content: string) => void;
   onDeleteMessage?: (messageId: string, forAll: boolean) => void;
   onRetryFailed?: (message: Message) => void;
-  /** When set, hover actions are hidden on all other messages. */
   editingMessageId?: string | null;
   onEditingChange?: (messageId: string | null) => void;
-  /** Mobile: tapped message — shows time + reply / edit actions. */
   revealedTimeMessageId?: string | null;
   onRevealTime?: (messageId: string) => void;
-}
-
-const STATUS_ICONS: Record<string, string> = {
-  sending:   '⏳',
-  delivered: '✓',
-  read:      '✓✓',
-  failed:    '✗',
-};
-
-const AVATAR_CLASS = 'size-9 shrink-0';
-const ROW_GAP = 'gap-2.5';
-const BUBBLE_TEXT = 'text-[14px] font-normal leading-[1.35]';
-const BUBBLE_PAD = 'px-3 py-2';
-
-function formatReplyPreview(
-  replyTo: Message | null | undefined,
-  currentUserId: string,
-): { senderName: string; preview: string } {
-  if (!replyTo) {
-    return { senderName: 'Message', preview: 'Original message unavailable' };
-  }
-
-  const senderName =
-    replyTo.senderId === currentUserId
-      ? 'You'
-      : replyTo.sender?.displayName?.trim() || replyTo.sender?.name || 'Someone';
-
-  if (replyTo.isDeleted) {
-    return {
-      senderName,
-      preview: replyTo.deletedForAll ? 'This message was deleted' : 'Message removed',
-    };
-  }
-
-  if (replyTo.messageType !== 'text') {
-    return { senderName, preview: `${replyTo.messageType} message` };
-  }
-
-  const normalized = replyTo.content.trim().replace(/\s+/g, ' ');
-  const preview =
-    normalized.length > 100 ? `${normalized.slice(0, 100)}…` : normalized || 'Empty message';
-
-  return { senderName, preview };
-}
-
-function bubbleCornerRadius(isOwn: boolean, position: ClusterPosition): string {
-  if (isOwn) {
-    switch (position) {
-      case 'first':
-        return 'rounded-tl-[22px] rounded-tr-[22px] rounded-bl-[22px] rounded-br-[4px]';
-      case 'middle':
-        return 'rounded-tl-[22px] rounded-bl-[22px] rounded-tr-[4px] rounded-br-[4px]';
-      case 'last':
-        return 'rounded-tl-[22px] rounded-bl-[22px] rounded-br-[22px] rounded-tr-[4px]';
-      default:
-        return 'rounded-[22px]';
-    }
-  }
-
-  switch (position) {
-    case 'first':
-      return 'rounded-tl-[22px] rounded-tr-[22px] rounded-br-[22px] rounded-bl-[4px]';
-    case 'middle':
-      return 'rounded-tr-[22px] rounded-br-[22px] rounded-tl-[4px] rounded-bl-[4px]';
-    case 'last':
-      return 'rounded-tr-[22px] rounded-br-[22px] rounded-bl-[22px] rounded-tl-[4px]';
-    default:
-      return 'rounded-[22px]';
-  }
-}
-
-function senderLabel(message: Message): string {
-  const s = message.sender;
-  if (s) return s.displayName?.trim() || s.name || 'Someone';
-  return 'Someone';
-}
-
-function formatMessageTime(iso: string): string {
-  const d = new Date(iso);
-  if (Number.isNaN(d.getTime())) return '';
-  return d.toLocaleTimeString(undefined, {
-    hour:   'numeric',
-    minute: '2-digit',
-  });
-}
-
-function groupReactions(reactions: Reaction[] | undefined, userId: string) {
-  if (!reactions?.length) return [];
-  const map = new Map<string, { emoji: string; count: number; iReacted: boolean }>();
-  for (const r of reactions) {
-    const cur = map.get(r.emoji) ?? { emoji: r.emoji, count: 0, iReacted: false };
-    cur.count += 1;
-    if (r.userId === userId) cur.iReacted = true;
-    map.set(r.emoji, cur);
-  }
-  return [...map.values()].sort((a, b) => a.emoji.localeCompare(b.emoji));
-}
-
-function SenderAvatar({ message }: { message: Message }) {
-  return (
-    <div
-      className={cn(
-        'relative flex items-center justify-center overflow-hidden rounded-full',
-        AVATAR_CLASS,
-        'bg-linear-to-br from-primary/50 to-primary text-xs font-semibold text-primary-foreground',
-      )}
-    >
-      {message.sender?.image ? (
-        <Image src={message.sender.image} alt="" fill sizes="36px" className="size-full object-cover" unoptimized />
-      ) : (
-        nameInitials(senderLabel(message))
-      )}
-    </div>
-  );
 }
 
 export function MessageBubble({
@@ -175,7 +66,6 @@ export function MessageBubble({
   showPeerHeader = false,
   peerColumnGutter = false,
   showDirectPeerAvatar = false,
-  onToggleReaction,
   onReply,
   onEditMessage,
   onDeleteMessage,
@@ -185,29 +75,25 @@ export function MessageBubble({
   revealedTimeMessageId = null,
   onRevealTime,
 }: MessageBubbleProps) {
-  const [editing, setEditing] = useState(false);
-  const [draft, setDraft] = useState(message.content);
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [deleteForAll, setDeleteForAll] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
-  const editRef = useRef<HTMLTextAreaElement>(null);
 
-  useEffect(() => {
-    if (!editing) setDraft(message.content);
-  }, [message.content, editing]);
-
-  useLayoutEffect(() => {
-    if (!editing || !editRef.current) return;
-    const el = editRef.current;
-    el.style.height = 'auto';
-    el.style.height = `${el.scrollHeight}px`;
-  }, [editing, draft]);
-
-  // Reaction chips — disabled for now
-  // const reactionGroups = useMemo(
-  //   () => groupReactions(message.reactions, currentUserId),
-  //   [message.reactions, currentUserId],
-  // );
+  const {
+    editing,
+    draft,
+    setDraft,
+    editRef,
+    saveEdit,
+    cancelEdit,
+    startEdit,
+    actionsLocked,
+  } = useMessageEdit({
+    message,
+    editingMessageId,
+    onEditMessage,
+    onEditingChange,
+  });
 
   if (message.messageType === 'system') {
     return (
@@ -244,34 +130,10 @@ export function MessageBubble({
   const canEditOrDelete =
     isOwn && !message.isDeleted && onEditMessage && onDeleteMessage && message.messageType === 'text';
 
-  const saveEdit = () => {
-    const next = draft.trim();
-    if (!next || next.length > MAX_MESSAGE_CONTENT_LENGTH) return;
-    onEditMessage?.(message.id, next);
-    setEditing(false);
-    onEditingChange?.(null);
-  };
-
-  const cancelEdit = () => {
-    setDraft(message.content);
-    setEditing(false);
-    onEditingChange?.(null);
-  };
-
-  const startEdit = () => {
+  const handleStartEdit = () => {
     setMenuOpen(false);
-    setDraft(message.content);
-    setEditing(true);
-    onEditingChange?.(message.id);
+    startEdit();
   };
-
-  useEffect(() => {
-    if (!editing) return;
-    const node = editRef.current?.closest('[data-message-row]');
-    node?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
-  }, [editing]);
-
-  const actionsLocked = editingMessageId !== null && editingMessageId !== message.id;
 
   const replyPreview = message.replyToId
     ? formatReplyPreview(replyToMessage, currentUserId)
@@ -295,7 +157,7 @@ export function MessageBubble({
               : isOwn
                 ? 'bg-primary text-primary-foreground'
                 : 'bg-muted text-foreground',
-            !editing && BUBBLE_PAD,
+            !editing && MESSAGE_BUBBLE_PAD_CLASS,
             message.isDeleted && 'italic opacity-60',
             onRevealTime && !editing && 'max-md:cursor-pointer max-md:active:opacity-90',
           )}
@@ -345,7 +207,7 @@ export function MessageBubble({
                 rows={1}
                 className={cn(
                   'block w-full min-w-[8rem] resize-none bg-transparent outline-none',
-                  BUBBLE_TEXT,
+                  MESSAGE_BUBBLE_TEXT_CLASS,
                   isOwn
                     ? 'text-primary-foreground caret-primary-foreground'
                     : 'text-foreground caret-foreground',
@@ -353,7 +215,7 @@ export function MessageBubble({
                 autoFocus
               />
             ) : (
-              <div className={cn('whitespace-pre-wrap', BUBBLE_TEXT)}>{content}</div>
+              <div className={cn('whitespace-pre-wrap', MESSAGE_BUBBLE_TEXT_CLASS)}>{content}</div>
             )}
           </div>
 
@@ -420,25 +282,6 @@ export function MessageBubble({
                 ↩
               </Button>
             )}
-            {/* Reaction picker — disabled for now
-            {onToggleReaction && (
-              <span className="flex gap-0.5">
-                {(['👍', '❤️', '😂'] as const).map((emoji) => (
-                  <Button
-                    key={emoji}
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    className="h-auto rounded-full bg-muted px-1.5 py-0.5 text-xs hover:bg-muted/80"
-                    title={`React ${emoji}`}
-                    onClick={() => onToggleReaction(message.id, emoji)}
-                  >
-                    {emoji}
-                  </Button>
-                ))}
-              </span>
-            )}
-            */}
             {canEditOrDelete && (
               <DropdownMenu open={menuOpen} onOpenChange={setMenuOpen} modal={false}>
                 <DropdownMenuTrigger asChild>
@@ -460,7 +303,7 @@ export function MessageBubble({
                   collisionPadding={8}
                   className="min-w-[11rem] rounded-xl p-1 shadow-lg"
                 >
-                  <DropdownMenuItem className="cursor-pointer rounded-lg px-3 py-2 text-[13px]" onClick={startEdit}>
+                  <DropdownMenuItem className="cursor-pointer rounded-lg px-3 py-2 text-[13px]" onClick={handleStartEdit}>
                     Edit
                   </DropdownMenuItem>
                   <DropdownMenuItem
@@ -505,7 +348,7 @@ export function MessageBubble({
           )}
           <span className="whitespace-nowrap">{formatMessageTime(message.createdAt)}</span>
           {isOwn && message.status && (
-            <span className="shrink-0 whitespace-nowrap">{STATUS_ICONS[message.status] ?? ''}</span>
+            <span className="shrink-0 whitespace-nowrap">{MESSAGE_STATUS_ICONS[message.status] ?? ''}</span>
           )}
         </div>
       )}
@@ -523,31 +366,6 @@ export function MessageBubble({
           </Button>
         </div>
       )}
-
-      {/* Reaction chips — disabled for now
-      {reactionGroups.length > 0 && onToggleReaction && (
-        <div className="mt-1 flex flex-wrap gap-1">
-          {reactionGroups.map((g) => (
-            <Button
-              key={g.emoji}
-              type="button"
-              variant="ghost"
-              size="sm"
-              onClick={() => onToggleReaction(message.id, g.emoji)}
-              className={cn(
-                'inline-flex h-auto items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] transition-colors',
-                g.iReacted
-                  ? 'border-primary bg-primary/15'
-                  : 'border-border bg-background/80 hover:bg-muted',
-              )}
-            >
-              <span>{g.emoji}</span>
-              <span className="tabular-nums text-muted-foreground">{g.count}</span>
-            </Button>
-          ))}
-        </div>
-      )}
-      */}
 
       <Dialog open={deleteOpen} onOpenChange={setDeleteOpen}>
         <DialogContent className="sm:max-w-md" showCloseButton>
@@ -588,18 +406,18 @@ export function MessageBubble({
   }
 
   const leftCol = showPeerHeader ? (
-    <SenderAvatar message={message} />
+    <MessageSenderAvatar message={message} />
   ) : peerColumnGutter ? (
-    <div className={cn(AVATAR_CLASS, 'shrink-0')} aria-hidden />
+    <div className={cn(MESSAGE_AVATAR_CLASS, 'shrink-0')} aria-hidden />
   ) : showDirectPeerAvatar ? (
-    <SenderAvatar message={message} />
+    <MessageSenderAvatar message={message} />
   ) : null;
 
   return (
     <div
       className={cn(
         'group flex w-full min-w-0 justify-start',
-        ROW_GAP,
+        MESSAGE_ROW_GAP,
         leftCol ? (showPeerHeader ? 'items-start' : 'items-end') : 'items-start',
       )}
     >

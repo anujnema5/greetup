@@ -1,15 +1,15 @@
 'use client';
 
-import { useEffect, useState } from 'react';
 import { useSession } from '@/lib/auth-client';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { useChat } from '../hooks/use-chat';
+import { useChatThreadUi } from '../hooks/use-chat-thread-ui';
 import { useConversation } from '../hooks/use-conversation';
 import { CHAT_HORIZONTAL_PADDING } from '../constants';
 import { MessageList } from './message-list';
 import { MessageInput } from './message-input';
-import type { ConversationType, Message } from '../types/chat.types';
+import type { ConversationType } from '../types/chat.types';
 
 interface ChatPanelProps {
   conversationId: string;
@@ -18,7 +18,7 @@ interface ChatPanelProps {
   sendDisabled?: boolean;
 }
 
-const QUICK_REACTION_EMOJIS = ["👏", "🔥", "😂", "🎉", "❤️"];
+const QUICK_REACTION_EMOJIS = ['👏', '🔥', '😂', '🎉', '❤️'];
 
 export function ChatPanel({
   conversationId,
@@ -29,13 +29,13 @@ export function ChatPanel({
   const { data: session, isPending: sessionPending } = useSession();
   const sessionUserId = session?.user?.id ?? '';
 
-  const [replyTo, setReplyTo] = useState<Message | null>(null);
-  const [editingMessageId, setEditingMessageId] = useState<string | null>(null);
-
-  useEffect(() => {
-    setReplyTo(null);
-    setEditingMessageId(null);
-  }, [conversationId]);
+  const {
+    replyTo,
+    setReplyTo,
+    clearReply,
+    editingMessageId,
+    setEditingMessageId,
+  } = useChatThreadUi(conversationId);
 
   const {
     messages,
@@ -74,14 +74,6 @@ export function ChatPanel({
     const has = msg?.reactions?.some((r) => r.userId === currentUserId && r.emoji === emoji);
     if (has) removeReaction(messageId, emoji);
     else addReaction(messageId, emoji);
-  };
-
-  const handleEdit = (messageId: string, content: string) => {
-    editMessage(messageId, content);
-  };
-
-  const handleDelete = (messageId: string, forAll: boolean) => {
-    deleteMessage(messageId, forAll);
   };
 
   if (isLoading || sessionPending) {
@@ -129,8 +121,8 @@ export function ChatPanel({
         onLoadMore={loadMore}
         onToggleReaction={handleToggleReaction}
         onReply={setReplyTo}
-        onEditMessage={handleEdit}
-        onDeleteMessage={handleDelete}
+        onEditMessage={editMessage}
+        onDeleteMessage={deleteMessage}
         onRetryFailed={retryFailedMessage}
         editingMessageId={editingMessageId}
         onEditingChange={setEditingMessageId}
@@ -139,7 +131,7 @@ export function ChatPanel({
         conversationId={conversationId}
         currentUserId={currentUserId}
         replyTo={replyTo}
-        onCancelReply={() => setReplyTo(null)}
+        onCancelReply={clearReply}
         onSend={handleSend}
         disabled={sendDisabled || !!editingMessageId}
       />

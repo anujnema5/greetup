@@ -1,9 +1,10 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { CHAT_HORIZONTAL_PADDING } from '../constants';
+import { useMessageListView } from '../hooks/use-message-list-view';
+import { getMessageRowLayout } from '../lib/message-cluster';
 import { MessageBubble } from './message-bubble';
 import { TypingIndicator } from './typing-indicator';
 import type { ConversationType, Message } from '../types/chat.types';
@@ -39,29 +40,14 @@ export function MessageList({
   editingMessageId = null,
   onEditingChange,
 }: MessageListProps) {
-  const bottomRef    = useRef<HTMLDivElement>(null);
-  const containerRef = useRef<HTMLDivElement>(null);
-  const prevLenRef   = useRef(0);
-  const [revealedTimeMessageId, setRevealedTimeMessageId] = useState<string | null>(null);
-
-  useEffect(() => {
-    setRevealedTimeMessageId(null);
-  }, [messages.length, currentUserId]);
-
-  // Auto-scroll to bottom when new messages arrive
-  useEffect(() => {
-    if (messages.length > prevLenRef.current) {
-      bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
-    }
-    prevLenRef.current = messages.length;
-  }, [messages.length]);
-
-  const handleScroll = () => {
-    if (!containerRef.current) return;
-    if (containerRef.current.scrollTop === 0 && hasMore) {
-      onLoadMore();
-    }
-  };
+  const {
+    bottomRef,
+    containerRef,
+    handleScroll,
+    revealedTimeMessageId,
+    toggleRevealTime,
+    clearRevealedTime,
+  } = useMessageListView(messages.length, currentUserId, hasMore, onLoadMore);
 
   return (
     <div
@@ -86,76 +72,33 @@ export function MessageList({
 
       {messages.map((msg, i) => {
         const prev = i > 0 ? messages[i - 1]! : null;
-        const isOwn = msg.senderId === currentUserId;
-
-        const clusterBreak =
-          i === 0 ||
-          !prev ||
-          prev.messageType === 'system' ||
-          msg.messageType === 'system' ||
-          prev.senderId !== msg.senderId;
-
         const next = i < messages.length - 1 ? messages[i + 1]! : null;
-        const nextSamePeer =
-          !!next &&
-          next.messageType !== 'system' &&
-          next.senderId === msg.senderId;
-
-        const isReply = !!msg.replyToId && msg.messageType !== 'system';
-        const replyToMessage = isReply
-          ? messages.find((m) => m.id === msg.replyToId) ?? null
-          : null;
-
-        let clusterPosition: 'single' | 'first' | 'middle' | 'last' = 'single';
-        if (msg.messageType !== 'system') {
-          if (isReply) {
-            clusterPosition = 'single';
-          } else if (clusterBreak && !nextSamePeer) clusterPosition = 'single';
-          else if (clusterBreak && nextSamePeer) clusterPosition = 'first';
-          else if (!clusterBreak && nextSamePeer) clusterPosition = 'middle';
-          else clusterPosition = 'last';
-        }
-
-        const prevIsEditing = !!prev && editingMessageId === prev.id;
-        const thisIsEditing = editingMessageId === msg.id;
-
-        const spacingClass =
-          i === 0
-            ? ''
-            : thisIsEditing || prevIsEditing || isReply
-              ? 'mt-4'
-              : editingMessageId
-                ? 'mt-3'
-                : clusterBreak
-                  ? 'mt-4'
-                  : 'mt-2';
-
-        const isGroup = conversationType === 'room_circle';
-        const prevSamePeer =
-          !!prev &&
-          prev.messageType !== 'system' &&
-          prev.senderId === msg.senderId;
-
-        const showPeerHeader = !isOwn && isGroup && msg.messageType !== 'system' && !prevSamePeer;
-        const peerColumnGutter = !isOwn && msg.messageType !== 'system' && prevSamePeer;
-        const showDirectPeerAvatar =
-          !isOwn && !isGroup && msg.messageType !== 'system' && !prevSamePeer;
+        const layout = getMessageRowLayout({
+          msg,
+          index: i,
+          prev,
+          next,
+          messages,
+          currentUserId,
+          conversationType,
+          editingMessageId,
+        });
 
         return (
-          <div key={msg.id} className={cn(spacingClass, 'min-w-0')}>
+          <div key={msg.id} className={cn(layout.spacingClass, 'min-w-0')}>
             <MessageBubble
               message={msg}
-              isOwn={isOwn}
+              isOwn={layout.isOwn}
               currentUserId={currentUserId}
-              replyToMessage={replyToMessage}
-              clusterPosition={clusterPosition}
-              showPeerHeader={showPeerHeader}
-              peerColumnGutter={peerColumnGutter}
-              showDirectPeerAvatar={showDirectPeerAvatar}
+              replyToMessage={layout.replyToMessage}
+              clusterPosition={layout.clusterPosition}
+              showPeerHeader={layout.showPeerHeader}
+              peerColumnGutter={layout.peerColumnGutter}
+              showDirectPeerAvatar={layout.showDirectPeerAvatar}
               onToggleReaction={onToggleReaction}
-              onReply={(msg) => {
-                setRevealedTimeMessageId(null);
-                onReply(msg);
+              onReply={(message) => {
+                clearRevealedTime();
+                onReply(message);
               }}
               onEditMessage={onEditMessage}
               onDeleteMessage={onDeleteMessage}
@@ -163,9 +106,7 @@ export function MessageList({
               editingMessageId={editingMessageId}
               onEditingChange={onEditingChange}
               revealedTimeMessageId={revealedTimeMessageId}
-              onRevealTime={(id) =>
-                setRevealedTimeMessageId((prev) => (prev === id ? null : id))
-              }
+              onRevealTime={toggleRevealTime}
             />
           </div>
         );
