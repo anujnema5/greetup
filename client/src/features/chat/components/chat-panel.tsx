@@ -1,13 +1,15 @@
 'use client';
 
-import { useState } from 'react';
 import { useSession } from '@/lib/auth-client';
 import { Button } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
 import { useChat } from '../hooks/use-chat';
+import { useChatThreadUi } from '../hooks/use-chat-thread-ui';
 import { useConversation } from '../hooks/use-conversation';
+import { CHAT_HORIZONTAL_PADDING } from '../constants';
 import { MessageList } from './message-list';
 import { MessageInput } from './message-input';
-import type { ConversationType, Message } from '../types/chat.types';
+import type { ConversationType } from '../types/chat.types';
 
 interface ChatPanelProps {
   conversationId: string;
@@ -16,7 +18,7 @@ interface ChatPanelProps {
   sendDisabled?: boolean;
 }
 
-const QUICK_REACTION_EMOJIS = ["👏", "🔥", "😂", "🎉", "❤️"];
+const QUICK_REACTION_EMOJIS = ['👏', '🔥', '😂', '🎉', '❤️'];
 
 export function ChatPanel({
   conversationId,
@@ -27,7 +29,13 @@ export function ChatPanel({
   const { data: session, isPending: sessionPending } = useSession();
   const sessionUserId = session?.user?.id ?? '';
 
-  const [replyTo, setReplyTo] = useState<Message | null>(null);
+  const {
+    replyTo,
+    setReplyTo,
+    clearReply,
+    editingMessageId,
+    setEditingMessageId,
+  } = useChatThreadUi(conversationId);
 
   const {
     messages,
@@ -68,14 +76,6 @@ export function ChatPanel({
     else addReaction(messageId, emoji);
   };
 
-  const handleEdit = (messageId: string, content: string) => {
-    editMessage(messageId, content);
-  };
-
-  const handleDelete = (messageId: string, forAll: boolean) => {
-    deleteMessage(messageId, forAll);
-  };
-
   if (isLoading || sessionPending) {
     return (
       <div className="flex min-h-0 flex-1 flex-col items-center justify-center text-sm text-muted-foreground">
@@ -95,7 +95,7 @@ export function ChatPanel({
   return (
     <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
       {showQuickReactions ? (
-        <div className="flex min-w-0 flex-wrap items-center gap-1.5 border-b border-border/70 px-3 py-2 sm:px-4 md:px-5">
+        <div className={cn('flex min-w-0 flex-wrap items-center gap-1.5 border-b border-border/70 py-2', CHAT_HORIZONTAL_PADDING)}>
           {QUICK_REACTION_EMOJIS.map((emoji) => (
             <Button
               key={emoji}
@@ -121,16 +121,19 @@ export function ChatPanel({
         onLoadMore={loadMore}
         onToggleReaction={handleToggleReaction}
         onReply={setReplyTo}
-        onEditMessage={handleEdit}
-        onDeleteMessage={handleDelete}
+        onEditMessage={editMessage}
+        onDeleteMessage={deleteMessage}
         onRetryFailed={retryFailedMessage}
+        editingMessageId={editingMessageId}
+        onEditingChange={setEditingMessageId}
       />
       <MessageInput
         conversationId={conversationId}
+        currentUserId={currentUserId}
         replyTo={replyTo}
-        onCancelReply={() => setReplyTo(null)}
+        onCancelReply={clearReply}
         onSend={handleSend}
-        disabled={sendDisabled}
+        disabled={sendDisabled || !!editingMessageId}
       />
     </div>
   );
