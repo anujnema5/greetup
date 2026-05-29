@@ -5,6 +5,7 @@ import { OnCircleTitleUpdated } from "./on-circle-title-updated";
 import { OnHostEndedCircle } from "./on-host-ended-circle";
 import { OnParticipantRemovedFromCircle } from "./on-participant-removed-from-circle";
 import { OnPartnerDisconnected } from "./on-partner-disconnected";
+import { OnRoomActivityToasts } from "./on-room-activity-toasts";
 
 /**
  * Mounts global room/call Socket.IO bridges (null renderers).
@@ -20,6 +21,7 @@ export function RoomSocketBridge() {
       <OnHostEndedCircle />
       <OnParticipantRemovedFromCircle />
       <OnPartnerDisconnected />
+      <OnRoomActivityToasts />
     </>
   );
 }
