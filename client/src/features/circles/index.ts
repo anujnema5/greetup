@@ -1,11 +1,7 @@
 /**
- * Circles feature — API, start-circle modal, orb trigger, and dashboard grid.
+ * Circles feature — API, start-circle modal, dashboard grid, and `/circles` browse.
  *
- * - Validation: `schemas/start-circle-form.schema.ts` (Zod + zodResolver)
- * - UI copy: `constants/start-circle-copy.ts`
- * - Form state: `hooks/use-start-circle-modal-state.ts` (react-hook-form)
- * - Types: `types/` (API DTOs + `start-circle-ui.types.ts`)
- * - Active grid card rules: `lib/active-circle-card-session-display.ts`
+ * See `README.md` in this folder for the full map.
  */
 
 export {
@@ -14,6 +10,8 @@ export {
 } from "./components/start-circle-modal-provider";
 export { CircleOrb } from "./components/circle-orb";
 export { CirclesGrid } from "./components/circles-grid";
+export { CirclesPage } from "./pages/circles-page";
+export { CIRCLES_BROWSE_PATH } from "./lib/circles-browse-path";
 
 export {
   circlesApi,
@@ -21,6 +19,7 @@ export {
   useDeleteScheduledCircleMutation,
   useListCircleCategoriesQuery,
   useListActiveCirclesQuery,
+  useBrowseActiveCirclesInfiniteQuery,
   useUpdateScheduledCircleMutation,
 } from "./api/circles-api";
 export type { StartCircleAdvancedFormState } from "./types/start-circle-ui.types";

@@ -95,8 +95,14 @@ export function useStartCircleModalState() {
 
   const advancedSectionRef = useRef<HTMLDivElement>(null);
 
-  const handleInviteConfirm = useCallback((ids: Set<string>) => {
-    setInvitedPeerIds(ids);
+  const handleMaxParticipantsChange = useCallback((maxParticipants: number) => {
+    const cap = Math.max(0, maxParticipants - 1);
+    setInvitedPeerIds((prev) => {
+      if (prev.size <= cap) return prev;
+      const arr = Array.from(prev).slice(0, cap);
+      toast.message(C.toastTrimmedInvites(prev.size - arr.length));
+      return new Set(arr);
+    });
   }, []);
 
   const maxParticipantsRaw = useWatch({
@@ -108,6 +114,19 @@ export function useStartCircleModalState() {
       ? maxParticipantsRaw
       : 8;
   const maxInviteSlots = Math.max(0, maxParticipantsVal - 1);
+
+  const handleInviteConfirm = useCallback(
+    (ids: Set<string>) => {
+      if (ids.size <= maxInviteSlots) {
+        setInvitedPeerIds(ids);
+        return;
+      }
+      const arr = Array.from(ids).slice(0, maxInviteSlots);
+      toast.message(C.toastTrimmedInvites(ids.size - arr.length));
+      setInvitedPeerIds(new Set(arr));
+    },
+    [maxInviteSlots],
+  );
 
   const scheduleModeWatch = useWatch({
     control: form.control,
@@ -140,19 +159,6 @@ export function useStartCircleModalState() {
       }
     }
   }, [scheduleModeWatch, form]);
-
-  useEffect(() => {
-    if (!open) return;
-    setInvitedPeerIds((prev) => {
-      if (prev.size <= maxInviteSlots) return prev;
-      const arr = Array.from(prev).slice(0, maxInviteSlots);
-      const removed = prev.size - arr.length;
-      if (removed > 0) {
-        toast.message(C.toastTrimmedInvites(removed));
-      }
-      return new Set(arr);
-    });
-  }, [maxInviteSlots, open]);
 
   const handleInviteAtCapacity = useCallback(() => {
     toast.info(C.inviteCapacityReachedToast(maxInviteSlots));
@@ -351,6 +357,7 @@ export function useStartCircleModalState() {
     inviteDialogOpen,
     setInviteDialogOpen,
     handleInviteConfirm,
+    handleMaxParticipantsChange,
     handleInviteAtCapacity,
     maxInviteSlots,
   };

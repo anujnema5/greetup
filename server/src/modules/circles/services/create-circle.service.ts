@@ -3,6 +3,7 @@ import { randomBytes } from "crypto";
 import { mergeRoomAdvancedOptions } from "@/core/database/schema";
 import { getAcceptedPeerIdsForUser } from "@/modules/connections/services/accepted-peer-ids.service";
 import { notifyCircleInviteReceived } from "../notifications";
+import { notifyCircleStartedToAssociatedUsers } from "@/modules/rooms/notifications";
 import {
   canHostInviteUserToRoom,
   getRoomInvitePreferencesForUsers,
@@ -160,16 +161,25 @@ export async function createCircleService(
   }
 
   if (inviteeIds.length > 0) {
-    await Promise.all(
-      inviteeIds.map((inviteeUserId) =>
-        notifyCircleInviteReceived({
-          recipientUserId: inviteeUserId,
-          actorUserId: hostUserId,
-          roomId: row.id,
-          roomTitle: body.title.trim(),
-        }),
-      ),
-    );
+    const roomTitle = body.title.trim();
+    if (row.status === "live") {
+      await notifyCircleStartedToAssociatedUsers({
+        roomId: row.id,
+        hostUserId,
+        roomTitle,
+      });
+    } else {
+      await Promise.all(
+        inviteeIds.map((inviteeUserId) =>
+          notifyCircleInviteReceived({
+            recipientUserId: inviteeUserId,
+            actorUserId: hostUserId,
+            roomId: row.id,
+            roomTitle,
+          }),
+        ),
+      );
+    }
   }
 
   return {

@@ -76,12 +76,15 @@ export async function listActiveCirclesService(
     activeCirclesListingsRepository.listPublicCircles(userId, publicLimit, cursor),
   ]);
 
-  const friendInvited: FriendInvitedCircleItem[] = friendInvitedRows.map((row) => ({
-    ...toActiveCircleItem(row),
-    inviteStatus: row.inviteStatus as "pending" | "accepted",
-  }));
-
   const joined: ActiveCircleItem[] = joinedRows.map(toActiveCircleItem);
+  const joinedIds = new Set(joined.map((c) => c.id));
+
+  const friendInvited: FriendInvitedCircleItem[] = friendInvitedRows
+    .map((row) => ({
+      ...toActiveCircleItem(row),
+      inviteStatus: row.inviteStatus as "pending" | "accepted",
+    }))
+    .filter((c) => !joinedIds.has(c.id));
 
   const hasMore = publicRows.length > publicLimit;
   const publicItems = hasMore ? publicRows.slice(0, publicLimit) : publicRows;

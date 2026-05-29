@@ -6,7 +6,6 @@ import {
   inArray,
   isNotNull,
   isNull,
-  ne,
   notExists,
   or,
   sql,
@@ -29,15 +28,17 @@ function participantCountSq() {
   )`;
 }
 
+/**
+ * Active Circles dashboard / browse listings.
+ *
+ * Scheduled circles stay visible after `scheduled_start_at` until `is_expired` /
+ * `expires_at` — hosts use “Start now” during the join-grace window. Do not require
+ * `scheduled_start_at >= NOW()` here (that hid past-slot circles from the host).
+ */
 function activeCircleListingPredicate() {
   return and(
     eq(rooms.isExpired, false),
     or(isNull(rooms.expiresAt), gte(rooms.expiresAt, sql`NOW()`)),
-    or(
-      ne(rooms.status, "scheduled"),
-      isNull(rooms.scheduledStartAt),
-      gte(rooms.scheduledStartAt, sql`NOW()`),
-    ),
   );
 }
 
@@ -72,6 +73,7 @@ function activeCircleColumns() {
 export const activeCirclesListingsRepository = {
   /**
    * Rooms where the caller has a pending/accepted friend invite (circle type, active only).
+   * {@link listActiveCirclesService} drops rows that already appear in {@link listJoinedCircles}.
    */
   async listFriendInvitedCircles(userId: string) {
     return db

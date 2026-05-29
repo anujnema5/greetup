@@ -81,6 +81,7 @@ export function StartCircleModalDialog(props: StartCircleModalDialogProps) {
     setInviteDialogOpen,
     maxInviteSlots,
     handleInviteAtCapacity,
+    handleMaxParticipantsChange,
   } = props;
 
   const scheduleMode = useWatch({
@@ -271,14 +272,14 @@ export function StartCircleModalDialog(props: StartCircleModalDialogProps) {
                               max={LAUNCH_MAX_CIRCLE_PARTICIPANTS}
                               className="h-11 w-full max-w-full border-border/80 bg-background/50 transition-[border-color,box-shadow] sm:max-w-36"
                               {...field}
-                              onChange={(e) =>
-                                field.onChange(
-                                  Math.min(
-                                    LAUNCH_MAX_CIRCLE_PARTICIPANTS,
-                                    Math.max(2, Number(e.target.value) || 2),
-                                  ),
-                                )
-                              }
+                              onChange={(e) => {
+                                const next = Math.min(
+                                  LAUNCH_MAX_CIRCLE_PARTICIPANTS,
+                                  Math.max(2, Number(e.target.value) || 2),
+                                );
+                                field.onChange(next);
+                                handleMaxParticipantsChange(next);
+                              }}
                               value={field.value}
                             />
                           </FormControl>
