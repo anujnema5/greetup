@@ -44,6 +44,7 @@ export {
 export { useLobbyPreviewMedia } from "./lobby/use-lobby-preview-media";
 
 export { useLockedSpeakerTileSlot } from "./call/use-locked-speaker-tile-slot";
+export { useRoomActivityToasts } from "./call/use-room-activity-toasts";
 export { useParticipantsWithSpeakerFirst } from "./call/use-participants-with-speaker-first";
 export { usePeerIdsWithSpeakerFirst } from "./call/use-peer-ids-with-speaker-first";
 export { useTileGridPage } from "./call/use-tile-grid-page";

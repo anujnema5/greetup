@@ -8,6 +8,7 @@ export { MATCHMAKING_HUB_PATH, CIRCLE_HOST_END_FOR_EVERYONE_REDIRECT_PATH } from
 export { getSessionExitCopy, SESSION_EXIT_HOST_END_ALERT } from "./call/session-exit-copy";
 export type { SessionExitCopy } from "./call/session-exit-copy";
 export { DEFAULT_CIRCLE_DISPLAY_TITLE } from "./call/circle-display";
+export { ROOM_ACTIVITY_TOAST } from "./call/room-activity-toast-copy";
 export {
   DIRECT_CALL_RECOVERY,
   DIRECT_CALL_PEER_LEFT_DEBOUNCE_MS,

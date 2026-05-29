@@ -13,6 +13,7 @@
 | `lib/call/peer-profile-hover/` | Display builder, connection panel helpers |
 | `call/layouts/grid/` | Circle grid, pagination |
 | `call/layouts/screen-share/` | Share strip, cameras under share |
+| `lib/call/room-activity/` | In-call join/leave + screen-share toast sync (pure) |
 | `call/panels/sidebar/` | People + right sidebar |
 | `call/panels/circle-options/` | Circle rename / invite dialog |
 | `call/panels/mobile/` | Mobile chat sheet handle |
@@ -28,7 +29,7 @@
 | `embedded-activities/parse/` | API response parsing |
 | `hooks/` | Hooks by concern (session, media, toolbar, …) |
 | `lib/session/` | Tab sync, return path, RTK cache |
-| `lib/call/` | Speaker rings, call duration formatting |
+| `lib/call/` | Speaker rings, call duration formatting, in-call activity toasts |
 | `lib/minimized-dock/` | Dock focus / silence helpers |
 | `lib/navigation/` | Post-call navigation |
 | `types/call/` | In-call screen + activity types |
@@ -63,6 +64,7 @@
 | `InCallScreen` | Full in-call layout |
 | `MainStage` | Video stage (tiles / share) |
 | `RoomSocketBridge` | Composes in-call socket listeners (mount in `layout` inside `MatchmakingProvider`) |
+| `OnRoomActivityToasts` | RTC-driven join/leave + screen-share toasts (via `RoomSocketBridge`) |
 | `OnDirectExpandedToCircle` | Socket: direct call expanded to circle (mount outside bridge — has dialog UI) |
 
 ## Add a new in-call activity
