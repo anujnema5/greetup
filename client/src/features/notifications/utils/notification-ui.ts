@@ -23,6 +23,16 @@ export function notificationRoute(item: NotificationItem): string {
     return "/connections?filter=accepted";
   }
 
+  if (item.type === "circle_started" || item.type === "circle_invite_received") {
+    const roomId = item.payload?.roomId;
+    if (typeof roomId === "string" && roomId.trim()) {
+      return `/circle/${roomId.trim()}`;
+    }
+    if (item.entityType === "room" && item.entityId.trim()) {
+      return `/circle/${item.entityId.trim()}`;
+    }
+  }
+
   const deepLink = item.payload?.deepLink;
   if (typeof deepLink === "string" && deepLink.trim()) {
     return deepLink;

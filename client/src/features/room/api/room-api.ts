@@ -203,6 +203,27 @@ export const roomApi = baseApi.injectEndpoints({
       ],
     }),
 
+    reportCircleNsfwViolation: build.mutation<
+      { removed: boolean; strikeCount: number; accountBanned: boolean },
+      {
+        roomId: string;
+        clientScores?: { className: string; probability: number }[];
+      }
+    >({
+      query: ({ roomId, clientScores }) => ({
+        url: ROOM.nsfwViolation(roomId),
+        method: "POST",
+        body: clientScores?.length ? { clientScores } : undefined,
+      }),
+      transformResponse: (response: JoinRoomApiResponse) => {
+        assertJoinRoomOk(response);
+        const data = response.data as
+          | { removed: boolean; strikeCount: number; accountBanned: boolean }
+          | undefined;
+        return data ?? { removed: true, strikeCount: 1, accountBanned: false };
+      },
+    }),
+
     roomInvite: build.mutation<
       RoomInviteMutationResult,
       RoomInviteMutationArg
@@ -251,6 +272,7 @@ export const {
   useLeaveCircleRtcMutation,
   useHostEndCircleForEveryoneMutation,
   useKickCircleParticipantMutation,
+  useReportCircleNsfwViolationMutation,
   useRoomInviteMutation,
   useRoomInviteRespondMutation,
   useUpdateRoomTitleMutation,

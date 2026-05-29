@@ -1,4 +1,5 @@
 import { userConnectionsRepository } from "../repositories/user-connections.repository";
+import { emitConnectionUpdated } from "../socket/emit-connection-updated";
 
 export type WithdrawConnectionRequestResult =
   | { ok: true }
@@ -24,6 +25,11 @@ export async function withdrawConnectionRequestService(
   }
 
   await userConnectionsRepository.cancelPendingOutgoingRequest(connectionId, viewerId);
+  emitConnectionUpdated(row.addresseeId, {
+    peerUserId: viewerId,
+    connectionId: row.id,
+    status: "none",
+  });
   return { ok: true };
 }
 

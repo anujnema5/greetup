@@ -15,7 +15,7 @@
  * People panel and the stage is screen-only (typically desktop during share). Below `md`, it is
  * false during share so participants stay on the main stage (stacked / grid — see compact layouts).
  */
-import { useRef, type RefObject } from "react";
+import { useMemo, useRef, type RefObject } from "react";
 import { cn } from "@/lib/utils";
 import { circleGridClass } from "@/features/room/call/layouts/grid/circle-grid-classes";
 import { CircleGalleryGrid } from "@/features/room/call/layouts/grid/circle-grid";
@@ -23,12 +23,16 @@ import type { RoomActivityId } from "@/features/room/types/call/room-activity.ty
 import type { RoomActivityMeta } from "@/features/room/types/call/room-activity.types";
 import { ActivityStage } from "@/features/room/call/activities/activity-stage";
 import type { RoomActiveActivity } from "@/lib/redux/types/room-slice.types";
-import { CALL_TILE_AVATAR_SIZE_COMPACT } from "@/features/room/call/tiles/tile-styles";
+import {
+  CALL_TILE_AVATAR_SIZE_COMPACT,
+  CALL_TILE_MEDIA_BACKDROP_CLASS,
+} from "@/features/room/call/tiles/tile-styles";
 import { LocalParticipantTile } from "@/features/room/call/tiles/my-camera-tile";
 import { RemoteParticipantTile } from "@/features/room/call/tiles/peer-camera-tile";
 import {
   CameraOffAvatar,
   NoPeerAvailableState,
+  PeerProfileHoverSnippet,
   SearchingCandidateState,
   TileMediaStatus,
   TileNameBadge,
@@ -73,6 +77,7 @@ export function MainStage({
   localStream,
   mainStageShowsScreen,
   peerLabel,
+  directRemotePeerUserId = null,
   peerInitials,
   myName,
   currentUserId,
@@ -124,6 +129,7 @@ export function MainStage({
   localStream: MediaStream | null;
   mainStageShowsScreen: boolean;
   peerLabel: string;
+  directRemotePeerUserId?: string | null;
   peerInitials: string;
   myName: string;
   currentUserId?: string | null;
@@ -200,6 +206,27 @@ export function MainStage({
     groupTileCount <= 2 ? undefined : CALL_TILE_AVATAR_SIZE_COMPACT;
   /** Same full-area local tile as 1:1 “You”, without a side-by-side empty peer slot. */
   const renderDirectSoloCamera = directSoloLayout && !stageActivity;
+
+  const directRemotePeerId = useMemo(() => {
+    if (isGroupRoom) return null;
+    const fromProp = directRemotePeerUserId?.trim();
+    if (fromProp) return fromProp;
+    return groupGalleryParticipants[0]?.peer.peerId ?? null;
+  }, [isGroupRoom, directRemotePeerUserId, groupGalleryParticipants]);
+
+  const directPeerNameBadge =
+    directRemotePeerId != null ? (
+      <PeerProfileHoverSnippet
+        peerUserId={directRemotePeerId}
+        fallbackDisplayName={peerLabel}
+        fallbackImageUrl={peerAvatarUrl}
+        badgeClassName="border-white/10 bg-black/55 text-white/90"
+      >
+        {peerLabel}
+      </PeerProfileHoverSnippet>
+    ) : (
+      <TileNameBadge className="border-white/10 bg-black/55 text-white/90">{peerLabel}</TileNameBadge>
+    );
 
   return (
     <>
@@ -382,7 +409,7 @@ export function MainStage({
                 )}
               />
               {!localVideoLive ? (
-                <div className="absolute inset-0 flex items-center justify-center border border-border/60 bg-linear-to-br from-primary/15 via-muted/45 to-accent/20">
+                <div className={CALL_TILE_MEDIA_BACKDROP_CLASS}>
                   <TileSpeakingRings stream={localStream}>
                     <CameraOffAvatar
                       name={myName}
@@ -424,7 +451,7 @@ export function MainStage({
                       )}
                     />
                     {!remoteVideoLive && (
-                      <div className="absolute inset-0 flex items-center justify-center border border-border/60 bg-linear-to-br from-primary/15 via-muted/45 to-accent/20">
+                      <div className={CALL_TILE_MEDIA_BACKDROP_CLASS}>
                         <TileSpeakingRings stream={remoteMicOff ? null : remoteStream}>
                           <CameraOffAvatar
                             name={peerLabel}
@@ -468,7 +495,7 @@ export function MainStage({
                         )}
                       />
                       {!remoteVideoLive && (
-                        <div className="absolute inset-0 flex items-center justify-center border border-border/60 bg-linear-to-br from-primary/15 via-muted/45 to-accent/20">
+                        <div className={CALL_TILE_MEDIA_BACKDROP_CLASS}>
                           <TileSpeakingRings stream={remoteMicOff ? null : remoteStream}>
                             <CameraOffAvatar
                               name={peerLabel}
@@ -512,12 +539,12 @@ export function MainStage({
                           playsInline
                           autoPlay
                           className={cn(
-                            "absolute inset-0 h-full w-full object-cover",
+                            "pointer-events-none absolute inset-0 h-full w-full object-cover",
                             !sidebarRemoteLive && "opacity-0",
                           )}
                         />
                         {!sidebarRemoteLive && (
-                          <div className="absolute inset-0 flex items-center justify-center border border-border/60 bg-linear-to-br from-primary/15 via-muted/45 to-accent/20">
+                          <div className={CALL_TILE_MEDIA_BACKDROP_CLASS}>
                             <TileSpeakingRings stream={remoteMicOff ? null : remoteStream}>
                               <CameraOffAvatar
                                 name={peerLabel}
@@ -528,9 +555,7 @@ export function MainStage({
                             </TileSpeakingRings>
                           </div>
                         )}
-                        <TileNameBadge className="border-white/10 bg-black/55 text-white/90">
-                          {peerLabel}
-                        </TileNameBadge>
+                        {directPeerNameBadge}
                         <TileMediaStatus
                           micOn={remoteMicOff ? false : undefined}
                           cameraOn={remoteCameraOff ? false : undefined}
@@ -551,13 +576,13 @@ export function MainStage({
                           autoPlay
                           muted
                           className={cn(
-                            "absolute inset-0 h-full w-full object-cover",
+                            "pointer-events-none absolute inset-0 h-full w-full object-cover",
                             !sidebarLocalLive && "opacity-0",
                             "-scale-x-100",
                           )}
                         />
                         {!sidebarLocalLive && (
-                          <div className="absolute inset-0 flex items-center justify-center border border-border/60 bg-linear-to-br from-primary/15 via-muted/45 to-accent/20">
+                          <div className={CALL_TILE_MEDIA_BACKDROP_CLASS}>
                             <TileSpeakingRings stream={localStream}>
                               <CameraOffAvatar
                                 name={myName}
@@ -595,7 +620,7 @@ export function MainStage({
                       )}
                     />
                     {!remoteVideoLive && (
-                      <div className="absolute inset-0 flex items-center justify-center border border-border/60 bg-linear-to-br from-primary/15 via-muted/45 to-accent/20">
+                      <div className={CALL_TILE_MEDIA_BACKDROP_CLASS}>
                         <TileSpeakingRings stream={remoteMicOff ? null : remoteStream}>
                           <CameraOffAvatar
                             name={peerLabel}
@@ -606,9 +631,7 @@ export function MainStage({
                         </TileSpeakingRings>
                       </div>
                     )}
-                    <TileNameBadge className="border-white/10 bg-black/55 text-white/90">
-                      {peerLabel}
-                    </TileNameBadge>
+                    {directPeerNameBadge}
                     <TileMediaStatus
                       micOn={remoteMicOff ? false : undefined}
                       cameraOn={remoteCameraOff ? false : undefined}
@@ -638,7 +661,7 @@ export function MainStage({
                       )}
                     />
                     {!localVideoLive && (
-                      <div className="absolute inset-0 flex items-center justify-center border border-border/60 bg-linear-to-br from-primary/15 via-muted/45 to-accent/20">
+                      <div className={CALL_TILE_MEDIA_BACKDROP_CLASS}>
                         <TileSpeakingRings stream={localStream}>
                           <CameraOffAvatar
                             name={myName}
@@ -714,7 +737,7 @@ export function MainStage({
                       )}
                     />
                     {!remoteVideoLive && (
-                      <div className="absolute inset-0 flex items-center justify-center border border-border/60 bg-linear-to-br from-primary/15 via-muted/45 to-accent/20">
+                      <div className={CALL_TILE_MEDIA_BACKDROP_CLASS}>
                         <TileSpeakingRings stream={remoteMicOff ? null : remoteStream}>
                           <CameraOffAvatar
                             name={peerLabel}

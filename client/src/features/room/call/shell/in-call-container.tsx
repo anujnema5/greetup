@@ -21,7 +21,9 @@ import {
 import { Button } from "@/components/ui/button";
 import { AddToCircleDialog } from "@/features/room/components/dialogs/add-to-circle-dialog";
 import { CircleLobbyOverlay } from "@/features/room/components/lobby/circle-lobby-overlay";
-import { useRoomSessionExpiryWarnings } from "@/features/room/hooks/session/use-room-session-expiry-warnings";
+import { CircleNsfwModerationLayer } from "@/features/moderation";
+import { RoomSessionExpiryWarningsLayer } from "@/features/room/components/session/room-session-expiry-warnings-layer";
+import { useCallRenderDebug } from "@/features/room/hooks/debug/use-call-render-debug";
 import { InCallScreen } from "@/features/room/call/shell/in-call-screen";
 import { useRemoteParticipantLabel } from "@/features/room/hooks/media/use-remote-participant-label";
 import { useRoomVideo } from "@/features/room/hooks/session/use-room-video";
@@ -126,7 +128,10 @@ export function InCallContainer({
     dominantSpeakerSpeakingMs: liveSpeakerSpeakingMs,
   } = useRtcSocketContext();
 
-  useRoomSessionExpiryWarnings(roomId, mediasoupStatus === "ready");
+  const mediasoupReady = mediasoupStatus === "ready";
+  useCallRenderDebug("InCallContainer", { roomId, mediasoupReady, cameraEnabled, screenSharing });
+
+  const moderationStream = localCompositeStream ?? localMediaStream;
 
   /** DB-backed tiles + policy map; invite gating uses `embeddedStageActivityId` (can run ahead of Redux). */
   const { directRoomActivities, embeddedCallPolicyLookup } = useRoomEmbeddedActivitiesCatalog();
@@ -353,6 +358,15 @@ export function InCallContainer({
 
   return (
     <div className="fixed inset-0 z-100 flex flex-col overflow-hidden bg-background">
+      <RoomSessionExpiryWarningsLayer roomId={roomId} enabled={mediasoupReady} />
+      <CircleNsfwModerationLayer
+        roomId={roomId}
+        enabled={isDbCircleCall}
+        localStream={moderationStream}
+        mediasoupReady={mediasoupReady}
+        cameraEnabled={cameraEnabled}
+        screenSharing={screenSharing}
+      />
       {rtcLobbyWait ? (
         <CircleLobbyOverlay
           open
@@ -413,6 +427,7 @@ export function InCallContainer({
         localMediaDeviceError={localMediaDeviceError}
         onDismissLocalMediaDeviceError={clearLocalMediaDeviceError}
         peerLabel={peerLabel}
+        directRemotePeerUserId={peerId}
         scoreLabel={scoreLabel}
         myName={myName}
         currentUserId={session?.user?.id ?? null}

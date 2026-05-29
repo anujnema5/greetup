@@ -1,13 +1,12 @@
 import type { RoomSessionType } from "@/shared/types/room-session";
 
-import { notifyCircleStarted } from "../../notifications";
-import { roomInvitesRepository } from "../../repositories/room-invites.repository";
+import { notifyCircleStartedToAssociatedUsers } from "../../notifications";
 import { emitCircleOpenedForJoin } from "@/modules/rooms/socket/circle-room-socket.handler";
 import { provisionSessionRoomRedis } from "../rtc/session-room-redis.service";
 
 /**
  * Shared follow-up when a circle room row becomes `live` from `scheduled`:
- * Redis `room:{id}` session hash + optional friend-invite “circle started” notifications.
+ * Redis `room:{id}` session hash + “circle is live” notifications for associated users.
  */
 export async function runLiveCircleAfterMarkLive(params: {
   roomId: string;
@@ -32,17 +31,9 @@ export async function runLiveCircleAfterMarkLive(params: {
 
   if (!params.notifyInvitees) return;
 
-  const invitees = await roomInvitesRepository.listActiveFriendInviteeUserIds(params.roomId);
-  if (invitees.length === 0) return;
-
-  await Promise.all(
-    invitees.map((invite) =>
-      notifyCircleStarted({
-        recipientUserId: invite.inviteeUserId,
-        actorUserId: params.hostUserId,
-        roomId: params.roomId,
-        roomTitle: params.title,
-      }),
-    ),
-  );
+  await notifyCircleStartedToAssociatedUsers({
+    roomId: params.roomId,
+    hostUserId: params.hostUserId,
+    roomTitle: params.title,
+  });
 }

@@ -16,23 +16,33 @@ function panelWithRequiredId(
 }
 
 /** Maps API `connectionState` + `connectionId` to UI variants (withdraw, accept, etc.). */
-export function getPublicProfileConnectionPanel(
-  profile: PublicProfileData,
+export function getConnectionPanelForState(
+  connectionState: PublicProfileData["connectionState"],
+  connectionId: string | null,
+  options?: { isViewer?: boolean },
 ): PublicProfileConnectionPanel {
-  if (profile.isViewer) {
+  if (options?.isViewer) {
     return { kind: "none" };
   }
 
-  switch (profile.connectionState) {
+  switch (connectionState) {
     case "accepted":
-      return panelWithRequiredId("accepted", profile.connectionId);
+      return panelWithRequiredId("accepted", connectionId);
     case "pending_outgoing":
-      return panelWithRequiredId("pending_outgoing", profile.connectionId);
+      return panelWithRequiredId("pending_outgoing", connectionId);
     case "pending_incoming":
-      return panelWithRequiredId("pending_incoming", profile.connectionId);
+      return panelWithRequiredId("pending_incoming", connectionId);
     case "none":
     case "rejected":
     case "cancelled":
       return { kind: "connect" };
   }
+}
+
+export function getPublicProfileConnectionPanel(
+  profile: PublicProfileData,
+): PublicProfileConnectionPanel {
+  return getConnectionPanelForState(profile.connectionState, profile.connectionId, {
+    isViewer: profile.isViewer,
+  });
 }

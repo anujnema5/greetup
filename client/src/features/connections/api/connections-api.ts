@@ -64,6 +64,9 @@ function tagsToRefreshAfterConnectionAction(arg: RespondConnectionMutationArg) {
     CACHE_CONNECTIONS_LIST,
     CACHE_ACCEPTED_CONNECTIONS_INFINITE,
     ...tagsForPublicProfile(arg.peerUsername),
+    ...(arg.peerUserId
+      ? [{ type: "MatchPeerPreview" as const, id: arg.peerUserId }]
+      : []),
   ];
 }
 
@@ -212,6 +215,7 @@ export const connectionsApi = baseApi.injectEndpoints({
         CACHE_CONNECTIONS_LIST,
         CACHE_ACCEPTED_CONNECTIONS_INFINITE,
         CACHE_PENDING_INCOMING_COUNT,
+        { type: "MatchPeerPreview" as const, id: arg.targetUserId },
         ...tagsForPublicProfile(arg.invalidatePublicProfileUsername),
       ],
     }),

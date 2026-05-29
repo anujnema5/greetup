@@ -8,6 +8,9 @@
 | `call/shell/` | `InCallContainer`, `InCallScreen` |
 | `call/stage/` | `MainStage`, top bar, stage overlays |
 | `call/tiles/` | Camera tiles + shared parts |
+| `call/tiles/parts/peer-profile-hover/` | Instagram-style hover card on tile name badges |
+| `hooks/call/peer-profile-hover/` | Hover anchor, preview, connection panel, open profile |
+| `lib/call/peer-profile-hover/` | Display builder, connection panel helpers |
 | `call/layouts/grid/` | Circle grid, pagination |
 | `call/layouts/screen-share/` | Share strip, cameras under share |
 | `call/panels/sidebar/` | People + right sidebar |

@@ -213,9 +213,7 @@ export function RtcSocketProvider({ children }: { children: React.ReactNode }) {
     ],
   );
 
-  return (
-    <RtcSocketContext.Provider value={value}>{children}</RtcSocketContext.Provider>
-  );
+  return <RtcSocketContext.Provider value={value}>{children}</RtcSocketContext.Provider>;
 }
 
 export function useRtcSocketContext(): RtcSocketContextValue {

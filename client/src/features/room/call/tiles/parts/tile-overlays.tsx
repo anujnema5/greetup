@@ -7,6 +7,10 @@ import { cn } from "@/lib/utils";
 
 // ─── TileNameBadge ────────────────────────────────────────────────────────────
 
+/** Shared chrome for tile name labels (static + hover trigger). */
+export const TILE_NAME_BADGE_CHROME =
+  "rounded-md border border-border/70 bg-card/90 px-2 py-0.5 text-[11px] font-semibold text-foreground shadow-sm";
+
 /** Name label pinned to the bottom-left of a video tile. */
 export function TileNameBadge({
   children,
@@ -18,8 +22,8 @@ export function TileNameBadge({
   return (
     <div
       className={cn(
-        "absolute bottom-2 left-2 z-10 rounded-md border border-border/70",
-        "bg-card/90 px-2 py-0.5 text-[11px] font-semibold text-foreground shadow-sm",
+        "absolute bottom-2 left-2 z-10",
+        TILE_NAME_BADGE_CHROME,
         className,
       )}
     >

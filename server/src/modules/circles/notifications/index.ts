@@ -1,6 +1,7 @@
 import {
   dispatchNotificationWithActor,
 } from "@/modules/notifications/services/dispatch-notification.service";
+import { circleRoomNotificationDeepLink } from "@/modules/rooms/notifications/circle-room-deep-link";
 
 export async function notifyCircleInviteReceived(params: {
   recipientUserId: string;
@@ -20,7 +21,7 @@ export async function notifyCircleInviteReceived(params: {
       actor,
       roomId: params.roomId,
       roomTitle: params.roomTitle,
-      deepLink: "/",
+      deepLink: circleRoomNotificationDeepLink(params.roomId),
     },
     dedupeKey: `circle_invite_received:${params.roomId}:${params.recipientUserId}`,
   }));

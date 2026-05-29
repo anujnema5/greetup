@@ -64,6 +64,9 @@ export const matchingApi = baseApi.injectEndpoints({
     getMatchPeerPreview: build.query<MatchPeerPreview, string>({
       query: (peerUserId) => ({ url: MATCHING.peerPreview(peerUserId) }),
       transformResponse: toMatchPeerPreview,
+      providesTags: (_result, _error, peerUserId) => [
+        { type: "MatchPeerPreview" as const, id: peerUserId },
+      ],
     }),
 
   }),

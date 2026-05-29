@@ -1,16 +1,6 @@
-import { and, eq, isNull } from "drizzle-orm";
-
-import { db } from "@/core/database";
-import { roomParticipants, rooms } from "@/core/database/schema";
-import { emitToUser } from "@/core/socket/socket";
-import { isDbRoomSessionClosed } from "@/modules/rooms/lib/expiry/room-expiry";
-import { CIRCLE_ROOM_SOCKET_EVENTS } from "@/modules/rooms/constants/events/circle-room-socket.events";
-import { roomInviteRepository } from "@/modules/rooms/repositories/expand-direct-room.repository";
 import { roomsRepository } from "@/modules/rooms/repositories/rooms.repository";
 import { roomParticipantsRepository } from "@/modules/rooms/repositories/room-participants.repository";
-import { roomRestrictedUsersRepository } from "@/modules/rooms/repositories/room-restricted-users.repository";
-import { notifyRtcServiceKickPeer } from "@/modules/rooms/services/rtc/rtc-kick-peer.service";
-import { clearUserActiveRtcRoom } from "@/modules/rooms/services/rtc/user-active-rtc-room-redis.service";
+import { removeCircleParticipantFromLive } from "./remove-circle-participant-from-live.service";
 
 export type KickCircleParticipantOptions = {
   /** When true, the user cannot rejoin this circle until the restriction is cleared. */
@@ -72,11 +62,6 @@ export async function kickCircleParticipantService(
     );
   }
 
-  if (isDbRoomSessionClosed(room)) {
-    await clearUserActiveRtcRoom(targetUserId);
-    return { removed: false, restricted: false };
-  }
-
   if (room.status !== "live") {
     throw new KickCircleParticipantError("Room is not live", "INVALID_STATE", 400);
   }
@@ -91,18 +76,9 @@ export async function kickCircleParticipantService(
     );
   }
 
-  await roomParticipantsRepository.markParticipantLeft(roomId, targetUserId);
-
-  await clearUserActiveRtcRoom(targetUserId);
-  await notifyRtcServiceKickPeer(roomId, targetUserId);
-  await roomInviteRepository.cancelFriendInviteForRoomInvitee(roomId, targetUserId);
-  emitToUser(targetUserId, CIRCLE_ROOM_SOCKET_EVENTS.participantRemoved, { roomId });
-
-  let restricted = false;
-  if (options.restrict) {
-    await roomRestrictedUsersRepository.addRoomRestrictedUser(roomId, targetUserId, hostUserId);
-    restricted = true;
-  }
-
-  return { removed: true, restricted };
+  return removeCircleParticipantFromLive(roomId, targetUserId, {
+    restrict: options.restrict === true,
+    restrictedByUserId: hostUserId,
+    socketReason: "host_removed",
+  });
 }

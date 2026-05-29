@@ -13,7 +13,7 @@ import {
 import { cn } from "@/lib/utils";
 import {
   CameraOffAvatar,
-  TileNameBadge,
+  PeerProfileHoverSnippet,
   TileSpeakingRings,
 } from "@/features/room/call/tiles/tile-primitives";
 import { ParticipantTileControlsBar } from "@/features/room/call/tiles/parts/tile-participant-controls-bar";
@@ -78,7 +78,7 @@ export function RemoteParticipantTile({
           ref={videoRef}
           playsInline
           autoPlay
-          className="absolute inset-0 h-full w-full object-cover"
+          className="pointer-events-none absolute inset-0 h-full w-full object-cover"
         />
       ) : (
         <div className={CALL_TILE_CAMERA_OFF_CLASS}>
@@ -93,7 +93,14 @@ export function RemoteParticipantTile({
         </div>
       )}
 
-      <TileNameBadge className={CALL_TILE_REMOTE_NAME_BADGE_CLASS}>{label}</TileNameBadge>
+      <PeerProfileHoverSnippet
+        peerUserId={peer.peerId}
+        fallbackDisplayName={label}
+        fallbackImageUrl={peer.image}
+        badgeClassName={CALL_TILE_REMOTE_NAME_BADGE_CLASS}
+      >
+        {label}
+      </PeerProfileHoverSnippet>
 
       <ParticipantTileControlsBar
         micOn={micOff ? false : undefined}

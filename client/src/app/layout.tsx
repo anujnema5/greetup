@@ -16,6 +16,7 @@ import {
   OnDirectExpandedToCircle,
 } from "@/features/room";
 import { MatchmakingProvider } from "@/features/matching";
+import { ConnectionRealtimeBridge } from "@/features/connections";
 import { NotificationsRealtimeBridge } from "@/features/notifications";
 import { ChatInboxSocketBridge } from "@/features/chat/components/chat-inbox-socket-bridge";
 import { ChatMessagesCacheBridge } from "@/features/chat/components/chat-messages-cache-bridge";
@@ -47,6 +48,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                 <OnDirectExpandedToCircle />
                 <ChessSocketBridge />
                 <NotificationsRealtimeBridge />
+                <ConnectionRealtimeBridge />
                 <ChatInboxSocketBridge />
                 <ChatMessagesCacheBridge />
                 <Suspense fallback={null}>

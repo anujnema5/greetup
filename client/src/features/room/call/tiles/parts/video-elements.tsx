@@ -52,7 +52,7 @@ export function VideoMirror({
       playsInline
       autoPlay
       muted={mirrored}
-      className={cn(className, mirrored && "-scale-x-100")}
+      className={cn("pointer-events-none", className, mirrored && "-scale-x-100")}
     />
   );
 }
