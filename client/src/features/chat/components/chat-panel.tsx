@@ -1,10 +1,12 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useSession } from '@/lib/auth-client';
 import { Button } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
 import { useChat } from '../hooks/use-chat';
 import { useConversation } from '../hooks/use-conversation';
+import { CHAT_HORIZONTAL_PADDING } from '../constants';
 import { MessageList } from './message-list';
 import { MessageInput } from './message-input';
 import type { ConversationType, Message } from '../types/chat.types';
@@ -28,6 +30,12 @@ export function ChatPanel({
   const sessionUserId = session?.user?.id ?? '';
 
   const [replyTo, setReplyTo] = useState<Message | null>(null);
+  const [editingMessageId, setEditingMessageId] = useState<string | null>(null);
+
+  useEffect(() => {
+    setReplyTo(null);
+    setEditingMessageId(null);
+  }, [conversationId]);
 
   const {
     messages,
@@ -95,7 +103,7 @@ export function ChatPanel({
   return (
     <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
       {showQuickReactions ? (
-        <div className="flex min-w-0 flex-wrap items-center gap-1.5 border-b border-border/70 px-3 py-2 sm:px-4 md:px-5">
+        <div className={cn('flex min-w-0 flex-wrap items-center gap-1.5 border-b border-border/70 py-2', CHAT_HORIZONTAL_PADDING)}>
           {QUICK_REACTION_EMOJIS.map((emoji) => (
             <Button
               key={emoji}
@@ -124,13 +132,16 @@ export function ChatPanel({
         onEditMessage={handleEdit}
         onDeleteMessage={handleDelete}
         onRetryFailed={retryFailedMessage}
+        editingMessageId={editingMessageId}
+        onEditingChange={setEditingMessageId}
       />
       <MessageInput
         conversationId={conversationId}
+        currentUserId={currentUserId}
         replyTo={replyTo}
         onCancelReply={() => setReplyTo(null)}
         onSend={handleSend}
-        disabled={sendDisabled}
+        disabled={sendDisabled || !!editingMessageId}
       />
     </div>
   );

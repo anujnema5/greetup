@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import Image from 'next/image';
 import { MoreVertical } from 'lucide-react';
 import { nameInitials } from '@/lib/utils/name-initials';
@@ -23,10 +23,16 @@ import { MAX_MESSAGE_CONTENT_LENGTH } from '../constants';
 import { formatSystemPayload } from '../lib/format-system-payload';
 import type { Message, Reaction } from '../types/chat.types';
 
+type ClusterPosition = 'single' | 'first' | 'middle' | 'last';
+
 interface MessageBubbleProps {
   message: Message;
   isOwn: boolean;
   currentUserId: string;
+  /** Resolved message being replied to (from the loaded thread). */
+  replyToMessage?: Message | null;
+  /** Position within a consecutive run from the same sender (Instagram-style grouping). */
+  clusterPosition?: ClusterPosition;
   /** Avatar + name row (first message in a run from this peer in a circle). */
   showPeerHeader?: boolean;
   /** Spacer under avatar when continuing a run from this peer. */
@@ -38,6 +44,12 @@ interface MessageBubbleProps {
   onEditMessage?: (messageId: string, content: string) => void;
   onDeleteMessage?: (messageId: string, forAll: boolean) => void;
   onRetryFailed?: (message: Message) => void;
+  /** When set, hover actions are hidden on all other messages. */
+  editingMessageId?: string | null;
+  onEditingChange?: (messageId: string | null) => void;
+  /** Mobile: tapped message — shows time + reply / edit actions. */
+  revealedTimeMessageId?: string | null;
+  onRevealTime?: (messageId: string) => void;
 }
 
 const STATUS_ICONS: Record<string, string> = {
@@ -49,6 +61,65 @@ const STATUS_ICONS: Record<string, string> = {
 
 const AVATAR_CLASS = 'size-9 shrink-0';
 const ROW_GAP = 'gap-2.5';
+const BUBBLE_TEXT = 'text-[14px] font-normal leading-[1.35]';
+const BUBBLE_PAD = 'px-3 py-2';
+
+function formatReplyPreview(
+  replyTo: Message | null | undefined,
+  currentUserId: string,
+): { senderName: string; preview: string } {
+  if (!replyTo) {
+    return { senderName: 'Message', preview: 'Original message unavailable' };
+  }
+
+  const senderName =
+    replyTo.senderId === currentUserId
+      ? 'You'
+      : replyTo.sender?.displayName?.trim() || replyTo.sender?.name || 'Someone';
+
+  if (replyTo.isDeleted) {
+    return {
+      senderName,
+      preview: replyTo.deletedForAll ? 'This message was deleted' : 'Message removed',
+    };
+  }
+
+  if (replyTo.messageType !== 'text') {
+    return { senderName, preview: `${replyTo.messageType} message` };
+  }
+
+  const normalized = replyTo.content.trim().replace(/\s+/g, ' ');
+  const preview =
+    normalized.length > 100 ? `${normalized.slice(0, 100)}…` : normalized || 'Empty message';
+
+  return { senderName, preview };
+}
+
+function bubbleCornerRadius(isOwn: boolean, position: ClusterPosition): string {
+  if (isOwn) {
+    switch (position) {
+      case 'first':
+        return 'rounded-tl-[22px] rounded-tr-[22px] rounded-bl-[22px] rounded-br-[4px]';
+      case 'middle':
+        return 'rounded-tl-[22px] rounded-bl-[22px] rounded-tr-[4px] rounded-br-[4px]';
+      case 'last':
+        return 'rounded-tl-[22px] rounded-bl-[22px] rounded-br-[22px] rounded-tr-[4px]';
+      default:
+        return 'rounded-[22px]';
+    }
+  }
+
+  switch (position) {
+    case 'first':
+      return 'rounded-tl-[22px] rounded-tr-[22px] rounded-br-[22px] rounded-bl-[4px]';
+    case 'middle':
+      return 'rounded-tr-[22px] rounded-br-[22px] rounded-tl-[4px] rounded-bl-[4px]';
+    case 'last':
+      return 'rounded-tr-[22px] rounded-br-[22px] rounded-bl-[22px] rounded-tl-[4px]';
+    default:
+      return 'rounded-[22px]';
+  }
+}
 
 function senderLabel(message: Message): string {
   const s = message.sender;
@@ -99,6 +170,8 @@ export function MessageBubble({
   message,
   isOwn,
   currentUserId,
+  replyToMessage = null,
+  clusterPosition = 'single',
   showPeerHeader = false,
   peerColumnGutter = false,
   showDirectPeerAvatar = false,
@@ -107,21 +180,39 @@ export function MessageBubble({
   onEditMessage,
   onDeleteMessage,
   onRetryFailed,
+  editingMessageId = null,
+  onEditingChange,
+  revealedTimeMessageId = null,
+  onRevealTime,
 }: MessageBubbleProps) {
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(message.content);
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [deleteForAll, setDeleteForAll] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const editRef = useRef<HTMLTextAreaElement>(null);
 
-  const reactionGroups = useMemo(
-    () => groupReactions(message.reactions, currentUserId),
-    [message.reactions, currentUserId],
-  );
+  useEffect(() => {
+    if (!editing) setDraft(message.content);
+  }, [message.content, editing]);
+
+  useLayoutEffect(() => {
+    if (!editing || !editRef.current) return;
+    const el = editRef.current;
+    el.style.height = 'auto';
+    el.style.height = `${el.scrollHeight}px`;
+  }, [editing, draft]);
+
+  // Reaction chips — disabled for now
+  // const reactionGroups = useMemo(
+  //   () => groupReactions(message.reactions, currentUserId),
+  //   [message.reactions, currentUserId],
+  // );
 
   if (message.messageType === 'system') {
     return (
       <div className="flex justify-center my-2">
-        <span className="text-[11px] leading-snug text-muted-foreground bg-muted px-2.5 py-0.5 rounded-full">
+        <span className="rounded-full bg-muted px-2.5 py-1 text-[11px] font-medium leading-[1.35] text-muted-foreground">
           {formatSystemPayload(message.systemPayload)}
         </span>
       </div>
@@ -134,7 +225,21 @@ export function MessageBubble({
       : 'You deleted this message'
     : message.content;
 
-  const bubbleColumnMax = 'max-w-[min(24rem,100%)]';
+  const bubbleColumnMax = 'max-w-[min(75%,18.75rem)]';
+  const showMetaBelow =
+    clusterPosition === 'last' ||
+    clusterPosition === 'single' ||
+    message.status === 'failed';
+
+  const timeRevealed = revealedTimeMessageId === message.id;
+  const showTimeMeta = showMetaBelow || timeRevealed;
+  const mobileMessageActive = timeRevealed;
+
+  const handleMobileMessageTap = () => {
+    if (editing || message.isDeleted || !onRevealTime) return;
+    if (window.matchMedia('(min-width: 768px)').matches) return;
+    onRevealTime(message.id);
+  };
 
   const canEditOrDelete =
     isOwn && !message.isDeleted && onEditMessage && onDeleteMessage && message.messageType === 'text';
@@ -144,60 +249,266 @@ export function MessageBubble({
     if (!next || next.length > MAX_MESSAGE_CONTENT_LENGTH) return;
     onEditMessage?.(message.id, next);
     setEditing(false);
+    onEditingChange?.(null);
   };
 
-  const bubble = (
-    <div className={cn('relative min-w-0', bubbleColumnMax)}>
-      {message.replyToId && (
-        <div className="mb-2 max-w-full truncate border-l-2 border-primary pl-2.5 text-xs leading-snug text-muted-foreground">
-          Replying to a message
-        </div>
-      )}
+  const cancelEdit = () => {
+    setDraft(message.content);
+    setEditing(false);
+    onEditingChange?.(null);
+  };
 
-      <div
-        className={cn(
-          'block w-fit max-w-full rounded-2xl px-3.5 py-2.5 text-sm leading-relaxed wrap-anywhere shadow-sm',
-          isOwn
-            ? 'bg-primary text-primary-foreground rounded-tr-md'
-            : 'bg-muted text-foreground rounded-tl-md',
-          message.isDeleted && 'italic opacity-60',
-        )}
-      >
-        {editing ? (
-          <div className="min-w-48 space-y-2">
-            <textarea
-              value={draft}
-              onChange={(e) => setDraft(e.target.value.slice(0, MAX_MESSAGE_CONTENT_LENGTH))}
-              className="min-h-16 w-full rounded-lg bg-background/15 p-2 text-sm text-foreground outline-none ring-1 ring-primary-foreground/30"
-              autoFocus
-            />
-            <div className="flex justify-end gap-2">
-              <Button type="button" size="sm" variant="secondary" onClick={() => setEditing(false)}>
-                Cancel
-              </Button>
-              <Button type="button" size="sm" onClick={saveEdit} disabled={!draft.trim()}>
-                Save
-              </Button>
-            </div>
+  const startEdit = () => {
+    setMenuOpen(false);
+    setDraft(message.content);
+    setEditing(true);
+    onEditingChange?.(message.id);
+  };
+
+  useEffect(() => {
+    if (!editing) return;
+    const node = editRef.current?.closest('[data-message-row]');
+    node?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+  }, [editing]);
+
+  const actionsLocked = editingMessageId !== null && editingMessageId !== message.id;
+
+  const replyPreview = message.replyToId
+    ? formatReplyPreview(replyToMessage, currentUserId)
+    : null;
+
+  const bubble = (
+    <div
+      className={cn('w-fit min-w-0', bubbleColumnMax, editing && 'mb-1')}
+      data-message-row
+    >
+      <div className="relative w-fit max-w-full">
+        <div
+          onClick={onRevealTime ? handleMobileMessageTap : undefined}
+          className={cn(
+            'block w-fit max-w-full wrap-anywhere',
+            editing ? 'overflow-hidden rounded-[22px] shadow-md ring-2' : bubbleCornerRadius(isOwn, clusterPosition),
+            editing
+              ? isOwn
+                ? 'bg-primary text-primary-foreground ring-primary-foreground/25'
+                : 'bg-muted text-foreground ring-foreground/10'
+              : isOwn
+                ? 'bg-primary text-primary-foreground'
+                : 'bg-muted text-foreground',
+            !editing && BUBBLE_PAD,
+            message.isDeleted && 'italic opacity-60',
+            onRevealTime && !editing && 'max-md:cursor-pointer max-md:active:opacity-90',
+          )}
+        >
+          <div className={cn(editing && 'px-3 py-2.5')}>
+            {replyPreview && !editing && (
+              <div
+                className={cn(
+                  'mb-2.5 max-w-full border-l-2 pl-2.5',
+                  isOwn ? 'border-primary-foreground/45' : 'border-primary/70',
+                )}
+              >
+                <p
+                  className={cn(
+                    'truncate text-[12px] font-semibold leading-tight',
+                    isOwn ? 'text-primary-foreground/85' : 'text-foreground/85',
+                  )}
+                >
+                  {replyPreview.senderName}
+                </p>
+                <p
+                  className={cn(
+                    'mt-0.5 line-clamp-2 text-[12px] leading-snug',
+                    isOwn ? 'text-primary-foreground/70' : 'text-muted-foreground',
+                    replyToMessage?.isDeleted && 'italic',
+                  )}
+                >
+                  {replyPreview.preview}
+                </p>
+              </div>
+            )}
+            {editing ? (
+              <textarea
+                ref={editRef}
+                value={draft}
+                onChange={(e) => setDraft(e.target.value.slice(0, MAX_MESSAGE_CONTENT_LENGTH))}
+                onKeyDown={(e) => {
+                  if (e.key === 'Escape') {
+                    e.preventDefault();
+                    cancelEdit();
+                  }
+                  if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    saveEdit();
+                  }
+                }}
+                rows={1}
+                className={cn(
+                  'block w-full min-w-[8rem] resize-none bg-transparent outline-none',
+                  BUBBLE_TEXT,
+                  isOwn
+                    ? 'text-primary-foreground caret-primary-foreground'
+                    : 'text-foreground caret-foreground',
+                )}
+                autoFocus
+              />
+            ) : (
+              <div className={cn('whitespace-pre-wrap', BUBBLE_TEXT)}>{content}</div>
+            )}
           </div>
-        ) : (
-          <div className="whitespace-pre-wrap">{content}</div>
+
+          {editing && (
+            <div
+              className={cn(
+                'flex items-center justify-end gap-2 border-t px-3 py-2',
+                isOwn
+                  ? 'border-primary-foreground/20 bg-primary-foreground/5'
+                  : 'border-border/60 bg-background/30',
+              )}
+            >
+              <button
+                type="button"
+                onClick={cancelEdit}
+                className={cn(
+                  'cursor-pointer rounded-full px-3 py-1 text-[13px] font-medium transition-colors',
+                  isOwn
+                    ? 'text-primary-foreground/75 hover:bg-primary-foreground/10 hover:text-primary-foreground'
+                    : 'text-muted-foreground hover:bg-muted hover:text-foreground',
+                )}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={saveEdit}
+                disabled={!draft.trim() || draft.trim() === message.content.trim()}
+                className={cn(
+                  'cursor-pointer rounded-full px-3 py-1 text-[13px] font-semibold transition-opacity',
+                  'disabled:cursor-not-allowed disabled:opacity-40',
+                  isOwn
+                    ? 'bg-primary-foreground/15 text-primary-foreground hover:bg-primary-foreground/25'
+                    : 'bg-primary/15 text-primary hover:bg-primary/25',
+                )}
+              >
+                Done
+              </button>
+            </div>
+          )}
+        </div>
+
+        {!message.isDeleted && !editing && !actionsLocked && (
+          <div
+            className={cn(
+              'absolute top-1/2 z-10 -translate-y-1/2 items-center gap-1',
+              isOwn ? 'right-full mr-1.5' : 'left-full ml-1.5',
+              menuOpen || mobileMessageActive ? 'flex' : 'hidden md:group-hover:flex',
+            )}
+            onClick={(e) => e.stopPropagation()}
+          >
+            {onReply && (
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon-sm"
+                className="h-7 w-7 cursor-pointer rounded-full bg-muted/90 p-1 text-xs shadow-sm hover:bg-muted"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onReply(message);
+                }}
+                title="Reply"
+              >
+                ↩
+              </Button>
+            )}
+            {/* Reaction picker — disabled for now
+            {onToggleReaction && (
+              <span className="flex gap-0.5">
+                {(['👍', '❤️', '😂'] as const).map((emoji) => (
+                  <Button
+                    key={emoji}
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="h-auto rounded-full bg-muted px-1.5 py-0.5 text-xs hover:bg-muted/80"
+                    title={`React ${emoji}`}
+                    onClick={() => onToggleReaction(message.id, emoji)}
+                  >
+                    {emoji}
+                  </Button>
+                ))}
+              </span>
+            )}
+            */}
+            {canEditOrDelete && (
+              <DropdownMenu open={menuOpen} onOpenChange={setMenuOpen} modal={false}>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon-sm"
+                    className="h-7 w-7 cursor-pointer rounded-full bg-muted/90 p-1 text-xs shadow-sm hover:bg-muted data-[state=open]:bg-muted"
+                    title="More"
+                  >
+                    <MoreVertical className="size-3.5" strokeWidth={2} />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent
+                  side="bottom"
+                  align={isOwn ? 'end' : 'start'}
+                  sideOffset={6}
+                  avoidCollisions
+                  collisionPadding={8}
+                  className="min-w-[11rem] rounded-xl p-1 shadow-lg"
+                >
+                  <DropdownMenuItem className="cursor-pointer rounded-lg px-3 py-2 text-[13px]" onClick={startEdit}>
+                    Edit
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    className="cursor-pointer rounded-lg px-3 py-2 text-[13px]"
+                    onClick={() => {
+                      setMenuOpen(false);
+                      setDeleteForAll(false);
+                      setDeleteOpen(true);
+                    }}
+                  >
+                    Remove for you
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    className="cursor-pointer rounded-lg px-3 py-2 text-[13px] text-destructive focus:text-destructive"
+                    onClick={() => {
+                      setMenuOpen(false);
+                      setDeleteForAll(true);
+                      setDeleteOpen(true);
+                    }}
+                  >
+                    Delete for everyone
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            )}
+          </div>
         )}
+      </div>
+
+      {showTimeMeta && !editing && (
         <div
           className={cn(
-            'mt-2 flex items-center gap-1.5 text-[11px] leading-tight tabular-nums',
-            isOwn ? 'justify-end text-primary-foreground/80' : 'justify-start text-muted-foreground',
+            'mt-1 flex items-center gap-1 px-0.5 text-[10px] leading-none tabular-nums text-muted-foreground transition-opacity duration-150',
+            'max-md:opacity-0',
+            timeRevealed && 'max-md:opacity-80',
+            'md:opacity-0 md:group-hover:opacity-100',
+            isOwn ? 'justify-end' : 'justify-start',
           )}
         >
           {message.editedAt && !message.isDeleted && (
-            <span className="shrink-0 opacity-90">(edited)</span>
+            <span className="shrink-0">Edited</span>
           )}
           <span className="whitespace-nowrap">{formatMessageTime(message.createdAt)}</span>
           {isOwn && message.status && (
             <span className="shrink-0 whitespace-nowrap">{STATUS_ICONS[message.status] ?? ''}</span>
           )}
         </div>
-      </div>
+      )}
 
       {isOwn && message.status === 'failed' && onRetryFailed && (
         <div className="mt-1 flex justify-end">
@@ -213,89 +524,7 @@ export function MessageBubble({
         </div>
       )}
 
-      {!message.isDeleted && !editing && (
-        <div
-          className={cn(
-            'absolute top-1/2 z-10 -translate-y-1/2 hidden group-hover:flex items-center gap-1',
-            isOwn ? 'right-full mr-1' : 'left-full ml-1',
-          )}
-        >
-          {onReply && (
-            <Button
-              type="button"
-              variant="ghost"
-              size="icon-sm"
-              className="h-6 w-6 rounded-full bg-muted p-1 text-xs hover:bg-muted/80"
-              onClick={() => onReply(message)}
-              title="Reply"
-            >
-              ↩
-            </Button>
-          )}
-          {onToggleReaction && (
-            <span className="flex gap-0.5">
-              {(['👍', '❤️', '😂'] as const).map((emoji) => (
-                <Button
-                  key={emoji}
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  className="h-auto rounded-full bg-muted px-1.5 py-0.5 text-xs hover:bg-muted/80"
-                  title={`React ${emoji}`}
-                  onClick={() => onToggleReaction(message.id, emoji)}
-                >
-                  {emoji}
-                </Button>
-              ))}
-            </span>
-          )}
-          {canEditOrDelete && (
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon-sm"
-                  className="h-6 w-6 rounded-full bg-muted p-1 text-xs hover:bg-muted/80"
-                  title="More"
-                >
-                  <MoreVertical className="size-3.5" strokeWidth={2} />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align={isOwn ? 'end' : 'start'}>
-                <DropdownMenuItem
-                  className="cursor-pointer"
-                  onClick={() => {
-                    setDraft(message.content);
-                    setEditing(true);
-                  }}
-                >
-                  Edit
-                </DropdownMenuItem>
-                <DropdownMenuItem
-                  className="cursor-pointer"
-                  onClick={() => {
-                    setDeleteForAll(false);
-                    setDeleteOpen(true);
-                  }}
-                >
-                  Remove for you
-                </DropdownMenuItem>
-                <DropdownMenuItem
-                  className="cursor-pointer text-destructive focus:text-destructive"
-                  onClick={() => {
-                    setDeleteForAll(true);
-                    setDeleteOpen(true);
-                  }}
-                >
-                  Delete for everyone
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          )}
-        </div>
-      )}
-
+      {/* Reaction chips — disabled for now
       {reactionGroups.length > 0 && onToggleReaction && (
         <div className="mt-1 flex flex-wrap gap-1">
           {reactionGroups.map((g) => (
@@ -318,6 +547,7 @@ export function MessageBubble({
           ))}
         </div>
       )}
+      */}
 
       <Dialog open={deleteOpen} onOpenChange={setDeleteOpen}>
         <DialogContent className="sm:max-w-md" showCloseButton>
@@ -374,9 +604,9 @@ export function MessageBubble({
       )}
     >
       {leftCol}
-      <div className="min-w-0 flex-1">
+      <div className="min-w-0 flex flex-1 flex-col items-start">
         {showPeerHeader && (
-          <div className="mb-1 text-xs font-medium leading-none text-muted-foreground">
+          <div className="mb-1 text-[13px] font-medium leading-tight text-muted-foreground">
             {senderLabel(message)}
           </div>
         )}
