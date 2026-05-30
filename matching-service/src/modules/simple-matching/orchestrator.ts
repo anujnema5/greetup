@@ -24,6 +24,7 @@ import { RoomOrchestrationService } from "@/modules/simple-matching/room";
 import { MatchProposalService } from "@/modules/simple-matching/proposal/proposal";
 import { MatchSkipPeersService } from "@/modules/simple-matching/proposal/skip-peers";
 import { MatchWebhookService } from "@/modules/simple-matching/webhook";
+import { isBlockedWithPeer } from "@/modules/simple-matching/blocks/blocked-peers";
 import {
   orderCandidatesForStrategy,
   resolveMatchExecutionStrategy,
@@ -296,6 +297,15 @@ export class MatchOrchestratorService {
     const skippedPeerIds = await this.skipPeers.getSkippedPeerSet(requesterSnapshot.userId);
     const scoredMaybe = await Promise.all(
       poolCandidates.map(async (candidate): Promise<ScoredMatchCandidate | null> => {
+        if (await isBlockedWithPeer(requesterSnapshot.userId, candidate.userId)) {
+          if (logSkips) {
+            logger.debug("[processMatchRequest] skipping candidate — blocked", {
+              candidateId: candidate.userId,
+            });
+          }
+          return null;
+        }
+
         const candidateSnapshot = await this.getSnapshotWithHydration(candidate.userId);
         if (!candidateSnapshot) {
           if (logSkips) {

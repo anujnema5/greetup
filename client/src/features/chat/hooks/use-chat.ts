@@ -6,13 +6,18 @@ import { toast } from 'sonner';
 import { useSession } from '@/lib/auth-client';
 import { useSocket } from '@/lib/socket/provider';
 import { chatApi } from '../api/chat-api';
+import { CHAT_SOCKET_ERROR } from '../constants/messaging-block.constants';
 import { applyConversationActivityToInbox } from '../lib/inbox-order';
+import {
+  invalidateConversationCache,
+  messagingBlockSendToast,
+} from '../lib/messaging-block';
 import {
   patchMessageInGetMessagesCache,
   pushOptimisticMessage,
 } from '../lib/message-rtk-sync';
 import type { AppDispatch, RootState } from '@/lib/redux/store';
-import type { Message } from '../types/chat.types';
+import type { Message, MessagingBlock } from '../types/chat.types';
 
 function syncInboxAfterSendAck(dispatch: AppDispatch, conversationId: string): void {
   const hit = applyConversationActivityToInbox(dispatch, conversationId, {
@@ -61,13 +66,20 @@ function buildOptimisticMessage(
   };
 }
 
-export function useChat(conversationId: string, options?: { sendEnabled?: boolean }) {
+type UseChatOptions = {
+  /** When false, send / edit / react / delete are no-ops. */
+  interactionsEnabled?: boolean;
+  messagingBlock?: MessagingBlock;
+};
+
+export function useChat(conversationId: string, options?: UseChatOptions) {
   const dispatch = useDispatch<AppDispatch>();
   const store = useStore<RootState>();
   const { chatSocket: socket } = useSocket();
   const { data: session } = useSession();
   const me = session?.user;
-  const sendEnabled = options?.sendEnabled ?? true;
+  const interactionsEnabled = options?.interactionsEnabled ?? true;
+  const messagingBlock = options?.messagingBlock;
 
   const sendMessage = useCallback(
     (params: {
@@ -76,9 +88,8 @@ export function useChat(conversationId: string, options?: { sendEnabled?: boolea
       replyToId?: string;
       mentions?: string[];
     }) => {
-      if (!sendEnabled) {
-        return null;
-      }
+      if (!interactionsEnabled) return null;
+
       const tempId = `temp_${Date.now()}`;
       const optimisticMsg = buildOptimisticMessage(
         { tempId, conversationId, ...params },
@@ -93,25 +104,30 @@ export function useChat(conversationId: string, options?: { sendEnabled?: boolea
         (ack: { success: boolean; messageId?: string; error?: string }) => {
           if (ack.success && ack.messageId) {
             syncInboxAfterSendAck(dispatch, conversationId);
-          } else {
-            if (ack.error === 'RATE_LIMITED') {
-              toast.error('You are sending too quickly. Wait a moment and try again.');
-            }
-            patchMessageInGetMessagesCache(dispatch, conversationId, tempId, {
-              status: 'failed',
-            });
+            return;
           }
+
+          if (ack.error === CHAT_SOCKET_ERROR.RATE_LIMITED) {
+            toast.error('You are sending too quickly. Wait a moment and try again.');
+          } else if (ack.error === CHAT_SOCKET_ERROR.MESSAGING_BLOCKED) {
+            toast.error(messagingBlockSendToast(messagingBlock));
+            invalidateConversationCache(dispatch, conversationId);
+          }
+
+          patchMessageInGetMessagesCache(dispatch, conversationId, tempId, {
+            status: 'failed',
+          });
         },
       );
 
       return tempId;
     },
-    [socket, dispatch, store, conversationId, me, sendEnabled],
+    [socket, dispatch, store, conversationId, me, interactionsEnabled, messagingBlock],
   );
 
   const retryFailedMessage = useCallback(
     (failed: Message) => {
-      if (failed.status !== 'failed') return;
+      if (!interactionsEnabled || failed.status !== 'failed') return;
       dispatch(
         chatApi.util.updateQueryData('getMessages', { conversationId }, (draft) => {
           draft.messages = draft.messages.filter((m) => m.id !== failed.id);
@@ -122,7 +138,7 @@ export function useChat(conversationId: string, options?: { sendEnabled?: boolea
         replyToId: failed.replyToId ?? undefined,
       });
     },
-    [conversationId, dispatch, sendMessage],
+    [conversationId, dispatch, sendMessage, interactionsEnabled],
   );
 
   const markRead = useCallback(
@@ -134,30 +150,34 @@ export function useChat(conversationId: string, options?: { sendEnabled?: boolea
 
   const editMessage = useCallback(
     (messageId: string, content: string) => {
+      if (!interactionsEnabled) return;
       socket.emit('chat:message:edit', { conversationId, messageId, content });
     },
-    [socket, conversationId],
+    [socket, conversationId, interactionsEnabled],
   );
 
   const deleteMessage = useCallback(
     (messageId: string, deleteForAll = false) => {
+      if (!interactionsEnabled) return;
       socket.emit('chat:message:delete', { conversationId, messageId, deleteForAll });
     },
-    [socket, conversationId],
+    [socket, conversationId, interactionsEnabled],
   );
 
   const addReaction = useCallback(
     (messageId: string, emoji: string) => {
+      if (!interactionsEnabled) return;
       socket.emit('chat:reaction:add', { conversationId, messageId, emoji });
     },
-    [socket, conversationId],
+    [socket, conversationId, interactionsEnabled],
   );
 
   const removeReaction = useCallback(
     (messageId: string, emoji: string) => {
+      if (!interactionsEnabled) return;
       socket.emit('chat:reaction:remove', { conversationId, messageId, emoji });
     },
-    [socket, conversationId],
+    [socket, conversationId, interactionsEnabled],
   );
 
   return {

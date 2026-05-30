@@ -28,9 +28,9 @@ export function ChatIncomingMessageToastBridge() {
     if (!socket || !currentUserId) return;
 
     const onNew = (msg: Message) => {
-      if (!shouldToastIncomingMessage(msg, currentUserId, activeRef.current)) return;
-
       const conv = conversationFromCache(() => store.getState(), msg.conversationId);
+      if (!shouldToastIncomingMessage(msg, currentUserId, activeRef.current, conv)) return;
+
       showIncomingMessageToast(msg, conv, (path) => router.push(path));
     };
 

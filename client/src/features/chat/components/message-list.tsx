@@ -18,11 +18,11 @@ interface MessageListProps {
   typingUserIds: string[];
   hasMore: boolean;
   onLoadMore: () => void;
-  onToggleReaction: (messageId: string, emoji: string) => void;
-  onReply: (message: Message) => void;
-  onEditMessage: (messageId: string, content: string) => void;
-  onDeleteMessage: (messageId: string, forAll: boolean) => void;
-  onRetryFailed: (message: Message) => void;
+  onToggleReaction?: (messageId: string, emoji: string) => void;
+  onReply?: (message: Message) => void;
+  onEditMessage?: (messageId: string, content: string) => void;
+  onDeleteMessage?: (messageId: string, forAll: boolean) => void;
+  onRetryFailed?: (message: Message) => void;
   editingMessageId?: string | null;
   onEditingChange?: (messageId: string | null) => void;
 }
@@ -113,10 +113,14 @@ export function MessageList({
                   : undefined
               }
               onToggleReaction={onToggleReaction}
-              onReply={(message) => {
-                clearRevealedTime();
-                onReply(message);
-              }}
+              onReply={
+                onReply
+                  ? (message) => {
+                      clearRevealedTime();
+                      onReply(message);
+                    }
+                  : undefined
+              }
               onEditMessage={onEditMessage}
               onDeleteMessage={onDeleteMessage}
               onRetryFailed={onRetryFailed}

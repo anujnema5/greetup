@@ -1,6 +1,7 @@
 import { eq } from "drizzle-orm";
 
 import logger from "@/core/logging";
+import { userBlocksRepository } from "@/modules/blocks/repositories/user-blocks.repository";
 import { db } from "@/core/database";
 import { users } from "@/core/database/schema";
 import { getRedis } from "@/core/redis";
@@ -222,7 +223,15 @@ async function fetchPeerSocialMeta(viewerId: string, peerUserId: string) {
 export async function getMatchPeerPreview(
   myUserId: string,
   peerUserId: string,
-): Promise<MatchPeerPreview> {
+): Promise<MatchPeerPreview | null> {
+  if (myUserId !== peerUserId) {
+    const blocked = await userBlocksRepository.isEitherBlocked(myUserId, peerUserId);
+    if (blocked) {
+      logger.debug("match_peer_preview_blocked", { myUserId, peerUserId });
+      return null;
+    }
+  }
+
   const redis = getRedis();
 
   const [myRaw, peerRaw, isOnline, social] = await Promise.all([

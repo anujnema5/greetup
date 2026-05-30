@@ -1,4 +1,4 @@
-import { and, desc, eq, inArray, lt, max, or } from 'drizzle-orm';
+import { and, desc, eq, gt, inArray, lt, max, or } from 'drizzle-orm';
 import { db } from '@/core/database';
 import {
   messages,
@@ -143,10 +143,12 @@ export const messageRepository = {
     conversationId: string;
     cursor?: string;
     limit: number;
+    hiddenBeforeAt?: Date;
   }): Promise<{ messages: MessageRow[]; nextCursor: string | null }> {
     const rows = await db.select().from(messages)
       .where(and(
         eq(messages.conversationId, params.conversationId),
+        ...(params.hiddenBeforeAt ? [gt(messages.createdAt, params.hiddenBeforeAt)] : []),
         ...(params.cursor ? [lt(messages.createdAt, new Date(params.cursor))] : []),
       ))
       .orderBy(desc(messages.createdAt))

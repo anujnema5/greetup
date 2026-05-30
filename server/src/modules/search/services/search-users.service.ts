@@ -2,7 +2,8 @@ import { and, eq, ilike, isNotNull, ne, notInArray, or, sql } from "drizzle-orm"
 
 import logger from "@/core/logging";
 import { db } from "@/core/database";
-import { userBlocks, users } from "@/core/database/schema";
+import { users } from "@/core/database/schema";
+import { userBlocksRepository } from "@/modules/blocks/repositories/user-blocks.repository";
 import { escapeIlikePattern } from "@/shared/sql/ilike-escape";
 
 export type SearchUserHit = {
@@ -14,20 +15,7 @@ export type SearchUserHit = {
 };
 
 async function loadBlockedPeerIds(viewerId: string): Promise<string[]> {
-  const [outgoing, incoming] = await Promise.all([
-    db
-      .select({ id: userBlocks.blockedId })
-      .from(userBlocks)
-      .where(eq(userBlocks.blockerId, viewerId)),
-    db
-      .select({ id: userBlocks.blockerId })
-      .from(userBlocks)
-      .where(eq(userBlocks.blockedId, viewerId)),
-  ]);
-  const set = new Set<string>();
-  for (const r of outgoing) set.add(r.id);
-  for (const r of incoming) set.add(r.id);
-  return [...set];
+  return userBlocksRepository.listAllBlockedPeerIds(viewerId);
 }
 
 export async function searchUsersService(

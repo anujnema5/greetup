@@ -62,6 +62,11 @@ export const API_ENDPOINTS = {
   SEARCH: {
     USERS: "/search/users",
   },
+  BLOCKS: {
+    LIST: "/blocks",
+    user: (targetUserId: string) =>
+      `/blocks/${encodeURIComponent(targetUserId)}` as const,
+  },
   CIRCLES: {
     CATEGORIES: "/circles/categories",
     CREATE: "/circles",

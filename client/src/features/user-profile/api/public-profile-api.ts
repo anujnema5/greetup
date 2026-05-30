@@ -37,6 +37,7 @@ export const publicProfileApi = baseApi.injectEndpoints({
       query: (username) => API_ENDPOINTS.PROFILE.public(publicProfileRtkCacheId(username)),
       transformResponse: toPublicProfileData,
       providesTags: (_result, _err, username) => [cacheTagForUsername(username)],
+      keepUnusedDataFor: 0,
     }),
   }),
 });

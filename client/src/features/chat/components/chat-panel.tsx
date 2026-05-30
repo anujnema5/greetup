@@ -6,16 +6,20 @@ import { cn } from '@/lib/utils';
 import { useChat } from '../hooks/use-chat';
 import { useChatThreadUi } from '../hooks/use-chat-thread-ui';
 import { useConversation } from '../hooks/use-conversation';
+import { useMessagingBlockState } from '../hooks/use-messaging-block-state';
 import { CHAT_HORIZONTAL_PADDING } from '../constants';
 import { MessageList } from './message-list';
 import { MessageInput } from './message-input';
-import type { ConversationType } from '../types/chat.types';
+import { MessagingBlockBanner } from './messaging-block/messaging-block-banner';
+import type { ConversationType, MessagingBlock } from '../types/chat.types';
 
 interface ChatPanelProps {
   conversationId: string;
   conversationType?: ConversationType;
   showQuickReactions?: boolean;
+  /** Extra client-side lock (e.g. moderation) on top of server block state. */
   sendDisabled?: boolean;
+  messagingBlock?: MessagingBlock;
 }
 
 const QUICK_REACTION_EMOJIS = ['👏', '🔥', '😂', '🎉', '❤️'];
@@ -25,9 +29,12 @@ export function ChatPanel({
   conversationType,
   showQuickReactions = false,
   sendDisabled = false,
+  messagingBlock,
 }: ChatPanelProps) {
   const { data: session, isPending: sessionPending } = useSession();
   const sessionUserId = session?.user?.id ?? '';
+
+  const blockState = useMessagingBlockState(messagingBlock, { forceDisabled: sendDisabled });
 
   const {
     replyTo,
@@ -53,19 +60,22 @@ export function ChatPanel({
     removeReaction,
     editMessage,
     deleteMessage,
-  } = useChat(conversationId, { sendEnabled: !sendDisabled });
+  } = useChat(conversationId, {
+    interactionsEnabled: !blockState.interactionsDisabled,
+    messagingBlock,
+  });
 
   const typingUserIds = Object.entries(typingUsers)
     .filter(([uid, isTyping]) => isTyping && uid !== currentUserId)
     .map(([uid]) => uid);
 
   const handleSend = (content: string, replyToId?: string) => {
-    if (sendDisabled) return;
+    if (blockState.interactionsDisabled) return;
     sendMessage({ content, replyToId });
   };
 
   const handleQuickReaction = (emoji: string) => {
-    if (sendDisabled) return;
+    if (blockState.interactionsDisabled) return;
     sendMessage({ content: emoji });
   };
 
@@ -92,6 +102,9 @@ export function ChatPanel({
     );
   }
 
+  const { interactionsDisabled, inputPlaceholder } = blockState;
+  const composerDisabled = interactionsDisabled || !!editingMessageId;
+
   return (
     <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
       {showQuickReactions ? (
@@ -103,7 +116,7 @@ export function ChatPanel({
               variant="outline"
               size="sm"
               onClick={() => handleQuickReaction(emoji)}
-              disabled={sendDisabled}
+              disabled={interactionsDisabled}
               className="h-auto px-2 py-0.5 text-sm"
               aria-label={`Send ${emoji} reaction`}
             >
@@ -119,21 +132,24 @@ export function ChatPanel({
         typingUserIds={typingUserIds}
         hasMore={hasMore}
         onLoadMore={loadMore}
-        onToggleReaction={handleToggleReaction}
-        onReply={setReplyTo}
-        onEditMessage={editMessage}
-        onDeleteMessage={deleteMessage}
-        onRetryFailed={retryFailedMessage}
+        onToggleReaction={interactionsDisabled ? undefined : handleToggleReaction}
+        onReply={interactionsDisabled ? undefined : setReplyTo}
+        onEditMessage={interactionsDisabled ? undefined : editMessage}
+        onDeleteMessage={interactionsDisabled ? undefined : deleteMessage}
+        onRetryFailed={interactionsDisabled ? undefined : retryFailedMessage}
         editingMessageId={editingMessageId}
         onEditingChange={setEditingMessageId}
       />
+      <MessagingBlockBanner messagingBlock={messagingBlock} />
       <MessageInput
         conversationId={conversationId}
         currentUserId={currentUserId}
         replyTo={replyTo}
         onCancelReply={clearReply}
         onSend={handleSend}
-        disabled={sendDisabled || !!editingMessageId}
+        disabled={composerDisabled}
+        placeholder={inputPlaceholder}
+        typingEnabled={!interactionsDisabled}
       />
     </div>
   );

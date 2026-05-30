@@ -3,6 +3,7 @@ import logger from '@/core/logging';
 import { getRedis } from '@/core/redis';
 import { CHAT_KEYS } from '@/core/redis/keys';
 import { conversationRepository } from '../repositories/conversation.repository';
+import { chatSocketErrorCode, isClientSafeChatError } from '../lib/chat-socket-errors';
 import { inboxPreviewFromMessageRow, messageService } from '../services/message.service';
 
 function emitToParticipantUsers(
@@ -32,11 +33,11 @@ async function emitReactionUpdateToParticipants(
 }
 
 function handleError(socket: Socket, event: string, err: unknown) {
-  const msg = err instanceof Error ? err.message : String(err);
-  logger.error(`[chat.socket] ${event} error: ${msg}`);
+  const code = chatSocketErrorCode(err);
+  logger.error(`[chat.socket] ${event} error: ${code}`);
 
-  if (msg === 'UNAUTHORIZED') {
-    socket.emit('chat:error', { code: 'UNAUTHORIZED', event });
+  if (isClientSafeChatError(code)) {
+    socket.emit('chat:error', { code, event });
   } else {
     socket.emit('chat:error', { code: 'INTERNAL_ERROR', event });
   }
@@ -120,8 +121,9 @@ export function registerChatSocketHandlers(io: Namespace, socket: Socket) {
 
       ack?.({ success: true, messageId: msg.id });
     } catch (err) {
+      const code = chatSocketErrorCode(err);
       handleError(socket, 'chat:message:send', err);
-      ack?.({ success: false, error: 'INTERNAL_ERROR' });
+      ack?.({ success: false, error: code });
     }
   });
 

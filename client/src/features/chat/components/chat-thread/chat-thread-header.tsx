@@ -1,14 +1,15 @@
 'use client';
 
+import Link from 'next/link';
 import { cn } from '@/lib/utils';
 import { UserAvatarWithPresence, useUserOnlineStatus } from '@/features/presence';
 import {
   conversationDisplayTitle,
   conversationListAvatar,
   conversationMetaSubtitle,
-} from '../lib/conversation-display';
-import { getDmPeerUserId } from '../lib/conversation-peers';
-import type { Conversation } from '../types/chat.types';
+} from '../../lib/conversation-display';
+import { getDmPeerProfileHref, getDmPeerUserId } from '../../lib/conversation-peers';
+import type { Conversation } from '../../types/chat.types';
 
 type ChatThreadHeaderProps = {
   conversation: Conversation;
@@ -26,13 +27,14 @@ export function ChatThreadHeader({
   const baseSubtitle = conversationMetaSubtitle(conversation);
   const { image, label } = conversationListAvatar(conversation, currentUserId);
   const peerUserId = getDmPeerUserId(conversation, currentUserId);
+  const profileHref = getDmPeerProfileHref(conversation, currentUserId);
   const { isOnline } = useUserOnlineStatus(peerUserId);
 
   const subtitle =
     peerUserId && isOnline ? 'Online' : peerUserId && !isOnline ? baseSubtitle : baseSubtitle;
 
-  return (
-    <div className={cn('flex min-w-0 flex-1 items-center gap-3', className)}>
+  const inner = (
+    <>
       <UserAvatarWithPresence
         userId={peerUserId}
         isOnline={peerUserId ? isOnline : false}
@@ -66,6 +68,18 @@ export function ChatThreadHeader({
           {subtitle}
         </p>
       </div>
+    </>
+  );
+
+  return (
+    <div className={cn('min-w-0 flex-1', className)}>
+      {profileHref ? (
+        <Link href={profileHref} className="flex min-w-0 items-center gap-3">
+          {inner}
+        </Link>
+      ) : (
+        <div className="flex min-w-0 items-center gap-3">{inner}</div>
+      )}
     </div>
   );
 }
