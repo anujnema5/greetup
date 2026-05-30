@@ -27,6 +27,8 @@ import { useCallRenderDebug } from "@/features/room/hooks/debug/use-call-render-
 import { InCallScreen } from "@/features/room/call/shell/in-call-screen";
 import { useRemoteParticipantLabel } from "@/features/room/hooks/media/use-remote-participant-label";
 import { useRoomVideo } from "@/features/room/hooks/session/use-room-video";
+import { useLobbyPreviewMedia } from "@/features/room/hooks/lobby/use-lobby-preview-media";
+import { setLobbyMediaIntent } from "@/features/room/lib/lobby";
 import { getRtkMutationErrorMessage } from "@/lib/api/rtk-mutation-error";
 import { buildCallCapabilities } from "@/features/room/contracts";
 import {
@@ -290,6 +292,8 @@ export function InCallContainer({
 
   const rtcLobbyWait = guestLobbyWait || circleLobbyScheduledNotReady;
 
+  const lobbyPreview = useLobbyPreviewMedia(rtcLobbyWait);
+
   const hostCanStartScheduledCircleNow = Boolean(
     isDbCircleCall &&
       isHostUser &&
@@ -316,12 +320,15 @@ export function InCallContainer({
       );
       return;
     }
+    setLobbyMediaIntent({ mic: lobbyPreview.micOn, camera: lobbyPreview.camOn });
     void refetchRtcToken();
   }, [
     circleLobbyScheduledNotReady,
     circleScheduledStartAt,
     isHostUser,
     scheduledLobbyLabel,
+    lobbyPreview.micOn,
+    lobbyPreview.camOn,
     refetchRtcToken,
     roomId,
   ]);
@@ -348,13 +355,20 @@ export function InCallContainer({
 
   const handleHostStartScheduledCircleNow = useCallback(async () => {
     try {
+      setLobbyMediaIntent({ mic: lobbyPreview.micOn, camera: lobbyPreview.camOn });
       await startScheduledCircle(roomId).unwrap();
       toast.success("Circle is live — connecting you now.");
       void refetchRtcToken();
     } catch (e: unknown) {
       toast.error(getRtkMutationErrorMessage(e, "Could not start the circle"));
     }
-  }, [refetchRtcToken, roomId, startScheduledCircle]);
+  }, [
+    lobbyPreview.camOn,
+    lobbyPreview.micOn,
+    refetchRtcToken,
+    roomId,
+    startScheduledCircle,
+  ]);
 
   return (
     <div className="fixed inset-0 z-100 flex flex-col overflow-hidden bg-background">
@@ -370,6 +384,7 @@ export function InCallContainer({
       {rtcLobbyWait ? (
         <CircleLobbyOverlay
           open
+          lobbyPreview={lobbyPreview}
           circleTitle={circleDisplayTitle}
           scheduledLabel={scheduledLobbyLabel}
           waitingForScheduledStart={circleLobbyScheduledNotReady}

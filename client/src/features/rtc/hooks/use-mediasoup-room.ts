@@ -7,6 +7,8 @@ import type { Device } from "mediasoup-client";
 import type { Socket } from "socket.io-client";
 import { useMediasoupLocalMedia } from "@/features/rtc/hooks/use-mediasoup-local-media";
 import { useMediasoupRoomSession } from "@/features/rtc/hooks/use-mediasoup-room-session";
+import { useApplyLobbyMediaIntent } from "@/features/room/hooks/lobby/use-apply-lobby-media-intent";
+import { clearLobbyMediaHandoff, clearLobbyMediaIntent } from "@/features/room/lib/lobby";
 import { useScreenShareFocusOrdering } from "@/features/rtc/hooks/use-screen-share-focus-ordering";
 import {
   buildDirectCallMainStageStream,
@@ -277,6 +279,20 @@ export function useMediasoupRoom(options: UseMediasoupRoomArgs): UseMediasoupRoo
     toggleScreenShare: toggleScreenShareInternal,
     cleanupLocalScreenShare,
   } = useMediasoupLocalMedia(localMediaRefs, localMediaSetters);
+
+  useApplyLobbyMediaIntent({
+    mediasoupReady: status === "ready",
+    micEnabled,
+    cameraEnabled,
+    toggleMic,
+    toggleCamera,
+  });
+
+  useEffect(() => {
+    if (options.enabled) return;
+    clearLobbyMediaIntent();
+    clearLobbyMediaHandoff();
+  }, [options.enabled]);
 
   const toggleScreenShare = useCallback(() => {
     if (!screenSharing && screenShareTiles.length >= MAX_CONCURRENT_SCREEN_SHARES) {

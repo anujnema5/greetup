@@ -13,11 +13,11 @@ import {
 } from "@/components/ui/card";
 import { DEFAULT_CIRCLE_DISPLAY_TITLE } from "@/features/room/constants/call/circle-display";
 import { cn } from "@/lib/utils";
-import { scheduledStartTimeDisclaimerCompact } from "@/features/circles/constants/scheduled-circle-join-grace";
-import { useLobbyPreviewMedia } from "@/features/room/hooks/lobby/use-lobby-preview-media";
+import type { LobbyPreviewMedia } from "@/features/room/hooks/lobby/use-lobby-preview-media";
 
 export type CircleLobbyOverlayProps = {
   open: boolean;
+  lobbyPreview: LobbyPreviewMedia;
   circleTitle: string | null;
   /** Formatted local start time, or null if unknown */
   scheduledLabel: string | null;
@@ -39,6 +39,7 @@ export type CircleLobbyOverlayProps = {
  */
 export function CircleLobbyOverlay({
   open,
+  lobbyPreview,
   circleTitle,
   scheduledLabel,
   waitingForScheduledStart,
@@ -50,10 +51,9 @@ export function CircleLobbyOverlay({
   hostStartScheduledBusy = false,
   onHostStartScheduledNow,
 }: CircleLobbyOverlayProps) {
-  const lobbyPreview = useLobbyPreviewMedia(open);
   const lobbyPreviewVideoRef = useRef<HTMLVideoElement>(null);
   const isAcquiringPreview =
-    open && !lobbyPreview.previewStream && !lobbyPreview.error;
+    open && (lobbyPreview.acquiring === "cam" || lobbyPreview.acquiring === "mic");
 
   useEffect(() => {
     const el = lobbyPreviewVideoRef.current;
@@ -61,6 +61,45 @@ export function CircleLobbyOverlay({
     el.srcObject = lobbyPreview.previewStream;
     void el.play().catch(() => {});
   }, [lobbyPreview.previewStream]);
+
+  const previewControls = (
+    <div className="absolute bottom-3 left-1/2 z-10 flex -translate-x-1/2 gap-1.5 rounded-full border border-white/12 bg-black/45 px-2 py-1.5 shadow-lg backdrop-blur-md">
+      <Button
+        type="button"
+        size="icon"
+        variant="ghost"
+        className="size-10 rounded-full text-white hover:bg-white/15 hover:text-white"
+        aria-label={lobbyPreview.micOn ? "Mute microphone" : "Turn on microphone"}
+        disabled={lobbyPreview.acquiring === "mic"}
+        onClick={() => void lobbyPreview.toggleMic()}
+      >
+        {lobbyPreview.acquiring === "mic" ? (
+          <Loader2 className="size-[1.15rem] animate-spin" aria-hidden />
+        ) : lobbyPreview.micOn ? (
+          <Mic className="size-[1.15rem]" aria-hidden />
+        ) : (
+          <MicOff className="size-[1.15rem] text-amber-300" aria-hidden />
+        )}
+      </Button>
+      <Button
+        type="button"
+        size="icon"
+        variant="ghost"
+        className="size-10 rounded-full text-white hover:bg-white/15 hover:text-white"
+        aria-label={lobbyPreview.camOn ? "Turn off camera" : "Turn on camera"}
+        disabled={lobbyPreview.acquiring === "cam"}
+        onClick={() => void lobbyPreview.toggleCamera()}
+      >
+        {lobbyPreview.acquiring === "cam" ? (
+          <Loader2 className="size-[1.15rem] animate-spin" aria-hidden />
+        ) : lobbyPreview.camOn ? (
+          <Video className="size-[1.15rem]" aria-hidden />
+        ) : (
+          <VideoOff className="size-[1.15rem] text-amber-300" aria-hidden />
+        )}
+      </Button>
+    </div>
+  );
 
   if (!open) return null;
 
@@ -110,63 +149,85 @@ export function CircleLobbyOverlay({
                 muted
               />
               <div className="pointer-events-none absolute inset-x-0 bottom-0 h-28 bg-linear-to-t from-black/70 via-black/25 to-transparent" />
-              <div className="absolute bottom-3 left-1/2 z-10 flex -translate-x-1/2 gap-1.5 rounded-full border border-white/12 bg-black/45 px-2 py-1.5 shadow-lg backdrop-blur-md">
-                <Button
-                  type="button"
-                  size="icon"
-                  variant="ghost"
-                  className="size-10 rounded-full text-white hover:bg-white/15 hover:text-white"
-                  aria-label={lobbyPreview.micOn ? "Mute microphone" : "Unmute microphone"}
-                  onClick={() => lobbyPreview.toggleMic()}
-                >
-                  {lobbyPreview.micOn ? (
-                    <Mic className="size-[1.15rem]" aria-hidden />
-                  ) : (
-                    <MicOff className="size-[1.15rem] text-amber-300" aria-hidden />
-                  )}
-                </Button>
-                <Button
-                  type="button"
-                  size="icon"
-                  variant="ghost"
-                  className="size-10 rounded-full text-white hover:bg-white/15 hover:text-white"
-                  aria-label={lobbyPreview.camOn ? "Turn off camera" : "Turn on camera"}
-                  onClick={() => lobbyPreview.toggleCamera()}
-                >
-                  {lobbyPreview.camOn ? (
-                    <Video className="size-[1.15rem]" aria-hidden />
-                  ) : (
-                    <VideoOff className="size-[1.15rem] text-amber-300" aria-hidden />
-                  )}
-                </Button>
-              </div>
+              {previewControls}
               <div className="pointer-events-none absolute bottom-3 left-3 rounded-md bg-black/40 px-2 py-1 text-[10px] font-medium tracking-wide text-white/80 uppercase backdrop-blur-sm">
                 Preview
               </div>
             </>
           ) : (
-            <div className="flex h-full min-h-[200px] flex-col items-center justify-center gap-4 bg-muted/25 px-6 text-center">
+            <div className="relative flex h-full min-h-[200px] flex-col items-center justify-center gap-4 bg-muted/25 px-6 text-center">
               {isAcquiringPreview ? (
                 <>
                   <div className="flex size-16 items-center justify-center rounded-2xl border border-border/60 bg-background/80 shadow-inner">
                     <Loader2 className="size-7 animate-spin text-primary" aria-hidden />
                   </div>
                   <div className="space-y-1">
-                    <p className="text-sm font-medium text-foreground">Getting your camera ready</p>
+                    <p className="text-sm font-medium text-foreground">
+                      {lobbyPreview.acquiring === "cam"
+                        ? "Turning on camera"
+                        : "Turning on microphone"}
+                    </p>
                     <p className="text-xs text-muted-foreground">Allow access when your browser asks</p>
                   </div>
                 </>
               ) : (
                 <>
-                  <div className="rounded-xl border border-destructive/25 bg-destructive/5 px-4 py-3 text-sm text-destructive">
-                    {lobbyPreview.error ?? "Could not start preview"}
+                  <div className="flex size-16 items-center justify-center rounded-2xl border border-border/60 bg-background/80 shadow-inner">
+                    <VideoOff className="size-7 text-muted-foreground/70" aria-hidden />
                   </div>
-                  <p className="max-w-xs text-xs text-muted-foreground">
-                    You can still try to join this circle — we&apos;ll connect audio and video once the
-                    room opens.
-                  </p>
+                  <div className="space-y-1">
+                    <p className="text-sm font-medium text-foreground">Camera and mic are off</p>
+                    <p className="max-w-xs text-xs text-muted-foreground">
+                      Turn them on below to test your devices before you join — optional.
+                    </p>
+                  </div>
+                  {lobbyPreview.error ? (
+                    <div className="rounded-xl border border-destructive/25 bg-destructive/5 px-4 py-3 text-sm text-destructive">
+                      {lobbyPreview.error}
+                    </div>
+                  ) : null}
                 </>
               )}
+              {!isAcquiringPreview ? (
+                <div className="absolute bottom-3 left-1/2 z-10 -translate-x-1/2 rounded-full border border-border/60 bg-background/90 px-2 py-1.5 shadow-md backdrop-blur-sm">
+                  <div className="flex gap-1.5">
+                    <Button
+                      type="button"
+                      size="icon"
+                      variant="ghost"
+                      className="size-10 rounded-full"
+                      aria-label={lobbyPreview.micOn ? "Mute microphone" : "Turn on microphone"}
+                      disabled={lobbyPreview.acquiring === "mic"}
+                      onClick={() => void lobbyPreview.toggleMic()}
+                    >
+                      {lobbyPreview.acquiring === "mic" ? (
+                        <Loader2 className="size-[1.15rem] animate-spin" aria-hidden />
+                      ) : lobbyPreview.micOn ? (
+                        <Mic className="size-[1.15rem]" aria-hidden />
+                      ) : (
+                        <MicOff className="size-[1.15rem] text-amber-600 dark:text-amber-400" aria-hidden />
+                      )}
+                    </Button>
+                    <Button
+                      type="button"
+                      size="icon"
+                      variant="ghost"
+                      className="size-10 rounded-full"
+                      aria-label={lobbyPreview.camOn ? "Turn off camera" : "Turn on camera"}
+                      disabled={lobbyPreview.acquiring === "cam"}
+                      onClick={() => void lobbyPreview.toggleCamera()}
+                    >
+                      {lobbyPreview.acquiring === "cam" ? (
+                        <Loader2 className="size-[1.15rem] animate-spin" aria-hidden />
+                      ) : lobbyPreview.camOn ? (
+                        <Video className="size-[1.15rem]" aria-hidden />
+                      ) : (
+                        <VideoOff className="size-[1.15rem] text-amber-600 dark:text-amber-400" aria-hidden />
+                      )}
+                    </Button>
+                  </div>
+                </div>
+              ) : null}
             </div>
           )}
         </div>
@@ -203,8 +264,8 @@ export function CircleLobbyOverlay({
                 ? "As the host, you can go live whenever you’re ready. Guests can join once the circle is open (or after the scheduled time if you wait)."
                 : waitingForScheduledStart
                   ? rtcTokenError ??
-                    "The host hasn’t opened this circle yet, or it’s still before the scheduled time. Check your mic and camera here, then join when you’re ready."
-                  : "The host hasn’t opened this circle for everyone yet. You can test your devices here—we’ll connect you when the room opens."}
+                    "The host hasn’t opened this circle yet, or it’s still before the scheduled time. You can optionally test your mic and camera here, then join when you’re ready."
+                  : "The host hasn’t opened this circle for everyone yet. Optionally test your devices here—we’ll connect you when the room opens."}
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4 pb-7 pt-5">
