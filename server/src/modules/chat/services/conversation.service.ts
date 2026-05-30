@@ -1,6 +1,7 @@
 import { desc, inArray, max } from 'drizzle-orm';
 import { db } from '@/core/database';
 import { messages } from '@/core/database/schema';
+import logger from '@/core/logging';
 import { getRedis } from '@/core/redis';
 import { CHAT_KEYS } from '@/core/redis/keys';
 import { conversationRepository } from '../repositories/conversation.repository';
@@ -44,7 +45,10 @@ export const conversationService = {
     if (!conv) return null;
 
     const isMember = conv.participants.some((p) => p.userId === userId);
-    if (!isMember) throw new Error('UNAUTHORIZED');
+    if (!isMember) {
+      logger.warn('conversation_access_unauthorized', { conversationId, userId });
+      throw new Error('UNAUTHORIZED');
+    }
 
     return conv;
   },
@@ -55,12 +59,19 @@ export const conversationService = {
 
   async setPersistence(conversationId: string, userId: string, wantsPersistence: boolean) {
     const isMember = await conversationRepository.isParticipant(conversationId, userId);
-    if (!isMember) throw new Error('UNAUTHORIZED');
+    if (!isMember) {
+      logger.warn('conversation_persistence_unauthorized', { conversationId, userId });
+      throw new Error('UNAUTHORIZED');
+    }
     await conversationRepository.setPersistence(conversationId, userId, wantsPersistence);
+    logger.info('conversation_persistence_updated', { conversationId, userId, wantsPersistence });
   },
 
   async assertParticipant(conversationId: string, userId: string): Promise<void> {
     const isMember = await conversationRepository.isParticipant(conversationId, userId);
-    if (!isMember) throw new Error('UNAUTHORIZED');
+    if (!isMember) {
+      logger.warn('conversation_assert_participant_unauthorized', { conversationId, userId });
+      throw new Error('UNAUTHORIZED');
+    }
   },
 };

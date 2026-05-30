@@ -1,3 +1,4 @@
+import logger from "@/core/logging";
 import { emitToUser } from "@/core/socket/socket";
 import { isDbRoomSessionClosed } from "@/modules/rooms/lib/expiry/room-expiry";
 import { CIRCLE_ROOM_SOCKET_EVENTS } from "@/modules/rooms/constants/events/circle-room-socket.events";
@@ -29,20 +30,24 @@ export async function removeCircleParticipantFromLive(
 ): Promise<{ removed: boolean; restricted: boolean }> {
   const room = await roomsRepository.findRoomById(roomId);
   if (!room || room.roomType !== "circle") {
+    logger.debug("circle_participant_remove_skipped", { roomId, targetUserId, reason: "not_circle" });
     return { removed: false, restricted: false };
   }
 
   if (isDbRoomSessionClosed(room)) {
     await clearUserActiveRtcRoom(targetUserId);
+    logger.debug("circle_participant_remove_skipped", { roomId, targetUserId, reason: "session_closed" });
     return { removed: false, restricted: false };
   }
 
   if (room.status !== "live") {
+    logger.debug("circle_participant_remove_skipped", { roomId, targetUserId, reason: "not_live" });
     return { removed: false, restricted: false };
   }
 
   const activeTarget = await roomParticipantsRepository.isUserRoomParticipant(roomId, targetUserId);
   if (!activeTarget) {
+    logger.debug("circle_participant_remove_skipped", { roomId, targetUserId, reason: "not_participant" });
     return { removed: false, restricted: false };
   }
 
@@ -67,5 +72,11 @@ export async function removeCircleParticipantFromLive(
     restricted = true;
   }
 
+  logger.info("circle_participant_removed_from_live", {
+    roomId,
+    targetUserId,
+    restricted,
+    socketReason: options.socketReason ?? "host_removed",
+  });
   return { removed: true, restricted };
 }

@@ -1,3 +1,4 @@
+import logger from "@/core/logging";
 import { roomInviteRepository } from "@/modules/rooms/repositories/expand-direct-room.repository";
 import { roomsRepository } from "@/modules/rooms/repositories/rooms.repository";
 import { roomParticipantsRepository } from "@/modules/rooms/repositories/room-participants.repository";
@@ -50,5 +51,10 @@ export async function syncCircleRoomTitleFromParticipants(roomId: string): Promi
   const title = formatCircleTitleFromDisplayLabels(labels);
   await roomsRepository.updateLiveRoomTitle(roomId, title);
   await patchSessionRoomRedisTitle(roomId, title);
+  logger.info("circle_room_title_synced_from_participants", {
+    roomId,
+    participantCount: ids.length,
+    title,
+  });
   return title;
 }

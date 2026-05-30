@@ -1,3 +1,4 @@
+import logger from "@/core/logging";
 import { roomsRepository } from "@/modules/rooms/repositories/rooms.repository";
 import { endLiveRoomSession } from "@/modules/rooms/services/session/end-live-room-session.service";
 import { clearUserActiveRtcRoom } from "@/modules/rooms/services/rtc/user-active-rtc-room-redis.service";
@@ -17,6 +18,17 @@ export class HostEndCircleForEveryoneError extends Error {
   }
 }
 
+function rejectHostEndCircle(
+  userId: string,
+  roomId: string,
+  message: string,
+  code: HostEndCircleForEveryoneErrorCode,
+  statusCode: number,
+): never {
+  logger.warn("circle_host_end_rejected", { userId, roomId, code, message });
+  throw new HostEndCircleForEveryoneError(message, code, statusCode);
+}
+
 /**
  * Host-only: disconnects everyone, clears main `room:{id}` Redis, updates Postgres, and tears down SFU.
  * Scheduled calendar circles may return to `scheduled` (slot preserved) via {@link endLiveRoomSession}.
@@ -27,10 +39,12 @@ export async function hostEndCircleForEveryoneService(
 ): Promise<{ roomEnded: boolean; alreadyEnded: boolean }> {
   const room = await roomsRepository.findRoomById(roomId);
   if (!room || room.roomType !== "circle") {
-    throw new HostEndCircleForEveryoneError("Room not found", "ROOM_NOT_FOUND", 404);
+    rejectHostEndCircle(userId, roomId, "Room not found", "ROOM_NOT_FOUND", 404);
   }
   if (room.hostUserId !== userId) {
-    throw new HostEndCircleForEveryoneError(
+    rejectHostEndCircle(
+      userId,
+      roomId,
       "Only the host can end this circle for everyone",
       "NOT_HOST",
       403,
@@ -40,11 +54,12 @@ export async function hostEndCircleForEveryoneService(
   if (isDbRoomSessionClosed(room)) {
     await deleteSessionRoomRedis(roomId);
     await clearUserActiveRtcRoom(userId);
+    logger.debug("circle_host_end_skipped", { userId, roomId, reason: "already_ended" });
     return { roomEnded: false, alreadyEnded: true };
   }
 
   if (room.status !== "live") {
-    throw new HostEndCircleForEveryoneError("Room is not live", "INVALID_STATE", 400);
+    rejectHostEndCircle(userId, roomId, "Room is not live", "INVALID_STATE", 400);
   }
 
   const result = await endLiveRoomSession(roomId, "host_end_for_everyone", {
@@ -55,6 +70,12 @@ export async function hostEndCircleForEveryoneService(
 
   await clearUserActiveRtcRoom(userId);
 
+  logger.info("circle_host_ended_for_everyone", {
+    userId,
+    roomId,
+    roomEnded: result.ended,
+    alreadyClosed: result.alreadyClosed,
+  });
   return {
     roomEnded: result.ended,
     alreadyEnded: result.alreadyClosed,

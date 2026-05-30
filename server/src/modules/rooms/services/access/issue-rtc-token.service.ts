@@ -1,3 +1,4 @@
+import logger from "@/core/logging";
 import { signRtcJwtForRoom } from "@/core/rtc/rtc-jwt";
 import { mergeRoomAdvancedOptions } from "@/core/database/schema";
 import { getRedis } from "@/core/redis";
@@ -37,33 +38,46 @@ export class IssueRtcTokenError extends Error {
   }
 }
 
+function rejectIssueRtcToken(
+  userId: string,
+  roomId: string,
+  message: string,
+  code: IssueRtcTokenErrorCode,
+  statusCode: number,
+): never {
+  logger.warn("rtc_token_rejected", { userId, roomId, code, message });
+  throw new IssueRtcTokenError(message, code, statusCode);
+}
+
 /** RTC JWT for direct or circle; caller must be host or participant; room must be live. */
 export async function issueRtcTokenService(userId: string, roomId: string) {
   let room = await roomsRepository.findRoomById(roomId);
 
   if (!room) {
-    throw new IssueRtcTokenError("Room not found", "ROOM_NOT_FOUND", 404);
+    rejectIssueRtcToken(userId, roomId, "Room not found", "ROOM_NOT_FOUND", 404);
   }
 
   if (room.roomType === "circle" && room.status === "scheduled") {
     await maybeAutoStartScheduledCircleFromDb(roomId);
     room = await roomsRepository.findRoomById(roomId);
     if (!room) {
-      throw new IssueRtcTokenError("Room not found", "ROOM_NOT_FOUND", 404);
+      rejectIssueRtcToken(userId, roomId, "Room not found", "ROOM_NOT_FOUND", 404);
     }
   }
 
   if (room.roomType === "direct" || room.roomType === "circle") {
     const access = await assertRoomSessionOpenOnAccess(roomId);
     if (!access.ok) {
-      throw new IssueRtcTokenError(access.message, "ROOM_EXPIRED", 410);
+      rejectIssueRtcToken(userId, roomId, access.message, "ROOM_EXPIRED", 410);
     }
     room = (await roomsRepository.findRoomById(roomId)) ?? room;
   }
 
   const { roomType } = room;
   if (!isRoomSessionType(roomType)) {
-    throw new IssueRtcTokenError(
+    rejectIssueRtcToken(
+      userId,
+      roomId,
       "RTC token is not supported for this room type",
       "UNSUPPORTED_ROOM_TYPE",
       400,
@@ -71,7 +85,9 @@ export async function issueRtcTokenService(userId: string, roomId: string) {
   }
 
   if (isScheduledCircleBeforeStartTime(room)) {
-    throw new IssueRtcTokenError(
+    rejectIssueRtcToken(
+      userId,
+      roomId,
       "This circle hasn’t opened yet. Try again after the scheduled start time.",
       "LOBBY_NOT_READY",
       400,
@@ -79,7 +95,7 @@ export async function issueRtcTokenService(userId: string, roomId: string) {
   }
 
   if (room.status !== "live") {
-    throw new IssueRtcTokenError("Room is not live yet", "ROOM_NOT_LIVE", 400);
+    rejectIssueRtcToken(userId, roomId, "Room is not live yet", "ROOM_NOT_LIVE", 400);
   }
 
   await roomSessionsRepository.restartLiveSessionClockIfNoActiveParticipants(roomId);
@@ -91,7 +107,9 @@ export async function issueRtcTokenService(userId: string, roomId: string) {
     !isHost &&
     (await roomRestrictedUsersRepository.isRoomRestrictedUser(roomId, userId))
   ) {
-    throw new IssueRtcTokenError(
+    rejectIssueRtcToken(
+      userId,
+      roomId,
       "You are not allowed to rejoin this circle",
       "RESTRICTED",
       403,
@@ -104,7 +122,9 @@ export async function issueRtcTokenService(userId: string, roomId: string) {
     (await roomParticipantsRepository.wasUserRoomParticipant(roomId, userId));
 
   if (!isParticipant) {
-    throw new IssueRtcTokenError(
+    rejectIssueRtcToken(
+      userId,
+      roomId,
       "You are not allowed to join this room",
       "NOT_ALLOWED",
       403,
@@ -119,7 +139,9 @@ export async function issueRtcTokenService(userId: string, roomId: string) {
       if (await redis.exists(key)) {
         const gate = await redis.hget(key, "lobbyGateActive");
         if (gate === "1") {
-          throw new IssueRtcTokenError(
+          rejectIssueRtcToken(
+            userId,
+            roomId,
             "The host has not opened the circle yet.",
             "LOBBY_WAITING_FOR_HOST",
             403,
@@ -140,6 +162,8 @@ export async function issueRtcTokenService(userId: string, roomId: string) {
   await ensureRoomConversationParticipant(roomId, userId);
 
   await setUserActiveRtcRoom(userId, roomId);
+
+  logger.info("rtc_token_issued", { userId, roomId, roomType, conversationId, expiresInSec });
 
   return {
     token,

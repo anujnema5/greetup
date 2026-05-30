@@ -20,6 +20,7 @@ import { ConnectionRealtimeBridge } from "@/features/connections";
 import { NotificationsRealtimeBridge } from "@/features/notifications";
 import { ChatInboxSocketBridge } from "@/features/chat/components/chat-inbox-socket-bridge";
 import { ChatMessagesCacheBridge } from "@/features/chat/components/chat-messages-cache-bridge";
+import { ConnectionCallBridge } from "@/features/connection-call";
 const plusJakartaSans = Plus_Jakarta_Sans({
   variable: "--font-plus-jakarta",
   subsets: ["latin"],
@@ -47,6 +48,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               <SocketProvider>
                 <OnDirectExpandedToCircle />
                 <ChessSocketBridge />
+                <ConnectionCallBridge />
                 <NotificationsRealtimeBridge />
                 <ConnectionRealtimeBridge />
                 <ChatInboxSocketBridge />

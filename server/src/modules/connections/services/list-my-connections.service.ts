@@ -1,3 +1,4 @@
+import logger from "@/core/logging";
 import type { ListConnectionsQuery } from "../schemas/connections-list.query.schema";
 import { userConnectionsRepository } from "../repositories/user-connections.repository";
 import type { ConnectionListItem, ListMyConnectionsResult } from "../types/connection-list.types";
@@ -42,6 +43,14 @@ export async function listMyConnectionsService(
       filter,
       { page, limit, q: q.trim() || undefined },
     );
+    logger.debug("connections_listed", {
+      userId,
+      filter,
+      page,
+      limit,
+      count: rows.length,
+      hasMore,
+    });
     return {
       items: mapRowsToItems(userId, rows as Row[]),
       page,
@@ -51,5 +60,6 @@ export async function listMyConnectionsService(
   }
 
   const rows = await userConnectionsRepository.findManyWithPeersForList(userId, filter);
+  logger.debug("connections_listed", { userId, filter, count: rows.length });
   return { items: mapRowsToItems(userId, rows as Row[]) };
 }

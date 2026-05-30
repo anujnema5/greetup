@@ -1,3 +1,4 @@
+import logger from "@/core/logging";
 import { getRedis } from "@/core/redis";
 import { roomsRepository } from "@/modules/rooms/repositories/rooms.repository";
 import { roomParticipantsRepository } from "@/modules/rooms/repositories/room-participants.repository";
@@ -28,6 +29,17 @@ function nsfwReportCooldownKey(userId: string, roomId: string): string {
   return `moderation:nsfw:report:${userId}:${roomId}`;
 }
 
+function rejectNsfwReport(
+  userId: string,
+  roomId: string,
+  message: string,
+  code: ReportCircleNsfwViolationErrorCode,
+  statusCode: number,
+): never {
+  logger.warn("circle_nsfw_report_rejected", { userId, roomId, code, message });
+  throw new ReportCircleNsfwViolationError(message, code, statusCode);
+}
+
 /**
  * Self-reported NSFW from the offender's client: strike++, kick from circle (restrict rejoin),
  * permanent ban on second strike within policy.
@@ -43,27 +55,25 @@ export async function reportCircleNsfwViolationService(
 ): Promise<{ removed: boolean; strikeCount: number; accountBanned: boolean }> {
   const room = await roomsRepository.findRoomById(roomId);
   if (!room || room.roomType !== "circle") {
-    throw new ReportCircleNsfwViolationError("Room not found", "ROOM_NOT_FOUND", 404);
+    rejectNsfwReport(userId, roomId, "Room not found", "ROOM_NOT_FOUND", 404);
   }
 
   if (room.status !== "live") {
-    throw new ReportCircleNsfwViolationError("Room is not live", "INVALID_STATE", 400);
+    rejectNsfwReport(userId, roomId, "Room is not live", "INVALID_STATE", 400);
   }
 
   const inCall = await roomParticipantsRepository.isUserRoomParticipant(roomId, userId);
   if (!inCall) {
-    throw new ReportCircleNsfwViolationError(
-      "You are not in this call",
-      "NOT_IN_CALL",
-      403,
-    );
+    rejectNsfwReport(userId, roomId, "You are not in this call", "NOT_IN_CALL", 403);
   }
 
   const redis = getRedis();
   const cooldownKey = nsfwReportCooldownKey(userId, roomId);
   const cooldown = await redis.set(cooldownKey, "1", "EX", NSFW_REPORT_COOLDOWN_SEC, "NX");
   if (cooldown !== "OK") {
-    throw new ReportCircleNsfwViolationError(
+    rejectNsfwReport(
+      userId,
+      roomId,
       "Violation already reported for this session",
       "RATE_LIMITED",
       429,
@@ -88,5 +98,12 @@ export async function reportCircleNsfwViolationService(
     strikeCount,
   });
 
+  logger.info("circle_nsfw_violation_reported", {
+    userId,
+    roomId,
+    removed,
+    strikeCount,
+    accountBanned,
+  });
   return { removed, strikeCount, accountBanned };
 }

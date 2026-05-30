@@ -1,8 +1,14 @@
 import { inArray } from 'drizzle-orm';
 import { db } from '@/core/database';
 import { users } from '@/core/database/schema';
+import logger from '@/core/logging';
 import { getRedis } from '@/core/redis';
 import { CHAT_KEYS, CHAT_RATE_LIMIT, CHAT_RATE_WINDOW } from '@/core/redis/keys';
+import { getChatNamespace } from '@/core/socket/socket';
+import {
+  connectionCallInboxPreview,
+  isConnectionCallSystemPayload,
+} from '@/modules/connections/lib/connection-call-system-payload';
 import type { MessageRow } from '../repositories/message.repository';
 import { conversationRepository } from '../repositories/conversation.repository';
 import { messageRepository } from '../repositories/message.repository';
@@ -19,6 +25,7 @@ function systemPayloadPreview(payload: unknown): string | null {
     if (typeof o.message === 'string' && o.message.trim()) return o.message.trim();
     if (typeof o.body === 'string' && o.body.trim()) return o.body.trim();
     if (o.event === 'user_added') return 'Someone joined the circle';
+    if (isConnectionCallSystemPayload(o)) return connectionCallInboxPreview(o);
   }
   return 'System message';
 }
@@ -130,8 +137,86 @@ export const messageService = {
       }
     }
 
+    const messageType = params.messageType ?? 'text';
+    if (messageType === 'text') {
+      logger.debug('message_sent', {
+        conversationId: params.conversationId,
+        messageId: msg.id,
+        messageType,
+      });
+    }
+
     const [withSender] = await withSenders([msg]);
     return { ...withSender, reactions: [] as { id: string; messageId: string; userId: string; emoji: string; createdAt: string }[] };
+  },
+
+  async publishSystemMessage(params: {
+    conversationId: string;
+    senderId: string;
+    systemPayload: Record<string, unknown>;
+  }) {
+    await conversationRepository.isParticipant(params.conversationId, params.senderId);
+
+    const msg = await messageRepository.insertSystemMessage(params);
+    const conv = await conversationRepository.findById(params.conversationId);
+    const redis = getRedis();
+
+    if (conv) {
+      for (const p of conv.participants) {
+        if (p.userId !== params.senderId) {
+          await redis.hincrby(CHAT_KEYS.unreadCounts(p.userId), params.conversationId, 1);
+        }
+      }
+    }
+
+    const [withSender] = await withSenders([msg]);
+    const full = {
+      ...withSender,
+      createdAt: withSender.createdAt.toISOString(),
+      reactions: [] as { id: string; messageId: string; userId: string; emoji: string; createdAt: string }[],
+    };
+
+    try {
+      const io = getChatNamespace();
+      if (conv) {
+        const lastActivityAt = full.createdAt;
+        const lastMessagePreview = inboxPreviewFromMessageRow(msg);
+
+        for (const p of conv.participants) {
+          io.to(`user:${p.userId}`).emit('chat:message:new', full);
+          io.to(`user:${p.userId}`).emit('chat:conversation:activity', {
+            conversationId: params.conversationId,
+            lastActivityAt,
+            lastMessagePreview,
+          });
+
+          if (p.userId === params.senderId) continue;
+          const raw = await redis.hget(CHAT_KEYS.unreadCounts(p.userId), params.conversationId);
+          const unreadCount = Number.parseInt(raw ?? '0', 10) || 0;
+          io.to(`user:${p.userId}`).emit('chat:unread:sync', {
+            conversationId: params.conversationId,
+            unreadCount,
+          });
+        }
+      }
+    } catch (error) {
+      logger.warn("chat_system_message_socket_emit_failed", {
+        error,
+        conversationId: params.conversationId,
+        messageId: full.id,
+        event: params.systemPayload.event,
+      });
+    }
+
+    logger.info("chat_system_message_published", {
+      messageId: full.id,
+      conversationId: params.conversationId,
+      senderId: params.senderId,
+      event: params.systemPayload.event ?? null,
+      participantCount: conv?.participants.length ?? 0,
+    });
+
+    return full;
   },
 
   async getMessages(params: {

@@ -1,9 +1,10 @@
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
+import { useMemo, useState, useRef, useEffect } from 'react';
 import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { UserAvatarWithPresence, usePeersOnlineStatus } from '@/features/presence';
 import { useGetMyConnectionsQuery } from '@/features/connections/api/connections-api';
 import { useCreateConnectionConversationMutation } from '../api/chat-api';
 import type { Conversation } from '../types/chat.types';
@@ -25,8 +26,9 @@ export function NewConversationSearch({ onConversationOpen }: NewConversationSea
   const [createConversation, { isLoading: isCreating }] = useCreateConnectionConversationMutation();
 
   const friends = data?.data?.items ?? [];
+  const peerIds = useMemo(() => friends.map((f) => f.peer.userId), [friends]);
+  const { isOnline } = usePeersOnlineStatus(open ? peerIds : []);
 
-  // Close dropdown on outside click
   useEffect(() => {
     function handleClick(e: MouseEvent) {
       if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
@@ -113,6 +115,7 @@ export function NewConversationSearch({ onConversationOpen }: NewConversationSea
                   .map((w) => w[0])
                   .join('')
                   .toUpperCase();
+                const online = isOnline(item.peer.userId);
 
                 return (
                   <li key={item.connectionId}>
@@ -124,20 +127,22 @@ export function NewConversationSearch({ onConversationOpen }: NewConversationSea
                       onClick={() => handleSelect(item.peer.userId)}
                       className="h-auto w-full justify-start gap-2.5 rounded-none px-3 py-2 text-left text-sm hover:bg-muted/60"
                     >
-                      {item.peer.image ? (
-                        <Image
-                          src={item.peer.image}
-                          alt={display}
-                          width={28}
-                          height={28}
-                          className="h-7 w-7 shrink-0 rounded-full object-cover"
-                          unoptimized
-                        />
-                      ) : (
-                        <div className="w-7 h-7 rounded-full bg-primary/20 text-primary flex items-center justify-center text-[10px] font-semibold shrink-0">
-                          {initials}
-                        </div>
-                      )}
+                      <UserAvatarWithPresence isOnline={online} borderClassName="border-popover" dotSize="sm">
+                        {item.peer.image ? (
+                          <Image
+                            src={item.peer.image}
+                            alt={display}
+                            width={28}
+                            height={28}
+                            className="h-7 w-7 shrink-0 rounded-full object-cover"
+                            unoptimized
+                          />
+                        ) : (
+                          <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary/20 text-[10px] font-semibold text-primary">
+                            {initials}
+                          </div>
+                        )}
+                      </UserAvatarWithPresence>
                       <div className="min-w-0">
                         <p className="text-xs font-medium truncate">{display}</p>
                         {item.peer.username && (

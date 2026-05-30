@@ -31,6 +31,7 @@ import { toast } from "sonner";
 import { publicProfileRtkCacheId } from "@/features/user-profile/api/public-profile-rtk-cache";
 import { useGetPublicProfileQuery } from "../api/public-profile-api";
 import { PublicProfileAvatar } from "../components/public-profile-avatar";
+import { UserAvatarWithPresence } from "@/features/presence";
 import { PublicProfileConnectionActions } from "../components/public-profile-connection-actions";
 import { getPublicProfileConnectionPanel } from "../lib/public-profile-connection";
 import {
@@ -225,7 +226,9 @@ export function PublicProfilePage({ username }: Props) {
           {data && (
             <>
               <div className="flex flex-col items-center text-center gap-3">
-                <PublicProfileAvatar imageUrl={primaryImage} title={displayTitle} />
+                <UserAvatarWithPresence userId={data.userId} borderClassName="border-background" dotSize="lg">
+                  <PublicProfileAvatar imageUrl={primaryImage} title={displayTitle} />
+                </UserAvatarWithPresence>
                 <div>
                   <p className="text-lg font-semibold text-foreground">{displayTitle}</p>
                   <p className="text-sm text-muted-foreground">@{data.username}</p>

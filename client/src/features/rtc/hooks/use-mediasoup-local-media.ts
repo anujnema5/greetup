@@ -35,6 +35,7 @@ import {
 } from "@/features/rtc/lib/mediasoup-produce-config";
 import { canUseScreenShare } from "@/features/rtc/lib/screen-share-policy";
 import { emitRtcAck, isAckErr, isAckOk } from "@/features/rtc/lib/rtc-signaling";
+import { takeLobbyHandoffAudio, takeLobbyHandoffVideo } from "@/features/room/lib/lobby";
 import type { SimpleAck } from "@/features/rtc/types/mediasoup-room.types";
 import type {
   MediasoupLocalMediaRefs,
@@ -217,14 +218,18 @@ export function useMediasoupLocalMedia(
       if (!device.canProduce("audio") || acquiringMicRef.current) return;
       acquiringMicRef.current = true;
       try {
-        const stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
-        if (statusRef.current !== "ready") {
-          stream.getTracks().forEach((t) => t.stop());
-          return;
-        }
-        const track = stream.getAudioTracks()[0];
+        const handoffAudio = takeLobbyHandoffAudio();
+        let track: MediaStreamTrack | undefined = handoffAudio?.readyState === "live" ? handoffAudio : undefined;
         if (!track) {
-          stream.getTracks().forEach((t) => t.stop());
+          const stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+          if (statusRef.current !== "ready") {
+            stream.getTracks().forEach((t) => t.stop());
+            return;
+          }
+          track = stream.getAudioTracks()[0];
+          stream.getVideoTracks().forEach((t) => t.stop());
+        }
+        if (!track) {
           setLocalMediaDeviceError("No microphone track available.");
           return;
         }
@@ -325,17 +330,22 @@ export function useMediasoupLocalMedia(
       if (!device.canProduce("video") || acquiringCameraRef.current) return;
       acquiringCameraRef.current = true;
       try {
-        const stream = await navigator.mediaDevices.getUserMedia({
-          audio: false,
-          video: getCameraCaptureConstraints(),
-        });
-        if (statusRef.current !== "ready") {
-          stream.getTracks().forEach((t) => t.stop());
-          return;
-        }
-        const track = stream.getVideoTracks()[0];
+        const handoffVideo = takeLobbyHandoffVideo();
+        let track: MediaStreamTrack | undefined =
+          handoffVideo?.readyState === "live" ? handoffVideo : undefined;
         if (!track) {
-          stream.getTracks().forEach((t) => t.stop());
+          const stream = await navigator.mediaDevices.getUserMedia({
+            audio: false,
+            video: getCameraCaptureConstraints(),
+          });
+          if (statusRef.current !== "ready") {
+            stream.getTracks().forEach((t) => t.stop());
+            return;
+          }
+          track = stream.getVideoTracks()[0];
+          stream.getAudioTracks().forEach((t) => t.stop());
+        }
+        if (!track) {
           setLocalMediaDeviceError("No camera track available.");
           return;
         }

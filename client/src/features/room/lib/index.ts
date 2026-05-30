@@ -9,3 +9,4 @@ export * from "./call/active-speaker";
 export * from "./call/format-call-duration";
 export * from "./navigation/after-call-navigation";
 export * from "./navigation/circle-routes";
+export * from "./lobby";

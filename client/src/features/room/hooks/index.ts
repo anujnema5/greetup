@@ -41,7 +41,8 @@ export {
   MINIMIZED_DOCK_OFFSET_STORAGE_KEY,
 } from "./minimized-dock/use-minimized-dock-drag";
 
-export { useLobbyPreviewMedia } from "./lobby/use-lobby-preview-media";
+export { useLobbyPreviewMedia, type LobbyPreviewMedia } from "./lobby/use-lobby-preview-media";
+export { useApplyLobbyMediaIntent } from "./lobby/use-apply-lobby-media-intent";
 
 export { useLockedSpeakerTileSlot } from "./call/use-locked-speaker-tile-slot";
 export { useRoomActivityToasts } from "./call/use-room-activity-toasts";

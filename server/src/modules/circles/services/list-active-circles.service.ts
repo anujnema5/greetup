@@ -1,3 +1,4 @@
+import logger from "@/core/logging";
 import { mergeRoomAdvancedOptions } from "@/core/database/schema";
 import { activeCirclesListingsRepository } from "@/modules/rooms/repositories/active-circles-listings.repository";
 import { roomSessionsRepository } from "@/modules/rooms/repositories/room-sessions.repository";
@@ -89,6 +90,15 @@ export async function listActiveCirclesService(
   const hasMore = publicRows.length > publicLimit;
   const publicItems = hasMore ? publicRows.slice(0, publicLimit) : publicRows;
   const nextCursor = hasMore ? (publicItems[publicItems.length - 1]?.id ?? null) : null;
+
+  logger.debug("active_circles_listed", {
+    userId,
+    expiredSyncedCount: expiredIds.length,
+    friendInvitedCount: friendInvited.length,
+    joinedCount: joined.length,
+    publicCount: publicItems.length,
+    hasMore,
+  });
 
   return {
     friendInvited,

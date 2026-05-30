@@ -1,3 +1,4 @@
+import logger from "@/core/logging";
 import { userBlocksRepository } from "@/modules/blocks/repositories/user-blocks.repository";
 import { userConnectionsRepository } from "@/modules/connections/repositories/user-connections.repository";
 import type { PublicProfileConnectionState } from "@/modules/profile/lib/resolve-public-profile-connection";
@@ -52,17 +53,24 @@ export async function getPublicProfileByUsername(
   rawUsername: string,
 ): Promise<PublicProfileResult | null> {
   const username = rawUsername.trim().toLowerCase();
-  if (!username) return null;
+  if (!username) {
+    logger.debug("public_profile_not_found", { viewerId, username: rawUsername, reason: "empty_username" });
+    return null;
+  }
 
   const target = await publicProfileRepository.findPublicProfileTargetByUsername(username);
 
   if (!target || target.isBanned !== "no" || !target.username) {
+    logger.debug("public_profile_not_found", { viewerId, username, reason: "not_found_or_banned" });
     return null;
   }
 
   if (target.id !== viewerId) {
     const blocked = await userBlocksRepository.isEitherBlocked(viewerId, target.id);
-    if (blocked) return null;
+    if (blocked) {
+      logger.debug("public_profile_not_found", { viewerId, username, reason: "blocked" });
+      return null;
+    }
   }
 
   const connectionRows =
@@ -85,6 +93,7 @@ export async function getPublicProfileByUsername(
 
   const extras = prof?.id ? await publicProfileRepository.findProfileExtras(prof.id) : emptyExtras;
 
+  logger.debug("public_profile_resolved", { viewerId, username, userId: target.id });
   return {
     userId: target.id,
     username: target.username,

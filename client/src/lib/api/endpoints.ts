@@ -35,6 +35,13 @@ export const API_ENDPOINTS = {
     LIST: "/connections",
     PEERS_CALL_STATUS: "/connections/peers-call-status",
     PENDING_INCOMING_COUNT: "/connections/pending-incoming-count",
+    CALLS: "/connections/calls",
+    callRespond: (requestId: string) =>
+      `/connections/calls/${encodeURIComponent(requestId)}/respond` as const,
+    callCancel: (requestId: string) =>
+      `/connections/calls/${encodeURIComponent(requestId)}/cancel` as const,
+    callMissed: (requestId: string) =>
+      `/connections/calls/${encodeURIComponent(requestId)}/missed` as const,
     REQUEST: "/connections/request",
     accept: (connectionId: string) =>
       `/connections/${encodeURIComponent(connectionId)}/accept` as const,

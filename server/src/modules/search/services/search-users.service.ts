@@ -1,5 +1,6 @@
 import { and, eq, ilike, isNotNull, ne, notInArray, or, sql } from "drizzle-orm";
 
+import logger from "@/core/logging";
 import { db } from "@/core/database";
 import { userBlocks, users } from "@/core/database/schema";
 import { escapeIlikePattern } from "@/shared/sql/ilike-escape";
@@ -36,6 +37,7 @@ export async function searchUsersService(
 ): Promise<{ items: SearchUserHit[] }> {
   const term = q.trim().toLowerCase();
   if (term.length < 2) {
+    logger.warn("user_search_rejected", { viewerId, reason: "query_too_short", queryLength: term.length });
     return { items: [] };
   }
 
@@ -75,8 +77,7 @@ export async function searchUsersService(
     )
     .limit(limit);
 
-  return {
-    items: rows
+  const items = rows
       .filter((r): r is SearchUserHit & { username: string } => r.username != null)
       .map((r) => ({
         userId: r.userId,
@@ -84,6 +85,8 @@ export async function searchUsersService(
         displayName: r.displayName,
         name: r.name,
         image: r.image,
-      })),
-  };
+      }));
+
+  logger.debug("users_searched", { viewerId, queryLength: term.length, resultCount: items.length });
+  return { items };
 }

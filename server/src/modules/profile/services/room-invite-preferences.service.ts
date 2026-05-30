@@ -1,5 +1,6 @@
 import { eq, inArray } from "drizzle-orm";
 import type { z } from "zod";
+import logger from "@/core/logging";
 import { db } from "@/core/database";
 import { userProfiles } from "@/core/database/schema";
 import { getAcceptedPeerIdsForUser } from "@/modules/connections/services/accepted-peer-ids.service";
@@ -83,6 +84,11 @@ export async function updateRoomInviteSettingsService(
     })
     .where(eq(userProfiles.userId, userId));
 
+  logger.info("room_invite_settings_updated", {
+    userId,
+    policy,
+    allowlistedCount: storedIds.length,
+  });
   return {
     policy,
     allowlistedUserIds: storedIds,

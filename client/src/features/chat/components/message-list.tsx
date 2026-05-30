@@ -1,7 +1,9 @@
 'use client';
 
+import { useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
+import { usePeersOnlineStatus } from '@/features/presence';
 import { CHAT_HORIZONTAL_PADDING } from '../constants';
 import { useMessageListView } from '../hooks/use-message-list-view';
 import { getMessageRowLayout } from '../lib/message-cluster';
@@ -49,6 +51,16 @@ export function MessageList({
     clearRevealedTime,
   } = useMessageListView(messages.length, currentUserId, hasMore, onLoadMore);
 
+  const senderIds = useMemo(() => {
+    const ids = new Set<string>();
+    for (const m of messages) {
+      if (m.senderId && m.senderId !== currentUserId) ids.add(m.senderId);
+    }
+    return [...ids];
+  }, [messages, currentUserId]);
+
+  const { isOnline } = usePeersOnlineStatus(senderIds);
+
   return (
     <div
       ref={containerRef}
@@ -95,6 +107,11 @@ export function MessageList({
               showPeerHeader={layout.showPeerHeader}
               peerColumnGutter={layout.peerColumnGutter}
               showDirectPeerAvatar={layout.showDirectPeerAvatar}
+              senderIsOnline={
+                msg.senderId && msg.senderId !== currentUserId
+                  ? isOnline(msg.senderId)
+                  : undefined
+              }
               onToggleReaction={onToggleReaction}
               onReply={(message) => {
                 clearRevealedTime();

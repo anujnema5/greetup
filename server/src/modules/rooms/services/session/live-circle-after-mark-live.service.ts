@@ -1,3 +1,4 @@
+import logger from "@/core/logging";
 import type { RoomSessionType } from "@/shared/types/room-session";
 
 import { notifyCircleStartedToAssociatedUsers } from "../../notifications";
@@ -29,11 +30,27 @@ export async function runLiveCircleAfterMarkLive(params: {
     await emitCircleOpenedForJoin(params.roomId, { excludeUserId: params.hostUserId });
   }
 
-  if (!params.notifyInvitees) return;
+  if (!params.notifyInvitees) {
+    logger.info("live_circle_after_mark_live_completed", {
+      roomId: params.roomId,
+      hostUserId: params.hostUserId,
+      lobbyGateActive: params.lobbyGateActive,
+      notifyInvitees: false,
+    });
+    return;
+  }
 
-  await notifyCircleStartedToAssociatedUsers({
+  const { notifiedCount } = await notifyCircleStartedToAssociatedUsers({
     roomId: params.roomId,
     hostUserId: params.hostUserId,
     roomTitle: params.title,
+  });
+
+  logger.info("live_circle_after_mark_live_completed", {
+    roomId: params.roomId,
+    hostUserId: params.hostUserId,
+    lobbyGateActive: params.lobbyGateActive,
+    notifyInvitees: true,
+    notifiedCount,
   });
 }
