@@ -14,6 +14,7 @@ import {
 import { unreadCountReset } from '../slices/chat.slice';
 import type { Message, MessageDeletedPayload, ReactionUpdatePayload } from '../types/chat.types';
 
+/** Keeps message RTK cache in sync with chat socket events. */
 export function ChatMessagesCacheBridge() {
   const dispatch = useDispatch<AppDispatch>();
   const store = useStore<RootState>();
@@ -28,11 +29,12 @@ export function ChatMessagesCacheBridge() {
   }, [activeConversationId]);
 
   useEffect(() => {
-    if (!socket) return;
+    if (!socket || !currentUserId) return;
     const getState = () => store.getState();
 
     const onNew = (msg: Message) => {
       applySocketNewMessage(dispatch, getState, msg, currentUserId);
+
       const active = activeRef.current;
       if (
         active &&
@@ -43,6 +45,7 @@ export function ChatMessagesCacheBridge() {
         dispatch(unreadCountReset(msg.conversationId));
       }
     };
+
     const onEdited = (msg: Message) => applySocketEditedMessage(dispatch, msg);
     const onDeleted = (p: MessageDeletedPayload) => applySocketDeletedMessage(dispatch, p);
     const onReaction = (p: ReactionUpdatePayload) => applySocketReactionUpdate(dispatch, p);

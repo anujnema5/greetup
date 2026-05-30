@@ -18,8 +18,7 @@ import {
 import { MatchmakingProvider } from "@/features/matching";
 import { ConnectionRealtimeBridge } from "@/features/connections";
 import { NotificationsRealtimeBridge } from "@/features/notifications";
-import { ChatInboxSocketBridge } from "@/features/chat/components/chat-inbox-socket-bridge";
-import { ChatMessagesCacheBridge } from "@/features/chat/components/chat-messages-cache-bridge";
+import { ChatRealtimeBridges } from "@/features/chat/components/chat-realtime-bridges";
 import { ConnectionCallBridge } from "@/features/connection-call";
 const plusJakartaSans = Plus_Jakarta_Sans({
   variable: "--font-plus-jakarta",
@@ -51,8 +50,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                 <ConnectionCallBridge />
                 <NotificationsRealtimeBridge />
                 <ConnectionRealtimeBridge />
-                <ChatInboxSocketBridge />
-                <ChatMessagesCacheBridge />
+                <ChatRealtimeBridges />
                 <Suspense fallback={null}>
                   <MatchmakingProvider>
                     <RoomSocketBridge />
