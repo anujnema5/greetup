@@ -6,7 +6,7 @@ import { db } from "@/core/database";
 import { users } from "@/core/database/schema";
 import logger from "@/core/logging";
 import { getRedis } from "@/core/redis";
-import { CONNECTION_CALL_INVITE_TTL_SEC, CONNECTION_CALL_KEYS, USER_PRESENCE_KEYS } from "@/core/redis/keys";
+import { CONNECTION_CALL_INVITE_TTL_SEC, CONNECTION_CALL_KEYS, CONNECTION_CALL_RING_DURATION_SEC, USER_PRESENCE_KEYS } from "@/core/redis/keys";
 import { conversationService } from "@/modules/chat/services/conversation.service";
 import { getAcceptedPeerIdsForUser } from "@/modules/connections/services/accepted-peer-ids.service";
 import { peersCallStatusForUser } from "@/modules/connections/services/peers-call-status.service";
@@ -147,6 +147,23 @@ async function recordPendingCallOutcome(
   status: ConnectionCallHistoryStatus,
 ): Promise<void> {
   if (!invite.conversationId) return;
+
+  const redis = getRedis();
+  const dedupe = await redis.set(
+    CONNECTION_CALL_KEYS.historyLoggedForRequest(invite.requestId),
+    status,
+    "EX",
+    86400,
+    "NX",
+  );
+  if (dedupe !== "OK") {
+    logger.debug("connection_call_history_skipped_duplicate", {
+      requestId: invite.requestId,
+      status,
+    });
+    return;
+  }
+
   try {
     await recordConnectionCallHistory({
       conversationId: invite.conversationId,
@@ -155,6 +172,7 @@ async function recordPendingCallOutcome(
       status,
     });
   } catch (error) {
+    await redis.del(CONNECTION_CALL_KEYS.historyLoggedForRequest(invite.requestId));
     logger.error("connection_call_history_record_failed", {
       error,
       requestId: invite.requestId,
@@ -163,6 +181,15 @@ async function recordPendingCallOutcome(
       status,
     });
   }
+}
+
+function scheduleConnectionCallRingExpiry(requestId: string): void {
+  const timer = setTimeout(() => {
+    void expireConnectionCallInvite(requestId).catch((error) => {
+      logger.error("connection_call_scheduled_expire_failed", { requestId, error });
+    });
+  }, CONNECTION_CALL_RING_DURATION_SEC * 1000);
+  if (typeof timer.unref === "function") timer.unref();
 }
 
 export async function initiateConnectionCallService(
@@ -334,6 +361,8 @@ export async function initiateConnectionCallService(
     calleeUserId,
     mode,
   });
+
+  scheduleConnectionCallRingExpiry(requestId);
 
   return { requestId, roomId, conversationId, calleeUserId, mode };
 }

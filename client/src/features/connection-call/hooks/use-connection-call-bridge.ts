@@ -11,6 +11,7 @@ import { useConnectionCallActions } from './use-connection-call-actions';
 import { useConnectionCallRingtone } from './use-connection-call-ringtone';
 import { useOutgoingConnectionCall } from './use-outgoing-connection-call';
 import { getOutgoingCall } from '../lib/outgoing-call-store';
+import { invalidateCallConversationMessages } from '../lib/invalidate-call-conversation-messages';
 import { missedConnectionCallMarked } from '../slices/connection-call.slice';
 import {
   CONNECTION_CALL_SOCKET_EVENTS,
@@ -64,21 +65,36 @@ export function useConnectionCallBridge() {
     const parsed = parseConnectionCallDeclinedPayload(payload);
     if (!parsed) return;
 
+    const outgoingCall = getOutgoingCall();
+    const conversationIdForInvalidate =
+      outgoingCall?.requestId === parsed.requestId
+        ? outgoingCall.conversationId
+        : undefined;
+
     setIncoming((cur) => {
       if (cur?.requestId === parsed.requestId) {
         if (parsed.reason === 'missed') markMissed(cur.conversationId);
+        if (parsed.reason === 'missed' || parsed.reason === 'declined' || parsed.reason === 'cancelled') {
+          invalidateCallConversationMessages(dispatch, cur.conversationId);
+        }
         return null;
       }
       return cur;
     });
 
-    const outgoingCall = getOutgoingCall();
     if (outgoingCall?.requestId === parsed.requestId) {
       if (parsed.reason === 'missed') markMissed(outgoingCall.conversationId);
+      if (parsed.reason === 'missed' || parsed.reason === 'declined' || parsed.reason === 'cancelled') {
+        invalidateCallConversationMessages(dispatch, outgoingCall.conversationId);
+      }
       if (parsed.reason === 'declined') void abortIfOutgoing(parsed.requestId, 'Call declined');
       else if (parsed.reason === 'missed') void abortIfOutgoing(parsed.requestId, 'No answer');
       else if (parsed.reason === 'cancelled') void abortIfOutgoing(parsed.requestId, 'Call cancelled');
       return;
+    }
+
+    if (conversationIdForInvalidate) {
+      invalidateCallConversationMessages(dispatch, conversationIdForInvalidate);
     }
 
     if (parsed.reason === 'declined') toast.message('Call declined');
@@ -116,7 +132,9 @@ export function useConnectionCallBridge() {
     const remaining = Math.max(0, CONNECTION_CALL_RING_TIMEOUT_MS - (Date.now() - incoming.createdAt));
     const t = window.setTimeout(() => {
       void (async () => {
+        const convId = incoming.conversationId;
         await markCallMissed(incoming.requestId);
+        invalidateCallConversationMessages(dispatch, convId);
         setIncoming((cur) => {
           if (cur) {
             markMissed(cur.conversationId);
@@ -131,7 +149,9 @@ export function useConnectionCallBridge() {
 
   const onOutgoingTimeout = useEffectEvent(async (requestId: string, conversationId: string) => {
     markMissed(conversationId);
-    await cancelCall(requestId, 'no_answer');
+    const recorded = await markCallMissed(requestId);
+    if (!recorded) await cancelCall(requestId, 'no_answer');
+    invalidateCallConversationMessages(dispatch, conversationId);
     await abortIfOutgoing(requestId, 'No answer');
   });
 
@@ -155,7 +175,9 @@ export function useConnectionCallBridge() {
   const handleDecline = async () => {
     if (!incoming) return;
     setResponding(true);
+    const convId = incoming.conversationId;
     await declineCall(incoming.requestId);
+    invalidateCallConversationMessages(dispatch, convId);
     setIncoming(null);
     setResponding(false);
   };
@@ -163,7 +185,9 @@ export function useConnectionCallBridge() {
   const handleCancelOutgoing = async () => {
     if (!outgoing || aborting) return;
     setAborting(true);
+    const convId = outgoing.conversationId;
     await cancelCall(outgoing.requestId);
+    invalidateCallConversationMessages(dispatch, convId);
     await abortOutgoingWait(outgoing);
     setAborting(false);
   };
