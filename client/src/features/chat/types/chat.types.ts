@@ -1,6 +1,10 @@
+import type { MessagingBlock } from './messaging-block.types';
+
 export type MessageType = 'text' | 'image' | 'video' | 'file' | 'voice' | 'gif' | 'system';
 export type ConversationType = 'room_direct' | 'room_circle' | 'connection';
 export type MessageStatus = 'sending' | 'delivered' | 'read' | 'failed';
+
+export type { MessagingBlock, MessagingBlockReason } from './messaging-block.types';
 
 export interface Message {
   id: string;
@@ -31,6 +35,7 @@ export interface Reaction {
 
 export interface ChatUserPreview {
   id: string;
+  username?: string | null;
   name: string;
   displayName: string | null;
   image: string | null;
@@ -44,6 +49,8 @@ export interface ConversationParticipant {
   lastReadAt: string | null;
   joinedAt: string;
   leftAt: string | null;
+  /** Set when user deletes the chat; used server-side to hide prior messages on reopen. */
+  historyHiddenBeforeAt?: string | null;
   /** Present when loaded from list/detail API */
   user?: ChatUserPreview;
 }
@@ -63,6 +70,8 @@ export interface Conversation {
   unreadCount?: number;
   lastMessagePreview?: string | null;
   room?: { id: string; title: string } | null;
+  /** Present on DM threads when either party has blocked the other. */
+  messagingBlock?: MessagingBlock;
 }
 
 export interface MessagesPage {

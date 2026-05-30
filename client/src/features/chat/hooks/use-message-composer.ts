@@ -14,6 +14,7 @@ interface UseMessageComposerOptions {
   onCancelReply: () => void;
   onSend: (content: string, replyToId?: string) => void;
   disabled?: boolean;
+  typingEnabled?: boolean;
 }
 
 export function useMessageComposer({
@@ -22,11 +23,12 @@ export function useMessageComposer({
   onCancelReply,
   onSend,
   disabled,
+  typingEnabled = true,
 }: UseMessageComposerOptions) {
   const [text, setText] = useState('');
   const [tooLongDialogOpen, setTooLongDialogOpen] = useState(false);
   const inputRef = useRef<HTMLTextAreaElement>(null);
-  const { onInputChange, stopTyping } = useTyping(conversationId);
+  const { onInputChange, stopTyping } = useTyping(conversationId, { enabled: typingEnabled });
 
   const isMultiline = text.includes('\n');
 

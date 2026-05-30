@@ -27,6 +27,9 @@ interface MessageInputProps {
   onCancelReply: () => void;
   onSend: (content: string, replyToId?: string) => void;
   disabled?: boolean;
+  placeholder?: string;
+  /** When false, typing indicators are not sent (defaults to !disabled). */
+  typingEnabled?: boolean;
 }
 
 function MessageTooLongDialog({
@@ -66,7 +69,10 @@ export function MessageInput({
   onCancelReply,
   onSend,
   disabled,
+  placeholder = 'Message…',
+  typingEnabled,
 }: MessageInputProps) {
+  const typingActive = typingEnabled ?? !disabled;
   const {
     text,
     inputRef,
@@ -83,6 +89,7 @@ export function MessageInput({
     onCancelReply,
     onSend,
     disabled,
+    typingEnabled: typingActive,
   });
 
   const replyPreview = replyTo ? replyComposerPreview(replyTo, currentUserId) : null;
@@ -133,7 +140,7 @@ export function MessageInput({
           value={text}
           onChange={(e) => handleTextChange(e.target.value)}
           onKeyDown={handleKeyDown}
-          placeholder="Message…"
+          placeholder={placeholder}
           rows={1}
           disabled={disabled}
           aria-label="Message"

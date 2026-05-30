@@ -21,5 +21,6 @@ export const baseApi = createApi({
     'MatchPeerPreview',
     'Conversations',
     'Messages',
+    'Blocks',
   ],
 })

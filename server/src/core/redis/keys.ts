@@ -8,6 +8,13 @@ export const USER_CACHE_KEYS = {
   PROFILE_SNAPSHOT: "user:profile:snapshot:",
 } as const;
 
+export const USER_BLOCK_KEYS = {
+  /** Users this user has blocked. */
+  outgoing: (userId: string) => `user:blocks:outgoing:${userId}`,
+  /** Users who have blocked this user. */
+  incoming: (userId: string) => `user:blocks:incoming:${userId}`,
+} as const;
+
 // MATCHING ENGINE KEYS
 export const MATCH_KEYS = {
   USER: "match:user:",

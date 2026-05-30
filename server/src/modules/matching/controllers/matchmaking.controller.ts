@@ -9,6 +9,7 @@ import {
   respondMatchProposalService,
 } from "../services/matchmaking.service";
 import { getMatchPeerPreview } from "../services/match-peer-preview.service";
+import { ensureUserBlocksSyncedForMatching } from "@/modules/blocks/services/block-user.service";
 import logger from "@/core/logging";
 
 export const handleFindMatch = async (c: Context) => {
@@ -63,6 +64,8 @@ export const handleFindMatch = async (c: Context) => {
 
     const requestId = randomUUID();
     logger.info("[handleFindMatch] calling match engine", { userId, requestId });
+
+    await ensureUserBlocksSyncedForMatching(userId);
 
     const engineResponse = await findMatchService(userId, requestId);
     logger.info("[handleFindMatch] engine response", { userId, requestId, engineData: engineResponse.data });
@@ -168,6 +171,12 @@ export const handleGetMatchPeerPreview = async (c: Context) => {
 
     const userId = c.get("userId") as string;
     const preview = await getMatchPeerPreview(userId, peerUserId);
+    if (!preview) {
+      return c.json(
+        ApiResponse.error({ message: "Peer unavailable", statusCode: 404, code: "NOT_FOUND" }),
+        404,
+      );
+    }
     return c.json(ApiResponse.success(preview, "Peer preview", 200), 200);
   } catch (error) {
     logger.error("[handleGetMatchPeerPreview] failed", { error });

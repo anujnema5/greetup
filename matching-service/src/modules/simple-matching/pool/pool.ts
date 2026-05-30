@@ -13,6 +13,7 @@ import {
 } from "@/modules/simple-matching/repositories/snapshot";
 import { getRedis } from "@/core/redis/client";
 import { redisKeys } from "@/core/redis/keys";
+import { isBlockedWithPeer } from "@/modules/simple-matching/blocks/blocked-peers";
 
 type LocationPoolIndexMeta = {
   countryCode?: string;
@@ -196,6 +197,7 @@ export class MatchPoolService {
       const userId = rows[i];
       const scoreRaw = rows[i + 1];
       if (!userId || !scoreRaw || userId === requesterId) continue;
+      if (await isBlockedWithPeer(requesterId, userId)) continue;
       const state = await redis.get(redisKeys.userState(userId));
       if (state !== "searching") continue;
       candidates.push({ userId, score: Number(scoreRaw) });
@@ -215,6 +217,7 @@ export class MatchPoolService {
 
     const tryAdd = async (c: MatchCandidate): Promise<void> => {
       if (c.userId === requesterId || seen.has(c.userId)) return;
+      if (await isBlockedWithPeer(requesterId, c.userId)) return;
       const state = await redis.get(redisKeys.userState(c.userId));
       if (state !== "searching") return;
       seen.add(c.userId);
@@ -257,6 +260,7 @@ export class MatchPoolService {
       const userId = rows[i];
       const scoreRaw = rows[i + 1];
       if (!userId || !scoreRaw || userId === requesterId) continue;
+      if (await isBlockedWithPeer(requesterId, userId)) continue;
       pending.push({ userId, score: Number(scoreRaw), sortGroup: 1 });
     }
 

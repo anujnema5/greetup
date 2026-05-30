@@ -10,6 +10,7 @@ import {
   isConnectionCallSystemPayload,
 } from '@/modules/connections/lib/connection-call-system-payload';
 import type { MessageRow } from '../repositories/message.repository';
+import { assertCanMessageInConversation } from '../lib/conversation-messaging-guard';
 import { conversationRepository } from '../repositories/conversation.repository';
 import { messageRepository } from '../repositories/message.repository';
 
@@ -122,7 +123,13 @@ export const messageService = {
     replyToId?: string;
     mentions?: string[];
   }) {
-    await conversationRepository.isParticipant(params.conversationId, params.senderId);
+    const canAccess = await conversationRepository.hasParticipantRecord(
+      params.conversationId,
+      params.senderId,
+    );
+    if (!canAccess) throw new Error('UNAUTHORIZED');
+    await conversationRepository.rejoin(params.conversationId, params.senderId);
+    await assertCanMessageInConversation(params.conversationId, params.senderId);
 
     const msg = await messageRepository.insertMessage(params);
 
@@ -132,6 +139,7 @@ export const messageService = {
       const redis = getRedis();
       for (const p of conv.participants) {
         if (p.userId !== params.senderId) {
+          await conversationRepository.rejoin(params.conversationId, p.userId);
           await redis.hincrby(CHAT_KEYS.unreadCounts(p.userId), params.conversationId, 1);
         }
       }
@@ -155,7 +163,8 @@ export const messageService = {
     senderId: string;
     systemPayload: Record<string, unknown>;
   }) {
-    await conversationRepository.isParticipant(params.conversationId, params.senderId);
+    const isMember = await conversationRepository.isParticipant(params.conversationId, params.senderId);
+    if (!isMember) throw new Error('UNAUTHORIZED');
 
     const msg = await messageRepository.insertSystemMessage(params);
     const conv = await conversationRepository.findById(params.conversationId);
@@ -164,6 +173,7 @@ export const messageService = {
     if (conv) {
       for (const p of conv.participants) {
         if (p.userId !== params.senderId) {
+          await conversationRepository.rejoin(params.conversationId, p.userId);
           await redis.hincrby(CHAT_KEYS.unreadCounts(p.userId), params.conversationId, 1);
         }
       }
@@ -228,10 +238,17 @@ export const messageService = {
     const isMember = await conversationRepository.isParticipant(params.conversationId, params.userId);
     if (!isMember) throw new Error('UNAUTHORIZED');
 
+    const participant = await conversationRepository.getParticipant(
+      params.conversationId,
+      params.userId,
+    );
+    const hiddenBeforeAt = participant?.historyHiddenBeforeAt ?? undefined;
+
     const page = await messageRepository.getMessages({
       conversationId: params.conversationId,
       cursor: params.cursor,
       limit: params.limit,
+      hiddenBeforeAt,
     });
     const reactionMap = await messageRepository.getReactionsForMessageIds(
       page.messages.map((m) => m.id),
@@ -265,6 +282,7 @@ export const messageService = {
     const existing = await messageRepository.findById(params.messageId);
     if (!existing) throw new Error('NOT_FOUND');
     if (existing.senderId !== params.senderId) throw new Error('UNAUTHORIZED');
+    await assertCanMessageInConversation(existing.conversationId, params.senderId);
     const updated = await messageRepository.editMessage(params.messageId, params.content);
     if (!updated) return null;
     const [out] = await withSenders([updated]);
@@ -300,6 +318,7 @@ export const messageService = {
   }) {
     const isMember = await conversationRepository.isParticipant(params.conversationId, params.userId);
     if (!isMember) throw new Error('UNAUTHORIZED');
+    await assertCanMessageInConversation(params.conversationId, params.userId);
     return messageRepository.addReaction(params.messageId, params.userId, params.emoji);
   },
 
@@ -311,10 +330,12 @@ export const messageService = {
   }) {
     const isMember = await conversationRepository.isParticipant(params.conversationId, params.userId);
     if (!isMember) throw new Error('UNAUTHORIZED');
+    await assertCanMessageInConversation(params.conversationId, params.userId);
     return messageRepository.removeReaction(params.messageId, params.userId, params.emoji);
   },
 
   async setTyping(conversationId: string, userId: string, isTyping: boolean) {
+    await assertCanMessageInConversation(conversationId, userId);
     const redis = getRedis();
     const key = CHAT_KEYS.typingMember(conversationId, userId);
     if (isTyping) {

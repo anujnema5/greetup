@@ -31,9 +31,23 @@ export function ChatInboxSocketBridge() {
     }) => {
       const { conversationId, ...patch } = p;
       const hit = applyConversationActivityToInbox(dispatch, conversationId, patch);
+
+      // Always refresh thread detail + messages — stale 403 cache after delete breaks reopen.
+      dispatch(
+        chatApi.util.invalidateTags([
+          { type: 'Conversations', id: conversationId },
+          { type: 'Messages', id: conversationId },
+        ]),
+      );
+
       if (!hit) {
         dispatch(chatApi.util.invalidateTags([{ type: 'Conversations', id: 'LIST' }]));
+        void dispatch(chatApi.endpoints.listConversations.initiate(undefined, { forceRefetch: true }));
       }
+
+      void dispatch(
+        chatApi.endpoints.getConversation.initiate(conversationId, { forceRefetch: true }),
+      );
     };
 
     chatSocket.on('chat:unread:sync', onSync);
