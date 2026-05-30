@@ -13,9 +13,11 @@ import {
 } from "@/lib/redux/slices/room-slice";
 import {
   CIRCLE_HOST_END_FOR_EVERYONE_REDIRECT_PATH,
-  MATCHMAKING_HUB_PATH,
 } from "@/features/room/constants/call/call-flow";
-import { cancelMatchmakingThenNavigate } from "@/features/room/lib/navigation/after-call-navigation";
+import {
+  cancelMatchmakingThenNavigate,
+  navigateAfterCallEnd,
+} from "@/features/room/lib/navigation/after-call-navigation";
 import { getRoomReturnPath } from "@/features/room/lib/session/room-return-path";
 import {
   broadcastRoomMessage,
@@ -78,9 +80,9 @@ export function useRoomVideo(roomId: string, options?: UseRoomVideoOptions) {
     await leaveCircleRtc(roomId).unwrap().catch(() => {});
   }, [leaveCircleRtc, roomId]);
 
-  /** After leave / END_CALL — explore hub. */
-  const goToExploreHub = useCallback(() => {
-    cancelMatchmakingThenNavigate(matchmaking, router, MATCHMAKING_HUB_PATH);
+  /** After leave / END_CALL — return to the route before the room. */
+  const returnAfterCallEnd = useCallback(() => {
+    navigateAfterCallEnd(matchmaking, router);
   }, [matchmaking, router]);
 
   /** After host “end for everyone” — home. */
@@ -124,14 +126,16 @@ export function useRoomVideo(roomId: string, options?: UseRoomVideoOptions) {
       if (msg.type === "END_CALL") {
         clearRoomStorage();
         dispatch(endVideoSession());
-        goToExploreHub();
+        if (!endHandledRef.current) {
+          returnAfterCallEnd();
+        }
       }
       if (msg.type === "SKIP_CALL") {
         beginSearchAfterSkip();
       }
     });
     return unsub;
-  }, [beginSearchAfterSkip, dispatch, goToExploreHub, skipSetup]);
+  }, [beginSearchAfterSkip, dispatch, returnAfterCallEnd, skipSetup]);
 
   useEffect(() => {
     if (!skipHandledRef.current) return;
@@ -144,20 +148,20 @@ export function useRoomVideo(roomId: string, options?: UseRoomVideoOptions) {
     endHandledRef.current = true;
     dismissCallUiAndBroadcastEnd();
     if (!resolveApiRoomId(roomId)) {
-      goToExploreHub();
+      returnAfterCallEnd();
       return;
     }
     if (isDbCircleCall) {
-      void leaveCircleRtcOnly().catch(() => {}).finally(goToExploreHub);
+      void leaveCircleRtcOnly().catch(() => {}).finally(returnAfterCallEnd);
     } else {
       void leaveRoom({ roomId })
         .unwrap()
         .catch(() => {})
-        .finally(goToExploreHub);
+        .finally(returnAfterCallEnd);
     }
   }, [
     dismissCallUiAndBroadcastEnd,
-    goToExploreHub,
+    returnAfterCallEnd,
     isDbCircleCall,
     leaveCircleRtcOnly,
     leaveRoom,

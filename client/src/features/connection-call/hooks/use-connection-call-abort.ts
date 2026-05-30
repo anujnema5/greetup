@@ -6,6 +6,7 @@ import { useAppDispatch } from '@/lib/redux/hooks';
 import { endVideoSession } from '@/lib/redux/slices/room-slice';
 import { useLeaveRoomMutation } from '@/features/room/api/room-api';
 import { clearRoomStorage } from '@/features/room/lib/session/room-sync';
+import { consumeRoomReturnPath } from '@/features/room/lib/session/room-return-path';
 import { clearLobbyMediaIntent } from '@/features/room/lib/lobby';
 import { messagesDirectConversationPath } from '../lib/call-navigation';
 import { clearOutgoingCall } from '../lib/outgoing-call-store';
@@ -22,9 +23,12 @@ export function useConnectionCallAbort() {
       clearOutgoingCall();
       clearLobbyMediaIntent();
       dispatch(endVideoSession());
+      const returnPath = consumeRoomReturnPath(
+        messagesDirectConversationPath(call.conversationId),
+      );
       clearRoomStorage();
       await leaveRoom({ roomId: call.roomId }).unwrap().catch(() => {});
-      router.replace(messagesDirectConversationPath(call.conversationId));
+      router.replace(returnPath);
     },
     [dispatch, leaveRoom, router],
   );
