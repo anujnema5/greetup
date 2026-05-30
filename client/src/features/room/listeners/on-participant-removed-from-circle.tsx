@@ -7,8 +7,7 @@ import { shallowEqual } from "react-redux";
 
 import { useMatchmaking } from "@/features/matching";
 import { useLeaveCircleRtcMutation } from "@/features/room/api/room-api";
-import { MATCHMAKING_HUB_PATH } from "@/features/room/constants/call/call-flow";
-import { cancelMatchmakingThenNavigate } from "@/features/room/lib/navigation/after-call-navigation";
+import { navigateAfterCallEnd } from "@/features/room/lib/navigation/after-call-navigation";
 import { clearRoomStorage } from "@/features/room/lib/session/room-sync";
 import {
   CIRCLE_ROOM_SOCKET_EVENTS,
@@ -68,7 +67,7 @@ export function OnParticipantRemovedFromCircle() {
         .unwrap()
         .catch(() => {})
         .finally(() => {
-          cancelMatchmakingThenNavigate(matchmaking, router, MATCHMAKING_HUB_PATH);
+          navigateAfterCallEnd(matchmaking, router);
         });
     };
 

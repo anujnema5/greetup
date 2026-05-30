@@ -1,10 +1,11 @@
 'use client';
 
 import { useCallback } from 'react';
-import { useRouter } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import { stashCircleRoomBootstrap } from '@/features/matching/lib/circle-room-bootstrap';
 import { circleRoomPath } from '@/features/room/lib/navigation/circle-routes';
+import { setRoomReturnPath } from '@/features/room/lib/session/room-return-path';
 import { getRtkMutationErrorMessage } from '@/lib/api/rtk-mutation-error';
 import {
   useCancelConnectionCallMutation,
@@ -27,6 +28,7 @@ type StartCallPeer = {
 
 export function useConnectionCallActions() {
   const router = useRouter();
+  const pathname = usePathname();
   const [initiate, initiateState] = useInitiateConnectionCallMutation();
   const [respond, respondState] = useRespondConnectionCallMutation();
   const [cancel, cancelState] = useCancelConnectionCallMutation();
@@ -34,11 +36,12 @@ export function useConnectionCallActions() {
 
   const joinCallRoom = useCallback(
     (roomId: string, peerUserId: string, mode: ConnectionCallMode) => {
+      setRoomReturnPath(pathname);
       applyConnectionCallMediaIntent(mode);
       stashCircleRoomBootstrap(roomId, { peerId: peerUserId, score: null });
       router.push(circleRoomPath(roomId));
     },
-    [router],
+    [pathname, router],
   );
 
   const startCall = useCallback(
