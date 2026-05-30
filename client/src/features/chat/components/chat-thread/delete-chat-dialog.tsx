@@ -37,15 +37,14 @@ export function DeleteChatDialog({
           <DialogDescription>
             {isCircle ? (
               <>
-                Leave <span className="font-medium text-foreground">{title}</span>? It will be
-                removed from your inbox. You can rejoin if someone messages the circle again.
+                Leave <span className="font-medium text-foreground">{title}</span>? It&apos;ll be
+                removed from your inbox.
               </>
             ) : (
               <>
-                Delete your chat with{" "}
-                <span className="font-medium text-foreground">{title}</span>? It will be removed
-                from your inbox and earlier messages will be hidden on your side. Their copy is
-                unchanged. A new message will bring the chat back without the old history.
+                Remove your chat with{" "}
+                <span className="font-medium text-foreground">{title}</span> from your inbox? They
+                won&apos;t be affected. A new message will bring it back.
               </>
             )}
           </DialogDescription>
