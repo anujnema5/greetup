@@ -63,6 +63,48 @@ export const roomCreationRepository = {
     return params.roomId;
   },
 
+  /** Live 1:1 direct room for a connection call — host only until callee accepts. */
+  async createConnectionCallRoom(params: {
+    roomId: string;
+    hostUserId: string;
+    categoryId: string;
+    title: string;
+  }) {
+    const now = new Date();
+    const advancedOptions = mergeRoomAdvancedOptions(null);
+
+    await db.transaction(async (tx) => {
+      await tx.insert(rooms).values({
+        id: params.roomId,
+        categoryId: params.categoryId,
+        hostUserId: params.hostUserId,
+        title: params.title,
+        description: null,
+        visibility: "private",
+        maxParticipants: 2,
+        scheduledStartAt: null,
+        scheduledEndAt: null,
+        status: "live",
+        startedAt: now,
+        endedAt: null,
+        expiresAt: null,
+        isExpired: false,
+        rtcRoomId: params.roomId,
+        inviteCode: null,
+        advancedOptions,
+        roomType: "direct",
+      });
+
+      await tx.insert(roomParticipants).values({
+        roomId: params.roomId,
+        userId: params.hostUserId,
+        role: "host",
+      });
+    });
+
+    return params.roomId;
+  },
+
   /**
    * Creates room, host row, and friend invites in one transaction.
    * Invites use ON CONFLICT DO NOTHING on (room_id, invitee_user_id) to tolerate duplicate IDs in the payload.

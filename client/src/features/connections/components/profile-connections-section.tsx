@@ -23,6 +23,7 @@ import type {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { getProfileImageUrl } from "@/lib/ui/profile-image";
+import { UserAvatarWithPresence } from "@/features/presence";
 import { cn } from "@/lib/utils";
 import { DisconnectConnectionDialog } from "./disconnect-connection-dialog";
 import { WithdrawRequestDialog } from "./withdraw-request-dialog";
@@ -57,18 +58,22 @@ function ConnectionPeerSummary({
   title,
   subtitle,
   titleExtra,
+  isOnline,
 }: {
   imageUrl: string | null;
   title: string;
   subtitle: string;
   titleExtra?: ReactNode;
+  isOnline?: boolean;
 }) {
   return (
     <>
-      <div className="relative flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full bg-muted/30">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={getProfileImageUrl(imageUrl)} alt="" className="h-full w-full object-cover" />
-      </div>
+      <UserAvatarWithPresence isOnline={isOnline ?? false} borderClassName="border-card">
+        <div className="relative flex h-10 w-10 items-center justify-center overflow-hidden rounded-full bg-muted/30">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={getProfileImageUrl(imageUrl)} alt="" className="h-full w-full object-cover" />
+        </div>
+      </UserAvatarWithPresence>
       <div className="min-w-0 flex-1">
         <div className="flex min-w-0 flex-wrap items-center gap-2">
           <p className="min-w-0 truncate text-sm font-semibold text-foreground">{title}</p>
@@ -168,6 +173,7 @@ function ConnectionRow({
               title={label}
               subtitle={sub}
               titleExtra={inCallBadge}
+              isOnline={peerCallStatus?.isOnline}
             />
           </Link>
         ) : (
@@ -177,6 +183,7 @@ function ConnectionRow({
               title={label}
               subtitle={sub}
               titleExtra={inCallBadge}
+              isOnline={peerCallStatus?.isOnline}
             />
           </div>
         )}

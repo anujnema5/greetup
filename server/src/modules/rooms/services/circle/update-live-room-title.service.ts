@@ -1,3 +1,4 @@
+import logger from "@/core/logging";
 import { emitToUser } from "@/core/socket/socket";
 import { CIRCLE_ROOM_SOCKET_EVENTS } from "@/modules/rooms/constants/events/circle-room-socket.events";
 import { roomsRepository } from "@/modules/rooms/repositories/rooms.repository";
@@ -32,6 +33,17 @@ export type UpdateLiveRoomTitleErrorCode =
 
 const MAX_LEN = 160;
 
+function rejectUpdateLiveRoomTitle(
+  userId: string,
+  roomId: string,
+  message: string,
+  code: UpdateLiveRoomTitleErrorCode,
+  statusCode: number,
+): never {
+  logger.warn("circle_title_update_rejected", { userId, roomId, code, message });
+  throw new UpdateLiveRoomTitleError(message, code, statusCode);
+}
+
 export async function updateLiveRoomTitleService(
   userId: string,
   roomId: string,
@@ -39,7 +51,9 @@ export async function updateLiveRoomTitleService(
 ): Promise<{ title: string }> {
   const title = rawTitle.trim();
   if (!title || title.length > MAX_LEN) {
-    throw new UpdateLiveRoomTitleError(
+    rejectUpdateLiveRoomTitle(
+      userId,
+      roomId,
       `Title must be 1–${MAX_LEN} characters`,
       "INVALID_TITLE",
       400,
@@ -48,25 +62,26 @@ export async function updateLiveRoomTitleService(
 
   const room = await roomsRepository.findRoomById(roomId);
   if (!room) {
-    throw new UpdateLiveRoomTitleError("Room not found", "ROOM_NOT_FOUND", 404);
+    rejectUpdateLiveRoomTitle(userId, roomId, "Room not found", "ROOM_NOT_FOUND", 404);
   }
   if (room.status !== "live") {
-    throw new UpdateLiveRoomTitleError("Room is not live", "ROOM_NOT_LIVE", 400);
+    rejectUpdateLiveRoomTitle(userId, roomId, "Room is not live", "ROOM_NOT_LIVE", 400);
   }
   if (room.roomType !== "circle") {
-    throw new UpdateLiveRoomTitleError("Only circle rooms can be renamed", "NOT_CIRCLE", 400);
+    rejectUpdateLiveRoomTitle(userId, roomId, "Only circle rooms can be renamed", "NOT_CIRCLE", 400);
   }
   if (room.hostUserId !== userId) {
-    throw new UpdateLiveRoomTitleError("Only the host can rename this circle", "NOT_HOST", 403);
+    rejectUpdateLiveRoomTitle(userId, roomId, "Only the host can rename this circle", "NOT_HOST", 403);
   }
 
   const updated = await roomsRepository.updateLiveRoomTitle(roomId, title);
   if (!updated) {
-    throw new UpdateLiveRoomTitleError("Could not update title", "ROOM_NOT_FOUND", 404);
+    rejectUpdateLiveRoomTitle(userId, roomId, "Could not update title", "ROOM_NOT_FOUND", 404);
   }
 
   await patchSessionRoomRedisTitle(roomId, title);
   await emitCircleTitleUpdated(roomId, title);
 
+  logger.info("circle_live_title_updated", { userId, roomId, title });
   return { title };
 }

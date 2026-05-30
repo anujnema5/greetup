@@ -1,3 +1,4 @@
+import logger from "@/core/logging";
 import { roomsRepository } from "@/modules/rooms/repositories/rooms.repository";
 import { roomParticipantsRepository } from "@/modules/rooms/repositories/room-participants.repository";
 import { removeCircleParticipantFromLive } from "./remove-circle-participant-from-live.service";
@@ -26,6 +27,24 @@ export class KickCircleParticipantError extends Error {
   }
 }
 
+function rejectKickCircleParticipant(
+  hostUserId: string,
+  roomId: string,
+  targetUserId: string,
+  message: string,
+  code: KickCircleParticipantErrorCode,
+  statusCode: number,
+): never {
+  logger.warn("circle_participant_kick_rejected", {
+    hostUserId,
+    roomId,
+    targetUserId,
+    code,
+    message,
+  });
+  throw new KickCircleParticipantError(message, code, statusCode);
+}
+
 /**
  * Host-only: marks the target participant as left, clears their active RTC room key,
  * evicts them from rtc-service, and notifies them on the main app socket.
@@ -38,24 +57,40 @@ export async function kickCircleParticipantService(
 ): Promise<{ removed: boolean; restricted: boolean }> {
   const room = await roomsRepository.findRoomById(roomId);
   if (!room || room.roomType !== "circle") {
-    throw new KickCircleParticipantError("Room not found", "ROOM_NOT_FOUND", 404);
+    rejectKickCircleParticipant(
+      hostUserId,
+      roomId,
+      targetUserId,
+      "Room not found",
+      "ROOM_NOT_FOUND",
+      404,
+    );
   }
   if (room.hostUserId !== hostUserId) {
-    throw new KickCircleParticipantError(
+    rejectKickCircleParticipant(
+      hostUserId,
+      roomId,
+      targetUserId,
       "Only the host can remove participants",
       "NOT_HOST",
       403,
     );
   }
   if (targetUserId === hostUserId) {
-    throw new KickCircleParticipantError(
+    rejectKickCircleParticipant(
+      hostUserId,
+      roomId,
+      targetUserId,
       "You cannot remove yourself from the circle",
       "CANNOT_REMOVE_SELF",
       400,
     );
   }
   if (targetUserId === room.hostUserId) {
-    throw new KickCircleParticipantError(
+    rejectKickCircleParticipant(
+      hostUserId,
+      roomId,
+      targetUserId,
       "The host cannot be removed",
       "CANNOT_REMOVE_HOST",
       400,
@@ -63,22 +98,39 @@ export async function kickCircleParticipantService(
   }
 
   if (room.status !== "live") {
-    throw new KickCircleParticipantError("Room is not live", "INVALID_STATE", 400);
+    rejectKickCircleParticipant(
+      hostUserId,
+      roomId,
+      targetUserId,
+      "Room is not live",
+      "INVALID_STATE",
+      400,
+    );
   }
 
   const activeTarget = await roomParticipantsRepository.isUserRoomParticipant(roomId, targetUserId);
 
   if (!activeTarget) {
-    throw new KickCircleParticipantError(
+    rejectKickCircleParticipant(
+      hostUserId,
+      roomId,
+      targetUserId,
       "Participant is not in this call",
       "TARGET_NOT_FOUND",
       404,
     );
   }
 
-  return removeCircleParticipantFromLive(roomId, targetUserId, {
+  const result = await removeCircleParticipantFromLive(roomId, targetUserId, {
     restrict: options.restrict === true,
     restrictedByUserId: hostUserId,
     socketReason: "host_removed",
   });
+  logger.info("circle_participant_kicked", {
+    hostUserId,
+    roomId,
+    targetUserId,
+    restricted: result.restricted,
+  });
+  return result;
 }

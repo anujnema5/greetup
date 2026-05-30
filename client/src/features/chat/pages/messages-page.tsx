@@ -7,9 +7,12 @@ import { Button } from '@/components/ui/button';
 import { NavSidebar, BottomNav } from '@/features/app-shell';
 import { useSession } from '@/lib/auth-client';
 import { cn } from '@/lib/utils';
+import { missedConnectionCallCleared } from '@/features/connection-call';
+import { useAppDispatch } from '@/lib/redux/hooks';
 import { useGetConversationQuery } from '../api/chat-api';
 import { ChatPanel } from '../components/chat-panel';
 import { ChatThreadHeader } from '../components/chat-thread-header';
+import { ChatCallActions } from '@/features/connection-call';
 import { ConversationList } from '../components/conversation-list';
 import { NewConversationSearch } from '../components/new-conversation-search';
 import {
@@ -25,6 +28,7 @@ interface MessagesPageProps {
 }
 
 export function MessagesPage({ urlKind, urlConversationId }: MessagesPageProps) {
+  const dispatch = useAppDispatch();
   const router = useRouter();
   const pathname = usePathname();
   const { data: session } = useSession();
@@ -42,6 +46,11 @@ export function MessagesPage({ urlKind, urlConversationId }: MessagesPageProps) 
   /** Avoid showing the previous conversation while a new `conversationId` is loading. */
   const activeConv =
     convQueryData?.id === urlConversationId ? convQueryData : undefined;
+
+  useEffect(() => {
+    if (!activeConv?.id) return;
+    dispatch(missedConnectionCallCleared(activeConv.id));
+  }, [activeConv?.id, dispatch]);
 
   useEffect(() => {
     if (!activeConv || !urlKind || !urlConversationId) return;
@@ -142,6 +151,10 @@ export function MessagesPage({ urlKind, urlConversationId }: MessagesPageProps) 
                       <ChevronLeft className="size-5" strokeWidth={2} />
                     </Button>
                     <ChatThreadHeader
+                      conversation={activeConv}
+                      currentUserId={currentUserId}
+                    />
+                    <ChatCallActions
                       conversation={activeConv}
                       currentUserId={currentUserId}
                     />

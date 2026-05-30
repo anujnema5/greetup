@@ -1,0 +1,2 @@
+/** Must match server `CONNECTION_CALL_INVITE_TTL_SEC` (60s). */
+export const CONNECTION_CALL_RING_TIMEOUT_MS = 60_000;

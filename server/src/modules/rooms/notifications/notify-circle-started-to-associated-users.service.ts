@@ -1,3 +1,4 @@
+import logger from "@/core/logging";
 import { roomInvitesRepository } from "@/modules/rooms/repositories/room-invites.repository";
 import { roomParticipantsRepository } from "@/modules/rooms/repositories/room-participants.repository";
 
@@ -26,6 +27,11 @@ export async function notifyCircleStartedToAssociatedUsers(params: {
   );
 
   if (recipientUserIds.length === 0) {
+    logger.debug("circle_started_notifications_skipped", {
+      roomId: params.roomId,
+      hostUserId: params.hostUserId,
+      reason: "no_recipients",
+    });
     return { notifiedCount: 0 };
   }
 
@@ -40,5 +46,10 @@ export async function notifyCircleStartedToAssociatedUsers(params: {
     ),
   );
 
+  logger.info("circle_started_notifications_dispatched", {
+    roomId: params.roomId,
+    hostUserId: params.hostUserId,
+    notifiedCount: recipientUserIds.length,
+  });
   return { notifiedCount: recipientUserIds.length };
 }

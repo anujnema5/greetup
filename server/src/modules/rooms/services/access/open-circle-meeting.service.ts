@@ -1,3 +1,4 @@
+import logger from "@/core/logging";
 import { isScheduledCircleBeforeStartTime } from "@/modules/rooms/lib/session/scheduled-circle-lobby";
 import { assertRoomSessionOpenOnAccess } from "@/modules/rooms/services/session/reconcile-room-session-on-access.service";
 import { roomsRepository } from "../../repositories/rooms.repository";
@@ -22,6 +23,17 @@ export class OpenCircleMeetingError extends Error {
   }
 }
 
+function rejectOpenCircleMeeting(
+  userId: string,
+  roomId: string,
+  message: string,
+  code: OpenCircleMeetingErrorCode,
+  statusCode: number,
+): never {
+  logger.warn("circle_meeting_open_rejected", { userId, roomId, code, message });
+  throw new OpenCircleMeetingError(message, code, statusCode);
+}
+
 /**
  * Host-only: clears Redis `lobbyGateActive` so non-hosts can obtain RTC tokens.
  * Idempotent when the gate is already open.
@@ -29,33 +41,37 @@ export class OpenCircleMeetingError extends Error {
 export async function openCircleMeetingService(userId: string, roomId: string): Promise<void> {
   const access = await assertRoomSessionOpenOnAccess(roomId);
   if (!access.ok) {
-    throw new OpenCircleMeetingError(access.message, "INVALID_STATE", 410);
+    rejectOpenCircleMeeting(userId, roomId, access.message, "INVALID_STATE", 410);
   }
 
   let room = await roomsRepository.findRoomById(roomId);
   if (!room) {
-    throw new OpenCircleMeetingError("Room not found", "ROOM_NOT_FOUND", 404);
+    rejectOpenCircleMeeting(userId, roomId, "Room not found", "ROOM_NOT_FOUND", 404);
   }
   if (room.roomType !== "circle") {
-    throw new OpenCircleMeetingError("Not a circle room", "INVALID_STATE", 400);
+    rejectOpenCircleMeeting(userId, roomId, "Not a circle room", "INVALID_STATE", 400);
   }
   if (room.hostUserId !== userId) {
-    throw new OpenCircleMeetingError("Only the host can open this circle", "NOT_HOST", 403);
+    rejectOpenCircleMeeting(userId, roomId, "Only the host can open this circle", "NOT_HOST", 403);
   }
   if (room.status !== "live") {
     if (isScheduledCircleBeforeStartTime(room)) {
-      throw new OpenCircleMeetingError(
+      rejectOpenCircleMeeting(
+        userId,
+        roomId,
         "This circle hasn’t opened yet. Try again after the scheduled start time.",
         "LOBBY_NOT_READY",
         400,
       );
     }
-    throw new OpenCircleMeetingError("Room is not live yet", "INVALID_STATE", 400);
+    rejectOpenCircleMeeting(userId, roomId, "Room is not live yet", "INVALID_STATE", 400);
   }
 
   const ok = await clearCircleLobbyGateInRedis(roomId);
   if (!ok) {
-    throw new OpenCircleMeetingError(
+    rejectOpenCircleMeeting(
+      userId,
+      roomId,
       "Room session is not ready yet. Try again in a moment.",
       "SESSION_NOT_READY",
       503,
@@ -63,4 +79,5 @@ export async function openCircleMeetingService(userId: string, roomId: string): 
   }
 
   await emitCircleOpenedForJoin(roomId, { excludeUserId: userId });
+  logger.info("circle_meeting_opened", { userId, roomId });
 }

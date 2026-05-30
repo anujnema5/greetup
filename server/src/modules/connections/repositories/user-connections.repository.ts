@@ -262,6 +262,7 @@ export const userConnectionsRepository = {
       columns: {
         id: true,
         requesterId: true,
+        addresseeId: true,
         status: true,
       },
     });

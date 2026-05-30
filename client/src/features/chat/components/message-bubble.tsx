@@ -27,6 +27,7 @@ import {
 } from '../constants';
 import { useMessageEdit } from '../hooks/use-message-edit';
 import { formatSystemPayload } from '../lib/format-system-payload';
+import { tryRenderCallSystemMessage } from './call-system-message';
 import {
   bubbleCornerRadius,
   formatMessageTime,
@@ -46,6 +47,7 @@ interface MessageBubbleProps {
   showPeerHeader?: boolean;
   peerColumnGutter?: boolean;
   showDirectPeerAvatar?: boolean;
+  senderIsOnline?: boolean;
   onToggleReaction?: (messageId: string, emoji: string) => void;
   onReply?: (message: Message) => void;
   onEditMessage?: (messageId: string, content: string) => void;
@@ -66,6 +68,7 @@ export function MessageBubble({
   showPeerHeader = false,
   peerColumnGutter = false,
   showDirectPeerAvatar = false,
+  senderIsOnline,
   onReply,
   onEditMessage,
   onDeleteMessage,
@@ -96,6 +99,9 @@ export function MessageBubble({
   });
 
   if (message.messageType === 'system') {
+    const callRow = tryRenderCallSystemMessage(message.systemPayload, currentUserId);
+    if (callRow) return callRow;
+
     return (
       <div className="flex justify-center my-2">
         <span className="rounded-full bg-muted px-2.5 py-1 text-[11px] font-medium leading-[1.35] text-muted-foreground">
@@ -406,11 +412,11 @@ export function MessageBubble({
   }
 
   const leftCol = showPeerHeader ? (
-    <MessageSenderAvatar message={message} />
+    <MessageSenderAvatar message={message} isOnline={senderIsOnline} />
   ) : peerColumnGutter ? (
     <div className={cn(MESSAGE_AVATAR_CLASS, 'shrink-0')} aria-hidden />
   ) : showDirectPeerAvatar ? (
-    <MessageSenderAvatar message={message} />
+    <MessageSenderAvatar message={message} isOnline={senderIsOnline} />
   ) : null;
 
   return (

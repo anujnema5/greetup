@@ -1,3 +1,4 @@
+import logger from "@/core/logging";
 import { userBlocksRepository } from "@/modules/blocks/repositories/user-blocks.repository";
 import { userConnectionsRepository } from "../repositories/user-connections.repository";
 import { notifyConnectionRequestReceived } from "../notifications";
@@ -39,17 +40,20 @@ export async function requestConnectionService(
   targetUserId: string,
 ): Promise<RequestConnectionResult> {
   if (viewerId === targetUserId) {
+    logger.warn("connection_request_rejected", { viewerId, targetUserId, error: "SELF" });
     return { ok: false, error: "SELF" };
   }
 
   const blocked = await userBlocksRepository.isEitherBlocked(viewerId, targetUserId);
   if (blocked) {
+    logger.warn("connection_request_rejected", { viewerId, targetUserId, error: "BLOCKED" });
     return { ok: false, error: "BLOCKED" };
   }
 
   const rows = await userConnectionsRepository.findAllBetween(viewerId, targetUserId);
 
   if (rows.some((r) => r.status === "accepted")) {
+    logger.warn("connection_request_rejected", { viewerId, targetUserId, error: "ALREADY_CONNECTED" });
     return { ok: false, error: "ALREADY_CONNECTED" };
   }
 
@@ -65,8 +69,18 @@ export async function requestConnectionService(
         connectionId: pending.id,
         status: "accepted",
       });
+      logger.info("connection_request_auto_accepted", {
+        viewerId,
+        targetUserId,
+        connectionId: pending.id,
+      });
       return { ok: true, status: "accepted", connectionId: pending.id };
     }
+    logger.debug("connection_request_already_pending", {
+      viewerId,
+      targetUserId,
+      connectionId: pending.id,
+    });
     return { ok: true, status: "pending", connectionId: pending.id };
   }
 
@@ -121,6 +135,12 @@ export async function requestConnectionService(
       connectionId: inserted.id,
     });
   }
+
+  logger.info("connection_request_created", {
+    viewerId,
+    targetUserId,
+    connectionId: inserted?.id,
+  });
 
   return { ok: true, status: "pending", connectionId: inserted?.id };
 }

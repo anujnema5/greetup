@@ -1,4 +1,5 @@
 import { and, asc, eq, inArray, or } from "drizzle-orm";
+import logger from "@/core/logging";
 import { db } from "@/core/database";
 import {
   conversations,
@@ -38,13 +39,20 @@ export async function getOrCreateRoomConversation(
       columns: { id: true },
     });
 
-    if (existing) return existing.id;
-
-    if (roomType === "direct") {
-      return createDirectRoomConversation(tx, roomId, hostUserId);
+    if (existing) {
+      logger.debug("room_conversation_reused", { roomId, roomType, conversationId: existing.id });
+      return existing.id;
     }
 
-    return createCircleRoomConversation(tx, roomId);
+    if (roomType === "direct") {
+      const conversationId = await createDirectRoomConversation(tx, roomId, hostUserId);
+      logger.info("room_conversation_created", { roomId, roomType, conversationId });
+      return conversationId;
+    }
+
+    const conversationId = await createCircleRoomConversation(tx, roomId);
+    logger.info("room_conversation_created", { roomId, roomType, conversationId });
+    return conversationId;
   });
 }
 

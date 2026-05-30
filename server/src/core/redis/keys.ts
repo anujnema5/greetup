@@ -28,6 +28,16 @@ export const ROOM_KEYS = {
 
 export const ROOM_TTL = 7200; // 2 HOURS
 
+export const CONNECTION_CALL_KEYS = {
+  invite: (requestId: string) => `connection:call:invite:${requestId}`,
+  pendingForCallee: (userId: string) => `connection:call:pending:${userId}`,
+  pendingByRoom: (roomId: string) => `connection:call:room:${roomId}`,
+  activeByRoom: (roomId: string) => `connection:call:active:${roomId}`,
+  historyLogged: (roomId: string) => `connection:call:logged:${roomId}`,
+} as const;
+
+export const CONNECTION_CALL_INVITE_TTL_SEC = 60;
+
 export const CHAT_KEYS = {
   unreadCounts: (userId: string) =>
     `chat:unread:${userId}`,               // HASH { convId → count }

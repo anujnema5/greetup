@@ -1,4 +1,6 @@
 /** Renders server `system_payload` jsonb without "[object Object]". */
+import { formatCallSystemPreview, isConnectionCallSystemPayload } from './call-system-message';
+
 export function formatSystemPayload(payload: unknown): string {
   if (payload == null) return '';
   if (typeof payload === 'string') return payload;
@@ -6,6 +8,7 @@ export function formatSystemPayload(payload: unknown): string {
 
   if (typeof payload === 'object' && !Array.isArray(payload)) {
     const o = payload as Record<string, unknown>;
+    if (isConnectionCallSystemPayload(o)) return formatCallSystemPreview(o);
     if (typeof o.text === 'string') return o.text;
     if (typeof o.message === 'string') return o.message;
     if (typeof o.body === 'string') return o.body;

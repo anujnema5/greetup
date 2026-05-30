@@ -1,3 +1,4 @@
+import logger from "@/core/logging";
 import { notifyCircleInviteReceived } from "../notifications";
 import {
   assertInviteesAllowRoomInvitesFromHost,
@@ -13,6 +14,17 @@ import { roomsRepository } from "@/modules/rooms/repositories/rooms.repository";
 import type { UpdateScheduledCircleBody } from "../schemas/update-scheduled-circle.schema";
 import { CreateCircleError } from "../types/create-circle.types";
 import { UpdateScheduledCircleError, type UpdateScheduledCircleErrorCode } from "../types/update-scheduled-circle.types";
+
+function rejectUpdateScheduledCircle(
+  hostUserId: string,
+  roomId: string,
+  message: string,
+  code: UpdateScheduledCircleErrorCode,
+  statusCode: 400 | 404,
+): never {
+  logger.warn("scheduled_circle_update_rejected", { hostUserId, roomId, code, message });
+  throw new UpdateScheduledCircleError(message, code, statusCode);
+}
 
 function wrapInviteErrors<T>(fn: () => Promise<T>): Promise<T> {
   return fn().catch((e: unknown) => {
@@ -40,7 +52,9 @@ export async function updateScheduledCircleService(
 ) {
   const room = await roomsRepository.findRoomById(roomId);
   if (!room || room.hostUserId !== hostUserId || room.roomType !== "circle" || room.status !== "scheduled") {
-    throw new UpdateScheduledCircleError(
+    rejectUpdateScheduledCircle(
+      hostUserId,
+      roomId,
       "Circle not found, or you cannot edit it",
       "ROOM_NOT_FOUND",
       404,
@@ -50,7 +64,9 @@ export async function updateScheduledCircleService(
   if (body.categoryId !== undefined) {
     const cat = await roomCategoriesRepository.findActiveCategoryById(body.categoryId);
     if (!cat) {
-      throw new UpdateScheduledCircleError(
+      rejectUpdateScheduledCircle(
+        hostUserId,
+        roomId,
         "Category not found or inactive",
         "CATEGORY_NOT_FOUND",
         404,
@@ -62,7 +78,9 @@ export async function updateScheduledCircleService(
   let resolvedInviteeIds: string[] | undefined;
   if (body.invitedUserIds !== undefined) {
     if (body.invitedUserIds.length > nextMaxParticipants - 1) {
-      throw new UpdateScheduledCircleError(
+      rejectUpdateScheduledCircle(
+        hostUserId,
+        roomId,
         `You can invite at most ${nextMaxParticipants - 1} ${nextMaxParticipants - 1 === 1 ? "person" : "people"} for a ${nextMaxParticipants}-seat circle (you use one seat).`,
         "INVITES_EXCEED_CAPACITY",
         400,
@@ -126,27 +144,35 @@ export async function updateScheduledCircleService(
 
   if (!result.ok) {
     if (result.reason === "NOT_FOUND") {
-      throw new UpdateScheduledCircleError(
+      rejectUpdateScheduledCircle(
+        hostUserId,
+        roomId,
         "Circle not found, or you cannot edit it",
         "ROOM_NOT_FOUND",
         404,
       );
     }
     if (result.reason === "INVALID_SCHEDULE") {
-      throw new UpdateScheduledCircleError(
+      rejectUpdateScheduledCircle(
+        hostUserId,
+        roomId,
         "Scheduled start must be in the future",
         "INVALID_SCHEDULE",
         400,
       );
     }
     if (result.reason === "ROOM_FULL") {
-      throw new UpdateScheduledCircleError(
+      rejectUpdateScheduledCircle(
+        hostUserId,
+        roomId,
         "Cannot set seats below the number of people already in this circle",
         "ROOM_FULL",
         400,
       );
     }
-    throw new UpdateScheduledCircleError(
+    rejectUpdateScheduledCircle(
+      hostUserId,
+      roomId,
       "scheduledEndAt must be after scheduledStartAt",
       "INVALID_END",
       400,
@@ -166,6 +192,7 @@ export async function updateScheduledCircleService(
     }
   }
 
+  logger.info("scheduled_circle_updated", { hostUserId, roomId, title: result.title });
   return {
     room: {
       id: result.id,

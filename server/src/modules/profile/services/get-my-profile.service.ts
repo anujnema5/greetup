@@ -1,9 +1,13 @@
+import logger from "@/core/logging";
 import { profileStepsRepository } from "../repositories/profile-steps.repository";
 import type { MyProfileResponse } from "../types/my-profile.types";
 
 export async function getMyProfileService(userId: string): Promise<MyProfileResponse | null> {
   const p = await profileStepsRepository.getProfileForSteps(userId);
-  if (!p) return null;
+  if (!p) {
+    logger.debug("my_profile_not_found", { userId });
+    return null;
+  }
 
   const professionRow = p.professions?.[0]?.profession;
 
@@ -12,7 +16,7 @@ export async function getMyProfileService(userId: string): Promise<MyProfileResp
       ? p.roomInviteAllowlistedUserIds.filter((x): x is string => typeof x === "string")
       : [];
 
-  return {
+  const result: MyProfileResponse = {
     username: p.user?.username ?? null,
     displayName: p.user?.displayName ?? p.user?.name ?? null,
     bio: p.bio,
@@ -72,4 +76,6 @@ export async function getMyProfileService(userId: string): Promise<MyProfileResp
       answer: a.answer,
     })),
   };
+  logger.debug("my_profile_resolved", { userId, profileCompletion: p.profileCompletion });
+  return result;
 }

@@ -1,3 +1,4 @@
+import logger from "@/core/logging";
 import config from "@/shared/config/config";
 
 type GoogleAddressComponent = {
@@ -85,6 +86,7 @@ export class GoogleMapsApiNotConfiguredError extends Error {
 function getGoogleMapsApiKey(): string {
   const key = config.googleMapsApiKey?.trim();
   if (!key) {
+    logger.warn("location_geocode_api_not_configured", {});
     throw new GoogleMapsApiNotConfiguredError();
   }
   return key;
@@ -228,12 +230,17 @@ async function geocodeLocationByPlaceId(placeId: string): Promise<ResolvedLocati
 }
 
 export async function geocodeLocationByQuery(query: string): Promise<ResolvedLocation> {
-  const url = new URL("https://maps.googleapis.com/maps/api/geocode/json");
-  url.searchParams.set("address", query);
-  url.searchParams.set("language", "en");
-  url.searchParams.set("key", getGoogleMapsApiKey());
-  const json = await requestGoogleGeocode(url);
-  return parseResolvedLocation(json.results[0]);
+  try {
+    const url = new URL("https://maps.googleapis.com/maps/api/geocode/json");
+    url.searchParams.set("address", query);
+    url.searchParams.set("language", "en");
+    url.searchParams.set("key", getGoogleMapsApiKey());
+    const json = await requestGoogleGeocode(url);
+    return parseResolvedLocation(json.results[0]);
+  } catch (error) {
+    logger.error("location_geocode_failed", { query, error });
+    throw error;
+  }
 }
 
 export async function geocodeLocationSuggestionsByQuery(
@@ -243,7 +250,8 @@ export async function geocodeLocationSuggestionsByQuery(
   const safeLimit = Math.max(1, Math.min(limit, 10));
 
   try {
-    const autocompleteUrl = new URL("https://maps.googleapis.com/maps/api/place/autocomplete/json");
+    try {
+      const autocompleteUrl = new URL("https://maps.googleapis.com/maps/api/place/autocomplete/json");
     autocompleteUrl.searchParams.set("input", query);
     autocompleteUrl.searchParams.set("language", "en");
     autocompleteUrl.searchParams.set("key", getGoogleMapsApiKey());
@@ -294,39 +302,48 @@ export async function geocodeLocationSuggestionsByQuery(
 
     const parsed = resolvedSuggestions.filter((item) => item !== null) as ResolvedLocationSuggestion[];
     if (parsed.length) return parsed;
-  } catch {
-    // Fall back to geocoding search if Places Autocomplete is unavailable.
-  }
+    } catch {
+      // Fall back to geocoding search if Places Autocomplete is unavailable.
+    }
 
-  const geocodeUrl = new URL("https://maps.googleapis.com/maps/api/geocode/json");
-  geocodeUrl.searchParams.set("address", query);
-  geocodeUrl.searchParams.set("language", "en");
-  geocodeUrl.searchParams.set("key", getGoogleMapsApiKey());
-  const geocodeJson = await requestGoogleGeocode(geocodeUrl, { allowZeroResults: true });
-  return geocodeJson.results.slice(0, safeLimit).map((result) => {
-    const parsed = parseResolvedLocationSuggestion(result);
-    return {
-      ...parsed,
-      primaryText: parsed.label,
-      secondaryText: undefined,
-    };
-  });
+    const geocodeUrl = new URL("https://maps.googleapis.com/maps/api/geocode/json");
+    geocodeUrl.searchParams.set("address", query);
+    geocodeUrl.searchParams.set("language", "en");
+    geocodeUrl.searchParams.set("key", getGoogleMapsApiKey());
+    const geocodeJson = await requestGoogleGeocode(geocodeUrl, { allowZeroResults: true });
+    return geocodeJson.results.slice(0, safeLimit).map((result) => {
+      const parsed = parseResolvedLocationSuggestion(result);
+      return {
+        ...parsed,
+        primaryText: parsed.label,
+        secondaryText: undefined,
+      };
+    });
+  } catch (error) {
+    logger.error("location_geocode_suggestions_failed", { query, limit: safeLimit, error });
+    throw error;
+  }
 }
 
 export async function reverseGeocodeLocationByCoordinates(
   latitude: number,
   longitude: number,
 ): Promise<ResolvedLocation> {
-  const url = new URL("https://maps.googleapis.com/maps/api/geocode/json");
-  url.searchParams.set("latlng", `${latitude},${longitude}`);
-  url.searchParams.set("language", "en");
-  url.searchParams.set("key", getGoogleMapsApiKey());
-  const json = await requestGoogleGeocode(url);
-  const resolved = parseResolvedLocation(json.results[0]);
-  return {
-    ...resolved,
-    // Keep coordinates from device for deterministic storage/filtering.
-    latitude,
-    longitude,
-  };
+  try {
+    const url = new URL("https://maps.googleapis.com/maps/api/geocode/json");
+    url.searchParams.set("latlng", `${latitude},${longitude}`);
+    url.searchParams.set("language", "en");
+    url.searchParams.set("key", getGoogleMapsApiKey());
+    const json = await requestGoogleGeocode(url);
+    const resolved = parseResolvedLocation(json.results[0]);
+    return {
+      ...resolved,
+      // Keep coordinates from device for deterministic storage/filtering.
+      latitude,
+      longitude,
+    };
+  } catch (error) {
+    logger.error("location_reverse_geocode_failed", { latitude, longitude, error });
+    throw error;
+  }
 }

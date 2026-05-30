@@ -1,3 +1,4 @@
+import logger from "@/core/logging";
 import { getRedis } from "@/core/redis";
 import { ROOM_KEYS } from "@/core/redis/keys";
 import { roomsRepository } from "@/modules/rooms/repositories/rooms.repository";
@@ -29,32 +30,43 @@ export class JoinRoomError extends Error {
   }
 }
 
+function rejectJoinRoom(
+  userId: string,
+  roomId: string,
+  message: string,
+  code: JoinRoomErrorCode,
+  statusCode: number,
+): never {
+  logger.warn("room_join_rejected", { userId, roomId, code, message });
+  throw new JoinRoomError(message, code, statusCode);
+}
+
 /** Ensures `room_participants` row for RTC (direct + circle). */
 export async function joinRoomService(userId: string, roomId: string): Promise<void> {
   let room = await roomsRepository.findRoomById(roomId);
 
   if (!room) {
-    throw new JoinRoomError("Room not found", "ROOM_NOT_FOUND", 404);
+    rejectJoinRoom(userId, roomId, "Room not found", "ROOM_NOT_FOUND", 404);
   }
 
   if (room.roomType === "circle" && room.status === "scheduled") {
     await maybeAutoStartScheduledCircleFromDb(roomId);
     room = await roomsRepository.findRoomById(roomId);
     if (!room) {
-      throw new JoinRoomError("Room not found", "ROOM_NOT_FOUND", 404);
+      rejectJoinRoom(userId, roomId, "Room not found", "ROOM_NOT_FOUND", 404);
     }
   }
 
   if (room.roomType === "direct" || room.roomType === "circle") {
     const access = await assertRoomSessionOpenOnAccess(roomId);
     if (!access.ok) {
-      throw new JoinRoomError(access.message, "ROOM_EXPIRED", 410);
+      rejectJoinRoom(userId, roomId, access.message, "ROOM_EXPIRED", 410);
     }
     room = (await roomsRepository.findRoomById(roomId)) ?? room;
   }
 
   if (room.roomType !== "direct" && room.roomType !== "circle") {
-    throw new JoinRoomError("Unsupported room type", "UNSUPPORTED_ROOM_TYPE", 400);
+    rejectJoinRoom(userId, roomId, "Unsupported room type", "UNSUPPORTED_ROOM_TYPE", 400);
   }
 
   /**
@@ -67,7 +79,9 @@ export async function joinRoomService(userId: string, roomId: string): Promise<v
       userId !== room.hostUserId &&
       (await roomRestrictedUsersRepository.isRoomRestrictedUser(roomId, userId))
     ) {
-      throw new JoinRoomError(
+      rejectJoinRoom(
+        userId,
+        roomId,
         "You are not allowed to rejoin this circle",
         "RESTRICTED",
         403,
@@ -76,29 +90,34 @@ export async function joinRoomService(userId: string, roomId: string): Promise<v
 
     const activeLobby = await roomParticipantsRepository.isUserRoomParticipant(roomId, userId);
     if (activeLobby) {
+      logger.debug("room_join_skipped_already_participant", { userId, roomId, lobby: true });
       return;
     }
     await ensureCircleRoomParticipation(userId, roomId, room);
+    logger.info("room_join_succeeded", { userId, roomId, roomType: room.roomType, lobby: true });
     return;
   }
 
   if (room.status !== "live") {
-    throw new JoinRoomError("Room is not live yet", "ROOM_NOT_LIVE", 400);
+    rejectJoinRoom(userId, roomId, "Room is not live yet", "ROOM_NOT_LIVE", 400);
   }
 
   const active = await roomParticipantsRepository.isUserRoomParticipant(roomId, userId);
 
   if (active) {
+    logger.debug("room_join_skipped_already_participant", { userId, roomId });
     return;
   }
 
   if (room.roomType === "direct") {
     await ensureDirectRoomParticipation(userId, roomId, room);
+    logger.info("room_join_succeeded", { userId, roomId, roomType: "direct" });
     return;
   }
 
   await ensureCircleRoomParticipation(userId, roomId, room);
   await roomSessionsRepository.refreshLiveCircleExpiryAfterParticipantJoin(roomId);
+  logger.info("room_join_succeeded", { userId, roomId, roomType: "circle" });
 }
 
 async function ensureDirectRoomParticipation(
@@ -142,7 +161,7 @@ async function ensureDirectRoomParticipation(
     }
   }
 
-  throw new JoinRoomError("You are not allowed to join this room", "NOT_ALLOWED", 403);
+  rejectJoinRoom(userId, roomId, "You are not allowed to join this room", "NOT_ALLOWED", 403);
 }
 
 async function ensureCircleRoomParticipation(
@@ -156,7 +175,9 @@ async function ensureCircleRoomParticipation(
   }
 
   if (await roomRestrictedUsersRepository.isRoomRestrictedUser(roomId, userId)) {
-    throw new JoinRoomError(
+    rejectJoinRoom(
+      userId,
+      roomId,
       "You are not allowed to rejoin this circle",
       "RESTRICTED",
       403,
@@ -172,7 +193,9 @@ async function ensureCircleRoomParticipation(
 
   const n = await roomParticipantsRepository.countActiveParticipants(roomId);
   if (n >= room.maxParticipants) {
-    throw new JoinRoomError(
+    rejectJoinRoom(
+      userId,
+      roomId,
       `This circle is full (${room.maxParticipants} seats including the host).`,
       "ROOM_FULL",
       400,
@@ -186,7 +209,7 @@ async function ensureCircleRoomParticipation(
 
   const invite = await roomInvitesRepository.findFriendInvite(roomId, userId);
   if (!invite) {
-    throw new JoinRoomError("You are not allowed to join this room", "NOT_ALLOWED", 403);
+    rejectJoinRoom(userId, roomId, "You are not allowed to join this room", "NOT_ALLOWED", 403);
   }
 
   await roomParticipantsRepository.addOrReactivateParticipantRow(roomId, userId);

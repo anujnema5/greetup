@@ -1,5 +1,6 @@
 import { eq } from "drizzle-orm";
 
+import logger from "@/core/logging";
 import { db } from "@/core/database";
 import { users } from "@/core/database/schema";
 import { getRedis } from "@/core/redis";
@@ -232,7 +233,10 @@ export async function getMatchPeerPreview(
   ]);
 
   const peerData = parseSnapshotData(peerRaw);
-  if (!peerData) return fallback(peerUserId, isOnline);
+  if (!peerData) {
+    logger.debug("match_peer_preview_fallback", { myUserId, peerUserId, reason: "missing_snapshot" });
+    return fallback(peerUserId, isOnline);
+  }
 
   const myData = parseSnapshotData(myRaw);
 
@@ -254,6 +258,13 @@ export async function getMatchPeerPreview(
   // const insight = await generateMatchInsight(meForInsight, peerForInsight);
 
   const profession = peerData.professions[0] ?? null;
+
+  logger.debug("match_peer_preview_resolved", {
+    myUserId,
+    peerUserId,
+    isOnline,
+    connectionState: social.connectionState,
+  });
 
   return {
     displayName: peerData.displayName,

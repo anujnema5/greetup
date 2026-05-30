@@ -1,3 +1,4 @@
+import logger from "@/core/logging";
 import { roomSessionsRepository } from "@/modules/rooms/repositories/room-sessions.repository";
 import { deleteSessionRoomRedis } from "@/modules/rooms/services/rtc/session-room-redis.service";
 
@@ -8,5 +9,10 @@ import { deleteSessionRoomRedis } from "@/modules/rooms/services/rtc/session-roo
  */
 export async function syncCircleRoomExpiryFromClockIfDue(roomId: string): Promise<void> {
   const did = await roomSessionsRepository.syncCircleRoomExpiryIfPastDue(roomId);
-  if (did) await deleteSessionRoomRedis(roomId);
+  if (did) {
+    await deleteSessionRoomRedis(roomId);
+    logger.debug("circle_room_expiry_synced", { roomId });
+  } else {
+    logger.debug("circle_room_expiry_sync_skipped", { roomId });
+  }
 }
