@@ -2,7 +2,7 @@
 
 import { useMemo } from "react";
 
-import { NavSidebar, BottomNav } from "@/features/app-shell";
+import { NavSidebar, BottomNav, PageHeader } from "@/features/app-shell";
 import { useDebouncedValue } from "@/lib/hooks/use-debounced-value";
 
 import { useSearchUsersQuery } from "../api/user-search-api";
@@ -44,14 +44,7 @@ export function ExplorePage() {
       <NavSidebar activePath="/explore" />
 
       <main className="flex flex-1 flex-col overflow-y-auto pb-16 md:pb-0">
-        <header className="sticky top-0 z-50 flex items-center justify-between px-4 md:px-8 py-4 border-b border-border bg-background shadow-sm">
-          <div>
-            <h1 className="text-[15px] font-semibold text-foreground leading-none">Explore</h1>
-            <p className="text-[11px] text-muted-foreground mt-1">
-              Search people by username or name
-            </p>
-          </div>
-        </header>
+        <PageHeader title="Explore" subtitle="Search people by username or name" />
 
         <div className="flex flex-col gap-6 px-4 md:px-8 py-5">
           <ExploreSearchField value={query} onChange={setQuery} />

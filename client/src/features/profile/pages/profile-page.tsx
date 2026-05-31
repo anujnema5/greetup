@@ -23,7 +23,7 @@ import {
 import { toast } from "sonner";
 import type { FetchBaseQueryError } from "@reduxjs/toolkit/query";
 
-import { NavSidebar, BottomNav } from "@/features/app-shell";
+import { NavSidebar, BottomNav, PageHeader } from "@/features/app-shell";
 import {
   useGetMyProfileQuery,
   useGetProfileSetupStepsQuery,
@@ -141,8 +141,11 @@ export function ProfilePage() {
   const shell = (body: ReactNode) => (
     <div className="flex h-screen overflow-hidden bg-background">
       <NavSidebar activePath="/profile" />
-      <main className="flex flex-1 flex-col items-center justify-center overflow-y-auto px-6 text-center pb-16 md:pb-0">
-        {body}
+      <main className="flex flex-1 flex-col overflow-y-auto pb-16 md:pb-0">
+        <PageHeader title="Profile" subtitle="Edit one section at a time." />
+        <div className="flex flex-1 flex-col items-center justify-center px-6 text-center">
+          {body}
+        </div>
       </main>
       <BottomNav activePath="/profile" />
     </div>
@@ -211,19 +214,19 @@ export function ProfilePage() {
       <NavSidebar activePath="/profile" />
 
       <main className="flex flex-1 flex-col overflow-y-auto pb-16 md:pb-0">
-        <header className="sticky top-0 z-40 flex items-center justify-between px-4 md:px-8 py-4 border-b border-border bg-background/95 backdrop-blur-md shadow-sm">
-          <div>
-            <h1 className="text-[15px] font-semibold text-foreground leading-none">Profile</h1>
-            <p className="text-[11px] text-muted-foreground mt-1">Edit one section at a time.</p>
-          </div>
-          <button
-            type="button"
-            onClick={() => setActiveSection("basics")}
-            className="flex items-center gap-1.5 rounded-xl border border-border px-3 py-2 text-xs font-medium text-muted-foreground hover:bg-muted hover:text-foreground transition-colors duration-200 cursor-pointer"
-          >
-            Edit
-          </button>
-        </header>
+        <PageHeader
+          title="Profile"
+          subtitle="Edit one section at a time."
+          actions={
+            <button
+              type="button"
+              onClick={() => setActiveSection("basics")}
+              className="flex cursor-pointer items-center gap-1.5 rounded-xl border border-border px-3 py-2 text-xs font-medium text-muted-foreground transition-colors duration-200 hover:bg-muted hover:text-foreground"
+            >
+              Edit
+            </button>
+          }
+        />
 
         <div className="flex flex-col gap-5 px-4 md:px-8 py-5">
           <ProfileCompletionCard

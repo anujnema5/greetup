@@ -2,7 +2,6 @@
 
 import Link from "next/link";
 import {
-  ArrowLeft,
   BookOpen,
   Briefcase,
   Heart,
@@ -12,7 +11,7 @@ import {
   Target,
 } from "lucide-react";
 
-import { NavSidebar, BottomNav } from "@/features/app-shell";
+import { NavSidebar, BottomNav, PageHeader } from "@/features/app-shell";
 import { UserAvatarWithPresence } from "@/features/presence";
 import { getRtkQueryErrorMessage } from "@/lib/api/rtk-query-error";
 
@@ -70,21 +69,12 @@ export function PublicProfilePage({ username }: Props) {
       <NavSidebar activePath="/explore" />
 
       <main className="flex flex-1 flex-col overflow-y-auto pb-16 md:pb-0">
-        <header className="sticky top-0 z-40 flex items-center gap-3 border-b border-border bg-background/95 px-4 py-4 backdrop-blur-md md:px-8">
-          <Link
-            href="/explore"
-            className="flex h-9 w-9 items-center justify-center rounded-xl text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-            aria-label="Back to explore"
-          >
-            <ArrowLeft size={18} />
-          </Link>
-          <div className="min-w-0 flex-1">
-            <h1 className="truncate text-[15px] font-semibold leading-none text-foreground">
-              Profile
-            </h1>
-            <p className="mt-1 truncate text-[11px] text-muted-foreground">@{username}</p>
-          </div>
-        </header>
+        <PageHeader
+          title="Profile"
+          subtitle={`@${username}`}
+          backHref="/explore"
+          backLabel="Back to explore"
+        />
 
         <div className="mx-auto flex w-full min-w-0 max-w-lg flex-col gap-5 px-4 py-6 md:max-w-xl md:px-8">
           {isLoading && (
