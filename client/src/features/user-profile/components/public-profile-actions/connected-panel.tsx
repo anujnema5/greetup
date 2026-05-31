@@ -1,13 +1,12 @@
 "use client";
 
-import { Check, Loader2, MessageCircle, Phone, Video } from "lucide-react";
+import { Loader2, MessageCircle, Phone, Video } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import type { ConnectionCallMode } from "@/features/connection-call/types/connection-call.types";
 
 import { PublicProfileOverflowMenu, type PublicProfileOverflowMenuProps } from "./overflow-menu";
-import { PublicProfileStatusBanner } from "./status-banner";
 
 type PublicProfileConnectedPanelProps = {
   onMessage: () => void;
@@ -21,34 +20,8 @@ type PublicProfileConnectedPanelProps = {
   className?: string;
 };
 
-function CallButton({
-  mode,
-  disabled,
-  title,
-  onClick,
-}: {
-  mode: ConnectionCallMode;
-  disabled: boolean;
-  title: string;
-  onClick: () => void;
-}) {
-  const Icon = mode === "audio" ? Phone : Video;
-
-  return (
-    <Button
-      type="button"
-      variant="outline"
-      size="icon"
-      className="size-11 shrink-0 rounded-xl"
-      disabled={disabled}
-      title={title}
-      aria-label={title}
-      onClick={onClick}
-    >
-      <Icon className="size-[18px]" strokeWidth={2} aria-hidden />
-    </Button>
-  );
-}
+const actionButtonClassName =
+  "h-10 min-w-0 flex-1 rounded-xl gap-1 px-2 text-xs font-medium";
 
 export function PublicProfileConnectedPanel({
   onMessage,
@@ -66,43 +39,47 @@ export function PublicProfileConnectedPanel({
   const videoHint = canCall ? "Video call" : (callDisabledReason ?? "Call unavailable");
 
   return (
-    <div className={cn("flex w-full flex-col gap-2.5", className)}>
-      <PublicProfileStatusBanner
-        tone="emerald"
-        icon={<Check className="size-4" aria-hidden />}
-        label="Connected"
-      />
-
-      <div className="flex gap-2">
-        <Button
-          type="button"
-          className="h-11 min-w-0 flex-1 rounded-xl font-semibold"
-          disabled={isOpeningChat}
-          onClick={onMessage}
-        >
-          {isOpeningChat ? (
-            <Loader2 className="size-4 animate-spin" aria-hidden />
-          ) : (
-            <MessageCircle className="size-4" aria-hidden />
-          )}
-          Message
-        </Button>
-
-        <CallButton
-          mode="audio"
-          disabled={callBlocked}
-          title={callHint}
-          onClick={() => onCall("audio")}
-        />
-        <CallButton
-          mode="video"
-          disabled={callBlocked}
-          title={videoHint}
-          onClick={() => onCall("video")}
-        />
-
-        <PublicProfileOverflowMenu {...overflow} />
-      </div>
+    <div className={cn("flex gap-2", className)}>
+      <Button
+        type="button"
+        variant="outline"
+        className={cn(
+          actionButtonClassName,
+          "border-primary/35 bg-primary/8 text-primary hover:bg-primary/15 hover:text-primary",
+        )}
+        disabled={isOpeningChat}
+        onClick={onMessage}
+      >
+        {isOpeningChat ? (
+          <Loader2 className="size-3.5 shrink-0 animate-spin" aria-hidden />
+        ) : (
+          <MessageCircle className="size-3.5 shrink-0" aria-hidden />
+        )}
+        {isOpeningChat ? "Opening…" : "Message"}
+      </Button>
+      <Button
+        type="button"
+        variant="outline"
+        className={actionButtonClassName}
+        disabled={callBlocked}
+        onClick={() => onCall("audio")}
+        title={callHint}
+      >
+        <Phone className="size-3.5 shrink-0" aria-hidden />
+        Call
+      </Button>
+      <Button
+        type="button"
+        variant="outline"
+        className={actionButtonClassName}
+        disabled={callBlocked}
+        onClick={() => onCall("video")}
+        title={videoHint}
+      >
+        <Video className="size-3.5 shrink-0" aria-hidden />
+        Video
+      </Button>
+      <PublicProfileOverflowMenu {...overflow} tone="row" />
     </div>
   );
 }

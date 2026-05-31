@@ -1,0 +1,182 @@
+/**
+ * Tour popover styles — must load AFTER driver.js/dist/driver.css
+ * (imported from tour-guide-provider.tsx in that order).
+ */
+
+.driver-popover.greetup-tour-popover {
+  box-sizing: border-box;
+  background: var(--card) !important;
+  color: var(--card-foreground) !important;
+  border: 1px solid var(--border) !important;
+  border-radius: calc(var(--radius) + 6px) !important;
+  box-shadow:
+    0 16px 48px oklch(0% 0 0 / 0.28),
+    0 0 0 1px oklch(100% 0 0 / 0.05) !important;
+  min-width: 17.5rem !important;
+  max-width: min(22rem, calc(100vw - 2rem)) !important;
+  padding: 1.0625rem 1.1875rem 0.9375rem !important;
+  font-family: var(--font-sans) !important;
+}
+
+.driver-popover.greetup-tour-popover * {
+  font-family: var(--font-sans) !important;
+}
+
+/* Close — minimal ghost icon (matches dialog / nav icon buttons) */
+.driver-popover.greetup-tour-popover .driver-popover-close-btn {
+  position: absolute !important;
+  top: 0.75rem !important;
+  right: 0.75rem !important;
+  z-index: 2 !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: 1.5rem !important;
+  height: 1.5rem !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: none !important;
+  border-radius: calc(var(--radius) - 2px) !important;
+  background: transparent !important;
+  color: var(--muted-foreground) !important;
+  opacity: 0.65 !important;
+  font-size: 0 !important;
+  line-height: 0 !important;
+  cursor: pointer !important;
+  transition:
+    opacity 0.15s ease,
+    background-color 0.15s ease,
+    color 0.15s ease !important;
+}
+
+.driver-popover.greetup-tour-popover .driver-popover-close-btn::before,
+.driver-popover.greetup-tour-popover .driver-popover-close-btn::after {
+  content: "" !important;
+  position: absolute !important;
+  width: 0.5625rem !important;
+  height: 1.5px !important;
+  border-radius: 9999px !important;
+  background: currentColor !important;
+}
+
+.driver-popover.greetup-tour-popover .driver-popover-close-btn::before {
+  transform: rotate(45deg) !important;
+}
+
+.driver-popover.greetup-tour-popover .driver-popover-close-btn::after {
+  transform: rotate(-45deg) !important;
+}
+
+.driver-popover.greetup-tour-popover .driver-popover-close-btn:hover,
+.driver-popover.greetup-tour-popover .driver-popover-close-btn:focus-visible {
+  opacity: 1 !important;
+  background: var(--muted) !important;
+  color: var(--foreground) !important;
+}
+
+.driver-popover.greetup-tour-popover .driver-popover-title {
+  display: block !important;
+  margin: 0 !important;
+  padding-right: 1.75rem !important;
+  font-size: 1rem !important;
+  font-weight: 600 !important;
+  letter-spacing: -0.018em !important;
+  line-height: 1.35 !important;
+  color: var(--foreground) !important;
+}
+
+.driver-popover.greetup-tour-popover .driver-popover-description {
+  margin-top: 0.4375rem !important;
+  margin-bottom: 0 !important;
+  font-size: 0.875rem !important;
+  font-weight: 400 !important;
+  line-height: 1.52 !important;
+  color: var(--muted-foreground) !important;
+}
+
+.driver-popover.greetup-tour-popover .driver-popover-footer {
+  margin-top: 1.0625rem !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: flex-end !important;
+  gap: 0.5rem !important;
+}
+
+.driver-popover.greetup-tour-popover .driver-popover-progress-text {
+  display: none !important;
+}
+
+.driver-popover.greetup-tour-popover .driver-popover-navigation-btns {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: flex-end !important;
+  gap: 0.5rem !important;
+  flex-grow: 0 !important;
+}
+
+.driver-popover.greetup-tour-popover .driver-popover-navigation-btns button + button {
+  margin-left: 0 !important;
+}
+
+.driver-popover.greetup-tour-popover .driver-popover-footer button {
+  all: unset;
+  box-sizing: border-box;
+}
+
+.driver-popover.greetup-tour-popover .driver-popover-prev-btn,
+.driver-popover.greetup-tour-popover .driver-popover-next-btn {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  min-height: 2.125rem !important;
+  padding: 0 1rem !important;
+  border-radius: 9999px !important;
+  font-size: 0.8125rem !important;
+  font-weight: 600 !important;
+  line-height: 1 !important;
+  text-shadow: none !important;
+  cursor: pointer !important;
+  transition:
+    background-color 0.15s ease,
+    color 0.15s ease,
+    border-color 0.15s ease,
+    filter 0.15s ease !important;
+}
+
+.driver-popover.greetup-tour-popover .driver-popover-prev-btn {
+  background: var(--muted) !important;
+  border: 1px solid color-mix(in oklch, var(--foreground) 22%, transparent) !important;
+  color: var(--foreground) !important;
+}
+
+.driver-popover.greetup-tour-popover .driver-popover-prev-btn:hover:not(.driver-popover-btn-disabled),
+.driver-popover.greetup-tour-popover .driver-popover-prev-btn:focus-visible:not(.driver-popover-btn-disabled) {
+  background: color-mix(in oklch, var(--muted) 80%, var(--foreground) 20%) !important;
+  border-color: color-mix(in oklch, var(--foreground) 32%, transparent) !important;
+  color: var(--foreground) !important;
+}
+
+.driver-popover.greetup-tour-popover .driver-popover-next-btn {
+  min-width: 4.5rem !important;
+  background: var(--primary) !important;
+  border: 1px solid transparent !important;
+  color: var(--primary-foreground) !important;
+}
+
+.driver-popover.greetup-tour-popover .driver-popover-next-btn:hover:not(.driver-popover-btn-disabled),
+.driver-popover.greetup-tour-popover .driver-popover-next-btn:focus-visible:not(.driver-popover-btn-disabled) {
+  filter: brightness(1.07) !important;
+}
+
+/* First step: hide disabled Back so only Next shows */
+.driver-popover.greetup-tour-popover .driver-popover-prev-btn.driver-popover-btn-disabled {
+  display: none !important;
+}
+
+.driver-popover.greetup-tour-popover .driver-popover-arrow {
+  border-color: var(--card) !important;
+}
+
+.driver-active-element {
+  border-radius: 12px !important;
+}

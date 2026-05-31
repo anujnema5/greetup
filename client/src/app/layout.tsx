@@ -20,6 +20,7 @@ import { ConnectionRealtimeBridge } from "@/features/connections";
 import { NotificationsRealtimeBridge } from "@/features/notifications";
 import { ChatRealtimeBridges } from "@/features/chat/components/chat-realtime-bridges";
 import { ConnectionCallBridge } from "@/features/connection-call";
+import { TourGuideProvider } from "@/features/tour-guide";
 const plusJakartaSans = Plus_Jakarta_Sans({
   variable: "--font-plus-jakarta",
   subsets: ["latin"],
@@ -53,9 +54,11 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                 <ChatRealtimeBridges />
                 <Suspense fallback={null}>
                   <MatchmakingProvider>
-                    <RoomSocketBridge />
-                    <MinimizedRoomDock />
-                    {children}
+                    <TourGuideProvider>
+                      <RoomSocketBridge />
+                      <MinimizedRoomDock />
+                      {children}
+                    </TourGuideProvider>
                   </MatchmakingProvider>
                 </Suspense>
               </SocketProvider>

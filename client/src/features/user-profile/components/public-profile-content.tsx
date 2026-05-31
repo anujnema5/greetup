@@ -4,6 +4,7 @@ import Link from "next/link";
 import {
   BookOpen,
   Briefcase,
+  Check,
   Heart,
   ImageIcon,
   MapPin,
@@ -136,6 +137,12 @@ export function PublicProfileContent({
         <div>
           <p className="text-lg font-semibold text-foreground">{displayTitle}</p>
           <p className="text-sm text-muted-foreground">@{data.username}</p>
+          {panel.kind === "accepted" && !data.isViewer ? (
+            <p className="mt-1 inline-flex items-center justify-center gap-1 text-xs font-medium text-emerald-600 dark:text-emerald-400">
+              <Check className="size-3" strokeWidth={2.5} aria-hidden />
+              Connected
+            </p>
+          ) : null}
         </div>
         {(data.age != null || data.gender) && (
           <p className="text-xs text-muted-foreground">

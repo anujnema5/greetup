@@ -1,6 +1,7 @@
 import { configureStore } from '@reduxjs/toolkit'
 import { baseApi } from '@/lib/api/base-api'
 import '@/features/settings/api/account-settings-api'
+import '@/features/tour-guide/api/tour-guide-api'
 import roomReducer from './slices/room-slice'
 import roomActivityReducer from './slices/room-activity-slice'
 import connectionCallReducer from '@/features/connection-call/slices/connection-call.slice'

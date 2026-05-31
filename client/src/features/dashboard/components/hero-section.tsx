@@ -4,6 +4,7 @@ import { memo } from "react";
 import { Video, Zap, X } from "lucide-react";
 
 import { DASHBOARD_HERO } from "@/lib/copy/user-messages";
+import { TOUR_TARGETS } from "@/features/tour-guide";
 import { CircleOrb, useStartCircleModal } from "@/features/circles";
 import { MatchOrb } from "./match-orb";
 import { HeroOnlinePeopleBadge } from "./hero-online-people-badge";
@@ -70,7 +71,7 @@ function HeroSectionInner({
       </div>
 
       <div className="relative z-10 flex flex-col sm:flex-row items-center justify-center gap-8 md:gap-14 scale-90 md:scale-100">
-        <div className="flex flex-col items-center gap-2">
+        <div className="flex flex-col items-center gap-2" data-tour-id={TOUR_TARGETS.matchOrb}>
           <MatchOrb
             isSearching={isSearching}
             onToggle={() => {
@@ -82,7 +83,7 @@ function HeroSectionInner({
             {DASHBOARD_HERO.matchLabel}
           </span>
         </div>
-        <div className="flex flex-col items-center gap-2">
+        <div className="flex flex-col items-center gap-2" data-tour-id={TOUR_TARGETS.circleOrb}>
           <CircleOrb isLoading={isOpen && categoriesLoading} onClick={openModal} />
           <span className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
             {DASHBOARD_HERO.circleLabel}

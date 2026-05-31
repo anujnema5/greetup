@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { ChevronRight } from "lucide-react";
 
 import { getRtkMutationErrorMessage } from "@/lib/api/rtk-mutation-error";
+import { TOUR_TARGETS } from "@/features/tour-guide";
 import { useListActiveCirclesQuery } from "../api/circles-api";
 import { CIRCLES_GRID_COPY } from "../constants/circles-browse-copy";
 import { useActiveCircleCardActions } from "../hooks/use-active-circle-card-actions";
@@ -41,7 +42,7 @@ function CirclesGridInner() {
   const goToBrowse = () => router.push(CIRCLES_BROWSE_PATH);
 
   return (
-    <div>
+    <div data-tour-id={TOUR_TARGETS.circlesGrid}>
       <div className="flex items-center justify-between mb-3">
         <div>
           <h2 className="text-sm font-semibold text-foreground">{CIRCLES_GRID_COPY.title}</h2>
