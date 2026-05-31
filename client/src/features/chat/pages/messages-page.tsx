@@ -196,7 +196,7 @@ export function MessagesPage({ urlKind, urlConversationId }: MessagesPageProps) 
 
               className={cn(
 
-                'flex min-h-0 w-full shrink-0 flex-col border-border bg-card/70 md:w-[min(100%,20rem)] md:border-r md:bg-card/50',
+                'flex min-h-0 w-full shrink-0 flex-col border-border bg-card/70 md:w-[min(100%,22rem)] md:border-r md:bg-card/50',
 
                 threadOpen || threadLoading ? 'hidden md:flex' : 'flex',
 
@@ -204,7 +204,7 @@ export function MessagesPage({ urlKind, urlConversationId }: MessagesPageProps) 
 
             >
 
-              <div className="shrink-0 border-b border-border px-4 py-3">
+              <div className="flex shrink-0 flex-col justify-center border-b border-border px-4 py-3 md:min-h-[4.25rem]">
 
                 <h2 className="text-sm font-semibold text-foreground">Inbox</h2>
 
@@ -286,7 +286,7 @@ export function MessagesPage({ urlKind, urlConversationId }: MessagesPageProps) 
 
                 <>
 
-                  <div className="flex shrink-0 items-center gap-2 border-b border-border bg-background/90 px-2 py-2 backdrop-blur-md md:gap-3 md:px-4 md:py-3">
+                  <div className="flex shrink-0 items-center gap-2 border-b border-border bg-background/90 px-2 py-2 backdrop-blur-md md:min-h-[4.25rem] md:gap-3 md:px-4 md:py-3">
 
                     <Button
 
