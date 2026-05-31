@@ -5,6 +5,7 @@ export const API_ENDPOINTS = {
   },
   PROFILE: {
     ME: "/profile/me",
+    ME_INSIGHTS: "/profile/me/insights",
     SETUP_STEPS: "/profile/setup-steps",
     PROFILE_SETUP: "/profile/profile-setup",
     ONBOARDING_STATUS: "/profile/onboarding-status",
@@ -61,14 +62,21 @@ export const API_ENDPOINTS = {
   },
   SEARCH: {
     USERS: "/search/users",
+    SUGGESTED_PEOPLE: "/search/suggested-people",
   },
   BLOCKS: {
     LIST: "/blocks",
     user: (targetUserId: string) =>
       `/blocks/${encodeURIComponent(targetUserId)}` as const,
   },
+  PRESENCE: {
+    ONLINE_PEOPLE_COUNT: "/presence/online-people-count",
+  },
   CIRCLES: {
     CATEGORIES: "/circles/categories",
+    BROWSE_NICHES: "/circles/browse/niches",
+    browseNicheRooms: (categoryId: string) =>
+      `/circles/browse/niches/${encodeURIComponent(categoryId)}/rooms` as const,
     CREATE: "/circles",
     ACTIVE: "/circles/active",
     /** Same path for PATCH (update) and DELETE (remove) — method differs per request. */

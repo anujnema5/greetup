@@ -16,6 +16,9 @@ import {
   useRejectConnectionMutation,
   useWithdrawConnectionRequestMutation,
 } from "@/features/connections/api/connections-api";
+import { PeerContactActionIcons } from "@/features/connections/components/peer-contact-action-icons";
+import type { PeerContactTarget } from "@/features/connections/hooks/use-peer-contact-actions";
+import { usePeerContactActions } from "@/features/connections/hooks/use-peer-contact-actions";
 import type {
   ConnectionListItem,
   PeerCallStatusEntry,
@@ -25,6 +28,7 @@ import { Input } from "@/components/ui/input";
 import { getProfileImageUrl } from "@/lib/ui/profile-image";
 import { UserAvatarWithPresence } from "@/features/presence";
 import { cn } from "@/lib/utils";
+import { PROFILE_SECTIONS } from "@/lib/copy/user-messages";
 import { DisconnectConnectionDialog } from "./disconnect-connection-dialog";
 import { WithdrawRequestDialog } from "./withdraw-request-dialog";
 import { toast } from "sonner";
@@ -34,6 +38,14 @@ const ACCEPTED_PREVIEW_LIMIT = 6;
 
 function peerLabel(item: ConnectionListItem) {
   return item.peer.displayName?.trim() || item.peer.name || "Member";
+}
+
+function connectionToPeer(item: ConnectionListItem): PeerContactTarget {
+  return {
+    peerUserId: item.peer.userId,
+    displayName: peerLabel(item),
+    image: item.peer.image,
+  };
 }
 
 /** Path for public profile when the peer has a username; otherwise null. */
@@ -88,9 +100,17 @@ function ConnectionPeerSummary({
 function ConnectionRow({
   item,
   peerCallStatus,
+  isCallingPeer = false,
+  isMessagingPeer = false,
+  onPeerMessage,
+  onPeerCall,
 }: {
   item: ConnectionListItem;
   peerCallStatus?: PeerCallStatusEntry;
+  isCallingPeer?: boolean;
+  isMessagingPeer?: boolean;
+  onPeerMessage?: (peer: PeerContactTarget) => void;
+  onPeerCall?: (peer: PeerContactTarget, mode: "audio" | "video") => void;
 }) {
   const [disconnect] = useDisconnectConnectionMutation();
   const [withdraw] = useWithdrawConnectionRequestMutation();
@@ -100,6 +120,7 @@ function ConnectionRow({
   const [withdrawConfirmOpen, setWithdrawConfirmOpen] = useState(false);
   const label = peerLabel(item);
   const profileHref = publicProfileHref(item.peer.username);
+  const peer = connectionToPeer(item);
   const sub =
     item.status === "pending" && item.direction
       ? item.direction === "incoming"
@@ -187,6 +208,15 @@ function ConnectionRow({
             />
           </div>
         )}
+        {isAccepted && onPeerMessage && onPeerCall ? (
+          <PeerContactActionIcons
+            size="md"
+            isCalling={isCallingPeer}
+            isMessaging={isMessagingPeer}
+            onMessage={() => onPeerMessage(peer)}
+            onCall={(mode) => onPeerCall(peer, mode)}
+          />
+        ) : null}
         {busy ? (
           <Loader2
             className="h-4 w-4 shrink-0 animate-spin text-muted-foreground"
@@ -198,7 +228,7 @@ function ConnectionRow({
             type="button"
             variant="outline"
             size="sm"
-            className="rounded-xl shrink-0"
+            className="cursor-pointer rounded-xl shrink-0"
             disabled={busy}
             onClick={() => setConfirmOpen(true)}
           >
@@ -209,7 +239,7 @@ function ConnectionRow({
             type="button"
             variant="outline"
             size="sm"
-            className="rounded-xl shrink-0"
+            className="cursor-pointer rounded-xl shrink-0"
             disabled={busy}
             onClick={() => setWithdrawConfirmOpen(true)}
           >
@@ -356,6 +386,14 @@ export function ProfileConnectionsSection({
   showSeeAllLink = false,
 }: ProfileConnectionsSectionProps) {
   const isPage = variant === "page";
+  const {
+    startPeerCall,
+    openPeerMessage,
+    isCallingPeerId,
+    isMessagingPeerId,
+    isStartingCall,
+    isOpeningMessage,
+  } = usePeerContactActions();
   const searchParams = useSearchParams();
   const [search, setSearch] = useState("");
   const [debouncedQ, setDebouncedQ] = useState("");
@@ -533,8 +571,7 @@ export function ProfileConnectionsSection({
           </div>
         ) : null}
         <p className="text-sm text-muted-foreground rounded-2xl border border-dashed border-border bg-muted/20 px-4 py-6 text-center">
-          No connection requests or connections yet. When you connect with people, they&apos;ll show up
-          here.
+          {PROFILE_SECTIONS.connections.emptyLong}
         </p>
       </div>
     );
@@ -627,6 +664,10 @@ export function ProfileConnectionsSection({
                 key={item.connectionId}
                 item={item}
                 peerCallStatus={peerCallStatuses?.[item.peer.userId]}
+                isCallingPeer={isStartingCall && isCallingPeerId === item.peer.userId}
+                isMessagingPeer={isOpeningMessage && isMessagingPeerId === item.peer.userId}
+                onPeerMessage={(peer) => void openPeerMessage(peer)}
+                onPeerCall={(peer, mode) => void startPeerCall(peer, mode)}
               />
             ))}
           </div>

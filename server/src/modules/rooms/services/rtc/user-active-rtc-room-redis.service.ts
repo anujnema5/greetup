@@ -27,6 +27,35 @@ export async function getUserActiveRtcRoomId(userId: string): Promise<string | n
   }
 }
 
+/** SFU peer set size — who is actually connected to the call right now. */
+export async function countRtcPeersForRoom(roomId: string): Promise<number> {
+  try {
+    const n = await getRedis().scard(rtcRoomPeersRedisKey(roomId));
+    return typeof n === "number" && n > 0 ? n : 0;
+  } catch (err) {
+    logger.warn("countRtcPeersForRoom failed", { roomId, err: String(err) });
+    return 0;
+  }
+}
+
+export async function countRtcPeersForRooms(roomIds: string[]): Promise<Map<string, number>> {
+  const out = new Map<string, number>();
+  const unique = [...new Set(roomIds.filter((id) => id.length > 0))];
+  if (unique.length === 0) return out;
+
+  const redis = getRedis();
+  const pipe = redis.pipeline();
+  for (const roomId of unique) {
+    pipe.scard(rtcRoomPeersRedisKey(roomId));
+  }
+  const rows = await pipe.exec();
+  unique.forEach((roomId, i) => {
+    const raw = pipelineValue<number>(rows, i);
+    out.set(roomId, typeof raw === "number" && raw > 0 ? raw : 0);
+  });
+  return out;
+}
+
 export async function clearUserActiveRtcRoom(userId: string): Promise<void> {
   try {
     await getRedis().del(activeRtcRoomKey(userId));

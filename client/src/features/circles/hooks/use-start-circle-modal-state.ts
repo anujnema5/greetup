@@ -13,6 +13,7 @@ import {
   useUpdateScheduledCircleMutation,
 } from "@/features/circles/api/circles-api";
 import { START_CIRCLE_COPY as C } from "@/features/circles/constants/start-circle-copy";
+import { filterStartCircleCategories } from "@/features/circles/lib/start-circle-categories";
 import { combineDateAndTime } from "@/features/circles/lib/start-circle-utils";
 import {
   getDefaultStartCircleFormValues,
@@ -76,7 +77,7 @@ export function useStartCircleModalState() {
 
   const connections = connectionsRes?.data?.items ?? [];
   const categories = useMemo(
-    () => categoriesRes?.data?.categories ?? [],
+    () => filterStartCircleCategories(categoriesRes?.data?.categories ?? []),
     [categoriesRes?.data?.categories],
   );
 

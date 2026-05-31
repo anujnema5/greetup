@@ -8,6 +8,7 @@ import type { ConnectionsListFilter } from "../schemas/connections-list.query.sc
 import {
   whereAcceptedConnectionsForUser,
   whereConnectionsListFilter,
+  wherePendingOrAcceptedConnectionsForUser,
 } from "../lib/connection-filters";
 import { escapeIlikePattern } from "@/shared/sql/ilike-escape";
 
@@ -131,6 +132,23 @@ export const userConnectionsRepository = {
         addresseeId: true,
       },
     });
+  },
+
+  /** Peer user ids with pending or accepted connection (either direction). */
+  async listPeerIdsWithPendingOrAcceptedConnection(userId: string): Promise<string[]> {
+    const rows = await db
+      .select({
+        requesterId: userConnections.requesterId,
+        addresseeId: userConnections.addresseeId,
+      })
+      .from(userConnections)
+      .where(wherePendingOrAcceptedConnectionsForUser(userId));
+
+    const peerIds = new Set<string>();
+    for (const row of rows) {
+      peerIds.add(row.requesterId === userId ? row.addresseeId : row.requesterId);
+    }
+    return [...peerIds];
   },
 
   /** Single row if any connection exists between the two users (either direction). */

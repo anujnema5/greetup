@@ -2,8 +2,12 @@
 
 import { memo } from "react";
 import { Video, Zap, X } from "lucide-react";
-import { MatchOrb } from "./match-orb";
+
+import { DASHBOARD_HERO } from "@/lib/copy/user-messages";
 import { CircleOrb, useStartCircleModal } from "@/features/circles";
+import { MatchOrb } from "./match-orb";
+import { HeroOnlinePeopleBadge } from "./hero-online-people-badge";
+import { useDashboardInsights } from "../hooks/use-dashboard-insights";
 
 function HeroSectionInner({
   appState,
@@ -12,21 +16,20 @@ function HeroSectionInner({
   error,
 }: {
   appState: "idle" | "searching" | "proposed" | "matched" | "error";
-  /** Opens match prep when needed, or starts search (idle) — searching uses Cancel instead */
   onRequestMatch: () => void;
   onCancel: () => void;
   error?: string | null;
 }) {
   const { openModal, categoriesLoading, isOpen } = useStartCircleModal();
+  const { heroStats, isLoading: insightsLoading } = useDashboardInsights();
   const isSearching = appState === "searching";
   const isProposed = appState === "proposed";
 
-  const headingText =
-    appState === "searching"
-      ? "finding your people rn…"
-      : isProposed
-        ? "match found —\ncheck the card"
-        : "your circle finds\nyour tribe.";
+  const heroCopy = isSearching
+    ? DASHBOARD_HERO.searching
+    : isProposed
+      ? DASHBOARD_HERO.proposed
+      : DASHBOARD_HERO.idle;
 
   return (
     <div
@@ -55,23 +58,14 @@ function HeroSectionInner({
         style={{ width: 280, height: 280, background: "oklch(60% 0.2 280 / 0.1)" }}
       />
 
-      <div className="relative z-10 flex items-center gap-2 rounded-full border border-border bg-muted/40 px-4 py-2 backdrop-blur-sm">
-        <span className="h-1.5 w-1.5 rounded-full bg-emerald-600 animate-pulse dark:bg-emerald-400" />
-        <span className="text-xs text-muted-foreground">
-          <span className="text-foreground font-semibold">1,240</span> people online
-        </span>
-      </div>
+      <HeroOnlinePeopleBadge />
 
       <div className="relative z-10 text-center">
-        <h2
-          className="text-[1.8rem] md:text-[2.4rem] font-bold tracking-tight leading-[1.5] text-transparent bg-clip-text bg-gradient-to-br from-foreground via-primary to-primary/80 dark:from-white dark:via-primary dark:to-primary/90"
-        >
-          {headingText}
+        <h2 className="text-[1.75rem] md:text-[2.25rem] font-semibold tracking-tight leading-tight text-foreground">
+          {heroCopy.heading}
         </h2>
-        <p className="mt-3 text-xs md:text-sm text-muted-foreground max-w-xs mx-auto leading-relaxed">
-          {isProposed
-            ? "Use the match card to connect or skip — both of you need to tap Connect to enter the room."
-            : "Set mood and intent → match. Network, chat, or find someone who gets it."}
+        <p className="mt-3 text-sm text-muted-foreground max-w-sm mx-auto leading-relaxed">
+          {heroCopy.subtitle}
         </p>
       </div>
 
@@ -84,17 +78,14 @@ function HeroSectionInner({
             }}
             disabled={isProposed}
           />
-          <span className="text-[10px] font-medium uppercase tracking-widest text-muted-foreground">
-            1:1 match
+          <span className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
+            {DASHBOARD_HERO.matchLabel}
           </span>
         </div>
         <div className="flex flex-col items-center gap-2">
-          <CircleOrb
-            isLoading={isOpen && categoriesLoading}
-            onClick={openModal}
-          />
-          <span className="text-[10px] font-medium uppercase tracking-widest text-muted-foreground">
-            Group circle
+          <CircleOrb isLoading={isOpen && categoriesLoading} onClick={openModal} />
+          <span className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
+            {DASHBOARD_HERO.circleLabel}
           </span>
         </div>
       </div>
@@ -103,36 +94,42 @@ function HeroSectionInner({
         <button
           type="button"
           onClick={onCancel}
-          className="relative z-10 -mt-3 inline-flex items-center justify-center gap-1.5 rounded-full border border-border bg-muted/55 px-4 py-2 text-xs font-medium text-foreground shadow-sm backdrop-blur-sm transition-colors hover:bg-muted hover:border-border/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-card cursor-pointer"
+          className="relative z-10 -mt-3 inline-flex cursor-pointer items-center justify-center gap-1.5 rounded-full border border-border bg-muted/55 px-4 py-2 text-xs font-medium text-foreground shadow-sm backdrop-blur-sm transition-colors hover:bg-muted hover:border-border/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-card"
         >
           <X className="size-3.5 shrink-0 opacity-70" strokeWidth={2.5} aria-hidden />
-          Cancel
+          {DASHBOARD_HERO.cancelSearch}
         </button>
       )}
 
       {appState === "error" && error && (
-        <p className="relative z-10 -mt-2 text-xs text-destructive text-center max-w-xs">{error}</p>
+        <p className="relative z-10 -mt-2 text-xs text-destructive text-center max-w-sm">{error}</p>
       )}
 
-      <div className="relative z-10 flex flex-wrap items-center justify-center gap-3 md:gap-5 text-xs text-muted-foreground">
+      <div className="relative z-10 flex flex-wrap items-center justify-center gap-3 text-xs text-muted-foreground md:gap-5">
         <span className="flex items-center gap-1.5">
           <Video size={12} className="text-primary" />
           <span>
-            <strong className="text-foreground">3</strong> matches today
+            {insightsLoading ? (
+              <span className="inline-block h-3 w-4 animate-pulse rounded bg-muted" />
+            ) : (
+              <strong className="text-foreground">{heroStats.matchCount}</strong>
+            )}{" "}
+            {DASHBOARD_HERO.stats.matches(heroStats.matchCount)}
           </span>
         </span>
-        <span className="h-3 w-px bg-border hidden sm:block" />
+        <span className="hidden h-3 w-px bg-border sm:block" />
         <span className="flex items-center gap-1.5">
           <Zap size={12} className="text-primary" />
           <span>
-            Match score <strong className="text-foreground">87</strong>
-          </span>
-        </span>
-        <span className="h-3 w-px bg-border hidden sm:block" />
-        <span className="flex items-center gap-1.5">
-          <Zap size={12} className="text-primary" />
-          <span>
-            <strong className="text-foreground">8</strong> great matches waiting
+            Profile{" "}
+            {insightsLoading ? (
+              <span className="inline-block h-3 w-6 animate-pulse rounded bg-muted" />
+            ) : heroStats.profileCompletion != null ? (
+              <strong className="text-foreground">{heroStats.profileCompletion}%</strong>
+            ) : (
+              <strong className="text-foreground">—</strong>
+            )}{" "}
+            {DASHBOARD_HERO.stats.profileComplete}
           </span>
         </span>
       </div>

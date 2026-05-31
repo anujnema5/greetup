@@ -12,6 +12,7 @@ import { useSession } from "@/lib/auth-client";
 import { useStartCircleModal } from "../components/start-circle-modal-provider";
 import type { ActiveCircleCardGridHandlers } from "../components/active-circle-card";
 import type { ActiveCircleItem } from "../types/circles-api.types";
+import { useJoinCircle } from "./use-join-circle";
 
 /**
  * Shared join / host-edit / start-scheduled actions for circle cards
@@ -22,15 +23,9 @@ export function useActiveCircleCardActions(): ActiveCircleCardGridHandlers {
   const { data: session } = useSession();
   const currentUserId = session?.user?.id ?? null;
   const { openModalForEdit } = useStartCircleModal();
+  const onJoinCircle = useJoinCircle();
   const [startScheduledCircle, { isLoading: startScheduledBusy }] =
     useStartScheduledCircleMutation();
-
-  const onJoinCircle = useCallback(
-    (circle: ActiveCircleItem) => {
-      router.push(circleRoomPath(circle.id));
-    },
-    [router],
-  );
 
   const onStartScheduledNow = useCallback(
     async (circle: ActiveCircleItem) => {

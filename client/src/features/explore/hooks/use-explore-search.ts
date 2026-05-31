@@ -1,22 +1,21 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useMemo, useState } from "react";
+
+import { suggestedPersonSearchHaystack } from "../lib/explore-person-display";
+import type { SuggestedPersonItem } from "../types/suggested-people.types";
 
 /**
  * Local search over a static people list (list size is small; no debounce).
  */
-export function useExploreSearch<T extends { name: string; tagline: string }>(people: readonly T[]) {
+export function useExploreSearch(people: readonly SuggestedPersonItem[]) {
   const [query, setQuery] = useState("");
 
   const normalized = query.trim().toLowerCase();
 
   const filtered = useMemo(() => {
-    if (normalized === "") return people as T[];
-    return people.filter(
-      (p) =>
-        p.name.toLowerCase().includes(normalized) ||
-        p.tagline.toLowerCase().includes(normalized)
-    );
+    if (normalized === "") return people;
+    return people.filter((p) => suggestedPersonSearchHaystack(p).includes(normalized));
   }, [people, normalized]);
 
   return { query, setQuery, filtered };

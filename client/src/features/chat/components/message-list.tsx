@@ -97,7 +97,7 @@ export function MessageList({
         });
 
         return (
-          <div key={msg.id} className={cn(layout.spacingClass, 'min-w-0')}>
+          <div key={msg.id} className={cn(layout.spacingClass, 'min-w-0 max-w-full')}>
             <MessageBubble
               message={msg}
               isOwn={layout.isOwn}

@@ -22,5 +22,9 @@ export const baseApi = createApi({
     'Conversations',
     'Messages',
     'Blocks',
+    'Presence',
+    'ExploreSuggestedPeople',
+    'ExploreBrowseNiches',
+    'ExploreBrowseNicheRooms',
   ],
 })

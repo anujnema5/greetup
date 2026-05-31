@@ -89,15 +89,18 @@ export function getMessageRowLayout(params: {
     : null;
 
   const isGroup = conversationType === 'room_circle';
-  const prevSamePeer =
-    !!prev && prev.messageType !== 'system' && prev.senderId === msg.senderId;
+  const clusterPosition = getClusterPosition(msg, prev, next);
+  const isPeerText = !isOwn && msg.messageType !== 'system';
+  const isDirectPeerText = isPeerText && !isGroup;
+  const isClusterStart = clusterPosition === 'single' || clusterPosition === 'first';
+  const isClusterTail = clusterPosition === 'middle' || clusterPosition === 'last';
 
   return {
-    clusterPosition: getClusterPosition(msg, prev, next),
+    clusterPosition,
     spacingClass: getMessageSpacingClass(index, msg, prev, editingMessageId),
-    showPeerHeader: !isOwn && isGroup && msg.messageType !== 'system' && !prevSamePeer,
-    peerColumnGutter: !isOwn && msg.messageType !== 'system' && prevSamePeer,
-    showDirectPeerAvatar: !isOwn && !isGroup && msg.messageType !== 'system' && !prevSamePeer,
+    showPeerHeader: isGroup && isPeerText && isClusterStart,
+    peerColumnGutter: isPeerText && isClusterTail,
+    showDirectPeerAvatar: isDirectPeerText && isClusterStart,
     replyToMessage,
     isOwn,
   };

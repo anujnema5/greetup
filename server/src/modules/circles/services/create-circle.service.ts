@@ -9,6 +9,7 @@ import {
   canHostInviteUserToRoom,
   getRoomInvitePreferencesForUsers,
 } from "@/modules/profile/services/room-invite-preferences.service";
+import { isRoomCategoryPickable } from "@/modules/rooms/constants/room-category-picker.constants";
 import { roomCategoriesRepository } from "@/modules/rooms/repositories/room-categories.repository";
 import { roomCreationRepository } from "@/modules/rooms/repositories/room-creation.repository";
 import { provisionSessionRoomRedis } from "@/modules/rooms/services/rtc/session-room-redis.service";
@@ -102,6 +103,10 @@ export async function createCircleService(
 
   if (!category) {
     rejectCreateCircle(hostUserId, "Category not found or inactive", "CATEGORY_NOT_FOUND");
+  }
+
+  if (!isRoomCategoryPickable(category.slug)) {
+    rejectCreateCircle(hostUserId, "Category not available for circles", "CATEGORY_NOT_FOUND");
   }
 
   const now = new Date();
