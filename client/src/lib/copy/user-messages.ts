@@ -90,7 +90,7 @@ export const CONNECTIONS = {
 
 export const EXPLORE = {
   browseNiches: {
-    title: "Browse by niche",
+    title: "Browse circles by niche",
     subtitle: "Live circles happening now and scheduled ones you can join",
     groupCounts: (live: number, scheduled: number) => {
       const parts: string[] = [];
