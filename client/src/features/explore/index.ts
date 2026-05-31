@@ -1,5 +1,7 @@
 export { ExplorePage } from "./pages/explore-page";
 export { useExploreSearch } from "./hooks/use-explore-search";
+export { useExploreBrowseNiches } from "./hooks/use-explore-browse-niches";
+export { useExploreNicheRoomsModal } from "./hooks/use-explore-niche-rooms-modal";
 export { userSearchApi, useSearchUsersQuery, useLazySearchUsersQuery } from "./api/user-search-api";
 export { suggestedPeopleApi, useGetSuggestedPeopleQuery } from "./api/suggested-people-api";
 export {
@@ -8,3 +10,4 @@ export {
 } from "./constants/suggested-people";
 export type { SearchUserItem, SearchUsersData } from "./types/user-search.types";
 export type { SuggestedPersonItem, SuggestedPeopleData } from "./types/suggested-people.types";
+export type { BrowseNicheItem, BrowseNichesData } from "./types/browse-niches.types";

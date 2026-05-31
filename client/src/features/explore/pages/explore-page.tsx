@@ -13,8 +13,7 @@ import { ExploreUserSearchResults } from "../components/explore-user-search-resu
 import { ExploreBrowseNichesSection } from "../components/explore-browse-niches-section";
 import { ExploreNicheRoomsModal } from "../components/explore-niche-rooms-modal";
 import "../api/browse-niches-api";
-import { useGetBrowseNichesQuery } from "../api/browse-niches-api";
-import { filterBrowseNiches } from "../lib/browse-niche-display";
+import { useExploreBrowseNiches } from "../hooks/use-explore-browse-niches";
 import { useExploreSearch } from "../hooks/use-explore-search";
 import { useExploreNicheRoomsModal } from "../hooks/use-explore-niche-rooms-modal";
 import { useExploreSuggestedPeople } from "../hooks/use-explore-suggested-people";
@@ -23,16 +22,10 @@ const SEARCH_MIN_LENGTH = 2;
 const SEARCH_LIMIT = 15;
 
 export function ExplorePage() {
-  const {
-    data: browseNichesData,
-    isLoading: nichesLoading,
-    isError: nichesError,
-    refetch: refetchNiches,
-  } = useGetBrowseNichesQuery();
+  const { niches: browseNiches, isLoading: nichesLoading, isError: nichesError, refetch: refetchNiches } =
+    useExploreBrowseNiches();
 
   const nicheModal = useExploreNicheRoomsModal();
-
-  const browseNiches = filterBrowseNiches(browseNichesData?.niches ?? []);
 
   const {
     suggestedPeople,
@@ -84,7 +77,7 @@ export function ExplorePage() {
           {showTopicsAndSuggested && (
             <ExploreBrowseNichesSection
               niches={browseNiches}
-              isLoading={nichesLoading && !browseNichesData}
+              isLoading={nichesLoading}
               isError={nichesError}
               onRetry={() => void refetchNiches()}
               onSelectNiche={nicheModal.openForNiche}
