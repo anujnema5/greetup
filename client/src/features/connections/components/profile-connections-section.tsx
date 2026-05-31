@@ -31,6 +31,8 @@ import { cn } from "@/lib/utils";
 import { PROFILE_SECTIONS } from "@/lib/copy/user-messages";
 import { DisconnectConnectionDialog } from "./disconnect-connection-dialog";
 import { WithdrawRequestDialog } from "./withdraw-request-dialog";
+import { ConnectionsListSkeleton, ConnectionRowSkeleton } from "./connections-skeletons";
+import type { ConnectionsPageListLayout } from "../lib/connections-layout";
 import { toast } from "sonner";
 
 const ACCEPTED_PAGE_SIZE = 20;
@@ -52,6 +54,59 @@ function connectionToPeer(item: ConnectionListItem): PeerContactTarget {
 function publicProfileHref(username: string | null | undefined): string | null {
   const u = username?.trim();
   return u ? `/u/${encodeURIComponent(u)}` : null;
+}
+
+function ConnectionPeerTrigger({
+  username,
+  label,
+  onSelectProfile,
+  isSelected = false,
+  className,
+  children,
+}: {
+  username: string | null | undefined;
+  label: string;
+  onSelectProfile?: (username: string) => void;
+  isSelected?: boolean;
+  className?: string;
+  children: ReactNode;
+}) {
+  const slug = username?.trim();
+  const href = publicProfileHref(slug);
+
+  if (!slug || !href) {
+    return <div className={className}>{children}</div>;
+  }
+
+  if (onSelectProfile) {
+    return (
+      <button
+        type="button"
+        onClick={() => onSelectProfile(slug)}
+        className={cn(
+          className,
+          "cursor-pointer rounded-xl text-left outline-none hover:opacity-90 focus-visible:ring-2 focus-visible:ring-ring",
+        )}
+        aria-label={`Open ${label} profile`}
+        aria-current={isSelected ? "true" : undefined}
+      >
+        {children}
+      </button>
+    );
+  }
+
+  return (
+    <Link
+      href={href}
+      className={cn(
+        className,
+        "rounded-xl outline-none hover:opacity-90 cursor-pointer focus-visible:ring-2 focus-visible:ring-ring",
+      )}
+      aria-label={`Open ${label} profile`}
+    >
+      {children}
+    </Link>
+  );
 }
 
 function rtkErrorMessage(error: unknown): string {
@@ -79,21 +134,21 @@ function ConnectionPeerSummary({
   isOnline?: boolean;
 }) {
   return (
-    <>
+    <div className="flex min-w-0 flex-1 items-center gap-3 text-left">
       <UserAvatarWithPresence isOnline={isOnline ?? false} borderClassName="border-card">
-        <div className="relative flex h-10 w-10 items-center justify-center overflow-hidden rounded-full bg-muted/30">
+        <div className="relative flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full bg-muted/30">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src={getProfileImageUrl(imageUrl)} alt="" className="h-full w-full object-cover" />
         </div>
       </UserAvatarWithPresence>
-      <div className="min-w-0 flex-1">
-        <div className="flex min-w-0 flex-wrap items-center gap-2">
+      <div className="min-w-0 flex-1 text-left">
+        <div className="flex min-w-0 items-center gap-2">
           <p className="min-w-0 truncate text-sm font-semibold text-foreground">{title}</p>
           {titleExtra}
         </div>
-        <p className="truncate text-xs text-muted-foreground">{subtitle}</p>
+        <p className="truncate text-left text-xs text-muted-foreground">{subtitle}</p>
       </div>
-    </>
+    </div>
   );
 }
 
@@ -104,6 +159,9 @@ function ConnectionRow({
   isMessagingPeer = false,
   onPeerMessage,
   onPeerCall,
+  isSelected = false,
+  onSelectProfile,
+  onPeerDisconnected,
 }: {
   item: ConnectionListItem;
   peerCallStatus?: PeerCallStatusEntry;
@@ -111,6 +169,9 @@ function ConnectionRow({
   isMessagingPeer?: boolean;
   onPeerMessage?: (peer: PeerContactTarget) => void;
   onPeerCall?: (peer: PeerContactTarget, mode: "audio" | "video") => void;
+  isSelected?: boolean;
+  onSelectProfile?: (username: string) => void;
+  onPeerDisconnected?: (username: string | null) => void;
 }) {
   const [disconnect] = useDisconnectConnectionMutation();
   const [withdraw] = useWithdrawConnectionRequestMutation();
@@ -119,7 +180,7 @@ function ConnectionRow({
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [withdrawConfirmOpen, setWithdrawConfirmOpen] = useState(false);
   const label = peerLabel(item);
-  const profileHref = publicProfileHref(item.peer.username);
+  const peerUsername = item.peer.username?.trim() || null;
   const peer = connectionToPeer(item);
   const sub =
     item.status === "pending" && item.direction
@@ -149,6 +210,7 @@ function ConnectionRow({
       .then(() => {
         setConfirmOpen(false);
         toast.success("Connection removed");
+        onPeerDisconnected?.(peerUsername);
       })
       .catch((e: unknown) => {
         const msg = rtkErrorMessage(e);
@@ -166,6 +228,7 @@ function ConnectionRow({
       .then(() => {
         setWithdrawConfirmOpen(false);
         toast.success("Request withdrawn");
+        onPeerDisconnected?.(peerUsername);
       })
       .catch((e: unknown) => {
         const msg = rtkErrorMessage(e);
@@ -178,36 +241,29 @@ function ConnectionRow({
   return (
     <div
       className={cn(
-        "flex flex-col gap-2 rounded-2xl border border-border bg-card px-4 py-3",
-        "transition-colors duration-150",
+        "flex flex-col gap-2 rounded-2xl border bg-card px-4 py-3",
+        "transition-colors duration-200",
+        isSelected
+          ? "border-primary/40 bg-primary/4 ring-1 ring-primary/20"
+          : "border-border",
       )}
     >
       <div className="flex items-center gap-3 min-w-0">
-        {profileHref ? (
-          <Link
-            href={profileHref}
-            className="flex min-w-0 flex-1 items-center gap-3 rounded-xl outline-none hover:opacity-90 cursor-pointer focus-visible:ring-2 focus-visible:ring-ring"
-            aria-label={`Open ${label} profile`}
-          >
-            <ConnectionPeerSummary
-              imageUrl={item.peer.image}
-              title={label}
-              subtitle={sub}
-              titleExtra={inCallBadge}
-              isOnline={peerCallStatus?.isOnline}
-            />
-          </Link>
-        ) : (
-          <div className="flex min-w-0 flex-1 items-center gap-3">
-            <ConnectionPeerSummary
-              imageUrl={item.peer.image}
-              title={label}
-              subtitle={sub}
-              titleExtra={inCallBadge}
-              isOnline={peerCallStatus?.isOnline}
-            />
-          </div>
-        )}
+        <ConnectionPeerTrigger
+          username={peerUsername}
+          label={label}
+          onSelectProfile={onSelectProfile}
+          isSelected={isSelected}
+          className="min-w-0 flex-1 text-left"
+        >
+          <ConnectionPeerSummary
+            imageUrl={item.peer.image}
+            title={label}
+            subtitle={sub}
+            titleExtra={inCallBadge}
+            isOnline={peerCallStatus?.isOnline}
+          />
+        </ConnectionPeerTrigger>
         {isAccepted && onPeerMessage && onPeerCall ? (
           <PeerContactActionIcons
             size="md"
@@ -284,26 +340,37 @@ function ConnectionRow({
   );
 }
 
-function IncomingRequestRow({ item }: { item: ConnectionListItem }) {
+function IncomingRequestRow({
+  item,
+  isSelected = false,
+  onSelectProfile,
+  onPeerDisconnected,
+}: {
+  item: ConnectionListItem;
+  isSelected?: boolean;
+  onSelectProfile?: (username: string) => void;
+  onPeerDisconnected?: (username: string | null) => void;
+}) {
   const [accept] = useAcceptConnectionMutation();
   const [reject] = useRejectConnectionMutation();
   const [busy, setBusy] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
 
   const label = peerLabel(item);
-  const profileHref = publicProfileHref(item.peer.username);
+  const peerUsername = item.peer.username?.trim() || null;
 
   const mutationArg = {
     connectionId: item.connectionId,
     peerUsername: item.peer.username,
   };
 
-  const runRespond = (promise: Promise<unknown>) => {
+  const runRespond = (promise: Promise<unknown>, onSuccess?: () => void) => {
     setActionError(null);
     setBusy(true);
     void promise
       .then(() => {
         toast.success("Request updated");
+        onSuccess?.();
       })
       .catch((e: unknown) => {
         const msg = rtkErrorMessage(e);
@@ -324,21 +391,23 @@ function IncomingRequestRow({ item }: { item: ConnectionListItem }) {
   return (
     <div
       className={cn(
-        "flex flex-col gap-2 rounded-2xl border border-border bg-card px-4 py-3",
-        "transition-colors duration-150",
+        "flex flex-col gap-2 rounded-2xl border bg-card px-4 py-3",
+        "transition-colors duration-200",
+        isSelected
+          ? "border-primary/40 bg-primary/4 ring-1 ring-primary/20"
+          : "border-border",
       )}
     >
       <div className="flex items-center gap-3 min-w-0">
-        {profileHref ? (
-          <Link
-            href={profileHref}
-            className="flex min-w-0 flex-1 items-center gap-3 rounded-xl outline-none hover:opacity-90 cursor-pointer focus-visible:ring-2 focus-visible:ring-ring"
-          >
-            {summary}
-          </Link>
-        ) : (
-          <div className="flex min-w-0 flex-1 items-center gap-3">{summary}</div>
-        )}
+        <ConnectionPeerTrigger
+          username={peerUsername}
+          label={label}
+          onSelectProfile={onSelectProfile}
+          isSelected={isSelected}
+          className="min-w-0 flex-1 text-left"
+        >
+          {summary}
+        </ConnectionPeerTrigger>
         <div className="flex shrink-0 flex-wrap items-center justify-end gap-2">
           {busy ? (
             <Loader2
@@ -352,7 +421,9 @@ function IncomingRequestRow({ item }: { item: ConnectionListItem }) {
             size="sm"
             className="rounded-xl"
             disabled={busy}
-            onClick={() => runRespond(reject(mutationArg).unwrap())}
+            onClick={() =>
+              runRespond(reject(mutationArg).unwrap(), () => onPeerDisconnected?.(peerUsername))
+            }
           >
             Reject
           </Button>
@@ -379,11 +450,23 @@ function IncomingRequestRow({ item }: { item: ConnectionListItem }) {
 export type ProfileConnectionsSectionProps = {
   variant?: "profile" | "page";
   showSeeAllLink?: boolean;
+  /** Desktop side panel: highlighted connection username. */
+  selectedUsername?: string | null;
+  /** Desktop opens side panel; mobile navigates to public profile. */
+  onSelectProfile?: (username: string) => void;
+  /** Close side panel when list row removes the peer. */
+  onPeerDisconnected?: (username: string | null) => void;
+  /** Desktop list width while loading — matches connections page layout. */
+  pageListLayout?: ConnectionsPageListLayout;
 };
 
 export function ProfileConnectionsSection({
   variant = "profile",
   showSeeAllLink = false,
+  selectedUsername = null,
+  onSelectProfile,
+  onPeerDisconnected,
+  pageListLayout = "centered",
 }: ProfileConnectionsSectionProps) {
   const isPage = variant === "page";
   const {
@@ -398,7 +481,16 @@ export function ProfileConnectionsSection({
   const [search, setSearch] = useState("");
   const [debouncedQ, setDebouncedQ] = useState("");
   const loadMoreSentinelRef = useRef<HTMLDivElement | null>(null);
-  const routeFilter = searchParams.get("filter");
+  const isPeerSelected = useCallback(
+    (username: string | null | undefined) => {
+      if (!selectedUsername || !username) return false;
+      return selectedUsername === username.trim();
+    },
+    [selectedUsername],
+  );
+
+  const pageSelectProfile = isPage ? onSelectProfile : undefined;
+  const pagePeerDisconnected = isPage ? onPeerDisconnected : undefined;
 
   useEffect(() => {
     const t = window.setTimeout(() => setDebouncedQ(search.trim()), 350);
@@ -486,6 +578,8 @@ export function ProfileConnectionsSection({
     return () => obs.disconnect();
   }, [isPage, onIntersectLoadMore, acceptedItems.length, debouncedQ]);
 
+  const routeFilter = searchParams.get("filter");
+
   const refetchAll = () => {
     void incoming.refetch();
     void outgoing.refetch();
@@ -495,25 +589,10 @@ export function ProfileConnectionsSection({
 
   if (loadingCore) {
     return (
-      <div className="flex flex-col gap-3">
-        <div className="flex items-center justify-between gap-2">
-          {!isPage && (
-            <h3 className="text-sm font-semibold text-foreground">Connections</h3>
-          )}
-          <Loader2
-            className={cn("h-4 w-4 animate-spin text-muted-foreground", isPage ? "ml-auto" : "")}
-            aria-label="Loading"
-          />
-        </div>
-        <div className="flex flex-col gap-2">
-          {[1, 2, 3].map((i) => (
-            <div
-              key={i}
-              className="h-[58px] animate-pulse rounded-2xl border border-border bg-muted/40"
-            />
-          ))}
-        </div>
-      </div>
+      <ConnectionsListSkeleton
+        variant={isPage ? "page" : "profile"}
+        pageLayout={isPage ? pageListLayout : undefined}
+      />
     );
   }
 
@@ -632,7 +711,13 @@ export function ProfileConnectionsSection({
           </p>
           <div className="flex flex-col gap-2">
             {incomingItems.map((item) => (
-              <IncomingRequestRow key={item.connectionId} item={item} />
+              <IncomingRequestRow
+                key={item.connectionId}
+                item={item}
+                isSelected={isPeerSelected(item.peer.username)}
+                onSelectProfile={pageSelectProfile}
+                onPeerDisconnected={pagePeerDisconnected}
+              />
             ))}
           </div>
         </div>
@@ -645,7 +730,13 @@ export function ProfileConnectionsSection({
           </p>
           <div className="flex flex-col gap-2">
             {outgoingItems.map((item) => (
-              <ConnectionRow key={item.connectionId} item={item} />
+              <ConnectionRow
+                key={item.connectionId}
+                item={item}
+                isSelected={isPeerSelected(item.peer.username)}
+                onSelectProfile={pageSelectProfile}
+                onPeerDisconnected={pagePeerDisconnected}
+              />
             ))}
           </div>
         </div>
@@ -668,6 +759,9 @@ export function ProfileConnectionsSection({
                 isMessagingPeer={isOpeningMessage && isMessagingPeerId === item.peer.userId}
                 onPeerMessage={(peer) => void openPeerMessage(peer)}
                 onPeerCall={(peer, mode) => void startPeerCall(peer, mode)}
+                isSelected={isPeerSelected(item.peer.username)}
+                onSelectProfile={pageSelectProfile}
+                onPeerDisconnected={pagePeerDisconnected}
               />
             ))}
           </div>
@@ -675,8 +769,9 @@ export function ProfileConnectionsSection({
             <>
               <div ref={loadMoreSentinelRef} className="h-1 w-full shrink-0" aria-hidden />
               {isFetchingNextAccepted ? (
-                <div className="flex justify-center py-3">
-                  <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" aria-label="Loading more" />
+                <div className="flex flex-col gap-2 pt-1" aria-label="Loading more connections">
+                  <ConnectionRowSkeleton />
+                  <ConnectionRowSkeleton />
                 </div>
               ) : null}
             </>

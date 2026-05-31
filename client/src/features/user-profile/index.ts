@@ -1,4 +1,5 @@
 export { PublicProfilePage } from "./pages/public-profile-page";
+export { PublicProfileContent } from "./components/public-profile-content";
 export { publicProfileApi, useGetPublicProfileQuery } from "./api/public-profile-api";
 export { PublicProfileActions } from "./components/public-profile-actions";
 export { usePublicProfileConnectionHandlers } from "./hooks/use-public-profile-connection-handlers";
