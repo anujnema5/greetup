@@ -61,6 +61,7 @@ export {
 export {
   roomApi,
   leaveRoomKeepalive,
+  leaveCircleRtcKeepalive,
   useLeaveRoomMutation,
   useGetRoomQuery,
   useGetRoomEmbeddedActivitiesQuery,

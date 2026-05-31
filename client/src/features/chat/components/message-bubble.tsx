@@ -117,7 +117,8 @@ export function MessageBubble({
       : 'You deleted this message'
     : message.content;
 
-  const bubbleColumnMax = 'max-w-[min(75%,18.75rem)]';
+  /** Cap bubble width; use 100% of row in narrow sidebars so bubbles never clip past the edge. */
+  const bubbleColumnMax = 'max-w-[min(100%,18.75rem)]';
   const showMetaBelow =
     clusterPosition === 'last' ||
     clusterPosition === 'single' ||
@@ -147,10 +148,10 @@ export function MessageBubble({
 
   const bubble = (
     <div
-      className={cn('w-fit min-w-0', bubbleColumnMax, editing && 'mb-1')}
+      className={cn('w-fit min-w-0 max-w-full', bubbleColumnMax, editing && 'mb-1')}
       data-message-row
     >
-      <div className="relative w-fit max-w-full">
+      <div className="relative w-fit max-w-full min-w-0">
         <div
           onClick={onRevealTime ? handleMobileMessageTap : undefined}
           className={cn(
@@ -405,8 +406,8 @@ export function MessageBubble({
 
   if (isOwn) {
     return (
-      <div className="group flex w-full min-w-0 justify-end">
-        {bubble}
+      <div className="group flex w-full min-w-0 max-w-full justify-end overflow-hidden">
+        <div className={cn('min-w-0 max-w-full shrink', bubbleColumnMax)}>{bubble}</div>
       </div>
     );
   }
@@ -422,13 +423,13 @@ export function MessageBubble({
   return (
     <div
       className={cn(
-        'group flex w-full min-w-0 justify-start',
+        'group flex w-full min-w-0 max-w-full justify-start overflow-hidden',
         MESSAGE_ROW_GAP,
         leftCol ? (showPeerHeader ? 'items-start' : 'items-end') : 'items-start',
       )}
     >
       {leftCol}
-      <div className="min-w-0 flex flex-1 flex-col items-start">
+      <div className="min-w-0 max-w-full flex flex-col items-start">
         {showPeerHeader && (
           <div className="mb-1 text-[13px] font-medium leading-tight text-muted-foreground">
             {senderLabel(message)}

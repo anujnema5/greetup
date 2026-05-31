@@ -10,7 +10,7 @@ import { ChevronLeft, MessageCircle } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 
-import { NavSidebar, BottomNav } from '@/features/app-shell';
+import { NavSidebar, BottomNav, PageHeader } from '@/features/app-shell';
 
 import { useSession } from '@/lib/auth-client';
 
@@ -181,21 +181,10 @@ export function MessagesPage({ urlKind, urlConversationId }: MessagesPageProps) 
 
       <main className="flex min-w-0 flex-1 flex-col overflow-hidden pb-16 md:pb-0">
 
-        <header className="sticky top-0 z-40 flex shrink-0 items-center border-b border-border bg-background/95 px-4 py-4 shadow-sm backdrop-blur-md md:px-8">
-
-          <div>
-
-            <h1 className="text-[15px] font-semibold leading-none text-foreground">Messages</h1>
-
-            <p className="mt-1 text-[11px] text-muted-foreground">
-
-              Chats from connections, circles, and direct rooms.
-
-            </p>
-
-          </div>
-
-        </header>
+        <PageHeader
+          title="Messages"
+          subtitle="Chats from connections, circles, and direct rooms."
+        />
 
 
 
@@ -207,7 +196,7 @@ export function MessagesPage({ urlKind, urlConversationId }: MessagesPageProps) 
 
               className={cn(
 
-                'flex min-h-0 w-full shrink-0 flex-col border-border bg-card/70 md:w-[min(100%,20rem)] md:border-r md:bg-card/50',
+                'flex min-h-0 w-full shrink-0 flex-col border-border bg-card/70 md:w-[min(100%,23rem)] md:border-r md:bg-card/50',
 
                 threadOpen || threadLoading ? 'hidden md:flex' : 'flex',
 
@@ -215,7 +204,7 @@ export function MessagesPage({ urlKind, urlConversationId }: MessagesPageProps) 
 
             >
 
-              <div className="shrink-0 border-b border-border px-4 py-3">
+              <div className="flex shrink-0 flex-col justify-center border-b border-border px-4 py-3 md:min-h-[4.25rem]">
 
                 <h2 className="text-sm font-semibold text-foreground">Inbox</h2>
 
@@ -297,7 +286,7 @@ export function MessagesPage({ urlKind, urlConversationId }: MessagesPageProps) 
 
                 <>
 
-                  <div className="flex shrink-0 items-center gap-2 border-b border-border bg-background/90 px-2 py-2 backdrop-blur-md md:gap-3 md:px-4 md:py-3">
+                  <div className="flex shrink-0 items-center gap-2 border-b border-border bg-background/90 px-2 py-2 backdrop-blur-md md:min-h-[4.25rem] md:gap-3 md:px-4 md:py-3">
 
                     <Button
 

@@ -5,5 +5,5 @@ import { handleBlockUser, handleListBlockedUsers, handleUnblockUser } from "./co
 export const blocksRoute = new Hono();
 
 blocksRoute.get("/", handleListBlockedUsers);
-blocksRoute.post("/", handleBlockUser);
+blocksRoute.post("/", handleBlockUser); 
 blocksRoute.delete("/:targetUserId", handleUnblockUser);

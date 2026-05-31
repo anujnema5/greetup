@@ -61,6 +61,21 @@ export function MessageList({
 
   const { isOnline } = usePeersOnlineStatus(senderIds);
 
+  const typingPeerMessage = useMemo(() => {
+    const typerId = typingUserIds.find(Boolean);
+    if (!typerId) return null;
+
+    for (let i = messages.length - 1; i >= 0; i--) {
+      const message = messages[i]!;
+      if (message.senderId === typerId && message.messageType !== 'system') {
+        return message;
+      }
+    }
+    return null;
+  }, [messages, typingUserIds]);
+
+  const primaryTypingUserId = typingUserIds.find(Boolean);
+
   return (
     <div
       ref={containerRef}
@@ -97,7 +112,7 @@ export function MessageList({
         });
 
         return (
-          <div key={msg.id} className={cn(layout.spacingClass, 'min-w-0')}>
+          <div key={msg.id} className={cn(layout.spacingClass, 'min-w-0 max-w-full')}>
             <MessageBubble
               message={msg}
               isOwn={layout.isOwn}
@@ -133,7 +148,14 @@ export function MessageList({
         );
       })}
 
-      <TypingIndicator userIds={typingUserIds} />
+      <TypingIndicator
+        userIds={typingUserIds}
+        conversationType={conversationType}
+        peerMessage={typingPeerMessage}
+        senderIsOnline={
+          primaryTypingUserId ? isOnline(primaryTypingUserId) : undefined
+        }
+      />
       <div ref={bottomRef} />
     </div>
   );

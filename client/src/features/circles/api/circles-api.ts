@@ -88,7 +88,10 @@ export const circlesApi = baseApi.injectEndpoints({
         method: "POST",
         body,
       }),
-      invalidatesTags: [CACHE_ACTIVE_CIRCLES],
+      invalidatesTags: [
+        CACHE_ACTIVE_CIRCLES,
+        { type: "ExploreBrowseNiches", id: "LIST" },
+      ],
     }),
 
     updateScheduledCircle: build.mutation<

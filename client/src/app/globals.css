@@ -271,14 +271,96 @@ html {
   animation: dominant-speaker-glow 1.05s ease-in-out infinite;
 }
 
+/* Chat typing indicator — gentle appear + dot wave */
+@keyframes typing-indicator-enter {
+  from {
+    opacity: 0;
+    transform: translateY(5px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes typing-dot-wave {
+  0%,
+  100% {
+    transform: translateY(0) scale(1);
+    opacity: 0.35;
+  }
+  40% {
+    transform: translateY(-3px) scale(1.1);
+    opacity: 0.95;
+  }
+}
+
+.animate-typing-indicator-enter {
+  animation: typing-indicator-enter 0.32s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@keyframes typing-indicator-exit {
+  from {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+}
+
+.animate-typing-indicator-exit {
+  animation: typing-indicator-exit 0.26s cubic-bezier(0.4, 0, 0.2, 1) both;
+}
+
+.typing-indicator-shell {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows 0.26s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.typing-indicator-shell.is-open {
+  grid-template-rows: 1fr;
+}
+
+.typing-indicator-shell-inner {
+  min-height: 0;
+  overflow: hidden;
+}
+
+.animate-typing-dot {
+  animation: typing-dot-wave 1.15s ease-in-out infinite;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .animate-match-orb-breathe,
   .match-orb-ring-pulse,
-  .dominant-speaker-tile-highlight {
+  .dominant-speaker-tile-highlight,
+  .animate-typing-indicator-enter,
+  .animate-typing-indicator-exit,
+  .animate-typing-dot,
+  .typing-indicator-shell {
     animation: none !important;
+    transition: none !important;
   }
 
   .animate-match-orb-breathe {
     transform: scale(1);
   }
+
+  .animate-typing-dot {
+    opacity: 0.7;
+  }
+}
+
+/* Custom Sonner toasts — no double box (wrapper stays invisible) */
+[data-sonner-toast][data-styled='false'] {
+  padding: 0 !important;
+  border: none !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  backdrop-filter: none !important;
+  width: auto !important;
+  overflow: visible;
 }

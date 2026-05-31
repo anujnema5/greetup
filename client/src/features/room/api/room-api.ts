@@ -43,6 +43,16 @@ export function leaveRoomKeepalive(): void {
   });
 }
 
+/** Clears lobby / RTC participation when navigating away from a circle page. */
+export function leaveCircleRtcKeepalive(roomId: string): void {
+  if (typeof window === "undefined" || !roomId) return;
+  void fetch(`${API_BASE_URL}${ROOM.leaveCircleRtc(roomId)}`, {
+    method: "POST",
+    credentials: "include",
+    keepalive: true,
+  });
+}
+
 function toRoomData(response: RoomGetApiResponse): RoomData {
   if (!response.success || response.data == null) {
     throw new Error(response.message ?? "Room not found");

@@ -49,12 +49,9 @@ export function useMessageComposer({
   useLayoutEffect(() => {
     const el = inputRef.current;
     if (!el) return;
-    el.style.height = `${INPUT_LINE_HEIGHT_PX}px`;
-    const next = Math.min(
-      Math.max(el.scrollHeight, INPUT_LINE_HEIGHT_PX),
-      MESSAGE_INPUT_MAX_HEIGHT_PX,
-    );
-    el.style.height = `${next}px`;
+    el.style.height = 'auto';
+    const next = Math.min(el.scrollHeight, MESSAGE_INPUT_MAX_HEIGHT_PX);
+    el.style.height = `${Math.max(next, INPUT_LINE_HEIGHT_PX)}px`;
   }, [text]);
 
   const handleSend = () => {

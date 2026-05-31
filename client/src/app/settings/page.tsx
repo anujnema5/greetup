@@ -3,10 +3,9 @@
 import type { ReactNode } from "react";
 import { Shield, ShieldBan } from "lucide-react";
 
-import { BottomNav, NavSidebar } from "@/features/app-shell";
+import { BottomNav, NavSidebar, PageHeader } from "@/features/app-shell";
 import { BlockedUsersSettingsSection } from "@/features/blocks";
 import { FirebasePhoneAuthProvider } from "@/features/auth/context/firebase-phone-auth-context";
-import { DashboardHeader } from "@/features/dashboard/components/dashboard-header";
 import { PhoneNumberSettingsCard } from "@/features/settings/components/phone-number-settings-card";
 
 /** ~320px tile — matches a 3-column settings row, left-aligned. */
@@ -42,16 +41,12 @@ export default function SettingsPage() {
       <NavSidebar activePath="/settings" />
 
       <main className="flex min-w-0 flex-1 flex-col overflow-y-auto pb-16 md:pb-0">
-        <DashboardHeader />
+        <PageHeader
+          title="Settings"
+          subtitle="Security, privacy, and account preferences."
+        />
 
         <div className="w-full px-4 py-5 md:px-8 md:py-6">
-          <header className="mb-5 md:mb-6">
-            <h1 className="text-[15px] font-semibold leading-none text-foreground">Settings</h1>
-            <p className="mt-1 text-[12px] text-muted-foreground">
-              Security, privacy, and account preferences.
-            </p>
-          </header>
-
           {/*
             3-column row on large screens (like the sketch): each feature gets one column,
             left-aligned — not centered, not full-width.

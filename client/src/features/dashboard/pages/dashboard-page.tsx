@@ -2,12 +2,14 @@
 
 import dynamic from "next/dynamic";
 import { useState } from "react";
-import { SlidersHorizontal, Zap } from "lucide-react";
+import { SlidersHorizontal } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { NavSidebar, BottomNav } from "@/features/app-shell";
-import { HeroSection } from "../components/hero-section";
+import { DASHBOARD_SECTIONS } from "@/lib/copy/user-messages";
 import { CirclesGrid, StartCircleModalProvider } from "@/features/circles";
 import { DashboardHeader } from "../components/dashboard-header";
+import { HeroSection } from "../components/hero-section";
+// import { DashboardMatchQualityCard } from "../components/dashboard-match-quality-card";
 import { useGetMatchPrepPromptStatusQuery } from "@/features/profile-setup/components/profile-setup-api";
 import { MatchPrepDialog, useMatchmaking } from "@/features/matching";
 import { useMatchPrepClientSessionId } from "@/features/matching/hooks/use-match-prep-client-session-id";
@@ -77,20 +79,16 @@ export function DashboardPage() {
                 }}
               >
                 <SlidersHorizontal className="size-3.5 opacity-80" aria-hidden />
-                Change match preferences
+                {DASHBOARD_SECTIONS.changePreferences}
               </Button>
             </div>
             <CirclesGrid />
 
-            <div className="flex items-start gap-3 rounded-2xl border border-primary/20 bg-primary/5 px-5 py-4">
-              <Zap size={15} className="text-primary mt-0.5 shrink-0" />
-              <div>
-                <p className="text-sm font-semibold text-foreground">Your match quality is high today</p>
-                <p className="text-xs text-muted-foreground mt-0.5">
-                  We found 8 people with strong alignment to your profile. Hit Find Match to connect.
-                </p>
-              </div>
+            {/* MVP: match quality card hidden on mobile too
+            <div className="lg:hidden">
+              <DashboardMatchQualityCard />
             </div>
+            */}
           </div>
         </main>
 

@@ -19,6 +19,7 @@ export function MessageSenderAvatar({
     <UserAvatarWithPresence
       userId={message.senderId}
       isOnline={isOnline}
+      className={MESSAGE_AVATAR_CLASS}
       borderClassName="border-background"
       dotSize="sm"
     >

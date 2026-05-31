@@ -11,6 +11,7 @@
 import { API_ENDPOINTS, baseApi, buildQueryParamsObject } from "@/lib/api";
 import { publicProfileRtkCacheId } from "@/features/user-profile/api/public-profile-rtk-cache";
 
+import { CACHE_EXPLORE_SUGGESTED_PEOPLE } from "@/features/explore/api/suggested-people-cache-tags";
 import { CONNECTIONS_PEERS_CALL_STATUS_TAG } from "./connections-rtk-cache-tags";
 
 import type {
@@ -45,6 +46,9 @@ const CACHE_PENDING_INCOMING_COUNT = {
   id: "PENDING_INCOMING_COUNT" as const,
 };
 
+/** Profile stats + recent matches on `/profile`. */
+const CACHE_PROFILE_INSIGHTS = { type: "ProfileMe" as const, id: "INSIGHTS" as const };
+
 // ── Tag helpers ───────────────────────────────────────────────────────────────
 
 /** When a username is known, also refresh that user’s public profile cache. */
@@ -63,6 +67,8 @@ function tagsToRefreshAfterConnectionAction(arg: RespondConnectionMutationArg) {
   return [
     CACHE_CONNECTIONS_LIST,
     CACHE_ACCEPTED_CONNECTIONS_INFINITE,
+    CACHE_PROFILE_INSIGHTS,
+    CACHE_EXPLORE_SUGGESTED_PEOPLE,
     ...tagsForPublicProfile(arg.peerUsername),
     ...(arg.peerUserId
       ? [{ type: "MatchPeerPreview" as const, id: arg.peerUserId }]
@@ -215,6 +221,8 @@ export const connectionsApi = baseApi.injectEndpoints({
         CACHE_CONNECTIONS_LIST,
         CACHE_ACCEPTED_CONNECTIONS_INFINITE,
         CACHE_PENDING_INCOMING_COUNT,
+        CACHE_PROFILE_INSIGHTS,
+        CACHE_EXPLORE_SUGGESTED_PEOPLE,
         { type: "MatchPeerPreview" as const, id: arg.targetUserId },
         ...tagsForPublicProfile(arg.invalidatePublicProfileUsername),
       ],

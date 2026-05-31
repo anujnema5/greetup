@@ -216,4 +216,84 @@ export const activeCirclesListingsRepository = {
       )
       .limit(limit + 1);
   },
+
+  /** Public live + scheduled circles per category (Explore niche browse tiles). */
+  async countPublicCirclesByCategoryAndStatus() {
+    return db
+      .select({
+        categoryId: roomCategories.id,
+        liveGroupCount: sql<number>`CAST(SUM(CASE WHEN ${rooms.status} = 'live' THEN 1 ELSE 0 END) AS int)`,
+        scheduledGroupCount: sql<number>`CAST(SUM(CASE WHEN ${rooms.status} = 'scheduled' THEN 1 ELSE 0 END) AS int)`,
+      })
+      .from(rooms)
+      .innerJoin(roomCategories, eq(rooms.categoryId, roomCategories.id))
+      .where(
+        and(
+          eq(rooms.roomType, "circle"),
+          inArray(rooms.status, ["live", "scheduled"]),
+          eq(rooms.visibility, "public"),
+          activeCircleListingPredicate(),
+        ),
+      )
+      .groupBy(roomCategories.id);
+  },
+
+  /**
+   * All public live/scheduled circles in a category for Explore niche browse.
+   * Includes circles the viewer hosts or already joined — counts use the same scope.
+   */
+  async listPublicCirclesInCategory(
+    userId: string,
+    categoryId: string,
+    limit: number,
+    cursor?: string,
+  ) {
+    const restrictedExists = db
+      .select({ one: sql<number>`1` })
+      .from(roomRestrictedUsers)
+      .where(
+        and(
+          eq(roomRestrictedUsers.roomId, rooms.id),
+          eq(roomRestrictedUsers.userId, userId),
+        ),
+      );
+
+    const cursorClause = cursor
+      ? sql`(
+          CASE WHEN ${rooms.status} = 'live' THEN 0 ELSE 1 END,
+          COALESCE(${rooms.scheduledStartAt}, '9999-01-01'::timestamptz),
+          ${rooms.id}
+        ) > (
+          SELECT
+            CASE WHEN r2.status = 'live' THEN 0 ELSE 1 END,
+            COALESCE(r2.scheduled_start_at, '9999-01-01'::timestamptz),
+            r2.id
+          FROM rooms r2
+          WHERE r2.id = ${cursor}
+        )`
+      : undefined;
+
+    return db
+      .select(activeCircleColumns())
+      .from(rooms)
+      .innerJoin(roomCategories, eq(rooms.categoryId, roomCategories.id))
+      .innerJoin(users, eq(rooms.hostUserId, users.id))
+      .where(
+        and(
+          eq(rooms.roomType, "circle"),
+          inArray(rooms.status, ["live", "scheduled"]),
+          eq(rooms.visibility, "public"),
+          eq(rooms.categoryId, categoryId),
+          notExists(restrictedExists),
+          activeCircleListingPredicate(),
+          cursorClause,
+        ),
+      )
+      .orderBy(
+        sql`CASE WHEN ${rooms.status} = 'live' THEN 0 ELSE 1 END`,
+        asc(rooms.scheduledStartAt),
+        asc(rooms.id),
+      )
+      .limit(limit + 1);
+  },
 };

@@ -1,9 +1,20 @@
 import type { SQL } from "drizzle-orm";
-import { and, eq, or } from "drizzle-orm";
+import { and, eq, inArray, or } from "drizzle-orm";
 
 import { userConnections } from "@/core/database/schema";
 
 import type { ConnectionsListFilter } from "../schemas/connections-list.query.schema";
+
+/** Rows where `userId` is requester or addressee and status is pending or accepted. */
+export function wherePendingOrAcceptedConnectionsForUser(userId: string): SQL {
+  return and(
+    inArray(userConnections.status, ["pending", "accepted"]),
+    or(
+      eq(userConnections.requesterId, userId),
+      eq(userConnections.addresseeId, userId),
+    ),
+  ) as SQL;
+}
 
 /** Rows where `userId` is requester or addressee and status is `accepted`. */
 export function whereAcceptedConnectionsForUser(userId: string): SQL {

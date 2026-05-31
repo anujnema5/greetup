@@ -1,11 +1,12 @@
 import type { CirclesBrowseSectionCopy, CirclesBrowseTab } from "../types/circles-browse.types";
+import { CIRCLES_HOME } from "@/lib/copy/user-messages";
 
 export const CIRCLES_BROWSE_PAGE = {
   title: "Circles",
-  subtitle: "Invites, your circles, and public rooms",
-  backLabel: "Back to home",
-  startCircle: "Start circle",
-  refresh: "Refresh list",
+  subtitle: "Invites, your circles, and rooms you can join",
+  backLabel: "Back to Home",
+  startCircle: "Start a circle",
+  refresh: "Refresh",
   refreshing: "Refreshing…",
 } as const;
 
@@ -22,34 +23,28 @@ export const CIRCLES_BROWSE_SECTIONS: Record<
 > = {
   invited: {
     title: "Invited to you",
-    description: "Friend invites you have not joined yet",
-    empty: "No pending invites right now.",
+    description: "Circles friends invited you to",
+    empty: "No invites right now.",
   },
   mine: {
     title: "Your circles",
-    description: "Rooms you host or have joined",
-    empty: "You have not joined any circles yet.",
+    description: "Circles you host or joined",
+    empty: "You have not joined a circle yet.",
   },
   discover: {
     title: "Discover",
-    description: "Public circles you can join",
-    empty: "No public circles to discover right now.",
+    description: "Public circles open to join",
+    empty: "No public circles right now.",
   },
 };
 
 export const CIRCLES_BROWSE_EMPTY = {
-  title: "No circles to show yet",
-  description: "Start a circle or check back later for public rooms you can join.",
+  title: "No circles yet",
+  description: "Start your own circle or check back later for rooms to join.",
   cta: "Start a circle",
 } as const;
 
-export const CIRCLES_GRID_COPY = {
-  title: "Active Circles",
-  subtitle: "Live now or coming up soon",
-  viewAll: "View all",
-  emptyPrefix: "No active circles right now —",
-  exploreLink: "explore circles",
-} as const;
+export const CIRCLES_GRID_COPY = CIRCLES_HOME;
 
 /** Default page size for browse infinite query (discover pagination). */
 export const CIRCLES_BROWSE_PAGE_SIZE = 12;

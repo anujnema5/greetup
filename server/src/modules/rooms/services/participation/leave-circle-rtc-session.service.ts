@@ -52,6 +52,16 @@ export async function leaveCircleRtcSessionForUser(
     return { roomEnded: false };
   }
 
+  if (room.status === "scheduled") {
+    const activeLobby = await roomParticipantsRepository.isUserRoomParticipant(roomId, userId);
+    if (activeLobby) {
+      await roomParticipantsRepository.markParticipantLeft(roomId, userId);
+      logger.debug("circle_lobby_participant_left", { userId, roomId });
+    }
+    await clearUserActiveRtcRoom(userId);
+    return { roomEnded: false };
+  }
+
   if (room.status !== "live") {
     if (httpStrict) {
       throw new LeaveCircleRtcError("Room is not live", "ROOM_NOT_LIVE", 400);

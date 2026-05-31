@@ -6,6 +6,7 @@ import {
   resolveValidatedInviteeIds,
 } from "./create-circle.service";
 import type { RoomAdvancedOptions } from "@/core/database/schema";
+import { isRoomCategoryPickable } from "@/modules/rooms/constants/room-category-picker.constants";
 import { roomCategoriesRepository } from "@/modules/rooms/repositories/room-categories.repository";
 import { roomInvitesRepository } from "@/modules/rooms/repositories/room-invites.repository";
 import { roomScheduledCirclesRepository } from "@/modules/rooms/repositories/room-scheduled-circles.repository";
@@ -68,6 +69,15 @@ export async function updateScheduledCircleService(
         hostUserId,
         roomId,
         "Category not found or inactive",
+        "CATEGORY_NOT_FOUND",
+        404,
+      );
+    }
+    if (!isRoomCategoryPickable(cat.slug)) {
+      rejectUpdateScheduledCircle(
+        hostUserId,
+        roomId,
+        "Category not available for circles",
         "CATEGORY_NOT_FOUND",
         404,
       );

@@ -1,3 +1,4 @@
+import { CACHE_EXPLORE_SUGGESTED_PEOPLE } from "@/features/explore/api/suggested-people-cache-tags";
 import { publicProfileRtkCacheId } from "@/features/user-profile/api/public-profile-rtk-cache";
 
 const CACHE_CONNECTIONS_LIST = { type: "Connections" as const, id: "LIST" as const };
@@ -26,6 +27,7 @@ export function blocksInvalidationTags(arg?: InvalidationArg | string | null) {
     CACHE_BLOCKED_USERS_LIST,
     CACHE_CONNECTIONS_LIST,
     CACHE_ACCEPTED_CONNECTIONS_INFINITE,
+    CACHE_EXPLORE_SUGGESTED_PEOPLE,
     CACHE_CONVERSATIONS_LIST,
     CACHE_ALL_CONVERSATIONS,
     ...(conversationId ? [{ type: "Conversations" as const, id: conversationId }] : []),
