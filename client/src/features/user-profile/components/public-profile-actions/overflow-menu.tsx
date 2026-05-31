@@ -16,12 +16,15 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { cn } from "@/lib/utils";
 
 export type PublicProfileOverflowMenuProps = {
   onCopyLink: () => void;
   onBlock: () => void;
   onRemoveConnection?: () => void;
   onWithdrawRequest?: () => void;
+  /** Row actions (Connect/Message bar) vs compact inline (status banners). */
+  tone?: "row" | "inline";
 };
 
 export function PublicProfileOverflowMenu({
@@ -29,6 +32,7 @@ export function PublicProfileOverflowMenu({
   onRemoveConnection,
   onWithdrawRequest,
   onBlock,
+  tone = "inline",
 }: PublicProfileOverflowMenuProps) {
   return (
     <DropdownMenu>
@@ -37,10 +41,13 @@ export function PublicProfileOverflowMenu({
           type="button"
           variant="outline"
           size="icon"
-          className="size-10 shrink-0 rounded-xl"
+          className={cn(
+            "shrink-0",
+            tone === "row" ? "size-10 shrink-0 rounded-xl" : "size-9 rounded-lg",
+          )}
           aria-label="More options"
         >
-          <MoreHorizontal className="size-[18px]" aria-hidden />
+          <MoreHorizontal className="size-4" aria-hidden />
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-52 rounded-xl">

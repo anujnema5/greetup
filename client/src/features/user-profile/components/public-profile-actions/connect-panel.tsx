@@ -30,7 +30,7 @@ export function PublicProfileConnectPanel({
         <UserPlus className="size-4" aria-hidden />
         {connectionHandlers.isSubmittingConnect ? "Sending…" : "Connect"}
       </Button>
-      <PublicProfileOverflowMenu {...overflow} />
+      <PublicProfileOverflowMenu {...overflow} tone="row" />
     </div>
   );
 }
