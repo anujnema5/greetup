@@ -15,6 +15,7 @@ import { HeroSection } from "../components/hero-section";
 import { useGetMatchPrepPromptStatusQuery } from "@/features/profile-setup/components/profile-setup-api";
 import { MatchPrepDialog, useMatchmaking } from "@/features/matching";
 import { useMatchPrepClientSessionId } from "@/features/matching/hooks/use-match-prep-client-session-id";
+import { APP_ROUTES } from "@/lib/routing/app-routes";
 
 /** Side panel is desktop-only; load it in a separate chunk to keep the main dashboard bundle smaller. */
 const RightPanel = dynamic(
@@ -53,7 +54,7 @@ export function DashboardPage() {
       />
       <WelcomeTourLauncher blocked={prepOpen} />
       <div className="flex h-screen overflow-hidden bg-background">
-        <NavSidebar activePath="/" />
+        <NavSidebar activePath={APP_ROUTES.home} />
 
         <main className="flex flex-1 flex-col overflow-y-auto pb-16 md:pb-0">
           <DashboardHeader />
@@ -97,7 +98,7 @@ export function DashboardPage() {
         </main>
 
         <RightPanel />
-        <BottomNav activePath="/" />
+        <BottomNav activePath={APP_ROUTES.home} />
       </div>
     </StartCircleModalProvider>
   );

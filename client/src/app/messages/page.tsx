@@ -1,5 +1,6 @@
-import { MessagesPage } from '@/features/chat/pages/messages-page';
+import { MessagesPage } from "@/features/chat/pages/messages-page";
+import { createPageMetadata } from "@/lib/routing/page-metadata";
 
-export default function Page() {
-  return <MessagesPage />;
-}
+export const metadata = createPageMetadata("Messages", "Your conversations.");
+
+export default MessagesPage;

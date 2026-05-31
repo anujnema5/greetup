@@ -1,5 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 
+import {
+  APP_ROUTES,
+  isCommonRoute,
+  isOnboardingRequiredRoute,
+  isOnboardingRoute,
+  isProtectedRoute,
+  isPublicRoute,
+  ONBOARDING_ROUTE,
+} from "@/lib/routing/app-routes";
 import { API_BASE_URL } from "@/shared/constants/environments";
 
 function middlewareApiBase(req: NextRequest): string {
@@ -7,48 +16,6 @@ function middlewareApiBase(req: NextRequest): string {
     ? API_BASE_URL
     : `${req.nextUrl.origin}/api`;
 }
-
-// ==================== ROUTES CONFIGURATION ====================
-const PUBLIC_ROUTES = [
-  "/login",
-  "/register",
-  "/forgot-password",
-  "/reset-password",
-  "/verify-email",
-];
-
-const PROTECTED_ROUTES = [
-  "/home",
-  "/profile",
-  "/settings",
-  "/profile-setup",
-  "/explore",
-  "/connections",
-  "/u",
-];
-
-/** Routes that require onboarding to be complete */
-const ONBOARDING_REQUIRED_ROUTES = [
-  "/home",
-  "/profile",
-  "/settings",
-  "/explore",
-  "/connections",
-  "/u",
-];
-const ONBOARDING_ROUTE = "/profile-setup";
-
-const COMMON_ROUTES = [
-  "/about",
-  "/contact",
-  "/pricing",
-  "/features",
-  "/blog",
-  "/help",
-  "/faq",
-  "/terms",
-  "/privacy",
-];
 
 // ==================== CACHE CONFIGURATION ====================
 interface CacheEntry {
@@ -101,20 +68,20 @@ export async function proxy(req: NextRequest) {
   // Redirect authenticated users away from root
   if (isLoggedIn && pathname === "/") {
     const isOnboarded = await checkOnboardingWithCache(req, pathname);
-    const redirectUrl = isOnboarded ? "/home" : ONBOARDING_ROUTE;
+    const redirectUrl = isOnboarded ? APP_ROUTES.home : ONBOARDING_ROUTE;
     return NextResponse.redirect(new URL(redirectUrl, req.url));
   }
 
   // Redirect logged-in users away from public routes
-  if (isLoggedIn && PUBLIC_ROUTES.includes(pathname)) {
+  if (isLoggedIn && isPublicRoute(pathname)) {
     const isOnboarded = await checkOnboardingWithCache(req, pathname);
-    const redirectUrl = isOnboarded ? "/home" : ONBOARDING_ROUTE;
+    const redirectUrl = isOnboarded ? APP_ROUTES.home : ONBOARDING_ROUTE;
     return NextResponse.redirect(new URL(redirectUrl, req.url));
   }
 
   // Redirect non-logged-in users away from protected routes
   if (!isLoggedIn && isProtectedRoute(pathname)) {
-    const loginUrl = new URL("/login", req.url);
+    const loginUrl = new URL(APP_ROUTES.login, req.url);
     loginUrl.searchParams.set("redirect", pathname);
     return NextResponse.redirect(loginUrl);
   }
@@ -123,7 +90,7 @@ export async function proxy(req: NextRequest) {
   if (isLoggedIn && isOnboardingRoute(pathname)) {
     const isOnboarded = await checkOnboardingWithCache(req, pathname);
     if (isOnboarded) {
-      return NextResponse.redirect(new URL("/home", req.url));
+      return NextResponse.redirect(new URL(APP_ROUTES.home, req.url));
     }
   }
 
@@ -156,33 +123,6 @@ function shouldSkipProxy(pathname: string): boolean {
   ];
 
   return skipPatterns.some((pattern) => pattern.test(pathname));
-}
-
-function isProtectedRoute(pathname: string): boolean {
-  return PROTECTED_ROUTES.some((route) =>
-    route === "/" ? pathname === "/" : pathname.startsWith(route)
-  );
-}
-
-function isOnboardingRequiredRoute(pathname: string): boolean {
-  return ONBOARDING_REQUIRED_ROUTES.some((route) =>
-    route === "/" ? pathname === "/" : pathname.startsWith(route)
-  );
-}
-
-function isOnboardingRoute(pathname: string): boolean {
-  return pathname === ONBOARDING_ROUTE;
-}
-
-function isCommonRoute(pathname: string): boolean {
-  if (COMMON_ROUTES.includes(pathname)) {
-    return true;
-  }
-
-  return COMMON_ROUTES.some((route) => {
-    if (route === "/") return pathname === "/";
-    return pathname.startsWith(route + "/");
-  });
 }
 
 // ==================== SECURITY HEADERS ====================
@@ -377,7 +317,7 @@ async function checkOnboardingWithCache(
   const now = Date.now();
   // Skip cache when navigating to dashboard with cached false – user may have just completed onboarding
   const skipCacheForFreshCheck =
-    pathname === "/home" && cached?.isOnboarded === false;
+    pathname === APP_ROUTES.home && cached?.isOnboarded === false;
   if (
     !skipCacheForFreshCheck &&
     cached?.isOnboarded !== undefined &&

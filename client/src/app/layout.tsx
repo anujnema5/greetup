@@ -3,6 +3,7 @@ import { Suspense } from "react";
 import { Plus_Jakarta_Sans } from "next/font/google";
 // @ts-ignore: side-effect CSS import without module declarations
 import "./globals.css";
+import { createPageMetadata } from "@/lib/routing/page-metadata";
 import { SocketProvider } from "@/lib/socket";
 import { ReduxProvider } from "@/lib/redux/provider";
 import { RtcSocketProvider } from "@/features/rtc";
@@ -27,10 +28,7 @@ const plusJakartaSans = Plus_Jakarta_Sans({
   weight: ["300", "400", "500", "600", "700", "800"],
 });
 
-export const metadata: Metadata = {
-  title: "Greetup",
-  description: "Find people who get you.",
-};
+export const metadata: Metadata = createPageMetadata("Greetup", "Find people who get you.");
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
