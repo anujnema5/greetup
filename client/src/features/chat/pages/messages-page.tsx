@@ -196,7 +196,7 @@ export function MessagesPage({ urlKind, urlConversationId }: MessagesPageProps) 
 
               className={cn(
 
-                'flex min-h-0 w-full shrink-0 flex-col border-border bg-card/70 md:w-[min(100%,22rem)] md:border-r md:bg-card/50',
+                'flex min-h-0 w-full shrink-0 flex-col border-border bg-card/70 md:w-[min(100%,23rem)] md:border-r md:bg-card/50',
 
                 threadOpen || threadLoading ? 'hidden md:flex' : 'flex',
 
