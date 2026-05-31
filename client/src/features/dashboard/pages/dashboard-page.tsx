@@ -5,8 +5,10 @@ import { useState } from "react";
 import { SlidersHorizontal } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { NavSidebar, BottomNav } from "@/features/app-shell";
+import { WelcomeTourLauncher } from "@/features/tour-guide";
 import { DASHBOARD_SECTIONS } from "@/lib/copy/user-messages";
 import { CirclesGrid, StartCircleModalProvider } from "@/features/circles";
+import { TOUR_TARGETS } from "@/features/tour-guide";
 import { DashboardHeader } from "../components/dashboard-header";
 import { HeroSection } from "../components/hero-section";
 // import { DashboardMatchQualityCard } from "../components/dashboard-match-quality-card";
@@ -49,6 +51,7 @@ export function DashboardPage() {
         clientSessionId={clientSessionId}
         mode={matchPrepMode}
       />
+      <WelcomeTourLauncher blocked={prepOpen} />
       <div className="flex h-screen overflow-hidden bg-background">
         <NavSidebar activePath="/" />
 
@@ -73,6 +76,7 @@ export function DashboardPage() {
                 variant="outline"
                 size="sm"
                 className="gap-2 rounded-full border-border text-xs"
+                data-tour-id={TOUR_TARGETS.changePreferences}
                 onClick={() => {
                   setMatchPrepMode("edit");
                   setPrepOpen(true);

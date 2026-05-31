@@ -26,5 +26,6 @@ export const baseApi = createApi({
     'ExploreSuggestedPeople',
     'ExploreBrowseNiches',
     'ExploreBrowseNicheRooms',
+    'WelcomeTour',
   ],
 })

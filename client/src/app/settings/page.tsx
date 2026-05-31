@@ -1,12 +1,13 @@
 "use client";
 
 import type { ReactNode } from "react";
-import { Shield, ShieldBan } from "lucide-react";
+import { Compass, Shield, ShieldBan } from "lucide-react";
 
 import { BottomNav, NavSidebar, PageHeader } from "@/features/app-shell";
 import { BlockedUsersSettingsSection } from "@/features/blocks";
 import { FirebasePhoneAuthProvider } from "@/features/auth/context/firebase-phone-auth-context";
 import { PhoneNumberSettingsCard } from "@/features/settings/components/phone-number-settings-card";
+import { ReplayTourSettingsCard } from "@/features/tour-guide";
 
 /** ~320px tile — matches a 3-column settings row, left-aligned. */
 const SETTINGS_TILE_CLASS = "min-w-0 w-full max-w-[20rem]";
@@ -60,6 +61,10 @@ export default function SettingsPage() {
 
             <SettingsSection icon={ShieldBan} title="Privacy" className={SETTINGS_TILE_CLASS}>
               <BlockedUsersSettingsSection />
+            </SettingsSection>
+
+            <SettingsSection icon={Compass} title="Help" className={SETTINGS_TILE_CLASS}>
+              <ReplayTourSettingsCard />
             </SettingsSection>
           </div>
         </div>

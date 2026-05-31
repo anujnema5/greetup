@@ -4,6 +4,7 @@ import { memo } from "react";
 import { Plus } from "lucide-react";
 
 import { useStartCircleModal } from "@/features/circles";
+import { TOUR_TARGETS } from "@/features/tour-guide";
 
 import { DASHBOARD_SECTIONS } from "@/lib/copy/user-messages";
 
@@ -17,7 +18,10 @@ function RightPanelInner() {
   const { openModal } = useStartCircleModal();
 
   return (
-    <aside className="hidden min-h-screen w-72 flex-col gap-5 border-l border-border bg-card px-4 py-5 lg:flex">
+    <aside
+      className="hidden min-h-screen w-72 flex-col gap-5 border-l border-border bg-card px-4 py-5 lg:flex"
+      data-tour-id={TOUR_TARGETS.dashboardSidebar}
+    >
       <button
         type="button"
         onClick={openModal}

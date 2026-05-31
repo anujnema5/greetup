@@ -364,3 +364,8 @@ html {
   width: auto !important;
   overflow: visible;
 }
+
+.driver-active-element {
+  border-radius: 12px !important;
+}
+

@@ -3,6 +3,8 @@
 import Link from "next/link";
 import { Settings } from "lucide-react";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { TOUR_TARGETS } from "@/features/tour-guide";
+
 import { useNavBadgeLookup } from "../hooks/use-nav-badges";
 import { NAV_ITEMS } from "../constants/nav-config";
 import { NavItemLink } from "./nav-item-link";
@@ -16,7 +18,10 @@ export function NavSidebar({ activePath = "/home" }: { activePath?: string }) {
         <span className="text-sm font-black text-primary-foreground">C</span>
       </Link>
 
-      <nav className="flex flex-col items-center gap-1 flex-1">
+      <nav
+        className="flex flex-col items-center gap-1 flex-1"
+        data-tour-id={TOUR_TARGETS.mainNav}
+      >
         {NAV_ITEMS.map((item) => (
           <NavItemLink
             key={item.href}
@@ -51,7 +56,10 @@ export function BottomNav({ activePath = "/home" }: { activePath?: string }) {
   const badgeLookup = useNavBadgeLookup();
 
   return (
-    <nav className="md:hidden fixed bottom-0 inset-x-0 z-20 flex items-stretch border-t border-border bg-card/95 backdrop-blur-sm">
+    <nav
+      className="md:hidden fixed bottom-0 inset-x-0 z-20 flex items-stretch border-t border-border bg-card/95 backdrop-blur-sm"
+      data-tour-id={TOUR_TARGETS.mainNav}
+    >
       <div className="flex min-w-0 flex-1 items-center justify-around gap-0.5 py-2 pr-0.5">
         {NAV_ITEMS.map((item) => (
           <NavItemLink
