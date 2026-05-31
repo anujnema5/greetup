@@ -6,7 +6,6 @@ import {
   Briefcase,
   Check,
   Heart,
-  ImageIcon,
   MapPin,
   Smile,
   Target,
@@ -225,22 +224,6 @@ export function PublicProfileContent({
             {data.moods.length > 0 ? (
               <ProfileChipList items={data.moods.map((m) => m.displayName)} />
             ) : null}
-          </div>
-        </ProfileDetailSection>
-      )}
-
-      {data.photos.length > 0 && (
-        <ProfileDetailSection title="Photos" icon={<ImageIcon className="h-4 w-4" />}>
-          <div className="grid grid-cols-3 gap-2">
-            {data.photos.map((p) => (
-              <div
-                key={p.id}
-                className="aspect-square overflow-hidden rounded-xl border border-border bg-muted"
-              >
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={p.url} alt="" className="h-full w-full object-cover" />
-              </div>
-            ))}
           </div>
         </ProfileDetailSection>
       )}
