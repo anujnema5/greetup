@@ -21,6 +21,7 @@ type OutgoingState = {
 
 type Props = {
   person: SuggestedPersonItem;
+  isOnline: boolean;
   outgoing: OutgoingState | undefined;
   connectBusy: boolean;
   withdrawBusy: boolean;
@@ -30,6 +31,7 @@ type Props = {
 
 export function ExploreSuggestedPersonRow({
   person,
+  isOnline,
   outgoing,
   connectBusy,
   withdrawBusy,
@@ -62,7 +64,7 @@ export function ExploreSuggestedPersonRow({
           )}
         </div>
         <OnlinePresenceDot
-          isOnline={person.isOnline}
+          isOnline={isOnline}
           size="md"
           borderClassName="border-card"
           className="absolute -bottom-0.5 -right-0.5"

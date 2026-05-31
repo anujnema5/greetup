@@ -8,6 +8,7 @@
  */
 
 import { API_ENDPOINTS, baseApi } from "@/lib/api";
+import { CACHE_EXPLORE_SUGGESTED_PEOPLE } from "@/features/explore/api/suggested-people-cache-tags";
 import type {
   ApiResponse,
   OnboardingStatusResponse,
@@ -66,6 +67,7 @@ const INVALIDATE_AFTER_SAVE_PROFILE = [
   CACHE_PROFILE_SETUP_STEPS,
   CACHE_ONBOARDING_STATUS,
   CACHE_PROFILE_ME,
+  CACHE_EXPLORE_SUGGESTED_PEOPLE,
 ];
 
 const INVALIDATE_AFTER_SAVE_MATCH_PREP = [
@@ -73,6 +75,7 @@ const INVALIDATE_AFTER_SAVE_MATCH_PREP = [
   CACHE_MATCH_PREP_CURRENT,
   CACHE_MATCH_PREP_PROMPT,
   CACHE_PROFILE_SETUP_STEPS,
+  CACHE_EXPLORE_SUGGESTED_PEOPLE,
 ];
 
 // ── Response transforms ─────────────────────────────────────────────────────────

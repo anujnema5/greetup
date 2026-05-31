@@ -26,7 +26,7 @@ export function useExploreSuggestedPeople() {
   const { data, isLoading, isError, isFetching } = useGetSuggestedPeopleQuery(undefined, {
     refetchOnMountOrArgChange: false,
     refetchOnFocus: false,
-    refetchOnReconnect: false,
+    refetchOnReconnect: true,
   });
 
   const allPeople = useMemo(
@@ -51,20 +51,29 @@ export function useExploreSuggestedPeople() {
   );
 
   const hasUserInterests = data?.hasInterests ?? false;
+  const hasLoadedData = data !== undefined;
+  const serverHasMore = data?.hasMore ?? false;
 
   const sectionSubtitle = hasUserInterests
     ? EXPLORE.peopleLikeYou.subtitleWithInterests
     : EXPLORE.peopleLikeYou.subtitleNoInterests;
 
   const showEmptyNoMatches =
-    !isLoading && !isFetching && hasUserInterests && allPeople.length === 0;
+    hasLoadedData &&
+    !isError &&
+    !isLoading &&
+    !isFetching &&
+    hasUserInterests &&
+    allPeople.length === 0;
 
   return {
     suggestedPeople,
     sectionSubtitle,
     showEmptyNoMatches,
     hasUserInterests,
-    isLoading: isLoading && !data,
+    hasLoadedData,
+    serverHasMore,
+    isLoading: isLoading && !hasLoadedData,
     isError,
     canLoadMore: hasMore,
     loadMoreSentinelRef,

@@ -127,9 +127,10 @@ export function useRoomPageTabLease({
         if (blockedAsDuplicateTabRef.current) return;
         if (isRoomMinimizedMarked()) return;
 
+        const rid = roomIdRef.current;
+
         try {
           const path = window.location.pathname;
-          const rid = roomIdRef.current;
           if (
             path === CIRCLE_SEARCH_PATH ||
             path === `/circle/${rid}` ||

@@ -14,7 +14,6 @@ import { cn } from '@/lib/utils';
 import {
   CHAT_HORIZONTAL_PADDING,
   MAX_MESSAGE_CONTENT_LENGTH,
-  MESSAGE_INPUT_MAX_HEIGHT_PX,
 } from '../constants';
 import { useMessageComposer } from '../hooks/use-message-composer';
 import { replyComposerPreview } from '../lib/message-display';
@@ -129,7 +128,7 @@ export function MessageInput({
 
       <div
         className={cn(
-          'flex min-h-11 w-full gap-1 rounded-full border border-border/60 bg-muted/50 pl-4 pr-1.5 shadow-sm transition-[box-shadow,border-color]',
+          'flex max-h-32 min-h-11 w-full gap-1 rounded-full border border-border/60 bg-muted/50 pl-4 pr-1.5 shadow-sm transition-[box-shadow,border-color]',
           'focus-within:border-primary/40 focus-within:ring-2 focus-within:ring-primary/15',
           isMultiline ? 'items-end py-1.5' : 'items-center',
           disabled && 'opacity-60',
@@ -144,8 +143,7 @@ export function MessageInput({
           rows={1}
           disabled={disabled}
           aria-label="Message"
-          className="min-w-0 flex-1 resize-none overflow-y-auto bg-transparent text-[15px] leading-5 text-foreground outline-none placeholder:text-muted-foreground/55 disabled:cursor-not-allowed"
-          style={{ maxHeight: MESSAGE_INPUT_MAX_HEIGHT_PX }}
+          className="max-h-32 min-h-5 min-w-0 flex-1 shrink-0 resize-none overflow-y-auto bg-transparent text-[15px] leading-5 text-foreground outline-none placeholder:text-muted-foreground/55 disabled:cursor-not-allowed"
         />
         <Button
           type="button"

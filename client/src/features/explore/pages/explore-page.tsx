@@ -32,6 +32,8 @@ export function ExplorePage() {
     sectionSubtitle,
     showEmptyNoMatches,
     hasUserInterests,
+    hasLoadedData,
+    serverHasMore,
     isLoading: isSuggestedLoading,
     isError: isSuggestedError,
     canLoadMore,
@@ -42,7 +44,11 @@ export function ExplorePage() {
   const debouncedQuery = useDebouncedValue(query.trim(), 300);
 
   const showSuggestedEndMessage =
-    !isSuggestedLoading && filtered.length > 0 && !canLoadMore && !query.trim();
+    !isSuggestedLoading &&
+    filtered.length > 0 &&
+    !canLoadMore &&
+    !serverHasMore &&
+    !query.trim();
 
   const canSearch = debouncedQuery.length >= SEARCH_MIN_LENGTH;
   const { data: searchData, isFetching: isSearchLoading } = useSearchUsersQuery(
@@ -122,6 +128,7 @@ export function ExplorePage() {
                     title={sectionTitle}
                     subtitle={showTopicsAndSuggested ? sectionSubtitle : undefined}
                     hasUserInterests={hasUserInterests}
+                    hasLoadedData={hasLoadedData}
                     isLoading={isSuggestedLoading}
                     isError={isSuggestedError}
                     showEmptyNoMatches={showEmptyNoMatches}

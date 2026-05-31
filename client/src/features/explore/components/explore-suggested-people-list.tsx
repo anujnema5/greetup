@@ -1,8 +1,10 @@
 "use client";
 
 import type { RefObject } from "react";
+import { useMemo } from "react";
 
 import { usePeerConnectionRequestActions } from "@/features/connections/hooks/use-peer-connection-request-actions";
+import { usePeersOnlineStatus } from "@/features/presence";
 import { EXPLORE } from "@/lib/copy/user-messages";
 
 import type { SuggestedPersonItem } from "../types/suggested-people.types";
@@ -24,6 +26,9 @@ export function ExploreSuggestedPeopleList({
   const { getOutgoing, connect, withdraw, connectingUserId, withdrawingUserId } =
     usePeerConnectionRequestActions();
 
+  const peerIds = useMemo(() => people.map((p) => p.userId), [people]);
+  const { isOnline } = usePeersOnlineStatus(peerIds);
+
   return (
     <div className="flex flex-col gap-2">
       {people.map((person) => {
@@ -35,6 +40,7 @@ export function ExploreSuggestedPeopleList({
           <ExploreSuggestedPersonRow
             key={person.userId}
             person={person}
+            isOnline={isOnline(person.userId)}
             outgoing={outgoing}
             connectBusy={connectBusy}
             withdrawBusy={withdrawBusy}

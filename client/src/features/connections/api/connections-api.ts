@@ -11,6 +11,7 @@
 import { API_ENDPOINTS, baseApi, buildQueryParamsObject } from "@/lib/api";
 import { publicProfileRtkCacheId } from "@/features/user-profile/api/public-profile-rtk-cache";
 
+import { CACHE_EXPLORE_SUGGESTED_PEOPLE } from "@/features/explore/api/suggested-people-cache-tags";
 import { CONNECTIONS_PEERS_CALL_STATUS_TAG } from "./connections-rtk-cache-tags";
 
 import type {
@@ -67,6 +68,7 @@ function tagsToRefreshAfterConnectionAction(arg: RespondConnectionMutationArg) {
     CACHE_CONNECTIONS_LIST,
     CACHE_ACCEPTED_CONNECTIONS_INFINITE,
     CACHE_PROFILE_INSIGHTS,
+    CACHE_EXPLORE_SUGGESTED_PEOPLE,
     ...tagsForPublicProfile(arg.peerUsername),
     ...(arg.peerUserId
       ? [{ type: "MatchPeerPreview" as const, id: arg.peerUserId }]
@@ -220,6 +222,7 @@ export const connectionsApi = baseApi.injectEndpoints({
         CACHE_ACCEPTED_CONNECTIONS_INFINITE,
         CACHE_PENDING_INCOMING_COUNT,
         CACHE_PROFILE_INSIGHTS,
+        CACHE_EXPLORE_SUGGESTED_PEOPLE,
         { type: "MatchPeerPreview" as const, id: arg.targetUserId },
         ...tagsForPublicProfile(arg.invalidatePublicProfileUsername),
       ],

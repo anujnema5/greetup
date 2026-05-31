@@ -23,7 +23,7 @@ export async function suggestPeopleService(
   limit: number = DEFAULT_PAGE_SIZE,
 ): Promise<SuggestPeopleResult> {
   const safePage = Math.max(1, page);
-  const safeLimit = Math.min(50, Math.max(1, limit));
+  const safeLimit = Math.min(80, Math.max(1, limit));
 
   const viewer = await suggestPeopleRepository.loadViewerSignals(viewerId);
   if (!viewer || viewer.interestIds.length === 0) {

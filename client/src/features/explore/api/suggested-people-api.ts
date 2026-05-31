@@ -1,5 +1,6 @@
 import { API_ENDPOINTS, baseApi } from "@/lib/api";
 
+import { CACHE_EXPLORE_SUGGESTED_PEOPLE } from "./suggested-people-cache-tags";
 import { SUGGESTED_PEOPLE_FETCH_LIMIT } from "../constants/suggested-people";
 import type {
   SuggestedPeopleApiResponse,
@@ -29,7 +30,7 @@ export const suggestedPeopleApi = baseApi.injectEndpoints({
         return `${API_ENDPOINTS.SEARCH.SUGGESTED_PEOPLE}?${params.toString()}`;
       },
       transformResponse: toSuggestedPeopleData,
-      providesTags: [{ type: "ExploreSuggestedPeople", id: "LIST" }],
+      providesTags: [CACHE_EXPLORE_SUGGESTED_PEOPLE],
     }),
   }),
 });

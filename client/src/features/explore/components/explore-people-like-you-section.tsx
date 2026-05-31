@@ -11,6 +11,7 @@ import type { SuggestedPersonItem } from "../types/suggested-people.types";
 type Props = {
   subtitle?: string;
   hasUserInterests: boolean;
+  hasLoadedData?: boolean;
   isLoading: boolean;
   isError: boolean;
   showEmptyNoMatches: boolean;
@@ -25,6 +26,7 @@ type Props = {
 export function ExplorePeopleLikeYouSection({
   subtitle,
   hasUserInterests,
+  hasLoadedData = false,
   isLoading,
   isError,
   showEmptyNoMatches,
@@ -59,7 +61,7 @@ export function ExplorePeopleLikeYouSection({
         </p>
       )}
 
-      {!hasUserInterests && !isLoading && (
+      {!hasUserInterests && hasLoadedData && !isLoading && !isError && (
         <Link
           href="/profile"
           className="inline-block text-xs font-semibold text-primary mb-3 hover:underline"
