@@ -30,6 +30,7 @@ import { useRoomVideo } from "@/features/room/hooks/session/use-room-video";
 import { useLobbyPreviewMedia } from "@/features/room/hooks/lobby/use-lobby-preview-media";
 import { setLobbyMediaIntent } from "@/features/room/lib/lobby";
 import { getRtkMutationErrorMessage } from "@/lib/api/rtk-mutation-error";
+import { NSFW_LOG_ENABLED } from "@/shared/constants";
 import { buildCallCapabilities } from "@/features/room/contracts";
 import {
   resolveEmbeddedActivityCallPolicy,
@@ -375,7 +376,7 @@ export function InCallContainer({
       <RoomSessionExpiryWarningsLayer roomId={roomId} enabled={mediasoupReady} />
       <CircleNsfwModerationLayer
         roomId={roomId}
-        enabled={isDbCircleCall}
+        enabled={NSFW_LOG_ENABLED && isDbCircleCall}
         localStream={moderationStream}
         mediasoupReady={mediasoupReady}
         cameraEnabled={cameraEnabled}

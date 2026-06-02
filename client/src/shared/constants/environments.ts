@@ -26,3 +26,7 @@ export const API_BASE_URL = apiRoot
 
 export const RTC_SOCKET_URL =
   process.env.NEXT_PUBLIC_RTC_SOCKET_URL ?? "http://localhost:5370";
+
+export const NSFW_LOG_ENABLED = process.env.NEXT_PUBLIC_NSFW_LOG_ENABLED === "true";
+export const NSFW_SCAN_INTERVAL_MS = process.env.NEXT_PUBLIC_NSFW_SCAN_INTERVAL_MS ? parseInt(process.env.NEXT_PUBLIC_NSFW_SCAN_INTERVAL_MS) : 1000;
+export const NSFWJS_IS_ENABLED = process.env.NEXT_PUBLIC_NSFWJS_IS_ENABLED === "true";
