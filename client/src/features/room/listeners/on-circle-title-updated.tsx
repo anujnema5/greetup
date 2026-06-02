@@ -17,7 +17,7 @@ import { useAppDispatch, useAppSelector } from "@/lib/redux/hooks";
 import { useSocket } from "@/lib/socket";
 
 function applyTitleToRoomDraft(draft: RoomData, title: string): void {
-  if (draft.sessionKind === "db_room") {
+  if (draft.sessionKind === "circle") {
     draft.title = title;
     return;
   }

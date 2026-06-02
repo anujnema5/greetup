@@ -116,6 +116,13 @@ export const roomFriendInviteStatusEnum = pgEnum("circle_friend_invite_status", 
 /** `direct` = 1:1-style; `circle` = group circle call. */
 export const roomTypeEnum = pgEnum("room_type", ["direct", "circle"]);
 
+/** Why this room exists — distinct from `room_type` (topology). */
+export const sessionKindEnum = pgEnum("session_kind", [
+  "match",
+  "connection_call",
+  "circle",
+]);
+
 /**
  * Live call session: circle or direct (1:1). Category applies to circle-style rooms.
  */
@@ -164,6 +171,8 @@ export const rooms = pgTable(
 
     roomType: roomTypeEnum("room_type").notNull().default("circle"),
 
+    sessionKind: sessionKindEnum("session_kind").notNull(),
+
     createdAt: timestamp("created_at").defaultNow().notNull(),
     updatedAt: timestamp("updated_at")
       .defaultNow()
@@ -183,6 +192,7 @@ export const rooms = pgTable(
       table.scheduledStartAt,
     ),
     index("rooms_visibility_status_idx").on(table.visibility, table.status),
+    index("rooms_session_kind_idx").on(table.sessionKind),
   ],
 );
 

@@ -15,7 +15,11 @@ import {
   migrateLegacyCircleRoomQuery,
   readCircleRoomSeeds,
 } from "@/features/matching/lib/circle-room-bootstrap";
-import { isCircleRoomData, type RoomData } from "../types/room.types";
+import {
+  isCircleSession,
+  isConnectionCallSession,
+} from "@/features/room/lib/session/room-session-kind";
+import { isCircleRoomData, type MatchRoomData, type RoomData } from "../types/room.types";
 import { useGetMyProfileQuery } from "@/features/profile-setup/components/profile-setup-api";
 
 export type { RoomData };
@@ -91,9 +95,10 @@ export function useRoom() {
     clearLocalMediaDeviceError,
   } = useRtcSocketContext();
 
-  const fallbackRoom: RoomData | null =
+  const fallbackRoom: MatchRoomData | null =
     roomQuery.isError && seedPeerId && session?.user?.id
       ? {
+          sessionKind: "match",
           roomId,
           userA: session.user.id,
           userB: seedPeerId,
@@ -118,15 +123,19 @@ export function useRoom() {
 
   const peerId = useMemo(() => {
     if (!room) return seedPeerId ?? null;
-    if ("sessionKind" in room && room.sessionKind === "db_room") return null;
-    return room.userA === currentUserId ? room.userB : room.userA;
+    if (isCircleSession(room)) return null;
+    if (isConnectionCallSession(room)) return seedPeerId ?? null;
+    if ("userA" in room) {
+      return room.userA === currentUserId ? room.userB : room.userA;
+    }
+    return seedPeerId ?? null;
   }, [room, currentUserId, seedPeerId]);
 
   const currentUserName =
     myProfileData?.data?.displayName ?? sessionUser?.displayName ?? sessionUser?.name ?? null;
 
   const score = useMemo(() => {
-    if (room && isCircleRoomData(room)) return null;
+    if (room && (isCircleSession(room) || isConnectionCallSession(room))) return null;
     return room && "matchScore" in room ? room.matchScore : seedScore;
   }, [room, seedScore]);
 

@@ -44,6 +44,7 @@ export const roomCreationRepository = {
         inviteCode: null,
         advancedOptions,
         roomType: "direct",
+        sessionKind: "match",
       });
 
       await tx.insert(roomParticipants).values([
@@ -93,6 +94,7 @@ export const roomCreationRepository = {
         inviteCode: null,
         advancedOptions,
         roomType: "direct",
+        sessionKind: "connection_call",
       });
 
       await tx.insert(roomParticipants).values({
@@ -153,6 +155,7 @@ export const roomCreationRepository = {
           inviteCode: params.inviteCode,
           advancedOptions: params.advancedOptions,
           roomType: params.roomType,
+          sessionKind: params.roomType === "circle" ? "circle" : "match",
         })
         .returning({
           id: rooms.id,

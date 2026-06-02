@@ -102,6 +102,7 @@ export async function endLiveRoomSession(
       roomId,
       reason,
       roomType: room.roomType,
+      sessionKind: room.sessionKind,
       preserveScheduledSlot,
     });
   }

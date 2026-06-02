@@ -17,6 +17,7 @@ import {
 } from "@/features/matching/types/room.types";
 import { InCallContainer } from "@/features/room/call/shell/in-call-container";
 import { useRoomJoinAndStartVideo } from "@/features/room/hooks/session/use-room-join-and-start-video";
+import { isConnectionCallSession } from "@/features/room/lib/session/room-session-kind";
 
 export function RoomPage() {
   const dispatch = useAppDispatch();
@@ -48,11 +49,12 @@ export function RoomPage() {
   const isPersistedCircleCall = isPersistedCircleSession(room, rtcRoomType);
   const circleLobbyGateActive =
     room && isCircleRoomData(room) ? (room.lobbyGateActive ?? null) : null;
+  const isConnectionCall = isConnectionCallSession(room);
   const rematchLanding = isSearchingNext && Boolean(peerId);
   const shouldStartVideo =
     !duplicateTabRedirect &&
     (rematchLanding || (!loading && Boolean(room))) &&
-    (isCircleRoom || Boolean(peerId)) &&
+    (isCircleRoom || isConnectionCall || Boolean(peerId)) &&
     (!isSearchingNext || rematchLanding);
 
   const { joinRoomError, joinRoomLoading } = useRoomJoinAndStartVideo({
@@ -133,6 +135,7 @@ export function RoomPage() {
           room && isCircleRoomData(room) && room.status ? room.status : null
         }
         isDbCircleCall={isPersistedCircleCall}
+        room={room}
       />
     );
   }

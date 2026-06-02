@@ -121,6 +121,7 @@ export const roomInviteRepository = {
         .update(rooms)
         .set({
           roomType: "circle",
+          sessionKind: "circle",
           maxParticipants: Math.max(currentMaxParticipants, EXPANDED_MAX),
           updatedAt: new Date(),
         })

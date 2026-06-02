@@ -11,6 +11,7 @@ export type RoomSessionEndReason =
   | "empty_room_2h"
   | "delete_circle_after_call"
   | "match_finalized"
+  | "connection_call_ended"
   | "reconciled_on_access";
 
 export type EndLiveRoomSessionOptions = {

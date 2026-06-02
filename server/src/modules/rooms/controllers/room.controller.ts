@@ -69,6 +69,8 @@ import {
 } from "../services/session/start-room-session.service";
 import { syncCircleRoomExpiryFromClockIfDue } from "../services/session/circle-room-expiry-sync.service";
 import { deleteSessionRoomRedis } from "../services/rtc/session-room-redis.service";
+import { resolveConnectionCallConversationId } from "@/modules/rooms/lib/session/resolve-connection-call-conversation-id";
+import { isSessionKind } from "@/shared/types/session-kind";
 
 /**
  * GET /api/room/:roomId/rtc-token
@@ -584,6 +586,48 @@ export const handleRoomInviteRespond = async (c: Context) => {
   }
 };
 
+type DbRoomRow = NonNullable<Awaited<ReturnType<typeof roomsRepository.findRoomById>>>;
+
+function formatRoomScheduledStartAt(dbRoom: DbRoomRow): string | null {
+  if (dbRoom.scheduledStartAt instanceof Date) {
+    return dbRoom.scheduledStartAt.toISOString();
+  }
+  if (dbRoom.scheduledStartAt) {
+    return new Date(dbRoom.scheduledStartAt).toISOString();
+  }
+  return null;
+}
+
+function circleLobbyGateFromAdvancedOptions(dbRoom: DbRoomRow): "0" | "1" {
+  const adv = mergeRoomAdvancedOptions(dbRoom.advancedOptions);
+  return adv.shouldHostStartMeeting !== false ? "1" : "0";
+}
+
+function circleLobbyGateFromRedis(room: Record<string, string>): "0" | "1" {
+  return typeof room.lobbyGateActive === "string" &&
+    (room.lobbyGateActive === "0" || room.lobbyGateActive === "1")
+    ? room.lobbyGateActive
+    : "0";
+}
+
+function buildCircleRoomPayload(
+  dbRoom: DbRoomRow,
+  lobbyGateActive: "0" | "1",
+  roomIdOverride?: string,
+) {
+  return {
+    sessionKind: "circle" as const,
+    roomId: roomIdOverride ?? dbRoom.id,
+    hostUserId: dbRoom.hostUserId,
+    roomType: dbRoom.roomType,
+    title: dbRoom.title,
+    status: dbRoom.status,
+    lobbyGateActive,
+    scheduledStartAt: formatRoomScheduledStartAt(dbRoom),
+    ...roomSessionTimingPayload(dbRoom),
+  };
+}
+
 /**
  * GET /api/room/:roomId
  * Returns Redis-backed room payload (match pair or DB session room).
@@ -610,7 +654,6 @@ export const handleGetRoom = async (c: Context) => {
         );
       }
 
-      /** Match rooms: Redis may lag or expire; fall back to Postgres for live direct pairs. */
       if (dbRoom.roomType === "direct" && dbRoom.status === "live") {
         const reconciled = await reconcileRoomSessionOnAccess(roomId);
         if (reconciled.closed) {
@@ -624,6 +667,26 @@ export const handleGetRoom = async (c: Context) => {
           );
         }
         dbRoom = (await roomsRepository.findRoomById(roomId)) ?? dbRoom;
+
+        if (dbRoom.sessionKind === "connection_call") {
+          const conversationId = await resolveConnectionCallConversationId(roomId);
+          return c.json(
+            ApiResponse.success(
+              {
+                sessionKind: "connection_call" as const,
+                roomId: dbRoom.id,
+                hostUserId: dbRoom.hostUserId,
+                roomType: "direct" as const,
+                title: dbRoom.title,
+                lobbyGateActive: "0" as const,
+                ...(conversationId ? { conversationId } : {}),
+                ...roomSessionTimingPayload(dbRoom),
+              },
+              "Room found",
+            ),
+          );
+        }
+
         const participantIds = await roomParticipantsRepository.listActiveParticipantUserIds(roomId);
         const hostId = dbRoom.hostUserId;
         const peerId = participantIds.find((id) => id !== hostId) ?? participantIds[1];
@@ -631,6 +694,7 @@ export const handleGetRoom = async (c: Context) => {
           return c.json(
             ApiResponse.success(
               {
+                sessionKind: "match" as const,
                 roomId,
                 userA: hostId,
                 userB: peerId,
@@ -643,7 +707,7 @@ export const handleGetRoom = async (c: Context) => {
         }
       }
 
-      if (dbRoom.roomType !== "circle") {
+      if (dbRoom.roomType !== "circle" && dbRoom.sessionKind !== "circle") {
         return c.json(
           ApiResponse.error({ message: "Room not found", statusCode: 404, code: "NOT_FOUND" }),
           404,
@@ -672,33 +736,53 @@ export const handleGetRoom = async (c: Context) => {
           403,
         );
       }
-      const adv = mergeRoomAdvancedOptions(dbRoom.advancedOptions);
-      const lobbyGateActive: "0" | "1" = adv.shouldHostStartMeeting !== false ? "1" : "0";
-      const scheduledStartAt =
-        dbRoom.scheduledStartAt instanceof Date
-          ? dbRoom.scheduledStartAt.toISOString()
-          : dbRoom.scheduledStartAt
-            ? new Date(dbRoom.scheduledStartAt).toISOString()
-            : null;
+      return c.json(
+        ApiResponse.success(
+          buildCircleRoomPayload(dbRoom, circleLobbyGateFromAdvancedOptions(dbRoom)),
+          "Room found",
+        ),
+      );
+    }
+
+    if (room.sessionKind === "connection_call") {
+      let dbRoom = await roomsRepository.findRoomById(roomId);
+      if (dbRoom) {
+        const reconciled = await reconcileRoomSessionOnAccess(roomId);
+        if (reconciled.closed) {
+          await deleteSessionRoomRedis(roomId);
+          return c.json(
+            ApiResponse.error({
+              message: roomSessionClosedMessage(reconciled.reason),
+              statusCode: 410,
+              code: "ROOM_EXPIRED",
+            }),
+            410,
+          );
+        }
+        dbRoom = (await roomsRepository.findRoomById(roomId)) ?? dbRoom;
+      }
+      const conversationId =
+        room.conversationId?.trim() ||
+        (await resolveConnectionCallConversationId(roomId, room)) ||
+        undefined;
       return c.json(
         ApiResponse.success(
           {
-            sessionKind: "db_room" as const,
-            roomId: dbRoom.id,
-            hostUserId: dbRoom.hostUserId,
-            roomType: dbRoom.roomType,
-            title: dbRoom.title,
-            status: dbRoom.status,
-            lobbyGateActive,
-            scheduledStartAt,
-            ...roomSessionTimingPayload(dbRoom),
+            sessionKind: "connection_call" as const,
+            roomId: room.roomId,
+            hostUserId: room.hostUserId,
+            roomType: "direct" as const,
+            title: room.title ?? "Call",
+            lobbyGateActive: "0" as const,
+            ...(conversationId ? { conversationId } : {}),
+            ...(dbRoom ? roomSessionTimingPayload(dbRoom) : {}),
           },
           "Room found",
         ),
       );
     }
 
-    if (room.sessionKind === "db_room") {
+    if (room.sessionKind === "circle") {
       let dbRoom = await roomsRepository.findRoomById(roomId);
       if (dbRoom?.roomType === "circle" || dbRoom?.roomType === "direct") {
         const reconciled = await reconcileRoomSessionOnAccess(roomId);
@@ -726,29 +810,52 @@ export const handleGetRoom = async (c: Context) => {
           410,
         );
       }
-      const scheduledStartAt =
-        dbRoom?.scheduledStartAt instanceof Date
-          ? dbRoom.scheduledStartAt.toISOString()
-          : dbRoom?.scheduledStartAt
-            ? new Date(dbRoom.scheduledStartAt).toISOString()
-            : null;
+      if (!dbRoom) {
+        return c.json(
+          ApiResponse.error({ message: "Room not found", statusCode: 404, code: "NOT_FOUND" }),
+          404,
+        );
+      }
       return c.json(
         ApiResponse.success(
-          {
-            sessionKind: "db_room" as const,
-            roomId: room.roomId,
-            hostUserId: room.hostUserId,
-            roomType: room.roomType,
-            title: room.title,
-            ...(dbRoom?.status ? { status: dbRoom.status } : {}),
-            lobbyGateActive:
-              typeof room.lobbyGateActive === "string" &&
-              (room.lobbyGateActive === "0" || room.lobbyGateActive === "1")
-                ? room.lobbyGateActive
-                : "0",
-            scheduledStartAt,
-            ...(dbRoom ? roomSessionTimingPayload(dbRoom) : {}),
-          },
+          buildCircleRoomPayload(dbRoom, circleLobbyGateFromRedis(room), room.roomId),
+          "Room found",
+        ),
+      );
+    }
+
+    const dbRoomForRedisKind = await roomsRepository.findRoomById(roomId);
+    if (
+      dbRoomForRedisKind?.sessionKind === "circle" &&
+      !isSessionKind(room.sessionKind)
+    ) {
+      const reconciled = await reconcileRoomSessionOnAccess(roomId);
+      if (reconciled.closed) {
+        await deleteSessionRoomRedis(roomId);
+        return c.json(
+          ApiResponse.error({
+            message: roomSessionClosedMessage(reconciled.reason),
+            statusCode: 410,
+            code: "ROOM_EXPIRED",
+          }),
+          410,
+        );
+      }
+      const dbRoom = (await roomsRepository.findRoomById(roomId)) ?? dbRoomForRedisKind;
+      if (isDbRoomSessionClosed(dbRoom)) {
+        await deleteSessionRoomRedis(roomId);
+        return c.json(
+          ApiResponse.error({
+            message: "This room session is no longer available",
+            statusCode: 410,
+            code: "ROOM_EXPIRED",
+          }),
+          410,
+        );
+      }
+      return c.json(
+        ApiResponse.success(
+          buildCircleRoomPayload(dbRoom, circleLobbyGateFromRedis(room), room.roomId),
           "Room found",
         ),
       );
@@ -756,6 +863,7 @@ export const handleGetRoom = async (c: Context) => {
 
     const dbRoom = await roomsRepository.findRoomById(roomId);
     const matchPayload: Record<string, unknown> = {
+      sessionKind: "match",
       roomId: room.roomId,
       userA: room.userA,
       userB: room.userB,
@@ -767,6 +875,9 @@ export const handleGetRoom = async (c: Context) => {
       if (dbRoom.hostUserId) {
         matchPayload.hostUserId = dbRoom.hostUserId;
       }
+    }
+    if (dbRoom) {
+      Object.assign(matchPayload, roomSessionTimingPayload(dbRoom));
     }
 
     return c.json(ApiResponse.success(matchPayload, "Room found"));

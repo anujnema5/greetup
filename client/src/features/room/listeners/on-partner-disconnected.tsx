@@ -8,22 +8,32 @@ import {
   selectIsVideoSessionActive,
   selectRoomPhase,
 } from "@/lib/redux/selectors/room-selectors";
-import { beginSearchingNextCall } from "@/lib/redux/slices/room-slice";
+import { beginSearchingNextCall, endVideoSession } from "@/lib/redux/slices/room-slice";
 import { useRtcSocketContext, remotePeerIdsStableKey, remotePeerCountFromStableKey } from "@/features/rtc";
 import { useMatchmaking } from "@/features/matching";
-import { useLeaveRoomMutation } from "@/features/room/api/room-api";
-import { DIRECT_CALL_RECOVERY } from "@/features/room/constants/direct-call/direct-call-recovery";
+import { useGetRoomQuery, useLeaveRoomMutation } from "@/features/room/api/room-api";
+import { messagesDirectConversationPath } from "@/features/connection-call/lib/call-navigation";
+import {
+  DIRECT_CALL_PEER_LEFT_DEBOUNCE_MS,
+  DIRECT_CALL_RECOVERY,
+} from "@/features/room/constants/direct-call/direct-call-recovery";
 import {
   goToCircleSearch,
   resolveApiRoomId,
   resolveCircleRouteRoomId,
 } from "@/features/room/lib/navigation/circle-routes";
-import { DIRECT_CALL_PEER_LEFT_DEBOUNCE_MS } from "@/features/room/constants/direct-call/direct-call-recovery";
+import { consumeRoomReturnPath } from "@/features/room/lib/session/room-return-path";
+import { clearRoomStorage } from "@/features/room/lib/session/room-sync";
+import {
+  isCircleSession,
+  isConnectionCallSession,
+  isMatchSession,
+} from "@/features/room/lib/session/room-session-kind";
 
 /**
- * Direct (1:1 match) calls only: when the other peer leaves, keep the user on the in-call UI,
- * mark the room as "searching", leave the stale room on the API, and restart matchmaking.
- * Circle / `db_room` calls are unchanged — empty slots are normal when friends join late.
+ * Direct 1:1 calls: match restarts search when the peer leaves; connection calls end and
+ * return to the conversation. Circle calls are unchanged — empty slots are normal when
+ * friends join late.
  */
 export function OnPartnerDisconnected() {
   const dispatch = useAppDispatch();
@@ -42,6 +52,10 @@ export function OnPartnerDisconnected() {
 
   const remotePeerKey = remotePeerIdsStableKey(Object.keys(peers));
   const callRoomId = activeRoomId ?? resolveApiRoomId(routeRoomId);
+
+  const { data: roomData, isFetching: roomFetching } = useGetRoomQuery(callRoomId ?? "", {
+    skip: !callRoomId || !sessionActive,
+  });
 
   const hadRemotePeerRef = useRef(false);
   const handledRef = useRef(false);
@@ -102,6 +116,40 @@ export function OnPartnerDisconnected() {
     router,
   ]);
 
+  const endConnectionCallAfterPeerLeft = useCallback(() => {
+    if (handledRef.current) return;
+    handledRef.current = true;
+    clearPartnerLeftTimer();
+    clearNetworkRecoveryTimer();
+    clearSearchRetryTimer();
+    clearRoomStorage();
+    dispatch(endVideoSession());
+    const roomIdToLeave = activeRoomId ?? resolveApiRoomId(routeRoomId);
+    const conversationId =
+      roomData?.sessionKind === "connection_call" ? roomData.conversationId : undefined;
+    const dest = conversationId
+      ? messagesDirectConversationPath(conversationId)
+      : consumeRoomReturnPath("/home");
+    void matchmaking.handleCancel().catch(() => {});
+    const leavePromise = roomIdToLeave
+      ? leaveRoom({ roomId: roomIdToLeave }).unwrap()
+      : Promise.resolve();
+    void leavePromise.catch(() => {}).finally(() => {
+      router.replace(dest);
+    });
+  }, [
+    activeRoomId,
+    clearNetworkRecoveryTimer,
+    clearPartnerLeftTimer,
+    clearSearchRetryTimer,
+    dispatch,
+    leaveRoom,
+    matchmaking,
+    roomData,
+    routeRoomId,
+    router,
+  ]);
+
   useEffect(() => {
     if (!sessionActive) {
       hadRemotePeerRef.current = false;
@@ -124,7 +172,8 @@ export function OnPartnerDisconnected() {
 
   useEffect(() => {
     if (!sessionActive) return;
-    if (rtcRoomType === "circle") return;
+    if (rtcRoomType === "circle" || isCircleSession(roomData)) return;
+    if (callRoomId && roomFetching && !roomData) return;
     if (roomPhase === "searching") return;
     if (matchmakingStatus === "proposed" || waitingForPeerConnect) {
       clearPartnerLeftTimer();
@@ -143,11 +192,19 @@ export function OnPartnerDisconnected() {
 
     if (!hadRemotePeerRef.current || handledRef.current) return;
 
+    const onPeerLeft = isConnectionCallSession(roomData)
+      ? endConnectionCallAfterPeerLeft
+      : isMatchSession(roomData)
+        ? beginSearchForNextCandidate
+        : null;
+
+    if (!onPeerLeft) return;
+
     if (timersRef.current.partnerLeft == null) {
       timersRef.current.partnerLeft = window.setTimeout(() => {
         timersRef.current.partnerLeft = null;
         clearNetworkRecoveryTimer();
-        beginSearchForNextCandidate();
+        onPeerLeft();
       }, DIRECT_CALL_PEER_LEFT_DEBOUNCE_MS);
     }
 
@@ -157,6 +214,9 @@ export function OnPartnerDisconnected() {
   }, [
     sessionActive,
     rtcRoomType,
+    roomData,
+    roomFetching,
+    callRoomId,
     remotePeerKey,
     matchmakingStatus,
     waitingForPeerConnect,
@@ -164,10 +224,15 @@ export function OnPartnerDisconnected() {
     clearNetworkRecoveryTimer,
     clearPartnerLeftTimer,
     beginSearchForNextCandidate,
+    endConnectionCallAfterPeerLeft,
   ]);
 
   useEffect(() => {
     if (!sessionActive || roomPhase !== "searching") {
+      clearSearchRetryTimer();
+      return;
+    }
+    if (isConnectionCallSession(roomData) || isCircleSession(roomData)) {
       clearSearchRetryTimer();
       return;
     }
@@ -187,7 +252,7 @@ export function OnPartnerDisconnected() {
     return () => {
       clearSearchRetryTimer();
     };
-  }, [clearSearchRetryTimer, matchmaking, matchmakingStatus, roomPhase, sessionActive]);
+  }, [clearSearchRetryTimer, matchmaking, matchmakingStatus, roomData, roomPhase, sessionActive]);
 
   useEffect(
     () => () => {

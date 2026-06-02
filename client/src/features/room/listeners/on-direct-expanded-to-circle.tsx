@@ -35,7 +35,6 @@ import {
   parseDirectExpandInvitePayload,
   type DirectExpandInvitePayload,
 } from "@/features/room/types/socket/direct-expand-socket.types";
-import type { RoomData } from "@/features/matching/types/room.types";
 import {
   invalidateRoomAndPeersCallStatusTags,
   patchCachedRtcRoomType,
@@ -68,13 +67,12 @@ export function OnDirectExpandedToCircle() {
       dispatch(
         roomApi.util.updateQueryData("getRoom", roomId, (draft) => {
           if (!draft) return;
-          if ("sessionKind" in draft && draft.sessionKind === "db_room") {
+          if ("sessionKind" in draft && draft.sessionKind === "circle") {
             draft.roomType = "circle";
             return;
           }
           if ("userA" in draft) {
-            const match = draft as Extract<RoomData, { userA: string }>;
-            match.roomType = "circle";
+            draft.roomType = "circle";
           }
         }),
       );
