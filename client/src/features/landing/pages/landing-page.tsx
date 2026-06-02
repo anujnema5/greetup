@@ -3,14 +3,12 @@
 import {
   createContext,
   useContext,
-  useEffect,
   useLayoutEffect,
   useMemo,
   useRef,
   useState,
 } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import {
   motion,
   useScroll,
@@ -1308,20 +1306,10 @@ function LandingPageInner() {
   );
 }
 
-export function LandingPageView() {
+export function LandingPage() {
   return (
     <LandingPerfProvider>
       <LandingPageInner />
     </LandingPerfProvider>
   );
-}
-
-export default function LandingRedirectPage() {
-  const router = useRouter();
-
-  useEffect(() => {
-    router.replace("/");
-  }, [router]);
-
-  return null;
 }

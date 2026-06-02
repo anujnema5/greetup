@@ -1,1 +1,1 @@
-export { LandingPageView as default } from "./landing/page";
+export { LandingPage as default } from "@/features/landing";

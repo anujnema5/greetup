@@ -5,6 +5,7 @@ export type PageHeaderProps = {
   subtitle?: ReactNode;
   backHref?: string;
   backLabel?: string;
+  onBack?: () => void;
   actions?: ReactNode;
   className?: string;
   titleClassName?: string;

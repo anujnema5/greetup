@@ -13,11 +13,15 @@ export function PageHeader({
   subtitle,
   backHref,
   backLabel = "Go back",
+  onBack,
   actions,
   className,
   titleClassName,
   subtitleClassName,
 }: PageHeaderProps) {
+  const backButtonClass =
+    "flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-muted-foreground transition-colors hover:bg-muted hover:text-foreground";
+
   return (
     <header
       className={cn(
@@ -26,12 +30,17 @@ export function PageHeader({
       )}
     >
       <div className="flex min-w-0 flex-1 items-center gap-3">
-        {backHref ? (
-          <Link
-            href={backHref}
-            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+        {onBack ? (
+          <button
+            type="button"
+            onClick={onBack}
+            className={cn(backButtonClass, "cursor-pointer")}
             aria-label={backLabel}
           >
+            <ArrowLeft size={18} />
+          </button>
+        ) : backHref ? (
+          <Link href={backHref} className={backButtonClass} aria-label={backLabel}>
             <ArrowLeft size={18} />
           </Link>
         ) : null}

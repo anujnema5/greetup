@@ -6,6 +6,7 @@ import {
   hasLiveEnabledVideo,
   hasLiveMedia,
   hasLiveVideo,
+  hasRenderableRemoteVideo,
   mergeGroupGalleryParticipants,
   type MediasoupRoomStatus,
   type ProducerMediaSource,
@@ -45,8 +46,14 @@ export function useCallDisplayData(p: UseCallDisplayDataArgs) {
   const localVideoRef = useRef<HTMLVideoElement>(null);
 
   /** Partner camera-off must not hide the main stage when it is a screen share (or other non-camera video). */
+  const remoteVideoAttached =
+    p.mainStageShowsScreen
+      ? hasLiveVideo(p.remoteStream)
+      : hasLiveVideo(p.remoteStream) && !p.remotePeerCameraOff;
   const remoteVideoLive =
-    hasLiveVideo(p.remoteStream) && (!p.remotePeerCameraOff || p.mainStageShowsScreen);
+    p.mainStageShowsScreen
+      ? hasLiveVideo(p.remoteStream)
+      : hasRenderableRemoteVideo(p.remoteStream) && !p.remotePeerCameraOff;
   const remoteMediaLive = hasLiveMedia(p.remoteStream);
   const localVideoLive = hasLiveEnabledVideo(p.localStream);
 
@@ -67,7 +74,9 @@ export function useCallDisplayData(p: UseCallDisplayDataArgs) {
       : null;
   const peerCameraInsetLive = hasLiveVideo(peerCameraInsetStream);
 
-  useAttachMediaStream(remoteVideoRef, p.remoteStream ?? null, remoteVideoLive);
+  useAttachMediaStream(remoteVideoRef, p.remoteStream ?? null, remoteVideoAttached, {
+    cloneVideoTracksForPlayback: true,
+  });
   useAttachMediaStream(localVideoRef, p.localStream ?? null, localVideoLive);
   useAttachMediaStream(peerCameraInsetRef, peerCameraInsetStream, peerCameraInsetLive);
 

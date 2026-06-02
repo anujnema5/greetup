@@ -21,7 +21,7 @@ import {
 import { toast } from "sonner";
 import type { FetchBaseQueryError } from "@reduxjs/toolkit/query";
 
-import { NavSidebar, BottomNav, PageHeader } from "@/features/app-shell";
+import { PageHeader } from "@/features/app-shell";
 import {
   useGetMyProfileQuery,
   useGetProfileSetupStepsQuery,
@@ -130,16 +130,12 @@ export function ProfilePage() {
   const loading = profileQuery.isLoading || stepsQuery.isLoading;
 
   const shell = (body: ReactNode) => (
-    <div className="flex h-screen overflow-hidden bg-background">
-      <NavSidebar activePath="/profile" />
-      <main className="flex flex-1 flex-col overflow-y-auto pb-16 md:pb-0">
-        <PageHeader title="Profile" subtitle="Edit one section at a time." />
-        <div className="flex flex-1 flex-col items-center justify-center px-6 text-center">
-          {body}
-        </div>
-      </main>
-      <BottomNav activePath="/profile" />
-    </div>
+    <main className="flex min-w-0 flex-1 flex-col overflow-y-auto pb-16 md:pb-0">
+      <PageHeader title="Profile" subtitle="Edit one section at a time." />
+      <div className="flex flex-1 flex-col items-center justify-center px-6 text-center">
+        {body}
+      </div>
+    </main>
   );
 
   if (loading) {
@@ -201,10 +197,8 @@ export function ProfilePage() {
   }
 
   return (
-    <div className="flex h-screen overflow-hidden bg-background">
-      <NavSidebar activePath="/profile" />
-
-      <main className="flex flex-1 flex-col overflow-y-auto pb-16 md:pb-0">
+    <>
+      <main className="flex min-w-0 flex-1 flex-col overflow-y-auto pb-16 md:pb-0">
         <PageHeader
           title="Profile"
           subtitle="Edit one section at a time."
@@ -364,8 +358,6 @@ export function ProfilePage() {
         </div>
       </main>
 
-      <BottomNav activePath="/profile" />
-
       <ProfileEditModals
         active={activeSection}
         onClose={() => setActiveSection(null)}
@@ -396,6 +388,6 @@ export function ProfilePage() {
           }}
         />
       ) : null}
-    </div>
+    </>
   );
 }

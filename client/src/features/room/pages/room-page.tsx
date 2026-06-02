@@ -37,6 +37,7 @@ export function RoomPage() {
     room,
     rtcRoomType,
     duplicateTabRedirect,
+    leaveAndGoHome,
   } = useRoom();
 
   const myName = currentUserName ?? "You";
@@ -133,6 +134,7 @@ export function RoomPage() {
           room && isCircleRoomData(room) && room.status ? room.status : null
         }
         isDbCircleCall={isPersistedCircleCall}
+        onLobbyBack={leaveAndGoHome}
       />
     );
   }

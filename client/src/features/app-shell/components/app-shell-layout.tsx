@@ -23,7 +23,7 @@ export function AppShellLayout({
   return (
     <div className="flex h-screen overflow-hidden bg-background">
       <NavSidebar activePath={activePath} />
-      {children}
+      <div className="flex min-w-0 flex-1 overflow-hidden">{children}</div>
       {aside}
       <BottomNav activePath={activePath} />
     </div>

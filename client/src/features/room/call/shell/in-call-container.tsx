@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { useSession } from "@/lib/auth-client";
 import { useAppDispatch, useAppSelector } from "@/lib/redux/hooks";
@@ -57,6 +58,8 @@ export type InCallContainerProps = {
   circleScheduledStartAt?: string | null;
   /** Postgres circle lifecycle from GET room (`scheduled`, `live`, …). */
   circleRoomStatus?: string | null;
+  /** Leave lobby and return home (clears room when provided). */
+  onLobbyBack?: () => void;
   /**
    * True for a Postgres circle session: native `db_room` **or** a 1:1 match expanded
    * in place (`room_type = circle` on the same `roomId`).
@@ -76,8 +79,10 @@ export function InCallContainer({
   circleLobbyGateActive = null,
   circleScheduledStartAt = null,
   circleRoomStatus = null,
+  onLobbyBack,
   isDbCircleCall = false,
 }: InCallContainerProps) {
+  const router = useRouter();
   const dispatch = useAppDispatch();
   const { data: session } = useSession();
   const roomPhase = useAppSelector(selectRoomPhase);
@@ -370,6 +375,14 @@ export function InCallContainer({
     startScheduledCircle,
   ]);
 
+  const handleLobbyBack = useCallback(() => {
+    if (onLobbyBack) {
+      onLobbyBack();
+      return;
+    }
+    router.replace("/home");
+  }, [onLobbyBack, router]);
+
   return (
     <div className="fixed inset-0 z-100 flex flex-col overflow-hidden bg-background">
       <RoomSessionExpiryWarningsLayer roomId={roomId} enabled={mediasoupReady} />
@@ -391,6 +404,7 @@ export function InCallContainer({
           rtcTokenError={rtcTokenError}
           rtcTokenLoading={rtcTokenLoading}
           onJoinCircle={handleLobbyJoinCircle}
+          onBack={handleLobbyBack}
           viewerDisplayName={myName}
           hostCanStartScheduledNow={hostCanStartScheduledCircleNow}
           hostStartScheduledBusy={startingScheduledCircle}

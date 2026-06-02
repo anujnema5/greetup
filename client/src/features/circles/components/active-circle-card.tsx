@@ -46,8 +46,6 @@ export type ActiveCircleCardProps = {
   currentUserId: string | null;
   onJoin: (circle: ActiveCircleItem) => void;
   onEditScheduled?: (circle: ActiveCircleItem) => void;
-  onStartScheduledNow?: (circle: ActiveCircleItem) => void;
-  startScheduledBusy?: boolean;
   className?: string;
 };
 
@@ -57,8 +55,6 @@ export function ActiveCircleCard({
   currentUserId,
   onJoin,
   onEditScheduled,
-  onStartScheduledNow,
-  startScheduledBusy,
   className,
 }: ActiveCircleCardProps) {
   const cover = coverForCircle(circle.id);
@@ -67,8 +63,6 @@ export function ActiveCircleCard({
   const isHost = Boolean(currentUserId && circle.host.userId === currentUserId);
   const canEditSchedule = activeCircleHostCanEditSchedule(circle);
   const showEdit = isHost && canEditSchedule && onEditScheduled;
-  const showStartNow =
-    Boolean(onStartScheduledNow) && isHost && !isLive && canEditSchedule;
 
   return (
     <div
@@ -154,19 +148,6 @@ export function ActiveCircleCard({
         {isHost ? (
           <p className="text-[9px] font-semibold text-white/75 mt-0.5">You are hosting</p>
         ) : null}
-        {showStartNow && onStartScheduledNow ? (
-          <button
-            type="button"
-            disabled={startScheduledBusy}
-            className="relative z-20 mt-2 w-full rounded-lg bg-primary py-1.5 text-[10px] font-semibold text-primary-foreground shadow-sm hover:bg-primary/90 pointer-events-auto disabled:pointer-events-none disabled:opacity-50 dark:!text-primary-foreground"
-            onClick={(e) => {
-              e.stopPropagation();
-              onStartScheduledNow(circle);
-            }}
-          >
-            Start now
-          </button>
-        ) : null}
       </div>
 
       <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none">
@@ -184,8 +165,6 @@ export type ActiveCircleCardGridProps = {
   currentUserId: string | null;
   onJoinCircle: (circle: ActiveCircleItem) => void;
   onEditScheduled?: (circle: ActiveCircleItem) => void;
-  onStartScheduledNow?: (circle: ActiveCircleItem) => void;
-  startScheduledBusy?: boolean;
   layout?: "responsive" | "scroll";
   /** `browse` = fewer columns on `/circles` for larger cards. */
   density?: "default" | "browse";
@@ -198,14 +177,21 @@ export type ActiveCircleCardGridHandlers = Omit<
   "items" | "renderBadge" | "layout"
 >;
 
+/** Home scroll/grid preview card width — keep in sync with `SCROLL_CARD_WIDTH_CLASS`. */
+const SCROLL_CARD_WIDTH = "16rem";
+const SCROLL_CARD_WIDTH_CLASS = "w-64";
+const SCROLL_CARD_HEIGHT_CLASS = "h-44";
+
+function scrollGridTemplateColumns(count: number): string {
+  return `repeat(${Math.min(count, 4)}, ${SCROLL_CARD_WIDTH})`;
+}
+
 export function ActiveCircleCardGrid({
   items,
   renderBadge,
   currentUserId,
   onJoinCircle,
   onEditScheduled,
-  onStartScheduledNow,
-  startScheduledBusy,
   layout = "responsive",
   density = "default",
   className,
@@ -225,8 +211,8 @@ export function ActiveCircleCardGrid({
           ? cn(
               "flex gap-3 overflow-x-auto pb-1 scrollbar-none",
               single
-                ? "md:grid md:grid-cols-1 md:max-w-xs md:overflow-visible"
-                : "md:grid md:overflow-visible md:gap-3",
+                ? "md:grid md:grid-cols-1 md:max-w-md md:overflow-visible"
+                : "md:grid md:w-fit md:max-w-full md:overflow-visible md:gap-3",
             )
           : responsiveGridClass,
         layout === "scroll" && !single && "md:grid",
@@ -234,7 +220,7 @@ export function ActiveCircleCardGrid({
       )}
       style={
         layout === "scroll" && !single
-          ? { gridTemplateColumns: `repeat(${Math.min(items.length, 4)}, minmax(0, 1fr))` }
+          ? { gridTemplateColumns: scrollGridTemplateColumns(items.length) }
           : undefined
       }
     >
@@ -246,10 +232,15 @@ export function ActiveCircleCardGrid({
           currentUserId={currentUserId}
           onJoin={onJoinCircle}
           onEditScheduled={onEditScheduled}
-          onStartScheduledNow={onStartScheduledNow}
-          startScheduledBusy={startScheduledBusy}
           className={
-            layout === "scroll" ? cn("flex-none w-36 shrink-0", single && "md:w-full md:max-w-xs") : undefined
+            layout === "scroll"
+              ? cn(
+                  "flex-none shrink-0",
+                  SCROLL_CARD_WIDTH_CLASS,
+                  SCROLL_CARD_HEIGHT_CLASS,
+                  single ? "md:w-full md:max-w-md" : "md:w-full",
+                )
+              : undefined
           }
         />
       ))}
@@ -258,7 +249,7 @@ export function ActiveCircleCardGrid({
 }
 
 export function ActiveCircleCardSkeleton() {
-  return <div className="h-44 w-full rounded-2xl bg-muted/40 animate-pulse" />;
+  return <div className={cn("w-full rounded-2xl bg-muted/40 animate-pulse", SCROLL_CARD_HEIGHT_CLASS)} />;
 }
 
 export function ActiveCircleCardSkeletonGrid({
@@ -272,12 +263,12 @@ export function ActiveCircleCardSkeletonGrid({
     <div
       className={cn(
         layout === "scroll"
-          ? "flex gap-3 overflow-hidden md:grid md:gap-3"
+          ? "flex gap-3 overflow-hidden md:grid md:w-fit md:max-w-full md:gap-3"
           : "grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3",
       )}
       style={
         layout === "scroll"
-          ? { gridTemplateColumns: `repeat(${count}, minmax(0, 1fr))` }
+          ? { gridTemplateColumns: scrollGridTemplateColumns(count) }
           : undefined
       }
     >

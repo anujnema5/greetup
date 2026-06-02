@@ -51,7 +51,7 @@ export function NewConversationSearch({ onConversationOpen }: NewConversationSea
   }
 
   return (
-    <div ref={containerRef} className="relative border-b border-border/60 px-3 py-2.5 md:py-2">
+    <div ref={containerRef} className="relative border-b border-border px-4 py-2.5 md:py-2">
       <div className="relative">
         <svg
           className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground pointer-events-none"

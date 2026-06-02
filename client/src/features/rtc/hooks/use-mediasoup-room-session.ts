@@ -378,6 +378,16 @@ export function useMediasoupRoomSession(options: MediasoupRoomSessionOptions): v
       // Sync camera/mic state from the producer's current pause status.
       setPeerMediaActive(peerId, kind, !raw.producerPaused, resolvedVideoSource);
 
+      // Backup path when socket `producerPaused` / `producerResumed` is dropped or reordered.
+      consumer.on("producerpause", () => {
+        if (cancelled) return;
+        setPeerMediaActive(peerId, kind, false, resolvedVideoSource);
+      });
+      consumer.on("producerresume", () => {
+        if (cancelled) return;
+        setPeerMediaActive(peerId, kind, true, resolvedVideoSource);
+      });
+
       let metaRefreshTimer: ReturnType<typeof setTimeout> | null = null;
       const clearMetaRefresh = () => {
         if (metaRefreshTimer != null) {
@@ -463,6 +473,7 @@ export function useMediasoupRoomSession(options: MediasoupRoomSessionOptions): v
       mediaSource?: string;
     }) => {
       if (cancelled || !data?.peerId || data.peerId === refs.localUserIdRef.current) return;
+      if (data.kind !== "audio" && data.kind !== "video") return;
       setPeerMediaActive(data.peerId, data.kind, false, data.mediaSource);
     };
 
@@ -473,6 +484,7 @@ export function useMediasoupRoomSession(options: MediasoupRoomSessionOptions): v
       mediaSource?: string;
     }) => {
       if (cancelled || !data?.peerId || data.peerId === refs.localUserIdRef.current) return;
+      if (data.kind !== "audio" && data.kind !== "video") return;
       setPeerMediaActive(data.peerId, data.kind, true, data.mediaSource);
     };
 

@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect } from "react";
 
-import { NavSidebar, BottomNav, PageHeader } from "@/features/app-shell";
+import { PageHeader } from "@/features/app-shell";
 import { useIsMdUp } from "@/lib/hooks/use-media-query";
 import { cn } from "@/lib/utils";
 
@@ -79,10 +79,7 @@ export function ConnectionsPage() {
   };
 
   return (
-    <div className="flex h-screen overflow-hidden bg-background">
-      <NavSidebar activePath="/connections" />
-
-      <main className="flex min-w-0 flex-1 flex-col overflow-hidden pb-16 md:pb-0">
+    <main className="flex min-w-0 flex-1 flex-col overflow-hidden pb-16 md:pb-0">
         <PageHeader
           title="Connections"
           subtitle="People you're connected with and pending requests."
@@ -134,9 +131,6 @@ export function ConnectionsPage() {
             </div>
           )}
         </div>
-      </main>
-
-      <BottomNav activePath="/connections" />
-    </div>
+    </main>
   );
 }

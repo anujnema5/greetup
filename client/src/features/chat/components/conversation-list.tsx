@@ -36,7 +36,7 @@ export function ConversationList({ activeId, onSelect }: ConversationListProps) 
 
   if (isLoading) {
     return (
-      <div className="flex flex-col gap-2 p-2 md:p-3">
+      <div className="flex flex-col gap-2 px-4 py-2 md:py-3">
         {Array.from({ length: 5 }).map((_, i) => (
           <div key={i} className="h-13 rounded-xl bg-muted/80 animate-pulse" />
         ))}
@@ -53,7 +53,7 @@ export function ConversationList({ activeId, onSelect }: ConversationListProps) 
   }
 
   return (
-    <div className="flex flex-col gap-1 overflow-y-auto p-2 md:p-3">
+    <div className="flex flex-col gap-1 overflow-y-auto px-4 py-2 md:py-3">
       {conversations.map((conv) => (
         <ConversationRow
           key={conv.id}

@@ -4,13 +4,13 @@
 
 import { useEffect } from 'react';
 
-import { useRouter, usePathname } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 
 import { ChevronLeft, MessageCircle } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 
-import { NavSidebar, BottomNav, PageHeader } from '@/features/app-shell';
+import { PageHeader } from '@/features/app-shell';
 
 import { useSession } from '@/lib/auth-client';
 
@@ -62,8 +62,6 @@ export function MessagesPage({ urlKind, urlConversationId }: MessagesPageProps) 
   const dispatch = useAppDispatch();
 
   const router = useRouter();
-
-  const pathname = usePathname();
 
   const { data: session } = useSession();
 
@@ -173,13 +171,7 @@ export function MessagesPage({ urlKind, urlConversationId }: MessagesPageProps) 
 
   return (
 
-    <div className="flex h-screen overflow-hidden bg-background">
-
-      <NavSidebar activePath={pathname} />
-
-
-
-      <main className="flex min-w-0 flex-1 flex-col overflow-hidden pb-16 md:pb-0">
+    <main className="flex min-w-0 flex-1 flex-col overflow-hidden pb-16 md:pb-0">
 
         <PageHeader
           title="Messages"
@@ -196,7 +188,7 @@ export function MessagesPage({ urlKind, urlConversationId }: MessagesPageProps) 
 
               className={cn(
 
-                'flex min-h-0 w-full shrink-0 flex-col border-border bg-card/70 md:w-[min(100%,23rem)] md:border-r md:bg-card/50',
+                'flex min-h-0 w-full shrink-0 flex-col border-border bg-card/70 md:w-[min(100%,24rem)] md:border-r md:bg-card/50',
 
                 threadOpen || threadLoading ? 'hidden md:flex' : 'flex',
 
@@ -397,12 +389,6 @@ export function MessagesPage({ urlKind, urlConversationId }: MessagesPageProps) 
         </div>
 
       </main>
-
-
-
-      <BottomNav activePath={pathname} />
-
-    </div>
 
   );
 

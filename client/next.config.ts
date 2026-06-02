@@ -5,6 +5,20 @@ const API_BACKEND_ORIGIN =
   process.env.API_BACKEND_ORIGIN?.replace(/\/+$/, "") || "http://localhost:5300";
 
 const nextConfig: NextConfig = {
+  experimental: {
+    optimizePackageImports: [
+      "lucide-react",
+      "date-fns",
+      "react-icons",
+      "@radix-ui/react-dialog",
+      "@radix-ui/react-dropdown-menu",
+      "@radix-ui/react-select",
+      "@radix-ui/react-popover",
+      "@radix-ui/react-tabs",
+      "@radix-ui/react-hover-card",
+      "framer-motion",
+    ],
+  },
   async rewrites() {
     return [
       {

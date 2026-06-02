@@ -18,7 +18,17 @@ export const store = configureStore({
         connectionRealtimeSync: connectionRealtimeSyncReducer,
     },
     middleware: (getDefaultMiddleware) =>
-        getDefaultMiddleware().concat(baseApi.middleware),
+        getDefaultMiddleware({
+            serializableCheck: {
+                // RTK Query cache is large; skip it in dev invariant scans.
+                ignoredPaths: [`${baseApi.reducerPath}.queries`, `${baseApi.reducerPath}.mutations`],
+                ignoredActionPaths: ['meta.arg', 'meta.baseQueryMeta', 'payload.timestamp'],
+                warnAfter: 128,
+            },
+            immutableCheck: {
+                warnAfter: 128,
+            },
+        }).concat(baseApi.middleware),
 })
 
 export type RootState = ReturnType<typeof store.getState>

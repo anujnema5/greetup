@@ -2,6 +2,7 @@
 
 import { useRef } from "react";
 import {
+  hasLiveVideo,
   hasRenderableRemoteVideo,
   mediaStreamVideoAttachRevision,
   type RemoteParticipant,
@@ -50,8 +51,11 @@ export function RemoteParticipantTile({
   const cameraOff = peer.cameraActive === false;
   const micOff = peer.micActive === false;
   const muteCycle = useRerenderOnVideoTrackMuteCycle(stream);
-  const live = hasRenderableRemoteVideo(stream) && !cameraOff;
-  const attachStream = live ? stream : null;
+  const trackPresent = hasLiveVideo(stream);
+  const renderable = hasRenderableRemoteVideo(stream);
+  const showVideo = trackPresent && !cameraOff;
+  const showAvatar = cameraOff || !renderable;
+  const attachStream = showVideo ? stream : null;
   const attachKey = `${muteCycle}:${mediaStreamVideoAttachRevision(stream)}`;
 
   const label = peer.displayName?.trim() || `Peer ${peer.peerId.slice(0, 6)}`;
@@ -63,7 +67,9 @@ export function RemoteParticipantTile({
       .map((w) => w[0]!.toUpperCase())
       .join("") || "?";
 
-  useAttachMediaStream(videoRef, attachStream, attachKey);
+  useAttachMediaStream(videoRef, attachStream, attachKey, {
+    cloneVideoTracksForPlayback: true,
+  });
 
   return (
     <div
@@ -73,14 +79,18 @@ export function RemoteParticipantTile({
         className,
       )}
     >
-      {live ? (
+      {showVideo ? (
         <video
           ref={videoRef}
           playsInline
           autoPlay
-          className="pointer-events-none absolute inset-0 h-full w-full object-cover"
+          className={cn(
+            "pointer-events-none absolute inset-0 h-full w-full object-cover transition-opacity duration-200",
+            !renderable && "opacity-0",
+          )}
         />
-      ) : (
+      ) : null}
+      {showAvatar ? (
         <div className={CALL_TILE_CAMERA_OFF_CLASS}>
           <TileSpeakingRings stream={micOff ? null : stream}>
             <CameraOffAvatar
@@ -91,7 +101,7 @@ export function RemoteParticipantTile({
             />
           </TileSpeakingRings>
         </div>
-      )}
+      ) : null}
 
       <PeerProfileHoverSnippet
         peerUserId={peer.peerId}

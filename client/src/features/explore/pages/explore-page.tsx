@@ -1,6 +1,6 @@
 "use client";
 
-import { NavSidebar, BottomNav, PageHeader } from "@/features/app-shell";
+import { PageHeader } from "@/features/app-shell";
 import { StartCircleModalProvider } from "@/features/circles";
 import { useDebouncedValue } from "@/lib/hooks/use-debounced-value";
 import { EXPLORE } from "@/lib/copy/user-messages";
@@ -71,10 +71,7 @@ export function ExplorePage() {
 
   return (
     <StartCircleModalProvider>
-    <div className="flex h-screen overflow-hidden bg-background">
-      <NavSidebar activePath="/explore" />
-
-      <main className="flex flex-1 flex-col overflow-y-auto pb-16 md:pb-0">
+      <main className="flex min-w-0 flex-1 flex-col overflow-y-auto pb-16 md:pb-0">
         <PageHeader title="Explore" subtitle="Search people by username or name" />
 
         <div className="flex flex-col gap-6 px-4 md:px-8 py-5">
@@ -143,9 +140,6 @@ export function ExplorePage() {
           </section>
         </div>
       </main>
-
-      <BottomNav activePath="/explore" />
-    </div>
     </StartCircleModalProvider>
   );
 }
