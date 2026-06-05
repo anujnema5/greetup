@@ -63,6 +63,8 @@ export const conversationParticipants = pgTable(
     joinedFromMessageId: uuid('joined_from_message_id'),
     joinedAt:            timestamp('joined_at').notNull().defaultNow(),
     leftAt:              timestamp('left_at'),
+    /** Messages at or before this time are hidden for this user after they delete the chat. */
+    historyHiddenBeforeAt: timestamp('history_hidden_before_at'),
   },
   (t) => [primaryKey({ columns: [t.conversationId, t.userId] })],
 );

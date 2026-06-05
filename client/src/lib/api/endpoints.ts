@@ -5,9 +5,12 @@ export const API_ENDPOINTS = {
   },
   PROFILE: {
     ME: "/profile/me",
+    ME_INSIGHTS: "/profile/me/insights",
     SETUP_STEPS: "/profile/setup-steps",
     PROFILE_SETUP: "/profile/profile-setup",
     ONBOARDING_STATUS: "/profile/onboarding-status",
+    WELCOME_TOUR_STATUS: "/profile/welcome-tour-status",
+    WELCOME_TOUR_SEEN: "/profile/welcome-tour-seen",
     /** Who can add you when creating a room with friend invites */
     ROOM_INVITE_SETTINGS: "/profile/room-invite-settings",
     /** Presigned PUT to DigitalOcean Spaces; call PHOTOS_ENSURE_PUBLIC after PUT so objects are readable. */
@@ -35,6 +38,13 @@ export const API_ENDPOINTS = {
     LIST: "/connections",
     PEERS_CALL_STATUS: "/connections/peers-call-status",
     PENDING_INCOMING_COUNT: "/connections/pending-incoming-count",
+    CALLS: "/connections/calls",
+    callRespond: (requestId: string) =>
+      `/connections/calls/${encodeURIComponent(requestId)}/respond` as const,
+    callCancel: (requestId: string) =>
+      `/connections/calls/${encodeURIComponent(requestId)}/cancel` as const,
+    callMissed: (requestId: string) =>
+      `/connections/calls/${encodeURIComponent(requestId)}/missed` as const,
     REQUEST: "/connections/request",
     accept: (connectionId: string) =>
       `/connections/${encodeURIComponent(connectionId)}/accept` as const,
@@ -54,9 +64,21 @@ export const API_ENDPOINTS = {
   },
   SEARCH: {
     USERS: "/search/users",
+    SUGGESTED_PEOPLE: "/search/suggested-people",
+  },
+  BLOCKS: {
+    LIST: "/blocks",
+    user: (targetUserId: string) =>
+      `/blocks/${encodeURIComponent(targetUserId)}` as const,
+  },
+  PRESENCE: {
+    ONLINE_PEOPLE_COUNT: "/presence/online-people-count",
   },
   CIRCLES: {
     CATEGORIES: "/circles/categories",
+    BROWSE_NICHES: "/circles/browse/niches",
+    browseNicheRooms: (categoryId: string) =>
+      `/circles/browse/niches/${encodeURIComponent(categoryId)}/rooms` as const,
     CREATE: "/circles",
     ACTIVE: "/circles/active",
     /** Same path for PATCH (update) and DELETE (remove) — method differs per request. */
@@ -82,6 +104,9 @@ export const API_ENDPOINTS = {
     leaveCircleRtc: (roomId: string) => `/room/${roomId}/leave-circle-rtc` as const,
     hostEndCircleForEveryone: (roomId: string) =>
       `/room/${roomId}/host-end-circle` as const,
+    kickParticipant: (roomId: string, userId: string) =>
+      `/room/${roomId}/kick/${userId}` as const,
+    nsfwViolation: (roomId: string) => `/room/${roomId}/nsfw-violation` as const,
     updateTitle: (roomId: string) => `/room/${roomId}/title` as const,
     rtcToken: (roomId: string) => `/room/${roomId}/rtc-token` as const,
     invite: (roomId: string) => `/room/${roomId}/invite` as const,

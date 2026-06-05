@@ -1,7 +1,5 @@
 /** Cross-tab sync so the room video survives refresh / navigation. */
 
-import { clearRoomReturnPath } from "./room-return-path";
-
 export const ROOM_ACTIVE_KEY = "greetup-call-active";
 export const ROOM_MINIMIZED_KEY = "greetup-call-minimized";
 export const ROOM_CHANNEL_NAME = "greetup-call";
@@ -49,7 +47,6 @@ export function clearRoomStorage(): void {
   } catch {
     /* ignore */
   }
-  clearRoomReturnPath();
 }
 
 export function isRoomMarkedActive(): boolean {

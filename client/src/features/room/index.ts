@@ -49,10 +49,19 @@ export type { InCallScreenProps, DirectExpandInvitePayload } from "./types";
 export type { InCallContainerProps } from "./call";
 export { MinimizedRoomDock } from "./components/minimized-dock/minimized-room-dock";
 export { RoomMinimizedHydration } from "./components/minimized-dock/room-minimized-hydration";
-export { OnPartnerDisconnected, OnDirectExpandedToCircle, OnHostEndedCircle } from "./listeners";
+export {
+  RoomSocketBridge,
+  OnDirectExpandedToCircle,
+  OnCircleTitleUpdated,
+  OnCircleOpenedForJoin,
+  OnHostEndedCircle,
+  OnParticipantRemovedFromCircle,
+  OnPartnerDisconnected,
+} from "./listeners";
 export {
   roomApi,
   leaveRoomKeepalive,
+  leaveCircleRtcKeepalive,
   useLeaveRoomMutation,
   useGetRoomQuery,
   useGetRoomEmbeddedActivitiesQuery,
@@ -61,6 +70,7 @@ export {
   useOpenCircleMeetingMutation,
   useLeaveCircleRtcMutation,
   useHostEndCircleForEveryoneMutation,
+  useKickCircleParticipantMutation,
   useRoomInviteMutation,
   useRoomInviteRespondMutation,
   useUpdateRoomTitleMutation,

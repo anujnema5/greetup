@@ -10,6 +10,8 @@ import {
   handleOpenCircleMeeting,
   handleLeaveCircleRtc,
   handleHostEndCircleForEveryone,
+  handleKickCircleParticipant,
+  handleReportCircleNsfwViolation,
   handleStartRoomSession,
 } from "./controllers/room.controller";
 import { internalRoomsRoute } from "./routes/internal-rooms.route";
@@ -25,6 +27,8 @@ roomRoute.post("/:roomId/join", handleJoinRoom);
 roomRoute.post("/:roomId/open-meeting", handleOpenCircleMeeting);
 roomRoute.post("/:roomId/leave-circle-rtc", handleLeaveCircleRtc);
 roomRoute.post("/:roomId/host-end-circle", handleHostEndCircleForEveryone);
+roomRoute.post("/:roomId/kick/:userId", handleKickCircleParticipant);
+roomRoute.post("/:roomId/nsfw-violation", handleReportCircleNsfwViolation);
 roomRoute.patch("/:roomId/title", handlePatchRoomTitle);
 roomRoute.post("/:roomId/start", handleStartRoomSession);
 roomRoute.post("/:roomId/invite", handleRoomInvite);

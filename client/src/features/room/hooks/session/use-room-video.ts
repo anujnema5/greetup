@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 import { useSession } from "@/lib/auth-client";
@@ -13,9 +13,11 @@ import {
 } from "@/lib/redux/slices/room-slice";
 import {
   CIRCLE_HOST_END_FOR_EVERYONE_REDIRECT_PATH,
-  MATCHMAKING_HUB_PATH,
 } from "@/features/room/constants/call/call-flow";
-import { cancelMatchmakingThenNavigate } from "@/features/room/lib/navigation/after-call-navigation";
+import {
+  cancelMatchmakingThenNavigate,
+  navigateAfterCallEnd,
+} from "@/features/room/lib/navigation/after-call-navigation";
 import { getRoomReturnPath } from "@/features/room/lib/session/room-return-path";
 import {
   broadcastRoomMessage,
@@ -32,6 +34,7 @@ import {
 } from "@/features/room/lib/navigation/circle-routes";
 import {
   useHostEndCircleForEveryoneMutation,
+  useKickCircleParticipantMutation,
   useLeaveCircleRtcMutation,
   useLeaveRoomMutation,
 } from "@/features/room/api/room-api";
@@ -39,6 +42,7 @@ import { getRtkMutationErrorMessage } from "@/lib/api/rtk-mutation-error";
 
 export type UseRoomVideoOptions = {
   skipSetup?: boolean;
+  /** Native circle or 1:1 expanded to circle (same Postgres `rooms` row). */
   isDbCircleCall?: boolean;
   circleHostUserId?: string | null;
 };
@@ -54,6 +58,8 @@ export function useRoomVideo(roomId: string, options?: UseRoomVideoOptions) {
   const [leaveRoom] = useLeaveRoomMutation();
   const [leaveCircleRtc] = useLeaveCircleRtcMutation();
   const [hostEndCircleForEveryone] = useHostEndCircleForEveryoneMutation();
+  const [kickCircleParticipant] = useKickCircleParticipantMutation();
+  const [kickingUserId, setKickingUserId] = useState<string | null>(null);
   const skipHandledRef = useRef(false);
   const endHandledRef = useRef(false);
   const hostEndHandledRef = useRef(false);
@@ -74,9 +80,9 @@ export function useRoomVideo(roomId: string, options?: UseRoomVideoOptions) {
     await leaveCircleRtc(roomId).unwrap().catch(() => {});
   }, [leaveCircleRtc, roomId]);
 
-  /** After leave / END_CALL — explore hub. */
-  const goToExploreHub = useCallback(() => {
-    cancelMatchmakingThenNavigate(matchmaking, router, MATCHMAKING_HUB_PATH);
+  /** After leave / END_CALL — return to the route before the room. */
+  const returnAfterCallEnd = useCallback(() => {
+    navigateAfterCallEnd(matchmaking, router);
   }, [matchmaking, router]);
 
   /** After host “end for everyone” — home. */
@@ -120,14 +126,16 @@ export function useRoomVideo(roomId: string, options?: UseRoomVideoOptions) {
       if (msg.type === "END_CALL") {
         clearRoomStorage();
         dispatch(endVideoSession());
-        goToExploreHub();
+        if (!endHandledRef.current) {
+          returnAfterCallEnd();
+        }
       }
       if (msg.type === "SKIP_CALL") {
         beginSearchAfterSkip();
       }
     });
     return unsub;
-  }, [beginSearchAfterSkip, dispatch, goToExploreHub, skipSetup]);
+  }, [beginSearchAfterSkip, dispatch, returnAfterCallEnd, skipSetup]);
 
   useEffect(() => {
     if (!skipHandledRef.current) return;
@@ -140,20 +148,20 @@ export function useRoomVideo(roomId: string, options?: UseRoomVideoOptions) {
     endHandledRef.current = true;
     dismissCallUiAndBroadcastEnd();
     if (!resolveApiRoomId(roomId)) {
-      goToExploreHub();
+      returnAfterCallEnd();
       return;
     }
     if (isDbCircleCall) {
-      void leaveCircleRtcOnly().catch(() => {}).finally(goToExploreHub);
+      void leaveCircleRtcOnly().catch(() => {}).finally(returnAfterCallEnd);
     } else {
       void leaveRoom({ roomId })
         .unwrap()
         .catch(() => {})
-        .finally(goToExploreHub);
+        .finally(returnAfterCallEnd);
     }
   }, [
     dismissCallUiAndBroadcastEnd,
-    goToExploreHub,
+    returnAfterCallEnd,
     isDbCircleCall,
     leaveCircleRtcOnly,
     leaveRoom,
@@ -198,5 +206,45 @@ export function useRoomVideo(roomId: string, options?: UseRoomVideoOptions) {
     router.replace(dest);
   }, [dispatch, router]);
 
-  return { handleEnd, handleHostEndCircleForEveryone, handleSkip, handleMinimize, roomId };
+  const handleKickParticipant = useCallback(
+    async (
+      targetUserId: string,
+      displayName: string,
+      options?: { restrict?: boolean },
+    ) => {
+      if (!isDbCircleCall || !isCircleHost) return;
+      if (kickingUserId) return;
+
+      const restrict = options?.restrict === true;
+      setKickingUserId(targetUserId);
+      try {
+        await kickCircleParticipant({
+          roomId,
+          userId: targetUserId,
+          restrict,
+        }).unwrap();
+        toast.success(
+          restrict
+            ? `${displayName} was removed and can't rejoin this circle`
+            : `${displayName} was removed from the circle`,
+        );
+      } catch (e: unknown) {
+        toast.error(getRtkMutationErrorMessage(e, "Could not remove participant"));
+      } finally {
+        setKickingUserId(null);
+      }
+    },
+    [isCircleHost, isDbCircleCall, kickCircleParticipant, kickingUserId, roomId],
+  );
+
+  return {
+    handleEnd,
+    handleHostEndCircleForEveryone,
+    handleKickParticipant: isDbCircleCall && isCircleHost ? handleKickParticipant : undefined,
+    kickingUserId,
+    isCircleHost,
+    handleSkip,
+    handleMinimize,
+    roomId,
+  };
 }

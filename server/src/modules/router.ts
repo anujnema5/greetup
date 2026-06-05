@@ -7,6 +7,8 @@ import { roomRoute } from "./rooms/router";
 import { searchRoute } from "./search/router";
 import { notificationsRoute } from "./notifications/router";
 import { chatRoute } from "./chat/router";
+import { blocksRoute } from "./blocks/router";
+import { presenceRoute } from "./presence/router";
 import { authMiddleware } from "@/middleware";
 
 const router = new Hono();
@@ -20,5 +22,7 @@ router.route("/room", roomRoute);
 router.route("/search", searchRoute);
 router.route("/notifications", notificationsRoute);
 router.route("/chat", chatRoute);
+router.route("/blocks", blocksRoute);
+router.route("/presence", presenceRoute);
 
 export default router;

@@ -21,9 +21,14 @@ import {
 import { Button } from "@/components/ui/button";
 import { AddToCircleDialog } from "@/features/room/components/dialogs/add-to-circle-dialog";
 import { CircleLobbyOverlay } from "@/features/room/components/lobby/circle-lobby-overlay";
+import { CircleNsfwModerationLayer } from "@/features/moderation";
+import { RoomSessionExpiryWarningsLayer } from "@/features/room/components/session/room-session-expiry-warnings-layer";
+import { useCallRenderDebug } from "@/features/room/hooks/debug/use-call-render-debug";
 import { InCallScreen } from "@/features/room/call/shell/in-call-screen";
 import { useRemoteParticipantLabel } from "@/features/room/hooks/media/use-remote-participant-label";
 import { useRoomVideo } from "@/features/room/hooks/session/use-room-video";
+import { useLobbyPreviewMedia } from "@/features/room/hooks/lobby/use-lobby-preview-media";
+import { setLobbyMediaIntent } from "@/features/room/lib/lobby";
 import { getRtkMutationErrorMessage } from "@/lib/api/rtk-mutation-error";
 import { buildCallCapabilities } from "@/features/room/contracts";
 import {
@@ -42,7 +47,7 @@ export type InCallContainerProps = {
   scoreLabel: string | null;
   myName: string;
   isGroupRoom: boolean;
-  groupRoomTitle: string | null;
+  circleDisplayTitle: string | null;
   circleCanEditTitle?: boolean;
   /** DB circle host — used for “open circle for everyone” lobby control. */
   circleHostUserId?: string | null;
@@ -52,7 +57,10 @@ export type InCallContainerProps = {
   circleScheduledStartAt?: string | null;
   /** Postgres circle lifecycle from GET room (`scheduled`, `live`, …). */
   circleRoomStatus?: string | null;
-  /** True for a persisted circle room (`sessionKind: "db_room"`), not a Redis match pair. */
+  /**
+   * True for a Postgres circle session: native `db_room` **or** a 1:1 match expanded
+   * in place (`room_type = circle` on the same `roomId`).
+   */
   isDbCircleCall?: boolean;
 };
 
@@ -62,7 +70,7 @@ export function InCallContainer({
   scoreLabel,
   myName,
   isGroupRoom,
-  groupRoomTitle,
+  circleDisplayTitle,
   circleCanEditTitle = false,
   circleHostUserId = null,
   circleLobbyGateActive = null,
@@ -118,8 +126,14 @@ export function InCallContainer({
     focusedScreenShareKey,
     setFocusedScreenShareKey,
     remoteTrackMediaSource,
-    dominantSpeakerPeerId,
+    dominantSpeakerPeerId: liveSpeakerPeerId,
+    dominantSpeakerSpeakingMs: liveSpeakerSpeakingMs,
   } = useRtcSocketContext();
+
+  const mediasoupReady = mediasoupStatus === "ready";
+  useCallRenderDebug("InCallContainer", { roomId, mediasoupReady, cameraEnabled, screenSharing });
+
+  const moderationStream = localCompositeStream ?? localMediaStream;
 
   /** DB-backed tiles + policy map; invite gating uses `embeddedStageActivityId` (can run ahead of Redux). */
   const { directRoomActivities, embeddedCallPolicyLookup } = useRoomEmbeddedActivitiesCatalog();
@@ -222,7 +236,6 @@ export function InCallContainer({
     peerId,
     peers,
     isGroupRoom,
-    groupRoomTitle,
   });
 
   useEffect(() => {
@@ -279,6 +292,8 @@ export function InCallContainer({
 
   const rtcLobbyWait = guestLobbyWait || circleLobbyScheduledNotReady;
 
+  const lobbyPreview = useLobbyPreviewMedia(rtcLobbyWait);
+
   const hostCanStartScheduledCircleNow = Boolean(
     isDbCircleCall &&
       isHostUser &&
@@ -305,12 +320,15 @@ export function InCallContainer({
       );
       return;
     }
+    setLobbyMediaIntent({ mic: lobbyPreview.micOn, camera: lobbyPreview.camOn });
     void refetchRtcToken();
   }, [
     circleLobbyScheduledNotReady,
     circleScheduledStartAt,
     isHostUser,
     scheduledLobbyLabel,
+    lobbyPreview.micOn,
+    lobbyPreview.camOn,
     refetchRtcToken,
     roomId,
   ]);
@@ -337,20 +355,37 @@ export function InCallContainer({
 
   const handleHostStartScheduledCircleNow = useCallback(async () => {
     try {
+      setLobbyMediaIntent({ mic: lobbyPreview.micOn, camera: lobbyPreview.camOn });
       await startScheduledCircle(roomId).unwrap();
       toast.success("Circle is live — connecting you now.");
       void refetchRtcToken();
     } catch (e: unknown) {
       toast.error(getRtkMutationErrorMessage(e, "Could not start the circle"));
     }
-  }, [refetchRtcToken, roomId, startScheduledCircle]);
+  }, [
+    lobbyPreview.camOn,
+    lobbyPreview.micOn,
+    refetchRtcToken,
+    roomId,
+    startScheduledCircle,
+  ]);
 
   return (
     <div className="fixed inset-0 z-100 flex flex-col overflow-hidden bg-background">
+      <RoomSessionExpiryWarningsLayer roomId={roomId} enabled={mediasoupReady} />
+      <CircleNsfwModerationLayer
+        roomId={roomId}
+        enabled={isDbCircleCall}
+        localStream={moderationStream}
+        mediasoupReady={mediasoupReady}
+        cameraEnabled={cameraEnabled}
+        screenSharing={screenSharing}
+      />
       {rtcLobbyWait ? (
         <CircleLobbyOverlay
           open
-          circleTitle={groupRoomTitle}
+          lobbyPreview={lobbyPreview}
+          circleTitle={circleDisplayTitle}
           scheduledLabel={scheduledLobbyLabel}
           waitingForScheduledStart={circleLobbyScheduledNotReady}
           rtcTokenError={rtcTokenError}
@@ -407,6 +442,7 @@ export function InCallContainer({
         localMediaDeviceError={localMediaDeviceError}
         onDismissLocalMediaDeviceError={clearLocalMediaDeviceError}
         peerLabel={peerLabel}
+        directRemotePeerUserId={peerId}
         scoreLabel={scoreLabel}
         myName={myName}
         currentUserId={session?.user?.id ?? null}
@@ -429,11 +465,16 @@ export function InCallContainer({
         onEndActiveGame={() => void handleEndActiveGame()}
         onOfferDrawGame={() => void handleOfferDraw()}
         roomId={roomId}
-        circleDisplayTitle={groupRoomTitle}
+        circleDisplayTitle={circleDisplayTitle}
         circleCanEditTitle={circleCanEditTitle}
         onHostEndCircleForEveryone={
-          isDbCircleCall && circleCanEditTitle ? video.handleHostEndCircleForEveryone : undefined
+          isDbCircleCall && video.isCircleHost
+            ? video.handleHostEndCircleForEveryone
+            : undefined
         }
+        onKickParticipant={video.handleKickParticipant}
+        kickingUserId={video.kickingUserId}
+        isCircleHost={video.isCircleHost}
         screenShareTiles={screenShareTiles}
         focusedScreenShareKey={focusedScreenShareKey}
         onSelectScreenShare={setFocusedScreenShareKey}
@@ -441,7 +482,8 @@ export function InCallContainer({
         onEmbeddedStageActivityChange={setEmbeddedStageActivityId}
         directRoomActivities={directRoomActivities}
         embeddedCallPolicyLookup={embeddedCallPolicyLookup}
-        dominantSpeakerPeerId={dominantSpeakerPeerId}
+        liveSpeakerPeerId={liveSpeakerPeerId}
+        liveSpeakerSpeakingMs={liveSpeakerSpeakingMs}
         callCapabilities={callCapabilities}
       />
     </div>

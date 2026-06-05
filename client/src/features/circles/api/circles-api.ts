@@ -10,6 +10,7 @@ import { API_ENDPOINTS, baseApi, buildQueryParams } from "@/lib/api";
 
 import type {
   ActiveCirclesApiResponse,
+  ActiveCirclesData,
   CreateCircleApiResponse,
   CreateCircleRequest,
   DeleteScheduledCircleApiResponse,
@@ -52,13 +53,45 @@ export const circlesApi = baseApi.injectEndpoints({
       providesTags: [CACHE_ACTIVE_CIRCLES],
     }),
 
+    /** Paginated public discover list; invited/joined come from the first page only. */
+    browseActiveCircles: build.infiniteQuery<
+      ActiveCirclesData,
+      { limit?: number },
+      string | undefined
+    >({
+      query: ({ queryArg, pageParam }) => {
+        const qs = buildQueryParams({
+          cursor: pageParam,
+          limit: queryArg.limit ?? 12,
+        });
+        return qs ? `${CIRCLES.ACTIVE}?${qs}` : CIRCLES.ACTIVE;
+      },
+      transformResponse: (response: ActiveCirclesApiResponse) => {
+        if (!response.data) {
+          throw new Error("Active circles response missing data");
+        }
+        return response.data;
+      },
+      infiniteQueryOptions: {
+        initialPageParam: undefined,
+        getNextPageParam: (lastPage) =>
+          lastPage.public.hasMore && lastPage.public.nextCursor
+            ? lastPage.public.nextCursor
+            : undefined,
+      },
+      providesTags: [CACHE_ACTIVE_CIRCLES],
+    }),
+
     createCircle: build.mutation<CreateCircleApiResponse, CreateCircleRequest>({
       query: (body) => ({
         url: CIRCLES.CREATE,
         method: "POST",
         body,
       }),
-      invalidatesTags: [CACHE_ACTIVE_CIRCLES],
+      invalidatesTags: [
+        CACHE_ACTIVE_CIRCLES,
+        { type: "ExploreBrowseNiches", id: "LIST" },
+      ],
     }),
 
     updateScheduledCircle: build.mutation<
@@ -86,6 +119,7 @@ export const circlesApi = baseApi.injectEndpoints({
 export const {
   useListCircleCategoriesQuery,
   useListActiveCirclesQuery,
+  useBrowseActiveCirclesInfiniteQuery,
   useCreateCircleMutation,
   useUpdateScheduledCircleMutation,
   useDeleteScheduledCircleMutation,

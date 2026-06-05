@@ -8,8 +8,12 @@
 | `call/shell/` | `InCallContainer`, `InCallScreen` |
 | `call/stage/` | `MainStage`, top bar, stage overlays |
 | `call/tiles/` | Camera tiles + shared parts |
+| `call/tiles/parts/peer-profile-hover/` | Instagram-style hover card on tile name badges |
+| `hooks/call/peer-profile-hover/` | Hover anchor, preview, connection panel, open profile |
+| `lib/call/peer-profile-hover/` | Display builder, connection panel helpers |
 | `call/layouts/grid/` | Circle grid, pagination |
 | `call/layouts/screen-share/` | Share strip, cameras under share |
+| `lib/call/room-activity/` | In-call join/leave + screen-share toast sync (pure) |
 | `call/panels/sidebar/` | People + right sidebar |
 | `call/panels/circle-options/` | Circle rename / invite dialog |
 | `call/panels/mobile/` | Mobile chat sheet handle |
@@ -25,7 +29,7 @@
 | `embedded-activities/parse/` | API response parsing |
 | `hooks/` | Hooks by concern (session, media, toolbar, …) |
 | `lib/session/` | Tab sync, return path, RTK cache |
-| `lib/call/` | Speaker rings, call duration formatting |
+| `lib/call/` | Speaker rings, call duration formatting, in-call activity toasts |
 | `lib/minimized-dock/` | Dock focus / silence helpers |
 | `lib/navigation/` | Post-call navigation |
 | `types/call/` | In-call screen + activity types |
@@ -36,7 +40,10 @@
 | `constants/direct-call/` | 1:1 recovery timing |
 | `constants/dev/` | Mock match fixture |
 | `components/minimized-dock/` | Floating dock + hydration |
-| `components/lobby/` | Pre-call lobby overlay |
+| `components/lobby/` | Pre-join view + lobby overlay (RTC gates) |
+| `hooks/lobby/` | Lobby preview media, pre-join actions |
+| `lib/call/circle-pre-join.ts` | Pure pre-join state from GET room |
+| `hooks/session/use-circle-room-entry.ts` | Meet-style join gate on `RoomPage` |
 | `components/dialogs/` | Add-to-circle dialog |
 | `api/` | Room HTTP (RTK) |
 
@@ -56,9 +63,9 @@
 | `InCallContainer` | RTC + API orchestration for `/circle/[roomId]` |
 | `InCallScreen` | Full in-call layout |
 | `MainStage` | Video stage (tiles / share) |
-| `OnHostEndedCircle` | Socket: host ended circle for everyone |
-| `OnDirectExpandedToCircle` | Socket: direct call expanded to circle |
-| `OnPartnerDisconnected` | Socket: 1:1 partner left |
+| `RoomSocketBridge` | Composes in-call socket listeners (mount in `layout` inside `MatchmakingProvider`) |
+| `OnRoomActivityToasts` | RTC-driven join/leave + screen-share toasts (via `RoomSocketBridge`) |
+| `OnDirectExpandedToCircle` | Socket: direct call expanded to circle (mount outside bridge — has dialog UI) |
 
 ## Add a new in-call activity
 

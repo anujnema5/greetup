@@ -1,7 +1,7 @@
 "use client";
 
 import { format, startOfDay } from "date-fns";
-import { CalendarIcon, ChevronDown, Loader2, Lock, Globe2 } from "lucide-react";
+import { CalendarIcon, ChevronDown, Loader2, Lock, Globe2, UsersRound } from "lucide-react";
 import { useWatch } from "react-hook-form";
 
 import { Button } from "@/components/ui/button";
@@ -38,6 +38,15 @@ import {
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
+import {
+  COMPACT_DIALOG_CAPTION,
+  COMPACT_DIALOG_DESCRIPTION,
+  COMPACT_DIALOG_HINT,
+  COMPACT_DIALOG_ICON_WRAP,
+  COMPACT_DIALOG_LABEL,
+  COMPACT_DIALOG_SECTION_TITLE,
+  COMPACT_DIALOG_TITLE,
+} from "@/lib/ui/compact-dialog-typography";
 import { LAUNCH_MAX_CIRCLE_PARTICIPANTS } from "@/features/circles/constants/circle-capacity";
 import { scheduleTimeMeaningNote } from "@/features/circles/constants/scheduled-circle-join-grace";
 import { START_CIRCLE_COPY as C } from "@/features/circles/constants/start-circle-copy";
@@ -72,6 +81,7 @@ export function StartCircleModalDialog(props: StartCircleModalDialogProps) {
     setInviteDialogOpen,
     maxInviteSlots,
     handleInviteAtCapacity,
+    handleMaxParticipantsChange,
   } = props;
 
   const scheduleMode = useWatch({
@@ -112,7 +122,7 @@ export function StartCircleModalDialog(props: StartCircleModalDialogProps) {
               name="title"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel className="text-sm font-medium">
+                  <FormLabel className={COMPACT_DIALOG_LABEL}>
                     {C.titleLabel}
                   </FormLabel>
                   <FormControl>
@@ -132,7 +142,7 @@ export function StartCircleModalDialog(props: StartCircleModalDialogProps) {
                   <div className="flex min-h-0 flex-col gap-2 sm:min-w-0">
                     {categoriesLoading ? (
                       <>
-                        <p className="text-sm font-medium">{C.categoryLabel}</p>
+                        <p className={COMPACT_DIALOG_LABEL}>{C.categoryLabel}</p>
                         <div className="flex h-11 items-center gap-2 rounded-md border border-border/60 bg-muted/20 px-3 text-sm text-muted-foreground">
                           <Loader2 className="size-4 shrink-0 animate-spin" aria-hidden />
                           {C.categoriesLoading}
@@ -250,7 +260,7 @@ export function StartCircleModalDialog(props: StartCircleModalDialogProps) {
                         <div className="flex flex-col gap-2">
                           <FormLabel
                             htmlFor="max-p"
-                            className="text-sm font-medium"
+                            className={COMPACT_DIALOG_LABEL}
                           >
                             {C.seatsLabel}
                           </FormLabel>
@@ -262,19 +272,19 @@ export function StartCircleModalDialog(props: StartCircleModalDialogProps) {
                               max={LAUNCH_MAX_CIRCLE_PARTICIPANTS}
                               className="h-11 w-full max-w-full border-border/80 bg-background/50 transition-[border-color,box-shadow] sm:max-w-36"
                               {...field}
-                              onChange={(e) =>
-                                field.onChange(
-                                  Math.min(
-                                    LAUNCH_MAX_CIRCLE_PARTICIPANTS,
-                                    Math.max(2, Number(e.target.value) || 2),
-                                  ),
-                                )
-                              }
+                              onChange={(e) => {
+                                const next = Math.min(
+                                  LAUNCH_MAX_CIRCLE_PARTICIPANTS,
+                                  Math.max(2, Number(e.target.value) || 2),
+                                );
+                                field.onChange(next);
+                                handleMaxParticipantsChange(next);
+                              }}
                               value={field.value}
                             />
                           </FormControl>
                         </div>
-                        <p className="mt-1.5 text-xs text-muted-foreground">
+                        <p className={cn("mt-1.5", COMPACT_DIALOG_HINT)}>
                           {C.seatsHint}
                         </p>
                         <FormMessage className="mt-1" />
@@ -325,7 +335,7 @@ export function StartCircleModalDialog(props: StartCircleModalDialogProps) {
                       name="scheduleDate"
                       render={({ field }) => (
                         <FormItem className="min-w-0 flex-1 space-y-1">
-                          <FormLabel className="text-xs font-medium leading-none text-muted-foreground">
+                          <FormLabel className={cn(COMPACT_DIALOG_CAPTION, "font-medium leading-none")}>
                             {C.scheduleDateLabel}
                           </FormLabel>
                           <Popover>
@@ -373,7 +383,7 @@ export function StartCircleModalDialog(props: StartCircleModalDialogProps) {
                         <FormItem className="w-full shrink-0 space-y-1 sm:w-40">
                           <FormLabel
                             htmlFor="circle-schedule-time"
-                            className="text-xs font-medium leading-none text-muted-foreground"
+                            className={cn(COMPACT_DIALOG_CAPTION, "font-medium leading-none")}
                           >
                             {C.scheduleTimeLabel}
                           </FormLabel>
@@ -401,7 +411,7 @@ export function StartCircleModalDialog(props: StartCircleModalDialogProps) {
                   name="description"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel className="text-sm font-medium text-muted-foreground">
+                      <FormLabel className={cn(COMPACT_DIALOG_LABEL, "text-muted-foreground")}>
                         {C.descriptionLabel}{" "}
                         <span className="font-normal">
                           {C.descriptionOptional}
@@ -456,7 +466,10 @@ export function StartCircleModalDialog(props: StartCircleModalDialogProps) {
                     <button
                       type="button"
                       onClick={() => setAdvancedOpen((o) => !o)}
-                      className="inline-flex cursor-pointer items-center gap-1 text-sm text-muted-foreground transition-colors hover:text-foreground"
+                      className={cn(
+                        "inline-flex cursor-pointer items-center gap-1 transition-colors hover:text-foreground",
+                        COMPACT_DIALOG_HINT,
+                      )}
                     >
                       {C.moreOptions}
                       <ChevronDown
@@ -476,10 +489,10 @@ export function StartCircleModalDialog(props: StartCircleModalDialogProps) {
                         render={({ field }) => (
                           <FormItem className="flex flex-row items-center justify-between gap-4 space-y-0 border-b border-border/40 bg-background/30 px-4 py-3.5">
                             <div className="min-w-0 space-y-0.5">
-                              <FormLabel className="text-base font-medium">
+                              <FormLabel className={COMPACT_DIALOG_SECTION_TITLE}>
                                 {C.advancedHostStartsMeetingLabel}
                               </FormLabel>
-                              <p className="text-xs text-muted-foreground">
+                              <p className={COMPACT_DIALOG_HINT}>
                                 {C.advancedHostStartsMeetingHint}
                               </p>
                             </div>

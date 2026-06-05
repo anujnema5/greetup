@@ -1,0 +1,21 @@
+import { emitToUser } from "@/core/socket/socket";
+import { CIRCLE_ROOM_SOCKET_EVENTS } from "@/modules/rooms/constants/events/circle-room-socket.events";
+import { roomParticipantsRepository } from "@/modules/rooms/repositories/room-participants.repository";
+
+/**
+ * Tells active participants they may obtain an RTC token (lobby gate cleared or circle went live
+ * without a host-controlled lobby).
+ */
+export async function emitCircleOpenedForJoin(
+  roomId: string,
+  options?: { excludeUserId?: string },
+): Promise<void> {
+  const payload = { roomId };
+  const userIds = await roomParticipantsRepository.listActiveParticipantUserIds(roomId);
+  const exclude = options?.excludeUserId;
+
+  for (const uid of userIds) {
+    if (exclude && uid === exclude) continue;
+    emitToUser(uid, CIRCLE_ROOM_SOCKET_EVENTS.openedForJoin, payload);
+  }
+}

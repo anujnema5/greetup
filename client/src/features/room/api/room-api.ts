@@ -13,6 +13,7 @@ import type {
   UpdateRoomTitleMutationResult,
   RoomApiEnvelope,
 } from "../types/api/room-api.types";
+import type { KickCircleParticipantRequest } from "@/features/room/types/call/participant-remove.types";
 import { parseListRoomEmbeddedActivitiesResponse } from "@/features/room/embedded-activities/parse/parse-list-response";
 import type { RoomEmbeddedActivityDto } from "@/features/room/embedded-activities/types";
 
@@ -39,6 +40,16 @@ export function leaveRoomKeepalive(): void {
     keepalive: true,
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({}),
+  });
+}
+
+/** Clears lobby / RTC participation when navigating away from a circle page. */
+export function leaveCircleRtcKeepalive(roomId: string): void {
+  if (typeof window === "undefined" || !roomId) return;
+  void fetch(`${API_BASE_URL}${ROOM.leaveCircleRtc(roomId)}`, {
+    method: "POST",
+    credentials: "include",
+    keepalive: true,
   });
 }
 
@@ -188,6 +199,41 @@ export const roomApi = baseApi.injectEndpoints({
       ],
     }),
 
+    kickCircleParticipant: build.mutation<void, KickCircleParticipantRequest>({
+      query: ({ roomId, userId, restrict }) => ({
+        url: ROOM.kickParticipant(roomId, userId),
+        method: "POST",
+        body: restrict ? { restrict: true } : undefined,
+      }),
+      transformResponse: assertJoinRoomOk,
+      invalidatesTags: (_r, _e, { roomId }) => [
+        rtcTokenCacheTag(roomId),
+        roomEntityTag(roomId),
+        ...invalidateRoomAndPeersCallStatusTags(roomId),
+      ],
+    }),
+
+    reportCircleNsfwViolation: build.mutation<
+      { removed: boolean; strikeCount: number; accountBanned: boolean },
+      {
+        roomId: string;
+        clientScores?: { className: string; probability: number }[];
+      }
+    >({
+      query: ({ roomId, clientScores }) => ({
+        url: ROOM.nsfwViolation(roomId),
+        method: "POST",
+        body: clientScores?.length ? { clientScores } : undefined,
+      }),
+      transformResponse: (response: JoinRoomApiResponse) => {
+        assertJoinRoomOk(response);
+        const data = response.data as
+          | { removed: boolean; strikeCount: number; accountBanned: boolean }
+          | undefined;
+        return data ?? { removed: true, strikeCount: 1, accountBanned: false };
+      },
+    }),
+
     roomInvite: build.mutation<
       RoomInviteMutationResult,
       RoomInviteMutationArg
@@ -235,6 +281,8 @@ export const {
   useOpenCircleMeetingMutation,
   useLeaveCircleRtcMutation,
   useHostEndCircleForEveryoneMutation,
+  useKickCircleParticipantMutation,
+  useReportCircleNsfwViolationMutation,
   useRoomInviteMutation,
   useRoomInviteRespondMutation,
   useUpdateRoomTitleMutation,

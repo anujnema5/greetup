@@ -5,7 +5,7 @@ import { emitToUser } from "@/core/socket/socket";
 import logger from "@/core/logging";
 import { getRedis } from "@/core/redis";
 import { ROOM_KEYS, ROOM_TTL } from "@/core/redis/keys";
-import { clearUserActiveRtcRoom } from "@/modules/rooms/services/user-active-rtc-room-redis.service";
+import { clearUserActiveRtcRoom } from "@/modules/rooms/services/rtc/user-active-rtc-room-redis.service";
 import { ensureProfileSnapshotCached } from "@/modules/user/services/profile-snapshot-cache.service";
 import {
   createRoomBodySchema,
@@ -13,44 +13,62 @@ import {
   roomInviteBodySchema,
   roomInviteRespondBodySchema,
   updateLiveRoomTitleBodySchema,
+  reportCircleNsfwViolationBodySchema,
   matchCompletedBodySchema,
   matchFailedBodySchema,
   matchProposalCancelledBodySchema,
   matchProposedBodySchema,
 } from "../schemas/room.schema";
 import { zodBodyValidationError } from "../lib/http-responses";
+import { roomAccessRepository } from "../repositories/room-access.repository";
+import { roomCategoriesRepository } from "../repositories/room-categories.repository";
+import { roomCreationRepository } from "../repositories/room-creation.repository";
 import { roomsRepository } from "../repositories/rooms.repository";
+import { roomParticipantsRepository } from "../repositories/room-participants.repository";
 import {
   createRoomInviteService,
   respondRoomInviteService,
   RoomInviteError,
-} from "../services/expand-direct-room.service";
+} from "../services/direct/expand-direct-room.service";
 import {
   updateLiveRoomTitleService,
   UpdateLiveRoomTitleError,
-} from "../services/update-live-room-title.service";
+} from "../services/circle/update-live-room-title.service";
 import { mergeRoomAdvancedOptions } from "@/core/database/schema";
-import { isDbRoomSessionClosed } from "@/modules/rooms/lib/room-expiry";
-import { issueRtcTokenService, IssueRtcTokenError } from "../services/issue-rtc-token.service";
-import { joinRoomService, JoinRoomError } from "../services/join-room.service";
+import { isDbRoomSessionClosed } from "@/modules/rooms/lib/expiry/room-expiry";
+import { roomSessionTimingPayload } from "@/modules/rooms/lib/expiry/room-session-timing-payload";
+import {
+  reconcileRoomSessionOnAccess,
+  roomSessionClosedMessage,
+} from "@/modules/rooms/services/session/reconcile-room-session-on-access.service";
+import { issueRtcTokenService, IssueRtcTokenError } from "../services/access/issue-rtc-token.service";
+import { joinRoomService, JoinRoomError } from "../services/access/join-room.service";
 import {
   openCircleMeetingService,
   OpenCircleMeetingError,
-} from "../services/open-circle-meeting.service";
+} from "../services/access/open-circle-meeting.service";
 import {
   hostEndCircleForEveryoneService,
   HostEndCircleForEveryoneError,
-} from "../services/host-end-circle-for-everyone.service";
+} from "../services/participation/host-end-circle-for-everyone.service";
+import {
+  kickCircleParticipantService,
+  KickCircleParticipantError,
+} from "../services/participation/kick-circle-participant.service";
+import {
+  reportCircleNsfwViolationService,
+  ReportCircleNsfwViolationError,
+} from "../services/moderation/report-circle-nsfw-violation.service";
 import {
   leaveCircleRtcSessionForUser,
   LeaveCircleRtcError,
-} from "../services/leave-circle-rtc-session.service";
+} from "../services/participation/leave-circle-rtc-session.service";
 import {
   startRoomSessionService,
   StartRoomSessionError,
-} from "../services/start-room-session.service";
-import { syncCircleRoomExpiryFromClockIfDue } from "../services/circle-room-expiry-sync.service";
-import { deleteSessionRoomRedis } from "../services/session-room-redis.service";
+} from "../services/session/start-room-session.service";
+import { syncCircleRoomExpiryFromClockIfDue } from "../services/session/circle-room-expiry-sync.service";
+import { deleteSessionRoomRedis } from "../services/rtc/session-room-redis.service";
 
 /**
  * GET /api/room/:roomId/rtc-token
@@ -103,7 +121,7 @@ export const handleCreateRoom = async (c: Context) => {
 
     const { attemptId, pairId, users } = parsed.data;
 
-    const category = await roomsRepository.findActiveCategoryBySlug("match");
+    const category = await roomCategoriesRepository.findActiveCategoryBySlug("match");
     if (!category) {
       logger.error("room_categories missing slug=match — run db:seed");
       return c.json(
@@ -117,7 +135,7 @@ export const handleCreateRoom = async (c: Context) => {
     }
 
     const roomId = randomUUID();
-    await roomsRepository.createMatchPairRoom({
+    await roomCreationRepository.createMatchPairRoom({
       roomId,
       hostUserId: users[0],
       peerUserId: users[1],
@@ -246,6 +264,107 @@ export const handleHostEndCircleForEveryone = async (c: Context) => {
       );
     }
     logger.error("Host end circle for everyone error", { error });
+    return internalError(c, error);
+  }
+};
+
+/**
+ * POST /api/room/:roomId/kick/:userId
+ * Host-only: removes one participant from the live circle and disconnects their RTC session.
+ */
+export const handleKickCircleParticipant = async (c: Context) => {
+  const roomId = c.req.param("roomId");
+  const targetUserId = c.req.param("userId");
+  const hostUserId = c.get("userId") as string;
+
+  if (!roomId || !targetUserId) {
+    return c.json(
+      ApiResponse.error({
+        message: "roomId and userId are required",
+        statusCode: 400,
+        code: "VALIDATION_ERROR",
+      }),
+      400,
+    );
+  }
+
+  let restrict = false;
+  try {
+    const body = await c.req.json<{ restrict?: boolean }>();
+    restrict = body?.restrict === true;
+  } catch {
+    restrict = false;
+  }
+
+  try {
+    const result = await kickCircleParticipantService(hostUserId, roomId, targetUserId, {
+      restrict,
+    });
+    const message = result.restricted
+      ? "Participant removed and restricted"
+      : "Participant removed";
+    return c.json(ApiResponse.success(result, message, 200), 200);
+  } catch (error: unknown) {
+    if (error instanceof KickCircleParticipantError) {
+      return c.json(
+        ApiResponse.error({
+          message: error.message,
+          statusCode: error.statusCode,
+          code: error.code,
+        }),
+        error.statusCode as 400 | 403 | 404,
+      );
+    }
+    logger.error("Kick circle participant error", { error });
+    return internalError(c, error);
+  }
+};
+
+/**
+ * POST /api/room/:roomId/nsfw-violation
+ * Client-detected NSFW on the caller's own video: kick self from circle, record strike, ban on repeat.
+ */
+export const handleReportCircleNsfwViolation = async (c: Context) => {
+  const roomId = c.req.param("roomId");
+  const userId = c.get("userId") as string;
+
+  if (!roomId) {
+    return c.json(
+      ApiResponse.error({ message: "roomId is required", statusCode: 400, code: "VALIDATION_ERROR" }),
+      400,
+    );
+  }
+
+  let body = {};
+  try {
+    const raw = await c.req.json();
+    const parsed = reportCircleNsfwViolationBodySchema.safeParse(raw);
+    if (!parsed.success) {
+      return zodBodyValidationError(c, parsed.error);
+    }
+    body = parsed.data;
+  } catch {
+    body = {};
+  }
+
+  try {
+    const result = await reportCircleNsfwViolationService(userId, roomId, body);
+    return c.json(
+      ApiResponse.success(result, "NSFW policy violation recorded", 200),
+      200,
+    );
+  } catch (error: unknown) {
+    if (error instanceof ReportCircleNsfwViolationError) {
+      return c.json(
+        ApiResponse.error({
+          message: error.message,
+          statusCode: error.statusCode,
+          code: error.code,
+        }),
+        error.statusCode as 400 | 403 | 404 | 429,
+      );
+    }
+    logger.error("Report circle NSFW violation error", { error });
     return internalError(c, error);
   }
 };
@@ -493,7 +612,19 @@ export const handleGetRoom = async (c: Context) => {
 
       /** Match rooms: Redis may lag or expire; fall back to Postgres for live direct pairs. */
       if (dbRoom.roomType === "direct" && dbRoom.status === "live") {
-        const participantIds = await roomsRepository.listActiveParticipantUserIds(roomId);
+        const reconciled = await reconcileRoomSessionOnAccess(roomId);
+        if (reconciled.closed) {
+          return c.json(
+            ApiResponse.error({
+              message: roomSessionClosedMessage(reconciled.reason),
+              statusCode: 410,
+              code: "ROOM_EXPIRED",
+            }),
+            410,
+          );
+        }
+        dbRoom = (await roomsRepository.findRoomById(roomId)) ?? dbRoom;
+        const participantIds = await roomParticipantsRepository.listActiveParticipantUserIds(roomId);
         const hostId = dbRoom.hostUserId;
         const peerId = participantIds.find((id) => id !== hostId) ?? participantIds[1];
         if (hostId && peerId && participantIds.length >= 2) {
@@ -504,6 +635,7 @@ export const handleGetRoom = async (c: Context) => {
                 userA: hostId,
                 userB: peerId,
                 matchScore: null,
+                ...roomSessionTimingPayload(dbRoom),
               },
               "Room found",
             ),
@@ -517,19 +649,19 @@ export const handleGetRoom = async (c: Context) => {
           404,
         );
       }
-      await syncCircleRoomExpiryFromClockIfDue(roomId);
-      dbRoom = (await roomsRepository.findRoomById(roomId)) ?? dbRoom;
-      if (isDbRoomSessionClosed(dbRoom)) {
+      const reconciled = await reconcileRoomSessionOnAccess(roomId);
+      if (reconciled.closed) {
         return c.json(
           ApiResponse.error({
-            message: "This room session is no longer available",
+            message: roomSessionClosedMessage(reconciled.reason),
             statusCode: 410,
             code: "ROOM_EXPIRED",
           }),
           410,
         );
       }
-      const allowed = await roomsRepository.canUserViewCircleRoomMetadata(userId, dbRoom);
+      dbRoom = (await roomsRepository.findRoomById(roomId)) ?? dbRoom;
+      const allowed = await roomAccessRepository.canUserViewCircleRoomMetadata(userId, dbRoom);
       if (!allowed) {
         return c.json(
           ApiResponse.error({
@@ -559,6 +691,7 @@ export const handleGetRoom = async (c: Context) => {
             status: dbRoom.status,
             lobbyGateActive,
             scheduledStartAt,
+            ...roomSessionTimingPayload(dbRoom),
           },
           "Room found",
         ),
@@ -567,8 +700,19 @@ export const handleGetRoom = async (c: Context) => {
 
     if (room.sessionKind === "db_room") {
       let dbRoom = await roomsRepository.findRoomById(roomId);
-      if (dbRoom?.roomType === "circle") {
-        await syncCircleRoomExpiryFromClockIfDue(roomId);
+      if (dbRoom?.roomType === "circle" || dbRoom?.roomType === "direct") {
+        const reconciled = await reconcileRoomSessionOnAccess(roomId);
+        if (reconciled.closed) {
+          await deleteSessionRoomRedis(roomId);
+          return c.json(
+            ApiResponse.error({
+              message: roomSessionClosedMessage(reconciled.reason),
+              statusCode: 410,
+              code: "ROOM_EXPIRED",
+            }),
+            410,
+          );
+        }
         dbRoom = (await roomsRepository.findRoomById(roomId)) ?? dbRoom;
       }
       if (dbRoom && isDbRoomSessionClosed(dbRoom)) {
@@ -603,6 +747,7 @@ export const handleGetRoom = async (c: Context) => {
                 ? room.lobbyGateActive
                 : "0",
             scheduledStartAt,
+            ...(dbRoom ? roomSessionTimingPayload(dbRoom) : {}),
           },
           "Room found",
         ),

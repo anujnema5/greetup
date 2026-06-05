@@ -1,5 +1,5 @@
 import { emitToUser } from "@/core/socket/socket";
-import { CHESS_SOCKET_EVENTS } from "@/modules/rooms/constants/chess-socket.events";
+import { CHESS_SOCKET_EVENTS } from "@/modules/rooms/constants/events/chess-socket.events";
 
 type ChessInvitePayload = {
   requestId: string;

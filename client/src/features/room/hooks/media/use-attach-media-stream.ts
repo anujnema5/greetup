@@ -52,6 +52,12 @@ export function useAttachMediaStream(
       ? createPlaybackStreamWithClonedVideo(stream)
       : { playback: stream, dispose: () => {} };
 
+    if (el.srcObject === playback) {
+      return () => {
+        dispose();
+      };
+    }
+
     el.srcObject = playback;
 
     const tryPlay = () => {

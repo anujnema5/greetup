@@ -1,7 +1,8 @@
+import logger from "@/core/logging";
 import { getRedis } from "@/core/redis";
 import { USER_PRESENCE_KEYS } from "@/core/redis/keys";
 import { roomsRepository } from "@/modules/rooms/repositories/rooms.repository";
-import { getUsersActiveRtcRooms } from "@/modules/rooms/services/user-active-rtc-room-redis.service";
+import { getUsersActiveRtcRooms } from "@/modules/rooms/services/rtc/user-active-rtc-room-redis.service";
 
 export type PeerCallStatusDto = {
   isOnline: boolean;
@@ -54,6 +55,13 @@ export async function peersCallStatusForUser(
     cur.liveRoomId = rid;
     cur.liveRoomTitle = titleByRoomId.get(rid) ?? null;
   }
+
+  logger.debug("peers_call_status_resolved", {
+    viewerUserId: _viewerUserId,
+    peerCount: unique.length,
+    onlineCount: unique.filter((id) => out[id]?.isOnline).length,
+    inLiveRoomCount: unique.filter((id) => out[id]?.inLiveRoom).length,
+  });
 
   return out;
 }

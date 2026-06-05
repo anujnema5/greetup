@@ -1,11 +1,15 @@
 "use client";
 
 import type { CSSProperties, ReactNode } from "react";
-import { MicOff, VideoOff } from "lucide-react";
 import { useAudioLevel } from "@/features/room/hooks/media/use-audio-level";
+import { TileMediaControlsBar } from "@/features/room/call/tiles/parts/tile-participant-controls-bar";
 import { cn } from "@/lib/utils";
 
 // ─── TileNameBadge ────────────────────────────────────────────────────────────
+
+/** Shared chrome for tile name labels (static + hover trigger). */
+export const TILE_NAME_BADGE_CHROME =
+  "rounded-md border border-border/70 bg-card/90 px-2 py-0.5 text-[11px] font-semibold text-foreground shadow-sm";
 
 /** Name label pinned to the bottom-left of a video tile. */
 export function TileNameBadge({
@@ -18,8 +22,8 @@ export function TileNameBadge({
   return (
     <div
       className={cn(
-        "absolute bottom-2 left-2 z-10 rounded-md border border-border/70",
-        "bg-card/90 px-2 py-0.5 text-[11px] font-semibold text-foreground shadow-sm",
+        "absolute bottom-2 left-2 z-10",
+        TILE_NAME_BADGE_CHROME,
         className,
       )}
     >
@@ -49,22 +53,7 @@ export function TileMediaStatus({
   cameraOn?: boolean;
   className?: string;
 }) {
-  const showMicOff = micOn === false;
-  const showCameraOff = cameraOn === false;
-
-  if (!showMicOff && !showCameraOff) return null;
-
-  return (
-    <div
-      className={cn(
-        "absolute bottom-2 right-2 z-10 flex items-center gap-1.5 rounded-full border border-white/10 bg-black/58 px-2 py-[5px] backdrop-blur-[10px]",
-        className,
-      )}
-    >
-      {showMicOff && <MicOff size={12} strokeWidth={2.2} className="shrink-0 text-red-400" />}
-      {showCameraOff && <VideoOff size={12} strokeWidth={2.2} className="shrink-0 text-red-400" />}
-    </div>
-  );
+  return <TileMediaControlsBar micOn={micOn} cameraOn={cameraOn} className={className} />;
 }
 
 // ─── TileSpeakingRings ────────────────────────────────────────────────────────

@@ -1,8 +1,7 @@
-"use client";
-
 export { useRoomVideo } from "./session/use-room-video";
 export type { UseRoomVideoOptions } from "./session/use-room-video";
 export { useRoomJoinAndStartVideo } from "./session/use-room-join-and-start-video";
+export { useRoomSessionExpiryWarnings } from "./session/use-room-session-expiry-warnings";
 export { useClientMounted } from "./session/use-client-mounted";
 export { useRoomUi } from "./session/use-room-ui";
 
@@ -42,4 +41,12 @@ export {
   MINIMIZED_DOCK_OFFSET_STORAGE_KEY,
 } from "./minimized-dock/use-minimized-dock-drag";
 
-export { useLobbyPreviewMedia } from "./lobby/use-lobby-preview-media";
+export { useLobbyPreviewMedia, type LobbyPreviewMedia } from "./lobby/use-lobby-preview-media";
+export { useApplyLobbyMediaIntent } from "./lobby/use-apply-lobby-media-intent";
+
+export { useLockedSpeakerTileSlot } from "./call/use-locked-speaker-tile-slot";
+export { useRoomActivityToasts } from "./call/use-room-activity-toasts";
+export { useParticipantsWithSpeakerFirst } from "./call/use-participants-with-speaker-first";
+export { usePeerIdsWithSpeakerFirst } from "./call/use-peer-ids-with-speaker-first";
+export { useTileGridPage } from "./call/use-tile-grid-page";
+export { usePeoplePanelCameraOrder } from "./call/use-people-panel-camera-order";

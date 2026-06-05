@@ -22,6 +22,14 @@ import {
 } from "@/features/connections/api/connections-api";
 import type { ConnectionListItem } from "@/features/connections/types/connections-api.types";
 import { cn } from "@/lib/utils";
+import {
+  COMPACT_DIALOG_BODY,
+  COMPACT_DIALOG_CAPTION,
+  COMPACT_DIALOG_DESCRIPTION,
+  COMPACT_DIALOG_ICON_WRAP,
+  COMPACT_DIALOG_LABEL,
+  COMPACT_DIALOG_TITLE,
+} from "@/lib/ui/compact-dialog-typography";
 
 function peerLabel(item: ConnectionListItem): string {
   return item.peer.displayName?.trim() || item.peer.name || "Member";
@@ -152,7 +160,7 @@ export function AddToCircleDialog({
               <Loader2 className="size-6 animate-spin text-muted-foreground" />
             </div>
           ) : filtered.length === 0 ? (
-            <p className="py-8 text-center text-sm text-muted-foreground">
+            <p className={cn("py-8 text-center", COMPACT_DIALOG_BODY)}>
               No connections match. Only people you are connected with appear here.
             </p>
           ) : (
@@ -170,7 +178,7 @@ export function AddToCircleDialog({
                   className="flex items-center gap-3 rounded-xl border border-border/80 bg-card/50 px-3 py-2.5"
                 >
                   <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-medium">{label}</p>
+                    <p className={cn("truncate font-medium", COMPACT_DIALOG_LABEL)}>{label}</p>
                     <div className="mt-0.5 flex flex-wrap items-center gap-1.5">
                       {!statusKnown || statusLoading ? (
                         <span className="text-[10px] text-muted-foreground">Checking status…</span>

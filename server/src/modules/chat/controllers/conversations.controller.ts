@@ -1,5 +1,6 @@
 import type { Context } from 'hono';
 import logger from '@/core/logging';
+import { MESSAGING_BLOCK_ERROR } from '@/modules/blocks/constants/messaging-block.constants';
 import { ApiResponse, internalError } from '@/shared/responses';
 import { zodFieldErrorsItems } from '@/shared/validation';
 import { conversationService } from '../services/conversation.service';
@@ -110,8 +111,38 @@ export const handleCreateConnectionConversation = async (c: Context) => {
         403,
       );
     }
+    if (msg === MESSAGING_BLOCK_ERROR.MESSAGING_BLOCKED) {
+      return c.json(
+        ApiResponse.error({
+          message: 'Messaging is blocked between you and this user',
+          statusCode: 403,
+          code: MESSAGING_BLOCK_ERROR.MESSAGING_BLOCKED,
+        }),
+        403,
+      );
+    }
     logger.error('Create connection conversation error', { err });
     return internalError(c, err, 'CREATE_CONNECTION_CONVERSATION_FAILED');
+  }
+};
+
+export const handleLeaveConversation = async (c: Context) => {
+  try {
+    const userId = c.get('userId') as string;
+    const conversationId = c.req.param('id') as string;
+
+    await conversationService.leaveConversation(conversationId, userId);
+    return c.json(ApiResponse.success({ ok: true }, 'Conversation removed from inbox', 200), 200);
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : '';
+    if (msg === 'UNAUTHORIZED') {
+      return c.json(ApiResponse.error({ message: 'Unauthorized', statusCode: 403, code: 'UNAUTHORIZED' }), 403);
+    }
+    if (msg === 'NOT_FOUND') {
+      return c.json(ApiResponse.error({ message: 'Conversation not found', statusCode: 404, code: 'NOT_FOUND' }), 404);
+    }
+    logger.error('Leave conversation error', { err });
+    return internalError(c, err, 'LEAVE_CONVERSATION_FAILED');
   }
 };
 

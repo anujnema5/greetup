@@ -1,33 +1,48 @@
 'use client';
 
-import { useState } from 'react';
 import { useSession } from '@/lib/auth-client';
 import { Button } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
 import { useChat } from '../hooks/use-chat';
+import { useChatThreadUi } from '../hooks/use-chat-thread-ui';
 import { useConversation } from '../hooks/use-conversation';
+import { useMessagingBlockState } from '../hooks/use-messaging-block-state';
+import { CHAT_HORIZONTAL_PADDING } from '../constants';
 import { MessageList } from './message-list';
 import { MessageInput } from './message-input';
-import type { ConversationType, Message } from '../types/chat.types';
+import { MessagingBlockBanner } from './messaging-block/messaging-block-banner';
+import type { ConversationType, MessagingBlock } from '../types/chat.types';
 
 interface ChatPanelProps {
   conversationId: string;
   conversationType?: ConversationType;
   showQuickReactions?: boolean;
+  /** Extra client-side lock (e.g. moderation) on top of server block state. */
   sendDisabled?: boolean;
+  messagingBlock?: MessagingBlock;
 }
 
-const QUICK_REACTION_EMOJIS = ["👏", "🔥", "😂", "🎉", "❤️"];
+const QUICK_REACTION_EMOJIS = ['👏', '🔥', '😂', '🎉', '❤️'];
 
 export function ChatPanel({
   conversationId,
   conversationType,
   showQuickReactions = false,
   sendDisabled = false,
+  messagingBlock,
 }: ChatPanelProps) {
   const { data: session, isPending: sessionPending } = useSession();
   const sessionUserId = session?.user?.id ?? '';
 
-  const [replyTo, setReplyTo] = useState<Message | null>(null);
+  const blockState = useMessagingBlockState(messagingBlock, { forceDisabled: sendDisabled });
+
+  const {
+    replyTo,
+    setReplyTo,
+    clearReply,
+    editingMessageId,
+    setEditingMessageId,
+  } = useChatThreadUi(conversationId);
 
   const {
     messages,
@@ -45,19 +60,22 @@ export function ChatPanel({
     removeReaction,
     editMessage,
     deleteMessage,
-  } = useChat(conversationId, { sendEnabled: !sendDisabled });
+  } = useChat(conversationId, {
+    interactionsEnabled: !blockState.interactionsDisabled,
+    messagingBlock,
+  });
 
   const typingUserIds = Object.entries(typingUsers)
     .filter(([uid, isTyping]) => isTyping && uid !== currentUserId)
     .map(([uid]) => uid);
 
   const handleSend = (content: string, replyToId?: string) => {
-    if (sendDisabled) return;
+    if (blockState.interactionsDisabled) return;
     sendMessage({ content, replyToId });
   };
 
   const handleQuickReaction = (emoji: string) => {
-    if (sendDisabled) return;
+    if (blockState.interactionsDisabled) return;
     sendMessage({ content: emoji });
   };
 
@@ -66,14 +84,6 @@ export function ChatPanel({
     const has = msg?.reactions?.some((r) => r.userId === currentUserId && r.emoji === emoji);
     if (has) removeReaction(messageId, emoji);
     else addReaction(messageId, emoji);
-  };
-
-  const handleEdit = (messageId: string, content: string) => {
-    editMessage(messageId, content);
-  };
-
-  const handleDelete = (messageId: string, forAll: boolean) => {
-    deleteMessage(messageId, forAll);
   };
 
   if (isLoading || sessionPending) {
@@ -92,10 +102,13 @@ export function ChatPanel({
     );
   }
 
+  const { interactionsDisabled, inputPlaceholder } = blockState;
+  const composerDisabled = interactionsDisabled || !!editingMessageId;
+
   return (
     <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
       {showQuickReactions ? (
-        <div className="flex min-w-0 flex-wrap items-center gap-1.5 border-b border-border/70 px-3 py-2 sm:px-4 md:px-5">
+        <div className={cn('flex min-w-0 flex-wrap items-center gap-1.5 border-b border-border/70 py-2', CHAT_HORIZONTAL_PADDING)}>
           {QUICK_REACTION_EMOJIS.map((emoji) => (
             <Button
               key={emoji}
@@ -103,7 +116,7 @@ export function ChatPanel({
               variant="outline"
               size="sm"
               onClick={() => handleQuickReaction(emoji)}
-              disabled={sendDisabled}
+              disabled={interactionsDisabled}
               className="h-auto px-2 py-0.5 text-sm"
               aria-label={`Send ${emoji} reaction`}
             >
@@ -119,18 +132,24 @@ export function ChatPanel({
         typingUserIds={typingUserIds}
         hasMore={hasMore}
         onLoadMore={loadMore}
-        onToggleReaction={handleToggleReaction}
-        onReply={setReplyTo}
-        onEditMessage={handleEdit}
-        onDeleteMessage={handleDelete}
-        onRetryFailed={retryFailedMessage}
+        onToggleReaction={interactionsDisabled ? undefined : handleToggleReaction}
+        onReply={interactionsDisabled ? undefined : setReplyTo}
+        onEditMessage={interactionsDisabled ? undefined : editMessage}
+        onDeleteMessage={interactionsDisabled ? undefined : deleteMessage}
+        onRetryFailed={interactionsDisabled ? undefined : retryFailedMessage}
+        editingMessageId={editingMessageId}
+        onEditingChange={setEditingMessageId}
       />
+      <MessagingBlockBanner messagingBlock={messagingBlock} />
       <MessageInput
         conversationId={conversationId}
+        currentUserId={currentUserId}
         replyTo={replyTo}
-        onCancelReply={() => setReplyTo(null)}
+        onCancelReply={clearReply}
         onSend={handleSend}
-        disabled={sendDisabled}
+        disabled={composerDisabled}
+        placeholder={inputPlaceholder}
+        typingEnabled={!interactionsDisabled}
       />
     </div>
   );

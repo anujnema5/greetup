@@ -1,3 +1,4 @@
+import logger from "@/core/logging";
 import {
   sessionUserRepository,
   type SessionUserIdentityRow,
@@ -38,6 +39,10 @@ export async function getNormalizedSessionService(
     : null;
 
   const displayName = resolveDisplayName(session.user, dbUser);
+  logger.debug("session_normalized", {
+    userId: session.user.id,
+    hasDbUser: !!dbUser,
+  });
   return {
     ...session,
     user: {

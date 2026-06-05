@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import type { AppDispatch } from "@/lib/redux/store";
 import { enterRoomPage, resetRoomState } from "@/lib/redux/slices/room-slice";
-import { leaveRoomKeepalive } from "@/features/room/api/room-api";
+import { leaveCircleRtcKeepalive, leaveRoomKeepalive } from "@/features/room/api/room-api";
 import {
   clearRoomTabLeaseIfOwner,
   getOrCreateTabInstanceId,
@@ -127,9 +127,10 @@ export function useRoomPageTabLease({
         if (blockedAsDuplicateTabRef.current) return;
         if (isRoomMinimizedMarked()) return;
 
+        const rid = roomIdRef.current;
+
         try {
           const path = window.location.pathname;
-          const rid = roomIdRef.current;
           if (
             path === CIRCLE_SEARCH_PATH ||
             path === `/circle/${rid}` ||
@@ -142,6 +143,7 @@ export function useRoomPageTabLease({
         }
 
         if (uid) clearRoomTabLeaseIfOwner(uid, tabId);
+        leaveCircleRtcKeepalive(rid);
         leaveRoomKeepalive();
         clearRoomStorage();
         dispatch(resetRoomState());

@@ -13,32 +13,30 @@ import {
   MessageSquare,
   SlidersHorizontal,
   Star,
-  Zap,
   Target,
   User,
   UserPlus,
   Users,
-  Video,
 } from "lucide-react";
 import { toast } from "sonner";
 import type { FetchBaseQueryError } from "@reduxjs/toolkit/query";
 
-import { NavSidebar, BottomNav } from "@/features/app-shell";
+import { NavSidebar, BottomNav, PageHeader } from "@/features/app-shell";
 import {
   useGetMyProfileQuery,
   useGetProfileSetupStepsQuery,
   useSaveProfileSetupMutation,
 } from "@/features/profile-setup/components/profile-setup-api";
 import { getProfileImageUrl } from "@/lib/ui/profile-image";
-import { cn } from "@/lib/utils";
 
 import { ProfileConnectionsSection } from "@/features/connections";
+import { useGetProfileInsightsQuery } from "../api/profile-insights-api";
 import { ProfileCompletionCard } from "../components/profile-completion-card";
 import { ProfileEditModals } from "../components/profile-edit-modals";
 import { ProfilePhotoDialog } from "../components/profile-photo-dialog";
+import { ProfileRecentMatchesSection } from "../components/profile-recent-matches-section";
 import { ProfileSectionRow } from "../components/profile-section-row";
 import { RoomInviteSettingsModal } from "../components/room-invite-settings-modal";
-import { RECENT_MATCHES, STATS } from "../constants/mock-data";
 import type { EditableProfile, ProfileEditSectionId } from "../types/profile-editor.types";
 import {
   buildProfileSavePayload,
@@ -50,6 +48,7 @@ import { labelsFromIds, professionLabel, rtkErrorMessage } from "../utils/profil
 
 export function ProfilePage() {
   const profileQuery = useGetMyProfileQuery();
+  const insightsQuery = useGetProfileInsightsQuery();
   const stepsQuery = useGetProfileSetupStepsQuery();
   const [saveProfileSetup, { isLoading: isSaving }] = useSaveProfileSetupMutation();
 
@@ -75,16 +74,8 @@ export function ProfilePage() {
       : null;
   const isProfileComplete = rawProfile?.isOnboarded === true || (completionRounded ?? 0) >= 80;
 
-  const stats = useMemo(() => {
-    const rows = STATS.map((s) => ({ ...s }));
-    if (completionRounded != null) {
-      const i = rows.findIndex((r) => r.label === "Match score");
-      if (i >= 0) {
-        rows[i] = { label: "Complete", value: `${completionRounded}%` };
-      }
-    }
-    return rows;
-  }, [completionRounded]);
+  const recentMatches = insightsQuery.data?.recentMatches ?? [];
+  const insightsLoading = insightsQuery.isLoading || insightsQuery.isFetching;
 
   const handleSaveSection = useCallback(
     async (section: ProfileEditSectionId, draft: EditableProfile) => {
@@ -141,8 +132,11 @@ export function ProfilePage() {
   const shell = (body: ReactNode) => (
     <div className="flex h-screen overflow-hidden bg-background">
       <NavSidebar activePath="/profile" />
-      <main className="flex flex-1 flex-col items-center justify-center overflow-y-auto px-6 text-center pb-16 md:pb-0">
-        {body}
+      <main className="flex flex-1 flex-col overflow-y-auto pb-16 md:pb-0">
+        <PageHeader title="Profile" subtitle="Edit one section at a time." />
+        <div className="flex flex-1 flex-col items-center justify-center px-6 text-center">
+          {body}
+        </div>
       </main>
       <BottomNav activePath="/profile" />
     </div>
@@ -211,19 +205,19 @@ export function ProfilePage() {
       <NavSidebar activePath="/profile" />
 
       <main className="flex flex-1 flex-col overflow-y-auto pb-16 md:pb-0">
-        <header className="sticky top-0 z-40 flex items-center justify-between px-4 md:px-8 py-4 border-b border-border bg-background/95 backdrop-blur-md shadow-sm">
-          <div>
-            <h1 className="text-[15px] font-semibold text-foreground leading-none">Profile</h1>
-            <p className="text-[11px] text-muted-foreground mt-1">Edit one section at a time.</p>
-          </div>
-          <button
-            type="button"
-            onClick={() => setActiveSection("basics")}
-            className="flex items-center gap-1.5 rounded-xl border border-border px-3 py-2 text-xs font-medium text-muted-foreground hover:bg-muted hover:text-foreground transition-colors duration-200 cursor-pointer"
-          >
-            Edit
-          </button>
-        </header>
+        <PageHeader
+          title="Profile"
+          subtitle="Edit one section at a time."
+          actions={
+            <button
+              type="button"
+              onClick={() => setActiveSection("basics")}
+              className="flex cursor-pointer items-center gap-1.5 rounded-xl border border-border px-3 py-2 text-xs font-medium text-muted-foreground transition-colors duration-200 hover:bg-muted hover:text-foreground"
+            >
+              Edit
+            </button>
+          }
+        />
 
         <div className="flex flex-col gap-5 px-4 md:px-8 py-5">
           <ProfileCompletionCard
@@ -362,64 +356,11 @@ export function ProfilePage() {
             />
           </div>
 
-          <div className="grid grid-cols-4 gap-3">
-            {stats.map(({ label, value }) => (
-              <div
-                key={label}
-                className="flex flex-col items-center gap-1 rounded-2xl border border-border bg-card py-3 px-2"
-              >
-                <span className="text-xl font-black text-foreground">{value}</span>
-                <span className="text-[10px] text-muted-foreground font-medium text-center leading-tight">
-                  {label}
-                </span>
-              </div>
-            ))}
-          </div>
-
           <div className="rounded-2xl border border-border bg-card px-5 py-4">
             <ProfileConnectionsSection showSeeAllLink />
           </div>
 
-          <div>
-            <div className="flex items-center justify-between mb-3">
-              <h3 className="text-sm font-semibold text-foreground">Recent Matches</h3>
-              <button type="button" className="text-xs text-primary hover:underline cursor-pointer">
-                See all
-              </button>
-            </div>
-            <div className="flex flex-col gap-2">
-              {RECENT_MATCHES.map((m) => (
-                <div
-                  key={m.name}
-                  className="flex items-center gap-3 rounded-2xl border border-border bg-card px-4 py-3 hover:bg-muted/50 cursor-pointer transition-colors duration-150"
-                >
-                  <div
-                    className={cn(
-                      "h-10 w-10 rounded-full bg-linear-to-br flex items-center justify-center text-sm font-bold text-white shrink-0",
-                      m.grad
-                    )}
-                  >
-                    {m.initials}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-semibold text-foreground">{m.name}</p>
-                    <p className="text-xs text-muted-foreground truncate">{m.tagline}</p>
-                  </div>
-                  <div className="flex items-center gap-1 shrink-0">
-                    <Zap size={11} className="text-primary" />
-                    <span className="text-xs font-semibold text-primary">{m.score}%</span>
-                  </div>
-                  <button
-                    type="button"
-                    className="shrink-0 flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-xs font-medium text-muted-foreground hover:bg-muted transition-colors duration-150 cursor-pointer"
-                  >
-                    <Video size={11} />
-                    Call
-                  </button>
-                </div>
-              ))}
-            </div>
-          </div>
+          <ProfileRecentMatchesSection matches={recentMatches} isLoading={insightsLoading} />
         </div>
       </main>
 

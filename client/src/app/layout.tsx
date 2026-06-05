@@ -12,14 +12,15 @@ import { Toaster } from "@/components/ui/sonner";
 import {
   RoomMinimizedHydration,
   MinimizedRoomDock,
-  OnPartnerDisconnected,
+  RoomSocketBridge,
   OnDirectExpandedToCircle,
-  OnHostEndedCircle,
 } from "@/features/room";
 import { MatchmakingProvider } from "@/features/matching";
+import { ConnectionRealtimeBridge } from "@/features/connections";
 import { NotificationsRealtimeBridge } from "@/features/notifications";
-import { ChatInboxSocketBridge } from "@/features/chat/components/chat-inbox-socket-bridge";
-import { ChatMessagesCacheBridge } from "@/features/chat/components/chat-messages-cache-bridge";
+import { ChatRealtimeBridges } from "@/features/chat/components/chat-realtime-bridges";
+import { ConnectionCallBridge } from "@/features/connection-call";
+import { TourGuideProvider } from "@/features/tour-guide";
 const plusJakartaSans = Plus_Jakarta_Sans({
   variable: "--font-plus-jakarta",
   subsets: ["latin"],
@@ -47,15 +48,17 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               <SocketProvider>
                 <OnDirectExpandedToCircle />
                 <ChessSocketBridge />
+                <ConnectionCallBridge />
                 <NotificationsRealtimeBridge />
-                <ChatInboxSocketBridge />
-                <ChatMessagesCacheBridge />
+                <ConnectionRealtimeBridge />
+                <ChatRealtimeBridges />
                 <Suspense fallback={null}>
                   <MatchmakingProvider>
-                    <OnHostEndedCircle />
-                    <OnPartnerDisconnected />
-                    <MinimizedRoomDock />
-                    {children}
+                    <TourGuideProvider>
+                      <RoomSocketBridge />
+                      <MinimizedRoomDock />
+                      {children}
+                    </TourGuideProvider>
                   </MatchmakingProvider>
                 </Suspense>
               </SocketProvider>

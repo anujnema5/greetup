@@ -1,10 +1,14 @@
-/** Remember which in-app route to return to when minimizing full-screen room video. */
+/** Remember which in-app route to return to when leaving full-screen room video. */
 
 const RETURN_KEY = "greetup-call-return-path";
 
+function isCircleRoomPath(path: string): boolean {
+  return path === "/circle" || /^\/circle(\/|$)/.test(path);
+}
+
 export function setRoomReturnPath(path: string): void {
   try {
-    if (!path || path === "/circle" || path.match(/^\/circle\/?$/)) return;
+    if (!path || isCircleRoomPath(path)) return;
     sessionStorage.setItem(RETURN_KEY, path);
   } catch {
     /* ignore */
@@ -25,4 +29,11 @@ export function clearRoomReturnPath(): void {
   } catch {
     /* ignore */
   }
+}
+
+/** Read the saved return route and clear it (one-shot leave navigation). */
+export function consumeRoomReturnPath(fallback: string): string {
+  const path = getRoomReturnPath() ?? fallback;
+  clearRoomReturnPath();
+  return path;
 }

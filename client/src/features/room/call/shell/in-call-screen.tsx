@@ -6,7 +6,7 @@
  * Purpose:
  * - Owns local UI state (right panel tab, stage ratio, active activity, mobile chat sheet).
  * - Narrow viewports: bottom sheet for chat/people/activities is vertically resizable via drag handle.
- * - Circle calls: footer “Options” opens `RoomCircleCallOptionsDialog` (rename, link, invite, chat).
+ * - Circle calls: footer “Options” opens invite/link/chat; stage edit icon opens rename dialog.
  * - Delegates media-derived values to `useCallDisplayData`.
  * - Composes stage, overlays, HUD, toolbar, and right panel into a single responsive call layout.
  *
@@ -28,8 +28,14 @@ import {
 import { Maximize2, Minimize2, Volume2, VolumeX } from "lucide-react";
 import { toast } from "sonner";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
+import { DEFAULT_CIRCLE_DISPLAY_TITLE } from "@/features/room/constants/call/circle-display";
+import {
+  IN_CALL_DIALOG_CONTENT_Z,
+  IN_CALL_DIALOG_OVERLAY_Z,
+} from "@/features/room/constants/call/in-call-dialog-layer";
 import { MOCK_MATCH } from "@/features/room/constants/dev/mock-match";
 import { useCallDisplayData } from "@/features/room/hooks/media/use-call-display-data";
+import { useCallRenderDebug } from "@/features/room/hooks/debug/use-call-render-debug";
 import { useStageFullscreen } from "@/features/room/hooks/call-ui/use-stage-fullscreen";
 import type { InCallScreenProps } from "@/features/room/types/call/in-call-screen.types";
 import type { RoomActivityId } from "@/features/room/types/call/room-activity.types";
@@ -37,6 +43,7 @@ import type { RoomCallRightPanelTab } from "@/features/room/types/call/room-call
 import { RoomCallParticipantsPanel } from "@/features/room/call/panels/sidebar/people-panel";
 import { MainStage } from "@/features/room/call/stage/main-stage";
 import { RoomCircleCallOptionsDialog } from "@/features/room/call/panels/circle-options/circle-call-options-dialog";
+import { CircleRenameDialog } from "@/features/room/call/panels/circle-options/circle-rename-dialog";
 import {
   CallTopBar,
   CALL_STAGE_CHROME_BTN_CLASS,
@@ -144,6 +151,7 @@ export function InCallScreen({
   mediaStatus = "idle",
   mediaError = null,
   peerLabel = MOCK_MATCH.name,
+  directRemotePeerUserId = null,
   scoreLabel = null,
   micEnabled = true,
   cameraEnabled = true,
@@ -186,10 +194,16 @@ export function InCallScreen({
   onEmbeddedStageActivityChange,
   directRoomActivities: directRoomActivitiesProp,
   embeddedCallPolicyLookup = null,
-  dominantSpeakerPeerId = null,
+  liveSpeakerPeerId = null,
+  liveSpeakerSpeakingMs = {},
   onHostEndCircleForEveryone,
+  onKickParticipant,
+  kickingUserId = null,
+  isCircleHost = false,
   callCapabilities: callCapabilitiesProp,
 }: InCallScreenProps) {
+  useCallRenderDebug("InCallScreen", { roomId, mediaStatus, cameraEnabled, screenSharing });
+
   /** `is_active` catalog tiles from `InCallContainer` (empty until loaded or when none enabled). */
   const activeDirectRoomActivities = directRoomActivitiesProp ?? [];
   const showActivitiesTab =
@@ -207,6 +221,7 @@ export function InCallScreen({
   );
   const [isLive, setIsLive] = useState(false);
   const [circleOptionsOpen, setCircleOptionsOpen] = useState(false);
+  const [circleRenameOpen, setCircleRenameOpen] = useState(false);
   /** Per-screen-share-key local mute state for inbound audio. */
   const [screenShareAudioMutedByKey, setScreenShareAudioMutedByKey] = useState<Record<string, boolean>>({});
   const screenShareAudioMuted = focusedScreenShareKey
@@ -312,8 +327,6 @@ export function InCallScreen({
     mediaTogglesReady,
     showScreenShare,
     mediaBusy,
-    elapsed,
-    formatDuration,
     screenShareMainLayout,
   } = useCallDisplayData({
     remoteStream,
@@ -378,7 +391,7 @@ export function InCallScreen({
 
   /** Circle route always has `roomId` when `isGroupRoom`; narrows types for options UI. */
   const circleRoomId = isGroupRoom && roomId ? roomId : null;
-  const circleTitle = circleDisplayTitle?.trim() || "Circle";
+  const circleTitle = circleDisplayTitle?.trim() || DEFAULT_CIRCLE_DISPLAY_TITLE;
 
   useEffect(() => {
     if (isGroupRoom) return;
@@ -481,7 +494,11 @@ export function InCallScreen({
       remotePeerCameraStream={remotePeerCameraStream}
       suppressCameraTiles={suppressPeoplePanelCameras}
       currentUserId={currentUserId ?? null}
-      dominantSpeakerPeerId={dominantSpeakerPeerId}
+      liveSpeakerPeerId={liveSpeakerPeerId}
+      liveSpeakerSpeakingMs={liveSpeakerSpeakingMs}
+      isCircleHost={isCircleHost}
+      onKickParticipant={onKickParticipant}
+      kickingUserId={kickingUserId}
     />
   ) : null;
 
@@ -526,8 +543,6 @@ export function InCallScreen({
     showSkip,
     onSkip,
     onEnd,
-    elapsed,
-    formatDuration,
     showPeopleTab,
     showActivitiesTab,
     onHostEndCircleForEveryone,
@@ -580,6 +595,7 @@ export function InCallScreen({
                   localStream={localStream}
                   mainStageShowsScreen={mainStageShowsScreen}
                   peerLabel={peerLabel}
+                  directRemotePeerUserId={directRemotePeerUserId}
                   peerInitials={peerInitials}
                   myName={myName}
                   currentUserId={currentUserId}
@@ -597,7 +613,11 @@ export function InCallScreen({
                   remotePeerCameraStream={remotePeerCameraStream}
                   participantVideosInSidebar={participantVideosInSidebar}
                   shareStageImmersive={shareStageImmersive}
-                  dominantSpeakerPeerId={dominantSpeakerPeerId}
+                  liveSpeakerPeerId={liveSpeakerPeerId}
+                  liveSpeakerSpeakingMs={liveSpeakerSpeakingMs}
+                  isCircleHost={isCircleHost}
+                  onKickParticipant={onKickParticipant}
+                  kickingUserId={kickingUserId}
                 />
 
                 <StageOverlays
@@ -631,6 +651,12 @@ export function InCallScreen({
 
                 <CallTopBar
                   isOneToOneStage={isOneToOneStage}
+                  isGroupRoom={isGroupRoom}
+                  circleDisplayTitle={circleDisplayTitle}
+                  canEditCircleTitle={Boolean(circleCanEditTitle)}
+                  onEditCircleTitle={
+                    circleRoomId && circleCanEditTitle ? () => setCircleRenameOpen(true) : undefined
+                  }
                   activeActivityLabel={activeActivityLabel}
                   activeActivity={Boolean(stageActivity)}
                   mainStageShowsScreen={mainStageShowsScreen}
@@ -709,14 +735,15 @@ export function InCallScreen({
               showCloseButton
               aria-describedby={undefined}
               className={cn(
-                /* Above InCallContainer (`z-100`) and in-room dialogs (e.g. `z-200`). */
-                "z-250 gap-0 border-x-0 border-b-0 p-0",
+                /* Above InCallContainer (`z-100`) and in-room dialogs. */
+                IN_CALL_DIALOG_CONTENT_Z,
+                "gap-0 border-x-0 border-b-0 p-0",
                 "fixed! inset-x-0! bottom-0! top-auto! left-0! right-0! w-full! max-w-full!",
                 "translate-x-0! translate-y-0! rounded-t-2xl rounded-b-none",
                 "max-h-(--room-mobile-chat-sheet-max-h)",
               )}
               style={roomMobileChatSheetLayoutCssVars(mobileChatSheetDrag)}
-              overlayClassName="z-240"
+              overlayClassName={IN_CALL_DIALOG_OVERLAY_Z}
             >
               <DialogTitle className="sr-only">
                 {showActivitiesTab ? "People, chat, and activities" : "People and chat"}
@@ -745,13 +772,20 @@ export function InCallScreen({
           </Dialog>
         ) : null}
 
+        {circleRoomId && circleCanEditTitle ? (
+          <CircleRenameDialog
+            open={circleRenameOpen}
+            onOpenChange={setCircleRenameOpen}
+            roomId={circleRoomId}
+            displayTitle={circleTitle}
+          />
+        ) : null}
+
         {circleRoomId ? (
           <RoomCircleCallOptionsDialog
             open={circleOptionsOpen}
             onOpenChange={setCircleOptionsOpen}
             roomId={circleRoomId}
-            displayTitle={circleTitle}
-            canEdit={Boolean(circleCanEditTitle)}
             showInvite={showAddToCircle && Boolean(onOpenAddToCircle)}
             onInvite={onOpenAddToCircle}
             showChat={Boolean(conversationId)}

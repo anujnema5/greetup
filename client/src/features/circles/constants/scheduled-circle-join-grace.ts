@@ -1,5 +1,5 @@
 /**
- * Must match `server/src/modules/rooms/constants/scheduled-circle-join-grace.ts`
+ * Must match `server/src/modules/rooms/constants/session/scheduled-circle-join-grace.ts`
  * (`SCHEDULED_JOIN_GRACE_AFTER_START_MINUTES`).
  */
 export const SCHEDULED_JOIN_GRACE_AFTER_START_MINUTES = 120;

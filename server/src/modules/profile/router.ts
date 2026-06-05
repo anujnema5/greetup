@@ -6,6 +6,7 @@ import {
   handleSaveProfileSetup,
   handleUpdateRoomInviteSettings,
 } from "./controllers/profile-setup.controller";
+import { handleGetProfileInsights } from "./controllers/profile-insights.controller";
 import {
   handleEnsureProfilePhotoPublic,
   handlePresignProfileImageUpload,
@@ -22,14 +23,21 @@ import {
   handleGeocodeLocationSuggestions,
   handleReverseGeocodeLocation,
 } from "./controllers/location-geocode.controller";
+import {
+  handleGetWelcomeTourStatus,
+  handleMarkWelcomeTourSeen,
+} from "./controllers/welcome-tour.controller";
 
 export const profileRoute = new Hono();
 
 /** PROFILE ROUTES */
 profileRoute.get("/me", handleGetMyProfile);
+profileRoute.get("/me/insights", handleGetProfileInsights);
 profileRoute.get("/public/:username", handleGetPublicProfile);
 profileRoute.put("/room-invite-settings", handleUpdateRoomInviteSettings);
 profileRoute.get("/onboarding-status", handleGetOnboardingStatus);
+profileRoute.get("/welcome-tour-status", handleGetWelcomeTourStatus);
+profileRoute.post("/welcome-tour-seen", handleMarkWelcomeTourSeen);
 
 /** PROFILE SETUP ROUTES */
 profileRoute.get("/setup-steps", handleFetchProfileSteps);

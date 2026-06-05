@@ -8,6 +8,7 @@ import createApp from "@/http/create-app";
 import config from "@/shared/config/config";
 import { runMigrations } from "@/core/database/run-migrations";
 import { runStartupSeed } from "@/core/database/seed/run-startup-seed";
+import { startRoomSessionSweepScheduler } from "@/modules/rooms/services/session/room-session-sweep.scheduler";
 
 // AEK must be loaded before anything that touches crypto
 await loadAEKs();
@@ -17,6 +18,7 @@ await runStartupSeed();
 const app = await createApp();
 const engine = wireBunSocketIo();
 registerEventListeners();
+startRoomSessionSweepScheduler();
 
 const { websocket, idleTimeout, maxRequestBodySize } = engine.handler();
 

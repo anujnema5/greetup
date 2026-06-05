@@ -10,6 +10,13 @@ import type { RoomSessionType } from "@/shared/types/room-session";
 import type { EmbeddedCallPolicyLookup } from "@/features/room/embedded-activities";
 import type { RoomActivityId, RoomActivityMeta } from "@/features/room/types/call/room-activity.types";
 import type { CallCapabilities } from "@/features/room/contracts";
+import type { LiveSpeakerCallProps } from "@/features/room/types/call/active-speaker-props.types";
+import type {
+  CircleParticipantKickProps,
+  OnRemoveCircleParticipant,
+} from "@/features/room/types/call/participant-remove.types";
+
+export type { CircleParticipantKickProps };
 
 export type InCallScreenProps = {
   /** Built in call wiring; drives tabs, layout mode, and future feature flags. */
@@ -30,6 +37,8 @@ export type InCallScreenProps = {
   mediaStatus?: MediasoupRoomStatus;
   mediaError?: string | null;
   peerLabel?: string;
+  /** Direct 1:1 — primary remote user id for profile hover on the stage name badge. */
+  directRemotePeerUserId?: string | null;
   scoreLabel?: string | null;
   micEnabled?: boolean;
   cameraEnabled?: boolean;
@@ -97,6 +106,8 @@ export type InCallScreenProps = {
   embeddedCallPolicyLookup?: EmbeddedCallPolicyLookup | null;
   /** When set, circle host can end the session for everyone (separate from Leave). */
   onHostEndCircleForEveryone?: () => void;
-  /** Mediasoup dominant speaker user id (`dominantSpeaker` from rtc-service). */
-  dominantSpeakerPeerId?: string | null;
-};
+  /** Circle host: remove one participant from the live call (optional restrict). */
+  onKickParticipant?: OnRemoveCircleParticipant;
+  kickingUserId?: string | null;
+  isCircleHost?: boolean;
+} & LiveSpeakerCallProps;

@@ -17,7 +17,10 @@ import {
   circleRoomPath,
 } from "@/features/room/lib/navigation/circle-routes";
 import { expandVideoSession } from "@/lib/redux/slices/room-slice";
-import { isCircleRoomData } from "@/features/matching";
+import {
+  isPersistedCircleSession,
+  resolveCircleHostUserId,
+} from "@/features/matching/types/room.types";
 import { useGetRoomQuery } from "@/features/room/api/room-api";
 import { useRoomVideo } from "@/features/room/hooks/session/use-room-video";
 import { useMinimizedDockMainStage } from "@/features/room/hooks/minimized-dock/use-minimized-dock-main-stage";
@@ -45,9 +48,9 @@ import {
 } from "@/features/room/hooks/minimized-dock/use-minimized-dock-drag";
 import { clearRoomMinimized } from "@/features/room/lib/session/room-sync";
 import {
-  DOMINANT_SPEAKER_TILE_RING,
-  isDominantSpeakerPeer,
-} from "@/features/room/lib/call/dominant-speaker-tile";
+  LIVE_SPEAKER_TILE_RING,
+  isLiveSpeakerOnTile,
+} from "@/features/room/lib/call/active-speaker";
 import {
   CameraOffAvatar,
   TileSpeakingRings,
@@ -76,30 +79,13 @@ function MinimizedRoomDockPanel() {
   const currentUserId = session?.user?.id ?? null;
   const localProfileImageUrl = session?.user?.image ?? null;
 
-  const { data: dockRoomMeta } = useGetRoomQuery(activeRoomId ?? "", {
-    skip: !activeRoomId || !isActive,
-  });
-  const dockSessionIsCircle = Boolean(dockRoomMeta && isCircleRoomData(dockRoomMeta));
-
-  const dockCircleHostId =
-    dockRoomMeta && isCircleRoomData(dockRoomMeta) ? dockRoomMeta.hostUserId : null;
-
-  const { handleEnd: roomHandleEnd, handleSkip: roomHandleSkip } = useRoomVideo(
-    activeRoomId ?? "",
-    {
-      skipSetup: true,
-      isDbCircleCall: dockSessionIsCircle,
-      circleHostUserId: dockCircleHostId,
-    },
-  );
-
   const {
     localMediaStream,
     remoteMediaStream,
     mainStageShowsScreen,
     remoteParticipants,
     remoteTrackMediaSource,
-    dominantSpeakerPeerId,
+    dominantSpeakerPeerId: liveSpeakerPeerId,
     mediasoupStatus,
     rtcRoomType,
     micEnabled,
@@ -112,12 +98,27 @@ function MinimizedRoomDockPanel() {
     clearLocalMediaDeviceError,
   } = useRtcSocketContext();
 
+  const { data: dockRoomMeta } = useGetRoomQuery(activeRoomId ?? "", {
+    skip: !activeRoomId || !isActive,
+  });
+  const dockSessionIsCircle = isPersistedCircleSession(dockRoomMeta, rtcRoomType);
+  const dockCircleHostId = resolveCircleHostUserId(dockRoomMeta);
+
+  const { handleEnd: roomHandleEnd, handleSkip: roomHandleSkip } = useRoomVideo(
+    activeRoomId ?? "",
+    {
+      skipSetup: true,
+      isDbCircleCall: dockSessionIsCircle,
+      circleHostUserId: dockCircleHostId,
+    },
+  );
+
   const dockStage = useMinimizedDockMainStage({
     mainStageShowsScreen,
     remoteMediaStream,
     remoteParticipants,
     remoteTrackMediaSource,
-    dominantSpeakerPeerId,
+    liveSpeakerPeerId,
     rtcRoomType,
     rtcPrimaryRemoteUserId,
     currentUserId,
@@ -143,11 +144,11 @@ function MinimizedRoomDockPanel() {
     ? sideStripRemote.peer.micActive === false
     : !micEnabled;
 
-  const mainTileDominant =
+  const mainTileIsLiveSpeaker =
     !dockStage.mainStageShowsScreen &&
     Boolean(
       dockStage.mainFocusPeerId &&
-        isDominantSpeakerPeer(dominantSpeakerPeerId, dockStage.mainFocusPeerId),
+        isLiveSpeakerOnTile(liveSpeakerPeerId, dockStage.mainFocusPeerId),
     );
 
   /** PiP column shows self (incl. screen-share) vs remote — nudge column split so local is slightly wider, remote strip slightly narrower when swapped. */
@@ -261,7 +262,7 @@ function MinimizedRoomDockPanel() {
         onPointerUp={onDragPointerUp}
         onPointerCancel={onDragPointerUp}
         className={cn(
-          "relative w-full shrink-0 cursor-default overflow-hidden select-none touch-none",
+          "relative w-full shrink-0 cursor-pointer overflow-hidden select-none touch-none [&_*]:cursor-pointer",
           "min-h-[9.75rem] sm:min-h-[12.5rem] md:min-h-[15rem]",
         )}
       >
@@ -291,7 +292,7 @@ function MinimizedRoomDockPanel() {
             className={cn(
               tileShell,
               "min-h-[8rem] sm:min-h-[10.5rem] md:min-h-[11.5rem]",
-              mainTileDominant && DOMINANT_SPEAKER_TILE_RING,
+              mainTileIsLiveSpeaker && LIVE_SPEAKER_TILE_RING,
             )}
           >
             <div className="absolute inset-0 overflow-hidden rounded-[inherit]">

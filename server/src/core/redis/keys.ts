@@ -8,6 +8,13 @@ export const USER_CACHE_KEYS = {
   PROFILE_SNAPSHOT: "user:profile:snapshot:",
 } as const;
 
+export const USER_BLOCK_KEYS = {
+  /** Users this user has blocked. */
+  outgoing: (userId: string) => `user:blocks:outgoing:${userId}`,
+  /** Users who have blocked this user. */
+  incoming: (userId: string) => `user:blocks:incoming:${userId}`,
+} as const;
+
 // MATCHING ENGINE KEYS
 export const MATCH_KEYS = {
   USER: "match:user:",
@@ -27,6 +34,22 @@ export const ROOM_KEYS = {
 } as const;
 
 export const ROOM_TTL = 7200; // 2 HOURS
+
+export const CONNECTION_CALL_KEYS = {
+  invite: (requestId: string) => `connection:call:invite:${requestId}`,
+  pendingForCallee: (userId: string) => `connection:call:pending:${userId}`,
+  pendingByRoom: (roomId: string) => `connection:call:room:${roomId}`,
+  activeByRoom: (roomId: string) => `connection:call:active:${roomId}`,
+  historyLogged: (roomId: string) => `connection:call:logged:${roomId}`,
+  /** Prevents duplicate chat rows when client + server timeout race. */
+  historyLoggedForRequest: (requestId: string) => `connection:call:history:request:${requestId}`,
+} as const;
+
+/** How long the UI rings before treating the call as missed/no-answer. */
+export const CONNECTION_CALL_RING_DURATION_SEC = 60;
+
+/** Redis invite TTL — longer than ring duration so timeout APIs can still read the invite. */
+export const CONNECTION_CALL_INVITE_TTL_SEC = 120;
 
 export const CHAT_KEYS = {
   unreadCounts: (userId: string) =>

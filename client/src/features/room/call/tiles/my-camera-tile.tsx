@@ -4,7 +4,6 @@ import type { RefObject } from "react";
 import { cn } from "@/lib/utils";
 import {
   CameraOffAvatar,
-  TileMediaStatus,
   TileNameBadge,
   TileSpeakingRings,
   VideoMirror,
@@ -14,7 +13,8 @@ import {
   CALL_TILE_CAMERA_OFF_CLASS,
   CALL_TILE_LOCAL_CLASS,
 } from "@/features/room/call/tiles/tile-styles";
-import { DOMINANT_SPEAKER_TILE_RING } from "@/features/room/lib/call/dominant-speaker-tile";
+import { TileMediaControlsBar } from "@/features/room/call/tiles/parts/tile-participant-controls-bar";
+import { LIVE_SPEAKER_TILE_RING } from "@/features/room/lib/call/active-speaker";
 
 export function LocalParticipantTile({
   localVideoRef,
@@ -26,7 +26,7 @@ export function LocalParticipantTile({
   micEnabled,
   cameraEnabled,
   className,
-  isDominantSpeaker = false,
+  isLiveSpeaker = false,
   avatarSizeClass = CALL_TILE_AVATAR_SIZE_MAIN,
 }: {
   localVideoRef: RefObject<HTMLVideoElement | null>;
@@ -38,14 +38,14 @@ export function LocalParticipantTile({
   micEnabled?: boolean;
   cameraEnabled?: boolean;
   className?: string;
-  isDominantSpeaker?: boolean;
+  isLiveSpeaker?: boolean;
   avatarSizeClass?: string;
 }) {
   return (
     <div
       className={cn(
         CALL_TILE_LOCAL_CLASS,
-        isDominantSpeaker && DOMINANT_SPEAKER_TILE_RING,
+        isLiveSpeaker && LIVE_SPEAKER_TILE_RING,
         className,
       )}
     >
@@ -70,7 +70,7 @@ export function LocalParticipantTile({
         </div>
       ) : null}
       <TileNameBadge>You</TileNameBadge>
-      <TileMediaStatus micOn={micEnabled} cameraOn={cameraEnabled} />
+      <TileMediaControlsBar micOn={micEnabled} cameraOn={cameraEnabled} />
     </div>
   );
 }

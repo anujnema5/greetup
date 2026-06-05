@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useRef, useState, type ReactNode } from "react";
 import { allowScreenShareCallControl } from "@/features/rtc/lib/rtc-mobile-profile";
 import { useMobileWebRtcUi } from "@/features/rtc/hooks/use-mobile-web-rtc-ui";
 import { useNarrowToolbar } from "@/features/room/hooks/toolbar/use-narrow-toolbar";
@@ -22,6 +22,7 @@ import {
   MicOff,
   Monitor,
   MonitorOff,
+  ChevronDown,
   MoreHorizontal,
   MoreVertical,
   PhoneOff,
@@ -44,10 +45,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { buttonVariants } from "@/components/ui/button";
-import {
-  HOST_END_CIRCLE_ALERT_DESCRIPTION,
-  HOST_END_CIRCLE_ALERT_TITLE,
-} from "@/features/room/constants/call/circle-host-end-copy";
+import { getSessionExitCopy } from "@/features/room/constants/call/session-exit-copy";
 import {
   CircleToolbarButton,
   MediaControlButton,
@@ -64,22 +62,149 @@ const TOOLBAR_SHELL_CLASS =
 const HIDE_SCROLLBAR_CLASS =
   "[-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden";
 
-/** Host-only “end for everyone” — visually distinct from red Leave. */
-const HOST_END_EVERYONE_ICON_BUTTON_CLASS = cn(
-  "inline-flex h-11 w-11 shrink-0 cursor-pointer items-center justify-center rounded-full",
-  "border border-amber-500/40 bg-amber-600/90 text-white shadow-md shadow-black/25",
-  "backdrop-blur-sm transition-[background-color,border-color,transform,box-shadow] duration-150",
-  "hover:border-amber-400/50 hover:bg-amber-700 hover:shadow-lg",
-  "active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-400/50 focus-visible:ring-offset-0",
+const END_CALL_SOLO_CLASS = cn(
+  "inline-flex h-11 shrink-0 cursor-pointer items-center justify-center gap-2 rounded-full",
+  "border border-red-500/40 bg-red-600 text-white shadow-lg shadow-black/35",
+  "transition-[background-color,transform,box-shadow] duration-150",
+  "hover:border-red-400/50 hover:bg-red-700 hover:shadow-xl hover:shadow-black/40",
+  "active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-400/55 focus-visible:ring-offset-0",
 );
 
-const HOST_END_EVERYONE_PILL_BUTTON_CLASS = cn(
-  "inline-flex h-11 shrink-0 cursor-pointer items-center gap-2 rounded-full px-4",
-  "border border-amber-500/40 bg-amber-600/90 text-sm font-semibold text-white shadow-md shadow-black/25",
-  "backdrop-blur-sm transition-[background-color,border-color,transform,box-shadow] duration-150",
-  "hover:border-amber-400/50 hover:bg-amber-700 hover:shadow-lg",
-  "active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-400/50 focus-visible:ring-offset-0",
+const END_CALL_SPLIT_SHELL_CLASS = cn(
+  "flex h-11 shrink-0 items-stretch overflow-hidden rounded-full",
+  "border border-red-500/40 bg-red-600 text-white shadow-lg shadow-black/35",
 );
+
+const END_CALL_SPLIT_SEGMENT_CLASS = cn(
+  "inline-flex cursor-pointer items-center justify-center text-white",
+  "transition-colors duration-150 hover:bg-red-700 active:bg-red-800",
+  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-red-300/60",
+);
+
+function EndCallToolbarCaption({ children }: { children: ReactNode }) {
+  return (
+    <span
+      className={cn(
+        TOOLBAR_CONTROL_CAPTION_CLASS,
+        "flex w-full items-center justify-center whitespace-nowrap",
+      )}
+    >
+      {children}
+    </span>
+  );
+}
+
+const SESSION_EXIT_BUTTON_LABEL_CLASS =
+  "whitespace-nowrap text-[13px] font-semibold tracking-tight leading-none";
+
+/** Leave control; circle hosts get a chevron for “end for everyone”. */
+function LeaveCallEndControl({
+  onEnd,
+  hostEndForEveryoneEnabled,
+  onOpenHostEndForEveryone,
+  compact,
+  isGroupRoom,
+}: {
+  onEnd: () => void;
+  hostEndForEveryoneEnabled: boolean;
+  onOpenHostEndForEveryone: () => void;
+  /** Narrow toolbar: icon-only + caption below (matches mic/camera). */
+  compact: boolean;
+  isGroupRoom: boolean;
+}) {
+  const copy = getSessionExitCopy({
+    isGroupRoom,
+    hostCanEndForEveryone: hostEndForEveryoneEnabled,
+  });
+
+  const label = (
+    <span className={SESSION_EXIT_BUTTON_LABEL_CLASS}>{copy.leaveButtonLabel}</span>
+  );
+
+  const soloButton = (
+    <button
+      type="button"
+      onClick={onEnd}
+      aria-label={copy.leaveAriaLabel}
+      title={copy.leaveTitle}
+      className={cn(END_CALL_SOLO_CLASS, compact ? "size-11 gap-0 px-0" : "px-5")}
+    >
+      <PhoneOff size={compact ? 18 : 16} className="shrink-0" aria-hidden />
+      {!compact ? label : null}
+    </button>
+  );
+
+  const splitButton = (
+    <div className={cn(END_CALL_SPLIT_SHELL_CLASS, compact ? "w-full" : "min-w-0")}>
+      <button
+        type="button"
+        onClick={onEnd}
+        aria-label={copy.leaveAriaLabel}
+        title={copy.leaveTitle}
+        className={cn(
+          END_CALL_SPLIT_SEGMENT_CLASS,
+          "h-full min-w-0 flex-1",
+          compact ? "w-9 px-0" : "gap-2 px-3.5 sm:px-4",
+        )}
+      >
+        <PhoneOff size={compact ? 18 : 16} className="shrink-0" aria-hidden />
+        {!compact ? label : null}
+      </button>
+      <span className="my-2 w-px shrink-0 bg-red-300/35" aria-hidden />
+      <DropdownMenu modal={false}>
+        <DropdownMenuTrigger asChild>
+          <button
+            type="button"
+            aria-label={copy.moreOptionsAriaLabel}
+            title={copy.moreOptionsTitle}
+            className={cn(END_CALL_SPLIT_SEGMENT_CLASS, "h-full w-9 shrink-0 sm:w-10")}
+          >
+            <ChevronDown size={15} strokeWidth={2.25} aria-hidden />
+          </button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent
+          side="top"
+          align="end"
+          sideOffset={8}
+          collisionPadding={12}
+          className="z-200 w-56"
+        >
+          <DropdownMenuItem
+            onSelect={onOpenHostEndForEveryone}
+            aria-label={copy.hostEndForEveryoneMenuAriaLabel}
+            className={cn(
+              "text-amber-800 dark:text-amber-300",
+              "focus:bg-amber-500/15 focus:text-amber-950",
+              "dark:focus:bg-amber-500/25 dark:focus:text-amber-50",
+              "[&_svg]:text-current!",
+            )}
+          >
+            <Ban size={16} />
+            {copy.hostEndForEveryoneMenuLabel}
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
+    </div>
+  );
+
+  const control = hostEndForEveryoneEnabled ? splitButton : soloButton;
+
+  if (compact) {
+    return (
+      <div
+        className={cn(
+          "flex shrink-0 flex-col items-center gap-1",
+          hostEndForEveryoneEnabled ? "w-18 min-w-18" : "w-16 min-w-16",
+        )}
+      >
+        {control}
+        <EndCallToolbarCaption>{copy.leaveCaption}</EndCallToolbarCaption>
+      </div>
+    );
+  }
+
+  return <div className="shrink-0">{control}</div>;
+}
 
 /** In-room call control bar (mic/camera, secondaries, hang up). */
 export function RoomVideoToolbar({
@@ -105,8 +230,6 @@ export function RoomVideoToolbar({
   onSkip,
   onEnd,
   onHostEndCircleForEveryone,
-  elapsed: _elapsed,
-  formatDuration: _formatDuration,
   showPeopleTab = false,
   showActivitiesTab = false,
 }: {
@@ -134,8 +257,6 @@ export function RoomVideoToolbar({
   onEnd: () => void;
   /** Circle host: ends the DB session for everyone (optional; omit for guests / non-circles). */
   onHostEndCircleForEveryone?: () => void;
-  elapsed: number;
-  formatDuration: (seconds: number) => string;
   showPeopleTab?: boolean;
   showActivitiesTab?: boolean;
 }) {
@@ -147,6 +268,10 @@ export function RoomVideoToolbar({
   const openHostEndForEveryoneDialog = () => setHostEndForEveryoneDialogOpen(true);
 
   const hostEndForEveryoneEnabled = isGroupRoom && Boolean(onHostEndCircleForEveryone);
+  const sessionExitCopy = getSessionExitCopy({
+    isGroupRoom,
+    hostCanEndForEveryone: hostEndForEveryoneEnabled,
+  });
 
   const mobileWebCallUi = useMobileWebRtcUi();
   const showScreenShareAction =
@@ -448,54 +573,13 @@ export function RoomVideoToolbar({
             </div>
 
             <div ref={endRef} className="flex shrink-0 items-center">
-              <div className="flex shrink-0 items-center gap-1.5">
-                {hostEndForEveryoneEnabled ? (
-                  <div className="flex w-[4.25rem] min-w-[4.25rem] shrink-0 flex-col items-center gap-1">
-                    <button
-                      type="button"
-                      onClick={openHostEndForEveryoneDialog}
-                      aria-label="End circle for everyone"
-                      title="End circle for everyone"
-                      className={HOST_END_EVERYONE_ICON_BUTTON_CLASS}
-                    >
-                      <Ban size={18} className="text-white" />
-                    </button>
-                    <span
-                      className={cn(
-                        TOOLBAR_CONTROL_CAPTION_CLASS,
-                        "flex w-full items-center justify-center whitespace-nowrap text-[10px] text-amber-100/95",
-                      )}
-                    >
-                      End all
-                    </span>
-                  </div>
-                ) : null}
-                <div className="flex w-16 min-w-16 shrink-0 flex-col items-center gap-1">
-                  <button
-                    type="button"
-                    onClick={onEnd}
-                    aria-label="Leave call"
-                    title="Leave call"
-                    className={cn(
-                      "inline-flex h-11 w-11 shrink-0 cursor-pointer items-center justify-center rounded-full",
-                      "border border-red-500/35 bg-red-600 text-white shadow-md shadow-black/30",
-                      "backdrop-blur-sm transition-[background-color,border-color,transform,box-shadow] duration-150",
-                      "hover:border-red-400/45 hover:bg-red-700 hover:shadow-lg hover:shadow-black/35",
-                      "active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-400/50 focus-visible:ring-offset-0",
-                    )}
-                  >
-                    <PhoneOff size={18} className="text-white" />
-                  </button>
-                  <span
-                    className={cn(
-                      TOOLBAR_CONTROL_CAPTION_CLASS,
-                      "flex w-full items-center justify-center whitespace-nowrap",
-                    )}
-                  >
-                    Leave
-                  </span>
-                </div>
-              </div>
+              <LeaveCallEndControl
+                onEnd={onEnd}
+                hostEndForEveryoneEnabled={hostEndForEveryoneEnabled}
+                onOpenHostEndForEveryone={openHostEndForEveryoneDialog}
+                compact
+                isGroupRoom={isGroupRoom}
+              />
             </div>
           </>
         ) : (
@@ -546,51 +630,19 @@ export function RoomVideoToolbar({
                     className="z-200 w-52"
                   >
                     {overflowSecondaries.map((id) => renderOverflowMenuItem(id))}
-                    {hostEndForEveryoneEnabled ? (
-                      <DropdownMenuItem
-                        key="host-end-circle"
-                        onSelect={() => setHostEndForEveryoneDialogOpen(true)}
-                        className="text-amber-700 focus:text-amber-800 dark:text-amber-400"
-                      >
-                        <Ban size={16} />
-                        End circle for everyone
-                      </DropdownMenuItem>
-                    ) : null}
                   </DropdownMenuContent>
                 </DropdownMenu>
               ) : null}
             </div>
 
-            <div ref={endRef} className="flex shrink-0 items-center gap-2 sm:gap-3">
-              {hostEndForEveryoneEnabled ? (
-                <button
-                  type="button"
-                  onClick={openHostEndForEveryoneDialog}
-                  aria-label="End circle for everyone"
-                  title="End circle for everyone"
-                  className={HOST_END_EVERYONE_PILL_BUTTON_CLASS}
-                >
-                  <Ban size={16} className="text-white" />
-                  End for everyone
-                </button>
-              ) : null}
-              <div className="h-7 w-px shrink-0 self-center bg-white/18" aria-hidden />
-              <button
-                type="button"
-                onClick={onEnd}
-                aria-label="Leave call"
-                title="Leave call"
-                className={cn(
-                  "inline-flex h-11 shrink-0 cursor-pointer items-center gap-2 rounded-full px-5",
-                  "border border-red-500/35 bg-red-600 text-sm font-semibold text-white shadow-md shadow-black/30",
-                  "backdrop-blur-sm transition-[background-color,border-color,transform,box-shadow] duration-150",
-                  "hover:border-red-400/45 hover:bg-red-700 hover:shadow-lg hover:shadow-black/35",
-                  "active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-400/50 focus-visible:ring-offset-0",
-                )}
-              >
-                <PhoneOff size={16} className="text-white" />
-                Leave
-              </button>
+            <div ref={endRef} className="flex shrink-0 items-center">
+              <LeaveCallEndControl
+                onEnd={onEnd}
+                hostEndForEveryoneEnabled={hostEndForEveryoneEnabled}
+                onOpenHostEndForEveryone={openHostEndForEveryoneDialog}
+                compact={false}
+                isGroupRoom={isGroupRoom}
+              />
             </div>
           </>
         )}
@@ -600,8 +652,8 @@ export function RoomVideoToolbar({
       <AlertDialog open={hostEndForEveryoneDialogOpen} onOpenChange={setHostEndForEveryoneDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>{HOST_END_CIRCLE_ALERT_TITLE}</AlertDialogTitle>
-            <AlertDialogDescription>{HOST_END_CIRCLE_ALERT_DESCRIPTION}</AlertDialogDescription>
+            <AlertDialogTitle>{sessionExitCopy.hostEndAlertTitle}</AlertDialogTitle>
+            <AlertDialogDescription>{sessionExitCopy.hostEndAlertDescription}</AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel type="button">Cancel</AlertDialogCancel>
@@ -610,7 +662,7 @@ export function RoomVideoToolbar({
               className={buttonVariants({ variant: "destructive" })}
               onClick={() => void onHostEndCircleForEveryone?.()}
             >
-              End for everyone
+              {sessionExitCopy.hostEndAlertConfirmLabel}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

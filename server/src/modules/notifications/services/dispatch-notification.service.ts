@@ -1,3 +1,4 @@
+import logger from "@/core/logging";
 import { notifications } from "@/core/database/schema";
 import { emitToUser } from "@/core/socket";
 import {
@@ -31,6 +32,17 @@ export async function dispatchNotification(input: CreateNotificationInput) {
   const created = await notificationsRepository.create(input);
   if (created) {
     emitNotificationCreated(input.recipientUserId, created);
+    logger.info("notification_dispatched", {
+      recipientUserId: input.recipientUserId,
+      notificationId: created.id,
+      type: input.type,
+    });
+  } else {
+    logger.debug("notification_dispatch_skipped", {
+      recipientUserId: input.recipientUserId,
+      type: input.type,
+      reason: "deduped",
+    });
   }
   return created;
 }

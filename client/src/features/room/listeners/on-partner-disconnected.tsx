@@ -18,6 +18,7 @@ import {
   resolveApiRoomId,
   resolveCircleRouteRoomId,
 } from "@/features/room/lib/navigation/circle-routes";
+import { DIRECT_CALL_PEER_LEFT_DEBOUNCE_MS } from "@/features/room/constants/direct-call/direct-call-recovery";
 
 /**
  * Direct (1:1 match) calls only: when the other peer leaves, keep the user on the in-call UI,
@@ -36,7 +37,7 @@ export function OnPartnerDisconnected() {
   const waitingForPeerConnect = matchmaking.waitingForPeerConnect;
   const sessionActive = useAppSelector(selectIsVideoSessionActive);
   const roomPhase = useAppSelector(selectRoomPhase);
-  const { peers, mediasoupStatus, rtcSocketState, rtcRoomType } = useRtcSocketContext();
+  const { peers, rtcRoomType } = useRtcSocketContext();
   const [leaveRoom] = useLeaveRoomMutation();
 
   const remotePeerKey = remotePeerIdsStableKey(Object.keys(peers));
@@ -142,20 +143,13 @@ export function OnPartnerDisconnected() {
 
     if (!hadRemotePeerRef.current || handledRef.current) return;
 
-    const connectionRecovering = rtcSocketState !== "connected" || mediasoupStatus !== "ready";
-    if (connectionRecovering) {
-      clearPartnerLeftTimer();
-      if (timersRef.current.networkRecovery == null) {
-        timersRef.current.networkRecovery = window.setTimeout(() => {
-          timersRef.current.networkRecovery = null;
-          beginSearchForNextCandidate();
-        }, DIRECT_CALL_RECOVERY.networkRecoveryTimeoutMs);
-      }
-      return;
+    if (timersRef.current.partnerLeft == null) {
+      timersRef.current.partnerLeft = window.setTimeout(() => {
+        timersRef.current.partnerLeft = null;
+        clearNetworkRecoveryTimer();
+        beginSearchForNextCandidate();
+      }, DIRECT_CALL_PEER_LEFT_DEBOUNCE_MS);
     }
-
-    clearNetworkRecoveryTimer();
-    beginSearchForNextCandidate();
 
     return () => {
       clearPartnerLeftTimer();
@@ -163,13 +157,10 @@ export function OnPartnerDisconnected() {
   }, [
     sessionActive,
     rtcRoomType,
-    mediasoupStatus,
-    rtcSocketState,
     remotePeerKey,
     matchmakingStatus,
     waitingForPeerConnect,
     roomPhase,
-    dispatch,
     clearNetworkRecoveryTimer,
     clearPartnerLeftTimer,
     beginSearchForNextCandidate,

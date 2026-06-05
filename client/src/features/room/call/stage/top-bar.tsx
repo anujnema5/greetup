@@ -2,6 +2,8 @@
 
 import { type ReactNode } from "react";
 import { PictureInPicture2 } from "lucide-react";
+import { CircleCallTitleBadge } from "@/features/room/call/components/circle-call-title-badge";
+import { DEFAULT_CIRCLE_DISPLAY_TITLE } from "@/features/room/constants/call/circle-display";
 import { cn } from "@/lib/utils";
 
 const STAGE_CHROME_BTN =
@@ -9,13 +11,17 @@ const STAGE_CHROME_BTN =
 
 /**
  * Top overlay: stage title (when not 1:1 tile-only layout) + **Minimize call** (dock / keep session).
- * Circle rooms use the footer “Options” for rename/invite; minimize is still available here.
+ * Circle rooms: compact title on stage (host edit opens rename dialog); footer “Options” for invite/link/chat.
  *
  * `stageTrailingActions` (fullscreen, share audio, etc.) shares one row with minimize so controls
  * never stack in the same corner.
  */
 export function CallTopBar({
   isOneToOneStage,
+  isGroupRoom = false,
+  circleDisplayTitle = null,
+  canEditCircleTitle = false,
+  onEditCircleTitle,
   activeActivityLabel,
   activeActivity,
   mainStageShowsScreen,
@@ -24,6 +30,10 @@ export function CallTopBar({
   stageTrailingActions,
 }: {
   isOneToOneStage: boolean;
+  isGroupRoom?: boolean;
+  circleDisplayTitle?: string | null;
+  canEditCircleTitle?: boolean;
+  onEditCircleTitle?: () => void;
   activeActivityLabel: string | null;
   activeActivity: boolean;
   mainStageShowsScreen: boolean;
@@ -32,27 +42,42 @@ export function CallTopBar({
   /** e.g. fullscreen + mute screen audio — rendered before minimize, same row */
   stageTrailingActions?: ReactNode;
 }) {
+  const circleTitle = circleDisplayTitle?.trim() || DEFAULT_CIRCLE_DISPLAY_TITLE;
   const showRightCluster = Boolean(stageTrailingActions) || Boolean(onMinimize);
 
   return (
     <div
       className={cn(
-        "pointer-events-none absolute inset-x-0 top-0 z-20 flex select-none items-start justify-between gap-x-2 gap-y-2 px-4 pb-7 pt-4 sm:items-center sm:gap-x-3 md:px-5 md:pt-5",
-        !activeActivity && "bg-linear-to-b from-black/75 to-transparent",
+        "pointer-events-none absolute inset-x-0 top-0 z-20 flex select-none items-start justify-between gap-x-2 sm:items-center sm:gap-x-2",
+        isGroupRoom
+          ? "gap-y-1 px-3 pb-1 pt-2 md:px-4 md:pt-3"
+          : "gap-y-2 px-4 pb-7 pt-4 md:px-5 md:pt-5",
+        !activeActivity &&
+          (isGroupRoom
+            ? "bg-linear-to-b from-black/35 to-transparent"
+            : "bg-linear-to-b from-black/75 to-transparent"),
       )}
     >
-      <div className="flex min-w-0 flex-1 items-center gap-2 sm:flex-initial">
-        <div className="min-w-0 flex-1">
+      <div className="flex min-w-0 shrink items-center sm:flex-initial">
+        <div className="min-w-0">
           {!isOneToOneStage && !activeActivity ? (
-            <>
-              <p className="truncate text-xs font-semibold leading-none text-white md:text-sm">
-                {activeActivityLabel ??
-                  (mainStageShowsScreen ? "Screen share" : peerLabel)}
-              </p>
-              {mainStageShowsScreen && (
-                <p className="mt-0.5 truncate text-[11px] text-white/60">{peerLabel}</p>
-              )}
-            </>
+            isGroupRoom ? (
+              <CircleCallTitleBadge
+                title={circleTitle}
+                canEdit={canEditCircleTitle}
+                onEdit={onEditCircleTitle}
+              />
+            ) : (
+              <>
+                <p className="truncate text-xs font-semibold leading-none text-white md:text-sm">
+                  {activeActivityLabel ??
+                    (mainStageShowsScreen ? "Screen share" : peerLabel)}
+                </p>
+                {mainStageShowsScreen ? (
+                  <p className="mt-0.5 truncate text-[11px] text-white/60">{peerLabel}</p>
+                ) : null}
+              </>
+            )
           ) : null}
         </div>
       </div>

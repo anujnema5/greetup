@@ -1,7 +1,9 @@
 import { and, eq, ilike, isNotNull, ne, notInArray, or, sql } from "drizzle-orm";
 
+import logger from "@/core/logging";
 import { db } from "@/core/database";
-import { userBlocks, users } from "@/core/database/schema";
+import { users } from "@/core/database/schema";
+import { userBlocksRepository } from "@/modules/blocks/repositories/user-blocks.repository";
 import { escapeIlikePattern } from "@/shared/sql/ilike-escape";
 
 export type SearchUserHit = {
@@ -13,20 +15,7 @@ export type SearchUserHit = {
 };
 
 async function loadBlockedPeerIds(viewerId: string): Promise<string[]> {
-  const [outgoing, incoming] = await Promise.all([
-    db
-      .select({ id: userBlocks.blockedId })
-      .from(userBlocks)
-      .where(eq(userBlocks.blockerId, viewerId)),
-    db
-      .select({ id: userBlocks.blockerId })
-      .from(userBlocks)
-      .where(eq(userBlocks.blockedId, viewerId)),
-  ]);
-  const set = new Set<string>();
-  for (const r of outgoing) set.add(r.id);
-  for (const r of incoming) set.add(r.id);
-  return [...set];
+  return userBlocksRepository.listAllBlockedPeerIds(viewerId);
 }
 
 export async function searchUsersService(
@@ -36,6 +25,7 @@ export async function searchUsersService(
 ): Promise<{ items: SearchUserHit[] }> {
   const term = q.trim().toLowerCase();
   if (term.length < 2) {
+    logger.warn("user_search_rejected", { viewerId, reason: "query_too_short", queryLength: term.length });
     return { items: [] };
   }
 
@@ -75,8 +65,7 @@ export async function searchUsersService(
     )
     .limit(limit);
 
-  return {
-    items: rows
+  const items = rows
       .filter((r): r is SearchUserHit & { username: string } => r.username != null)
       .map((r) => ({
         userId: r.userId,
@@ -84,6 +73,8 @@ export async function searchUsersService(
         displayName: r.displayName,
         name: r.name,
         image: r.image,
-      })),
-  };
+      }));
+
+  logger.debug("users_searched", { viewerId, queryLength: term.length, resultCount: items.length });
+  return { items };
 }

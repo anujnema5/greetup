@@ -1,9 +1,16 @@
 import { inArray } from 'drizzle-orm';
 import { db } from '@/core/database';
 import { users } from '@/core/database/schema';
+import logger from '@/core/logging';
 import { getRedis } from '@/core/redis';
 import { CHAT_KEYS, CHAT_RATE_LIMIT, CHAT_RATE_WINDOW } from '@/core/redis/keys';
+import { getChatNamespace } from '@/core/socket/socket';
+import {
+  connectionCallInboxPreview,
+  isConnectionCallSystemPayload,
+} from '@/modules/connections/lib/connection-call-system-payload';
 import type { MessageRow } from '../repositories/message.repository';
+import { assertCanMessageInConversation } from '../lib/conversation-messaging-guard';
 import { conversationRepository } from '../repositories/conversation.repository';
 import { messageRepository } from '../repositories/message.repository';
 
@@ -19,6 +26,7 @@ function systemPayloadPreview(payload: unknown): string | null {
     if (typeof o.message === 'string' && o.message.trim()) return o.message.trim();
     if (typeof o.body === 'string' && o.body.trim()) return o.body.trim();
     if (o.event === 'user_added') return 'Someone joined the circle';
+    if (isConnectionCallSystemPayload(o)) return connectionCallInboxPreview(o);
   }
   return 'System message';
 }
@@ -115,7 +123,13 @@ export const messageService = {
     replyToId?: string;
     mentions?: string[];
   }) {
-    await conversationRepository.isParticipant(params.conversationId, params.senderId);
+    const canAccess = await conversationRepository.hasParticipantRecord(
+      params.conversationId,
+      params.senderId,
+    );
+    if (!canAccess) throw new Error('UNAUTHORIZED');
+    await conversationRepository.rejoin(params.conversationId, params.senderId);
+    await assertCanMessageInConversation(params.conversationId, params.senderId);
 
     const msg = await messageRepository.insertMessage(params);
 
@@ -125,13 +139,94 @@ export const messageService = {
       const redis = getRedis();
       for (const p of conv.participants) {
         if (p.userId !== params.senderId) {
+          await conversationRepository.rejoin(params.conversationId, p.userId);
+          await redis.hincrby(CHAT_KEYS.unreadCounts(p.userId), params.conversationId, 1);
+        }
+      }
+    }
+
+    const messageType = params.messageType ?? 'text';
+    if (messageType === 'text') {
+      logger.debug('message_sent', {
+        conversationId: params.conversationId,
+        messageId: msg.id,
+        messageType,
+      });
+    }
+
+    const [withSender] = await withSenders([msg]);
+    return { ...withSender, reactions: [] as { id: string; messageId: string; userId: string; emoji: string; createdAt: string }[] };
+  },
+
+  async publishSystemMessage(params: {
+    conversationId: string;
+    senderId: string;
+    systemPayload: Record<string, unknown>;
+  }) {
+    const isMember = await conversationRepository.isParticipant(params.conversationId, params.senderId);
+    if (!isMember) throw new Error('UNAUTHORIZED');
+
+    const msg = await messageRepository.insertSystemMessage(params);
+    const conv = await conversationRepository.findById(params.conversationId);
+    const redis = getRedis();
+
+    if (conv) {
+      for (const p of conv.participants) {
+        if (p.userId !== params.senderId) {
+          await conversationRepository.rejoin(params.conversationId, p.userId);
           await redis.hincrby(CHAT_KEYS.unreadCounts(p.userId), params.conversationId, 1);
         }
       }
     }
 
     const [withSender] = await withSenders([msg]);
-    return { ...withSender, reactions: [] as { id: string; messageId: string; userId: string; emoji: string; createdAt: string }[] };
+    const full = {
+      ...withSender,
+      createdAt: withSender.createdAt.toISOString(),
+      reactions: [] as { id: string; messageId: string; userId: string; emoji: string; createdAt: string }[],
+    };
+
+    try {
+      const io = getChatNamespace();
+      if (conv) {
+        const lastActivityAt = full.createdAt;
+        const lastMessagePreview = inboxPreviewFromMessageRow(msg);
+
+        for (const p of conv.participants) {
+          io.to(`user:${p.userId}`).emit('chat:message:new', full);
+          io.to(`user:${p.userId}`).emit('chat:conversation:activity', {
+            conversationId: params.conversationId,
+            lastActivityAt,
+            lastMessagePreview,
+          });
+
+          if (p.userId === params.senderId) continue;
+          const raw = await redis.hget(CHAT_KEYS.unreadCounts(p.userId), params.conversationId);
+          const unreadCount = Number.parseInt(raw ?? '0', 10) || 0;
+          io.to(`user:${p.userId}`).emit('chat:unread:sync', {
+            conversationId: params.conversationId,
+            unreadCount,
+          });
+        }
+      }
+    } catch (error) {
+      logger.warn("chat_system_message_socket_emit_failed", {
+        error,
+        conversationId: params.conversationId,
+        messageId: full.id,
+        event: params.systemPayload.event,
+      });
+    }
+
+    logger.info("chat_system_message_published", {
+      messageId: full.id,
+      conversationId: params.conversationId,
+      senderId: params.senderId,
+      event: params.systemPayload.event ?? null,
+      participantCount: conv?.participants.length ?? 0,
+    });
+
+    return full;
   },
 
   async getMessages(params: {
@@ -143,10 +238,17 @@ export const messageService = {
     const isMember = await conversationRepository.isParticipant(params.conversationId, params.userId);
     if (!isMember) throw new Error('UNAUTHORIZED');
 
+    const participant = await conversationRepository.getParticipant(
+      params.conversationId,
+      params.userId,
+    );
+    const hiddenBeforeAt = participant?.historyHiddenBeforeAt ?? undefined;
+
     const page = await messageRepository.getMessages({
       conversationId: params.conversationId,
       cursor: params.cursor,
       limit: params.limit,
+      hiddenBeforeAt,
     });
     const reactionMap = await messageRepository.getReactionsForMessageIds(
       page.messages.map((m) => m.id),
@@ -180,6 +282,7 @@ export const messageService = {
     const existing = await messageRepository.findById(params.messageId);
     if (!existing) throw new Error('NOT_FOUND');
     if (existing.senderId !== params.senderId) throw new Error('UNAUTHORIZED');
+    await assertCanMessageInConversation(existing.conversationId, params.senderId);
     const updated = await messageRepository.editMessage(params.messageId, params.content);
     if (!updated) return null;
     const [out] = await withSenders([updated]);
@@ -215,6 +318,7 @@ export const messageService = {
   }) {
     const isMember = await conversationRepository.isParticipant(params.conversationId, params.userId);
     if (!isMember) throw new Error('UNAUTHORIZED');
+    await assertCanMessageInConversation(params.conversationId, params.userId);
     return messageRepository.addReaction(params.messageId, params.userId, params.emoji);
   },
 
@@ -226,10 +330,12 @@ export const messageService = {
   }) {
     const isMember = await conversationRepository.isParticipant(params.conversationId, params.userId);
     if (!isMember) throw new Error('UNAUTHORIZED');
+    await assertCanMessageInConversation(params.conversationId, params.userId);
     return messageRepository.removeReaction(params.messageId, params.userId, params.emoji);
   },
 
   async setTyping(conversationId: string, userId: string, isTyping: boolean) {
+    await assertCanMessageInConversation(conversationId, userId);
     const redis = getRedis();
     const key = CHAT_KEYS.typingMember(conversationId, userId);
     if (isTyping) {

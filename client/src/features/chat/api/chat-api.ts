@@ -102,6 +102,31 @@ export const chatApi = baseApi.injectEndpoints({
       invalidatesTags: [CACHE_CONVERSATIONS_LIST],
     }),
 
+    deleteConversation: build.mutation<{ ok: true }, string>({
+      query: (conversationId) => ({
+        url: CHAT.conversation(conversationId),
+        method: "DELETE",
+      }),
+      async onQueryStarted(conversationId, { dispatch, queryFulfilled }) {
+        const listPatch = dispatch(
+          chatApi.util.updateQueryData("listConversations", undefined, (draft) => {
+            const idx = draft.findIndex((c) => c.id === conversationId);
+            if (idx >= 0) draft.splice(idx, 1);
+          }),
+        );
+        try {
+          await queryFulfilled;
+        } catch {
+          listPatch.undo();
+        }
+      },
+      invalidatesTags: (_result, _error, conversationId) => [
+        CACHE_CONVERSATIONS_LIST,
+        cacheTagForConversation(conversationId),
+        cacheTagForMessages(conversationId),
+      ],
+    }),
+
     deleteMessage: build.mutation<void, { messageId: string; deleteForAll?: boolean }>({
       query: ({ messageId, deleteForAll = false }) => ({
         url: CHAT.deleteMessage(messageId),
@@ -140,6 +165,7 @@ export const {
   useGetMessagesQuery,
   useCreateConnectionConversationMutation,
   useSetPersistenceMutation,
+  useDeleteConversationMutation,
   useDeleteMessageMutation,
   usePinMessageMutation,
   useUnpinMessageMutation,

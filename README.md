@@ -10,7 +10,7 @@ Monorepo for Greetup application services.
 | `server` | Hono / Bun | Main API, auth, realtime orchestration |
 | `matching-service` | Bun | Async matchmaking microservice |
 | `rtc-service` | Node.js + mediasoup | WebRTC SFU for peer video/audio |
-| `docs` | — | Architecture and developer notes |
+| `docs` | — | Architecture, developer notes, [product overview](docs/product/greetup-product-overview.md) |
 
 ---
 

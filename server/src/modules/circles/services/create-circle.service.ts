@@ -1,16 +1,29 @@
 import { randomBytes } from "crypto";
 
+import logger from "@/core/logging";
 import { mergeRoomAdvancedOptions } from "@/core/database/schema";
 import { getAcceptedPeerIdsForUser } from "@/modules/connections/services/accepted-peer-ids.service";
 import { notifyCircleInviteReceived } from "../notifications";
+import { notifyCircleStartedToAssociatedUsers } from "@/modules/rooms/notifications";
 import {
   canHostInviteUserToRoom,
   getRoomInvitePreferencesForUsers,
 } from "@/modules/profile/services/room-invite-preferences.service";
-import { roomsRepository } from "@/modules/rooms/repositories/rooms.repository";
-import { provisionSessionRoomRedis } from "@/modules/rooms/services/session-room-redis.service";
+import { isRoomCategoryPickable } from "@/modules/rooms/constants/room-category-picker.constants";
+import { roomCategoriesRepository } from "@/modules/rooms/repositories/room-categories.repository";
+import { roomCreationRepository } from "@/modules/rooms/repositories/room-creation.repository";
+import { provisionSessionRoomRedis } from "@/modules/rooms/services/rtc/session-room-redis.service";
 import type { CreateCircleBody } from "../schemas/create-circle.schema";
-import { CreateCircleError } from "../types/create-circle.types";
+import { CreateCircleError, type CreateCircleErrorCode } from "../types/create-circle.types";
+
+function rejectCreateCircle(
+  hostUserId: string,
+  message: string,
+  code: CreateCircleErrorCode,
+): never {
+  logger.warn("circle_create_rejected", { hostUserId, code, message });
+  throw new CreateCircleError(message, code);
+}
 
 export function randomInviteCode(): string {
   return randomBytes(9).toString("base64url").replace(/[^a-zA-Z0-9]/g, "").slice(0, 12);
@@ -49,7 +62,8 @@ export async function resolveValidatedInviteeIds(
 
   for (const id of unique) {
     if (!peerIds.has(id)) {
-      throw new CreateCircleError(
+      rejectCreateCircle(
+        hostUserId,
         "You can only invite users you are connected with",
         "INVALID_INVITEES",
       );
@@ -72,7 +86,8 @@ export async function assertInviteesAllowRoomInvitesFromHost(
       allowlistedUserIds: [],
     };
     if (!canHostInviteUserToRoom(hostUserId, p)) {
-      throw new CreateCircleError(
+      rejectCreateCircle(
+        hostUserId,
         "One or more people do not allow room invites from you. Change who can invite them in Profile, or remove them from the invite list.",
         "INVITEE_RESTRICTED_ROOM_INVITES",
       );
@@ -84,10 +99,14 @@ export async function createCircleService(
   hostUserId: string,
   body: CreateCircleBody,
 ) {
-  const category = await roomsRepository.findActiveCategoryById(body.categoryId);
+  const category = await roomCategoriesRepository.findActiveCategoryById(body.categoryId);
 
   if (!category) {
-    throw new CreateCircleError("Category not found or inactive", "CATEGORY_NOT_FOUND");
+    rejectCreateCircle(hostUserId, "Category not found or inactive", "CATEGORY_NOT_FOUND");
+  }
+
+  if (!isRoomCategoryPickable(category.slug)) {
+    rejectCreateCircle(hostUserId, "Category not available for circles", "CATEGORY_NOT_FOUND");
   }
 
   const now = new Date();
@@ -103,10 +122,7 @@ export async function createCircleService(
     : null;
 
   if (body.scheduleMode === "scheduled" && scheduledStartAt && scheduledStartAt <= now) {
-    throw new CreateCircleError(
-      "Scheduled start must be in the future",
-      "INVALID_SCHEDULE",
-    );
+    rejectCreateCircle(hostUserId, "Scheduled start must be in the future", "INVALID_SCHEDULE");
   }
 
   const inviteeIds = await resolveValidatedInviteeIds(
@@ -116,7 +132,8 @@ export async function createCircleService(
 
   const maxInvitees = body.maxParticipants - 1;
   if (inviteeIds.length > maxInvitees) {
-    throw new CreateCircleError(
+    rejectCreateCircle(
+      hostUserId,
       `You can invite at most ${maxInvitees} ${maxInvitees === 1 ? "person" : "people"} for a ${body.maxParticipants}-seat circle (you use one seat).`,
       "INVITES_EXCEED_CAPACITY",
     );
@@ -131,7 +148,7 @@ export async function createCircleService(
 
   const roomType = body.roomType ?? "circle";
 
-  const row = await roomsRepository.createRoomWithHostAndInvites({
+  const row = await roomCreationRepository.createRoomWithHostAndInvites({
     categoryId: body.categoryId,
     hostUserId,
     title: body.title,
@@ -159,17 +176,34 @@ export async function createCircleService(
   }
 
   if (inviteeIds.length > 0) {
-    await Promise.all(
-      inviteeIds.map((inviteeUserId) =>
-        notifyCircleInviteReceived({
-          recipientUserId: inviteeUserId,
-          actorUserId: hostUserId,
-          roomId: row.id,
-          roomTitle: body.title.trim(),
-        }),
-      ),
-    );
+    const roomTitle = body.title.trim();
+    if (row.status === "live") {
+      await notifyCircleStartedToAssociatedUsers({
+        roomId: row.id,
+        hostUserId,
+        roomTitle,
+      });
+    } else {
+      await Promise.all(
+        inviteeIds.map((inviteeUserId) =>
+          notifyCircleInviteReceived({
+            recipientUserId: inviteeUserId,
+            actorUserId: hostUserId,
+            roomId: row.id,
+            roomTitle,
+          }),
+        ),
+      );
+    }
   }
+
+  logger.info("circle_created", {
+    hostUserId,
+    roomId: row.id,
+    status: row.status,
+    roomType,
+    friendInvitesCreated: inviteeIds.length,
+  });
 
   return {
     room: row,

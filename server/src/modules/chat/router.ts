@@ -4,6 +4,7 @@ import {
   handleGetConversation,
   handleGetMessages,
   handleCreateConnectionConversation,
+  handleLeaveConversation,
   handleSetPersistence,
 } from './controllers/conversations.controller';
 import {
@@ -20,6 +21,7 @@ chatRoute.get('/conversations', handleListConversations);
 chatRoute.get('/conversations/:id', handleGetConversation);
 chatRoute.get('/conversations/:id/messages', handleGetMessages);
 chatRoute.post('/conversations/connection', handleCreateConnectionConversation);
+chatRoute.delete('/conversations/:id', handleLeaveConversation);
 chatRoute.patch('/conversations/:id/persistence', handleSetPersistence);
 
 // Messages

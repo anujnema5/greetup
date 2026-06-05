@@ -9,6 +9,8 @@ export * from "./tiles/tile-primitives";
 export * from "./tiles/tile-styles";
 export { CircleGalleryGrid } from "./layouts/grid/circle-grid";
 export { PaginatedTileGrid } from "./layouts/grid/paginated-tile-grid";
+export { CamerasUnderScreenShare } from "./layouts/screen-share/cameras-under-screen";
+export { CameraTilePageButtons } from "./components/pagination/camera-tile-page-buttons";
 export { circleGridClass } from "./layouts/grid/circle-grid-classes";
 export { ActivityStage } from "./activities/activity-stage";
 export { CALL_ACTIVITY_REGISTRY, resolveActivityStageComponent } from "./activities/registry";

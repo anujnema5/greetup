@@ -7,6 +7,8 @@ import type { Device } from "mediasoup-client";
 import type { Socket } from "socket.io-client";
 import { useMediasoupLocalMedia } from "@/features/rtc/hooks/use-mediasoup-local-media";
 import { useMediasoupRoomSession } from "@/features/rtc/hooks/use-mediasoup-room-session";
+import { useApplyLobbyMediaIntent } from "@/features/room/hooks/lobby/use-apply-lobby-media-intent";
+import { clearLobbyMediaHandoff, clearLobbyMediaIntent } from "@/features/room/lib/lobby";
 import { useScreenShareFocusOrdering } from "@/features/rtc/hooks/use-screen-share-focus-ordering";
 import {
   buildDirectCallMainStageStream,
@@ -68,6 +70,9 @@ export function useMediasoupRoom(options: UseMediasoupRoomArgs): UseMediasoupRoo
     Record<string, ProducerMediaSource>
   >({});
   const [dominantSpeakerPeerId, setDominantSpeakerPeerId] = useState<string | null>(null);
+  const [dominantSpeakerSpeakingMs, setDominantSpeakerSpeakingMs] = useState<Record<string, number>>(
+    {},
+  );
   const [localMediaDeviceError, setLocalMediaDeviceError] = useState<string | null>(null);
 
   const localStreamRef = useRef<MediaStream | null>(null);
@@ -275,6 +280,20 @@ export function useMediasoupRoom(options: UseMediasoupRoomArgs): UseMediasoupRoo
     cleanupLocalScreenShare,
   } = useMediasoupLocalMedia(localMediaRefs, localMediaSetters);
 
+  useApplyLobbyMediaIntent({
+    mediasoupReady: status === "ready",
+    micEnabled,
+    cameraEnabled,
+    toggleMic,
+    toggleCamera,
+  });
+
+  useEffect(() => {
+    if (options.enabled) return;
+    clearLobbyMediaIntent();
+    clearLobbyMediaHandoff();
+  }, [options.enabled]);
+
   const toggleScreenShare = useCallback(() => {
     if (!screenSharing && screenShareTiles.length >= MAX_CONCURRENT_SCREEN_SHARES) {
       toast.error(`Can't share ${MAX_CONCURRENT_SCREEN_SHARES} screens are already being shared.`);
@@ -322,6 +341,7 @@ export function useMediasoupRoom(options: UseMediasoupRoomArgs): UseMediasoupRoo
       setRemoteTrackMediaSource,
       setLocalMediaDeviceError,
       setDominantSpeakerPeerId,
+      setDominantSpeakerSpeakingMs,
     }),
     [
       setStatus,
@@ -336,6 +356,7 @@ export function useMediasoupRoom(options: UseMediasoupRoomArgs): UseMediasoupRoo
       setRemoteTrackMediaSource,
       setLocalMediaDeviceError,
       setDominantSpeakerPeerId,
+      setDominantSpeakerSpeakingMs,
     ],
   );
 
@@ -375,5 +396,6 @@ export function useMediasoupRoom(options: UseMediasoupRoomArgs): UseMediasoupRoo
     setFocusedScreenShareKey,
     remoteTrackMediaSource,
     dominantSpeakerPeerId,
+    dominantSpeakerSpeakingMs,
   };
 }

@@ -25,8 +25,8 @@ export function playbackStreamForDockVideo(
   return new MediaStream([chosen, ...audios]);
 }
 
-/** Mic-dominant debounce — reduces rapid tile swaps in cross-talk. */
-export const MINIMIZED_DOCK_DOMINANT_DEBOUNCE_MS = 380;
+/** Live-speaker debounce — reduces rapid tile swaps in cross-talk. */
+export const MINIMIZED_DOCK_LIVE_SPEAKER_DEBOUNCE_MS = 380;
 
 /** Strict match — no fallback (callers combine with roster fallback). */
 export function findRemoteParticipant(

@@ -12,7 +12,7 @@ import {
   offerDirectRoomChessDraw,
   respondDirectRoomChessDraw,
   respondDirectRoomChessInvite,
-} from "@/modules/rooms/services/chess-activity.service";
+} from "@/modules/rooms/services/activity/chess-activity.service";
 import {
   chessDrawOfferBodySchema,
   chessDrawRespondBodySchema,

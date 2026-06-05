@@ -2,6 +2,7 @@
  * Profile steps service – builds onboarding steps with pre-filled values and pagination.
  */
 
+import logger from "@/core/logging";
 import type {
   FormStep,
   FormField,
@@ -306,6 +307,15 @@ export async function fetchProfileStepsService(
       ? calculateCompletion(allSteps)
       : profile.profileCompletion;
   const isProfileComplete = profileCompletion >= PROFILE_COMPLETE_THRESHOLD;
+
+  logger.debug("profile_steps_fetched", {
+    userId,
+    page: safePage,
+    limit: safeLimit,
+    profileCompletion,
+    isProfileComplete,
+    stepsReturned: steps.length,
+  });
 
   return {
     steps,

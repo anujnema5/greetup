@@ -1,4 +1,4 @@
-import { and, eq, isNull } from "drizzle-orm";
+import { and, eq, inArray, isNull } from "drizzle-orm";
 
 import { db } from "@/core/database";
 import {
@@ -88,6 +88,19 @@ export const roomInviteRepository = {
       .update(roomFriendInvites)
       .set({ status: "accepted", updatedAt: new Date() })
       .where(eq(roomFriendInvites.id, inviteId));
+  },
+
+  async cancelFriendInviteForRoomInvitee(roomId: string, inviteeUserId: string): Promise<void> {
+    await db
+      .update(roomFriendInvites)
+      .set({ status: "cancelled", updatedAt: new Date() })
+      .where(
+        and(
+          eq(roomFriendInvites.roomId, roomId),
+          eq(roomFriendInvites.inviteeUserId, inviteeUserId),
+          inArray(roomFriendInvites.status, ["pending", "accepted"]),
+        ),
+      );
   },
 
   /**

@@ -9,6 +9,7 @@ import {
   type DominantSpeakerSocketPayload,
   isMicProducerForDominantUI,
 } from "@/modules/rtc/peer/dominant-speaker";
+import { KICKED_SOCKET_EVENT } from "@/modules/rtc/signaling/kicked-event";
 import * as peerRepository from "@/modules/rtc/peer/peer.repository";
 import type { PeerRecord } from "@/modules/rtc/peer/peer.types";
 import { mediaSourceFromProducerAppData, type ProducerMediaSource } from "@/modules/rtc/peer/media-source";
@@ -71,7 +72,16 @@ export class PeerSessionService {
       releaseRoomIfEmpty: false,
     });
 
-    const roomResult = await roomService.getOrCreateLocalRoom(roomId);
+    let roomResult = await roomService.getOrCreateLocalRoom(roomId);
+    if (!roomResult.ok && roomResult.code === "WRONG_INSTANCE") {
+      const peerIds = await peerRepository.listPeerIdsInRoom(roomId);
+      const onlySelfOrEmpty =
+        peerIds.length === 0 || (peerIds.length === 1 && peerIds[0] === userId);
+      if (onlySelfOrEmpty) {
+        await roomService.forceClearRoomRedis(roomId);
+        roomResult = await roomService.getOrCreateLocalRoom(roomId);
+      }
+    }
     if (!roomResult.ok) {
       return { ok: false, code: "WRONG_INSTANCE", ownerInstanceId: roomResult.ownerInstanceId };
     }
@@ -523,10 +533,24 @@ export class PeerSessionService {
 
   private emitDominantSpeakerToMediasoupRoom(roomId: string, payload: DominantSpeakerSocketPayload): void {
     const members = this.roomMembers.get(roomId);
-    if (!members || members.size === 0) return;
+    if (!members || members.size === 0) {
+      logger.warn("dominantSpeaker: emit skipped (no room members)", { roomId, payload });
+      return;
+    }
     const firstId = members.values().next().value as string | undefined;
     const session = firstId ? this.sessions.get(firstId) : undefined;
-    session?.socket.nsp.to(roomId).emit(DOMINANT_SPEAKER_SOCKET_EVENT, payload);
+    if (!session) {
+      logger.warn("dominantSpeaker: emit skipped (no session)", { roomId, payload });
+      return;
+    }
+    session.socket.nsp.to(roomId).emit(DOMINANT_SPEAKER_SOCKET_EVENT, payload);
+    logger.info("dominantSpeaker: socket emitted", {
+      roomId,
+      event: DOMINANT_SPEAKER_SOCKET_EVENT,
+      peerId: payload.peerId,
+      memberCount: members.size,
+      speakingMsByPeer: payload.speakingMsByPeer,
+    });
   }
 
   private ensureDominantSpeakerListener(roomId: string): void {
@@ -598,7 +622,7 @@ export class PeerSessionService {
     }
 
     if (wasDominant) {
-      this.dominantSpeaker.broadcastIfChanged(roomId, null);
+      this.dominantSpeaker.broadcastIfChanged(roomId, null, "manual");
     }
 
     if (!opts.skipRedis) {
@@ -617,6 +641,28 @@ export class PeerSessionService {
     logger.info("Peer session removed", { userId, roomId });
   }
 
+  /**
+   * Removes one peer from the SFU room (internal webhook). Notifies the target, tears down
+   * mediasoup state, and disconnects their socket so they cannot keep signaling.
+   */
+  async kickPeer(roomId: string, targetUserId: string): Promise<{ ok: true; removed: boolean }> {
+    const session = this.sessions.get(targetUserId);
+    if (!session || session.roomId !== roomId) {
+      return { ok: true, removed: false };
+    }
+
+    const { socket } = session;
+    socket.emit(KICKED_SOCKET_EVENT, { roomId });
+    await this.removeSession(targetUserId, {
+      skipRedis: false,
+      skipSocketLeave: false,
+      releaseRoomIfEmpty: true,
+    });
+    socket.disconnect(true);
+    logger.info("Peer kicked from room", { roomId, targetUserId });
+    return { ok: true, removed: true };
+  }
+
   async forceTeardownMediasoupRoom(roomId: string): Promise<{ ok: true; removedSessions: number }> {
     const userIds = [...(this.roomMembers.get(roomId) ?? [])];
     for (const userId of userIds) {
@@ -627,6 +673,7 @@ export class PeerSessionService {
       });
     }
     await this.releaseRoomAndTaps(roomId);
+    await roomService.forceClearRoomRedis(roomId);
     logger.info("forceTeardownMediasoupRoom", { roomId, removedSessions: userIds.length });
     return { ok: true, removedSessions: userIds.length };
   }

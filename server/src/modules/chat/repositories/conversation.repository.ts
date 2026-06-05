@@ -11,7 +11,7 @@ const conversationWithDisplay = {
   participants: {
     with: {
       user: {
-        columns: { id: true, name: true, displayName: true, image: true },
+        columns: { id: true, username: true, name: true, displayName: true, image: true },
       },
     },
   },
@@ -121,9 +121,54 @@ export const conversationRepository = {
       where: and(
         eq(conversationParticipants.conversationId, conversationId),
         eq(conversationParticipants.userId, userId),
+        isNull(conversationParticipants.leftAt),
       ),
     });
     return !!row;
+  },
+
+  async hasParticipantRecord(conversationId: string, userId: string): Promise<boolean> {
+    const row = await db.query.conversationParticipants.findFirst({
+      where: and(
+        eq(conversationParticipants.conversationId, conversationId),
+        eq(conversationParticipants.userId, userId),
+      ),
+      columns: { userId: true },
+    });
+    return !!row;
+  },
+
+  async getParticipant(conversationId: string, userId: string) {
+    return db.query.conversationParticipants.findFirst({
+      where: and(
+        eq(conversationParticipants.conversationId, conversationId),
+        eq(conversationParticipants.userId, userId),
+      ),
+    });
+  },
+
+  async markLeft(conversationId: string, userId: string): Promise<boolean> {
+    const now = new Date();
+    const result = await db
+      .update(conversationParticipants)
+      .set({ leftAt: now, historyHiddenBeforeAt: now })
+      .where(and(
+        eq(conversationParticipants.conversationId, conversationId),
+        eq(conversationParticipants.userId, userId),
+        isNull(conversationParticipants.leftAt),
+      ))
+      .returning({ userId: conversationParticipants.userId });
+    return result.length > 0;
+  },
+
+  async rejoin(conversationId: string, userId: string): Promise<void> {
+    await db
+      .update(conversationParticipants)
+      .set({ leftAt: null })
+      .where(and(
+        eq(conversationParticipants.conversationId, conversationId),
+        eq(conversationParticipants.userId, userId),
+      ));
   },
 
   async setPersistence(conversationId: string, userId: string, wantsPersistence: boolean) {

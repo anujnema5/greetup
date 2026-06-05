@@ -97,6 +97,7 @@ export function useMediasoupRoomSession(options: MediasoupRoomSessionOptions): v
     set.setLocalScreenTrackId(null);
     set.setRemoteTrackMediaSource({});
     set.setDominantSpeakerPeerId(null);
+    set.setDominantSpeakerSpeakingMs({});
     refs.micEnabledRef.current = false;
     refs.cameraEnabledRef.current = false;
     set.setLocalStream(null);
@@ -167,10 +168,16 @@ export function useMediasoupRoomSession(options: MediasoupRoomSessionOptions): v
       });
     };
 
-    const onDominantSpeaker = (data: { peerId?: string | null }) => {
+    const onDominantSpeaker = (data: {
+      peerId?: string | null;
+      speakingMsByPeer?: Record<string, number>;
+    }) => {
       if (cancelled) return;
       const pid = data?.peerId;
       set.setDominantSpeakerPeerId(typeof pid === "string" && pid.length > 0 ? pid : null);
+      if (data?.speakingMsByPeer && typeof data.speakingMsByPeer === "object") {
+        set.setDominantSpeakerSpeakingMs(data.speakingMsByPeer);
+      }
     };
 
     const onPeerLeft = (data: { peerId?: string }) => {
@@ -191,6 +198,12 @@ export function useMediasoupRoomSession(options: MediasoupRoomSessionOptions): v
       });
     };
 
+    const onKicked = () => {
+      if (cancelled) return;
+      set.setError("removed_from_circle");
+      set.setStatus("error");
+    };
+
     const cleanupMedia = (sendT: Transport | null, recvT: Transport | null) => {
       if (socket.connected) {
         socket.emit("leave");
@@ -201,6 +214,7 @@ export function useMediasoupRoomSession(options: MediasoupRoomSessionOptions): v
       socket.off("producerResumed", onProducerResumed);
       socket.off("peerJoined", onPeerJoined);
       socket.off("peerLeft", onPeerLeft);
+      socket.off("kicked", onKicked);
       socket.off("dominantSpeaker", onDominantSpeaker);
       for (const c of consumers.values()) {
         try {
@@ -464,6 +478,7 @@ export function useMediasoupRoomSession(options: MediasoupRoomSessionOptions): v
 
     socket.on("peerJoined", onPeerJoined);
     socket.on("peerLeft", onPeerLeft);
+    socket.on("kicked", onKicked);
     socket.on("dominantSpeaker", onDominantSpeaker);
     socket.on("producerPaused", onProducerPaused);
     socket.on("producerResumed", onProducerResumed);
@@ -619,6 +634,7 @@ function wipeMediasoupRoomUiState(set: MediasoupRoomSessionSetters): void {
   set.setRemoteTrackMediaSource({});
   set.setLocalMediaDeviceError(null);
   set.setDominantSpeakerPeerId(null);
+  set.setDominantSpeakerSpeakingMs({});
 }
 
 function zeroMediasoupRefs(refs: MediasoupRoomSessionRefs): void {
