@@ -14,8 +14,9 @@ import { useMatchmaking } from "@/features/matching";
 import { useGetRoomQuery, useLeaveRoomMutation } from "@/features/room/api/room-api";
 import { messagesDirectConversationPath } from "@/features/connection-call/lib/call-navigation";
 import {
-  DIRECT_CALL_PEER_LEFT_DEBOUNCE_MS,
+  DIRECT_CALL_NETWORK_RECOVERY_TIMEOUT_MS,
   DIRECT_CALL_RECOVERY,
+  resolveConnectionCallPeerLeftDebounceMs,
 } from "@/features/room/constants/direct-call/direct-call-recovery";
 import {
   goToCircleSearch,
@@ -51,7 +52,14 @@ export function OnPartnerDisconnected() {
   const [leaveRoom] = useLeaveRoomMutation();
 
   const remotePeerKey = remotePeerIdsStableKey(Object.keys(peers));
+  const remotePeerCount = remotePeerCountFromStableKey(remotePeerKey);
   const callRoomId = activeRoomId ?? resolveApiRoomId(routeRoomId);
+
+  const remotePeerCountRef = useRef(0);
+
+  useEffect(() => {
+    remotePeerCountRef.current = remotePeerCount;
+  }, [remotePeerCount]);
 
   const { data: roomData, isFetching: roomFetching } = useGetRoomQuery(callRoomId ?? "", {
     skip: !callRoomId || !sessionActive,
@@ -181,8 +189,8 @@ export function OnPartnerDisconnected() {
       return;
     }
 
-    const remotePeerCount = remotePeerCountFromStableKey(remotePeerKey);
-    if (remotePeerCount >= 1) {
+    const remotePeerCountNow = remotePeerCountFromStableKey(remotePeerKey);
+    if (remotePeerCountNow >= 1) {
       hadRemotePeerRef.current = true;
       handledRef.current = false;
       clearPartnerLeftTimer();
@@ -192,20 +200,33 @@ export function OnPartnerDisconnected() {
 
     if (!hadRemotePeerRef.current || handledRef.current) return;
 
-    const onPeerLeft = isConnectionCallSession(roomData)
-      ? endConnectionCallAfterPeerLeft
-      : isMatchSession(roomData)
-        ? beginSearchForNextCandidate
-        : null;
+    const isConnectionCall = isConnectionCallSession(roomData);
+    const isMatch = isMatchSession(roomData);
 
-    if (!onPeerLeft) return;
+    if (!isConnectionCall && !isMatch) return;
 
-    if (timersRef.current.partnerLeft == null) {
+    if (timersRef.current.partnerLeft == null && timersRef.current.networkRecovery == null) {
+      const debounceMs = isConnectionCall
+        ? resolveConnectionCallPeerLeftDebounceMs()
+        : DIRECT_CALL_RECOVERY.matchPeerLeftDebounceMs;
+
       timersRef.current.partnerLeft = window.setTimeout(() => {
         timersRef.current.partnerLeft = null;
+        if (remotePeerCountRef.current >= 1) return;
+
+        if (isConnectionCall) {
+          if (timersRef.current.networkRecovery != null) return;
+          timersRef.current.networkRecovery = window.setTimeout(() => {
+            timersRef.current.networkRecovery = null;
+            if (remotePeerCountRef.current >= 1) return;
+            endConnectionCallAfterPeerLeft();
+          }, DIRECT_CALL_NETWORK_RECOVERY_TIMEOUT_MS);
+          return;
+        }
+
         clearNetworkRecoveryTimer();
-        onPeerLeft();
-      }, DIRECT_CALL_PEER_LEFT_DEBOUNCE_MS);
+        beginSearchForNextCandidate();
+      }, debounceMs);
     }
 
     return () => {

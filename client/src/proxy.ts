@@ -59,7 +59,7 @@ interface CacheEntry {
 }
 
 const sessionCache = new Map<string, CacheEntry>();
-const CACHE_TTL = 10 * 1000; // 10 seconds
+const CACHE_TTL = 60 * 1000; // 60 seconds
 const MAX_CACHE_SIZE = 500; // Prevent cache poisoning
 const AUTH_REQUEST_TIMEOUT_MS = 3000;
 const SESSION_COOKIE_KEYS = [

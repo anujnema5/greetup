@@ -5,9 +5,7 @@ import { toast } from "sonner";
 import type { AppDispatch } from "@/lib/redux/store";
 import { startVideoSession } from "@/lib/redux/slices/room-slice";
 import { useJoinRoomMutation } from "@/features/room/api/room-api";
-import { rtcTokenCacheTag } from "@/features/rtc/api/rtc-api";
 import { getRtkMutationErrorMessage } from "@/lib/api/rtk-mutation-error";
-import { baseApi } from "@/lib/api";
 import { markRoomActive } from "@/features/room/lib/session/room-sync";
 
 export function useRoomJoinAndStartVideo({
@@ -42,7 +40,6 @@ export function useRoomJoinAndStartVideo({
         if (cancelled) return;
         markRoomActive();
         dispatch(startVideoSession({ roomId, primaryRemoteUserId: peerId ?? null }));
-        dispatch(baseApi.util.invalidateTags([rtcTokenCacheTag(roomId)]));
       })
       .catch((err: unknown) => {
         if (cancelled) return;

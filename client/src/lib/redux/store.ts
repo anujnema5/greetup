@@ -18,7 +18,10 @@ export const store = configureStore({
         connectionRealtimeSync: connectionRealtimeSyncReducer,
     },
     middleware: (getDefaultMiddleware) =>
-        getDefaultMiddleware().concat(baseApi.middleware),
+        getDefaultMiddleware({
+            immutableCheck: false,
+            serializableCheck: false,
+        }).concat(baseApi.middleware),
 })
 
 export type RootState = ReturnType<typeof store.getState>
