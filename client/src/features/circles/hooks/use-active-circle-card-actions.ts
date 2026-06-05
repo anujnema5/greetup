@@ -4,9 +4,9 @@ import { useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 
-import { useStartScheduledCircleMutation } from "@/features/room/api/room-api";
+import { useStartScheduledCircle } from "@/features/room/api/room.mutations";
 import { circleRoomPath } from "@/features/room/lib/navigation/circle-routes";
-import { getRtkMutationErrorMessage } from "@/lib/api/rtk-mutation-error";
+import { getApiErrorMessage } from "@/lib/api/fetch-client";
 import { useSession } from "@/lib/auth-client";
 
 import { useStartCircleModal } from "../components/start-circle-modal-provider";
@@ -24,17 +24,17 @@ export function useActiveCircleCardActions(): ActiveCircleCardGridHandlers {
   const currentUserId = session?.user?.id ?? null;
   const { openModalForEdit } = useStartCircleModal();
   const onJoinCircle = useJoinCircle();
-  const [startScheduledCircle, { isLoading: startScheduledBusy }] =
-    useStartScheduledCircleMutation();
+  const { mutateAsync: startScheduledCircle, isPending: startScheduledBusy } =
+    useStartScheduledCircle();
 
   const onStartScheduledNow = useCallback(
     async (circle: ActiveCircleItem) => {
       try {
-        await startScheduledCircle(circle.id).unwrap();
+        await startScheduledCircle(circle.id);
         toast.success("Circle is live — opening room…");
         router.push(circleRoomPath(circle.id));
       } catch (e: unknown) {
-        toast.error(getRtkMutationErrorMessage(e, "Could not start this circle yet"));
+        toast.error(getApiErrorMessage(e, "Could not start this circle yet"));
       }
     },
     [router, startScheduledCircle],

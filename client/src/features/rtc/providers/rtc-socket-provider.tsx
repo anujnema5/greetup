@@ -2,17 +2,16 @@
 
 import { createContext, useContext, useEffect, useMemo } from "react";
 import { useSession } from "@/lib/auth-client";
-import { useAppDispatch, useAppSelector } from "@/lib/redux/hooks";
-import { useGetMyProfileQuery } from "@/features/profile-setup/components/profile-setup-api";
+import { useMyProfile } from "@/features/profile-setup/api";
 import { useRoomTabLeaseRtcSync } from "@/features/room/hooks";
 import {
   selectActiveRoomId,
   selectIsVideoSessionActive,
   selectRtcPrimaryRemoteUserId,
-} from "@/lib/redux/selectors/room-selectors";
-import { setMediaStatus } from "@/lib/redux/slices/room-slice";
+  useRoomStore,
+} from "@/features/room/state/room.store";
 import { deriveRoomRtcState } from "@/features/rtc/lib/derive-room-rtc-state";
-import { useGetRtcTokenQuery } from "../api/rtc-api";
+import { useRtcToken } from "../api/rtc.queries";
 import { useRtcSocket } from "../hooks/use-rtc-socket";
 import { useMediasoupRoom } from "../hooks/use-mediasoup-room";
 import type {
@@ -84,21 +83,21 @@ function mapMediasoupToSliceStatus(
  * Mediasoup stays mounted while `sessionActive` so minimized dock keeps the same streams.
  */
 export function RtcSocketProvider({ children }: { children: React.ReactNode }) {
-  const dispatch = useAppDispatch();
-  const activeRoomId = useAppSelector(selectActiveRoomId);
-  const sessionActive = useAppSelector(selectIsVideoSessionActive);
-  const rtcPrimaryRemoteUserId = useAppSelector(selectRtcPrimaryRemoteUserId);
+  const activeRoomId = useRoomStore(selectActiveRoomId);
+  const sessionActive = useRoomStore(selectIsVideoSessionActive);
+  const rtcPrimaryRemoteUserId = useRoomStore(selectRtcPrimaryRemoteUserId);
+  const setMediaStatus = useRoomStore((s) => s.setMediaStatus);
   const { data: session, isPending: sessionPending } = useSession();
-  const { data: myProfileData } = useGetMyProfileQuery(undefined, { skip: sessionPending });
+  const { data: myProfileData } = useMyProfile({ enabled: !sessionPending });
   const sessionUser = session?.user as
     | { id?: string | null; displayName?: string | null; name?: string | null; image?: string | null }
     | undefined;
-  const profileDisplayName = myProfileData?.data?.displayName ?? null;
+  const profileDisplayName = myProfileData?.displayName ?? null;
 
   const skipRtcToken = !activeRoomId || sessionPending || !sessionUser?.id;
 
-  const rtcQuery = useGetRtcTokenQuery(activeRoomId ?? "", {
-    skip: skipRtcToken,
+  const rtcQuery = useRtcToken(activeRoomId ?? "", {
+    enabled: !skipRtcToken,
   });
 
   const rtc = deriveRoomRtcState(skipRtcToken, rtcQuery);
@@ -125,8 +124,8 @@ export function RtcSocketProvider({ children }: { children: React.ReactNode }) {
   });
 
   useEffect(() => {
-    dispatch(setMediaStatus(mapMediasoupToSliceStatus(sessionActive, mediasoup.status)));
-  }, [dispatch, sessionActive, mediasoup.status]);
+    setMediaStatus(mapMediasoupToSliceStatus(sessionActive, mediasoup.status));
+  }, [setMediaStatus, sessionActive, mediasoup.status]);
 
   useRoomTabLeaseRtcSync({
     activeRoomId,

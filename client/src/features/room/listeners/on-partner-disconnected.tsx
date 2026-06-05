@@ -2,16 +2,16 @@
 
 import { useCallback, useEffect, useRef } from "react";
 import { useParams, usePathname, useRouter } from "next/navigation";
-import { useAppDispatch, useAppSelector } from "@/lib/redux/hooks";
 import {
   selectActiveRoomId,
   selectIsVideoSessionActive,
   selectRoomPhase,
-} from "@/lib/redux/selectors/room-selectors";
-import { beginSearchingNextCall, endVideoSession } from "@/lib/redux/slices/room-slice";
+  useRoomStore,
+} from "@/features/room/state/room.store";
 import { useRtcSocketContext, remotePeerIdsStableKey, remotePeerCountFromStableKey } from "@/features/rtc";
 import { useMatchmaking } from "@/features/matching";
-import { useGetRoomQuery, useLeaveRoomMutation } from "@/features/room/api/room-api";
+import { useGetRoom } from "@/features/room/api/room.queries";
+import { useLeaveRoom } from "@/features/room/api/room.mutations";
 import { messagesDirectConversationPath } from "@/features/connection-call/lib/call-navigation";
 import {
   DIRECT_CALL_NETWORK_RECOVERY_TIMEOUT_MS,
@@ -37,19 +37,20 @@ import {
  * friends join late.
  */
 export function OnPartnerDisconnected() {
-  const dispatch = useAppDispatch();
+  const beginSearchingNextCall = useRoomStore((s) => s.beginSearchingNextCall);
+  const endVideoSession = useRoomStore((s) => s.endVideoSession);
   const params = useParams();
   const pathname = usePathname();
   const router = useRouter();
   const routeRoomId = resolveCircleRouteRoomId(params, pathname);
-  const activeRoomId = useAppSelector(selectActiveRoomId);
+  const activeRoomId = useRoomStore(selectActiveRoomId);
   const matchmaking = useMatchmaking();
   const matchmakingStatus = matchmaking.status;
   const waitingForPeerConnect = matchmaking.waitingForPeerConnect;
-  const sessionActive = useAppSelector(selectIsVideoSessionActive);
-  const roomPhase = useAppSelector(selectRoomPhase);
+  const sessionActive = useRoomStore(selectIsVideoSessionActive);
+  const roomPhase = useRoomStore(selectRoomPhase);
   const { peers, rtcRoomType } = useRtcSocketContext();
-  const [leaveRoom] = useLeaveRoomMutation();
+  const { mutateAsync: leaveRoom } = useLeaveRoom();
 
   const remotePeerKey = remotePeerIdsStableKey(Object.keys(peers));
   const remotePeerCount = remotePeerCountFromStableKey(remotePeerKey);
@@ -61,8 +62,8 @@ export function OnPartnerDisconnected() {
     remotePeerCountRef.current = remotePeerCount;
   }, [remotePeerCount]);
 
-  const { data: roomData, isFetching: roomFetching } = useGetRoomQuery(callRoomId ?? "", {
-    skip: !callRoomId || !sessionActive,
+  const { data: roomData, isFetching: roomFetching } = useGetRoom(callRoomId ?? "", {
+    enabled: Boolean(callRoomId) && sessionActive,
   });
 
   const hadRemotePeerRef = useRef(false);
@@ -102,11 +103,11 @@ export function OnPartnerDisconnected() {
     clearPartnerLeftTimer();
     clearNetworkRecoveryTimer();
     clearSearchRetryTimer();
-    dispatch(beginSearchingNextCall());
+    beginSearchingNextCall();
     goToCircleSearch(router);
     const roomIdToLeave = activeRoomId ?? resolveApiRoomId(routeRoomId);
     const leavePromise = roomIdToLeave
-      ? leaveRoom({ roomId: roomIdToLeave }).unwrap()
+      ? leaveRoom({ roomId: roomIdToLeave })
       : Promise.resolve();
     void leavePromise.catch(() => {}).finally(() => {
       void matchmaking.restartSearch();
@@ -116,7 +117,7 @@ export function OnPartnerDisconnected() {
     clearNetworkRecoveryTimer,
     clearPartnerLeftTimer,
     clearSearchRetryTimer,
-    dispatch,
+    beginSearchingNextCall,
     leaveRoom,
     matchmaking,
     roomPhase,
@@ -131,7 +132,7 @@ export function OnPartnerDisconnected() {
     clearNetworkRecoveryTimer();
     clearSearchRetryTimer();
     clearRoomStorage();
-    dispatch(endVideoSession());
+    endVideoSession();
     const roomIdToLeave = activeRoomId ?? resolveApiRoomId(routeRoomId);
     const conversationId =
       roomData?.sessionKind === "connection_call" ? roomData.conversationId : undefined;
@@ -140,7 +141,7 @@ export function OnPartnerDisconnected() {
       : consumeRoomReturnPath("/home");
     void matchmaking.handleCancel().catch(() => {});
     const leavePromise = roomIdToLeave
-      ? leaveRoom({ roomId: roomIdToLeave }).unwrap()
+      ? leaveRoom({ roomId: roomIdToLeave })
       : Promise.resolve();
     void leavePromise.catch(() => {}).finally(() => {
       router.replace(dest);
@@ -150,7 +151,7 @@ export function OnPartnerDisconnected() {
     clearNetworkRecoveryTimer,
     clearPartnerLeftTimer,
     clearSearchRetryTimer,
-    dispatch,
+    endVideoSession,
     leaveRoom,
     matchmaking,
     roomData,

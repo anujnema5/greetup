@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import { useReportCircleNsfwViolationMutation } from "@/features/room/api/room-api";
+import { useReportCircleNsfwViolation } from "@/features/room/api/room.mutations";
 import { NSFW_HITS_BEFORE_REPORT, NSFW_SCAN_INTERVAL_MS } from "@/features/moderation/lib/nsfw-config";
 import { isNsfwLogEnabled, logNsfwLoopStarted, logNsfwReported, logNsfwScan, logNsfwSkipped } from "@/features/moderation/lib/nsfw-log";
 import { classifyStreamFrame } from "@/features/moderation/lib/nsfw-scanner";
@@ -25,7 +25,7 @@ export function useCircleNsfwModeration({
   screenSharing,
 }: UseCircleNsfwModerationArgs): void {
   const enforceReport = Boolean(enabled);
-  const [reportViolation] = useReportCircleNsfwViolationMutation();
+  const { mutateAsync: reportViolation } = useReportCircleNsfwViolation();
   const reportRef = useRef(reportViolation);
   const streamRef = useRef(localStream);
 
@@ -80,7 +80,7 @@ export function useCircleNsfwModeration({
 
       reporting = true;
       try {
-        await reportRef.current({ roomId, clientScores: predictions }).unwrap();
+        await reportRef.current({ roomId, clientScores: predictions });
         logNsfwReported(roomId, predictions);
       } catch {
         logNsfwSkipped("report failed");

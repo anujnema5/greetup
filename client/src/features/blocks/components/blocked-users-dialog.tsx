@@ -13,10 +13,10 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { getProfileImageUrl } from "@/lib/ui/profile-image";
-import { getRtkQueryErrorMessage } from "@/lib/api/rtk-query-error";
-import { getRtkMutationErrorMessage } from "@/lib/api/rtk-mutation-error";
+import { getApiErrorMessage } from "@/lib/api/fetch-client";
 
-import { useListBlockedUsersQuery, useUnblockUserMutation } from "../api/blocks-api";
+import { useUnblockUser } from "../api/blocks.mutations";
+import { useListBlockedUsers } from "../api/blocks.queries";
 import type { BlockedUserListItem } from "../types/blocks-api.types";
 import { UnblockUserDialog } from "./unblock-user-dialog";
 
@@ -73,10 +73,10 @@ type BlockedUsersDialogProps = {
 
 export function BlockedUsersDialog({ open, onOpenChange }: BlockedUsersDialogProps) {
   const [pendingUnblock, setPendingUnblock] = useState<BlockedUserListItem | null>(null);
-  const [unblockUser, { isLoading: isUnblocking }] = useUnblockUserMutation();
+  const { mutateAsync: unblockUser, isPending: isUnblocking } = useUnblockUser();
 
-  const { data, isLoading, isError, error, refetch, isFetching } = useListBlockedUsersQuery(undefined, {
-    skip: !open,
+  const { data, isLoading, isError, error, refetch, isFetching } = useListBlockedUsers({
+    enabled: open,
   });
   const items = data?.items ?? [];
   const showLoading = isLoading || (isFetching && items.length === 0);
@@ -90,13 +90,12 @@ export function BlockedUsersDialog({ open, onOpenChange }: BlockedUsersDialogPro
       targetUserId: pendingUnblock.userId,
       peerUsername: pendingUnblock.username,
     })
-      .unwrap()
       .then(() => {
         toast.success(`${label} unblocked`);
         setPendingUnblock(null);
       })
       .catch((err: unknown) => {
-        toast.error(getRtkMutationErrorMessage(err, "Could not unblock user"));
+        toast.error(getApiErrorMessage(err, "Could not unblock user"));
       });
   };
 
@@ -132,7 +131,9 @@ export function BlockedUsersDialog({ open, onOpenChange }: BlockedUsersDialogPro
 
             {isError ? (
               <div className="flex flex-col items-center gap-2 rounded-xl border border-border bg-muted/20 px-4 py-8 text-center">
-                <p className="text-[13px] text-muted-foreground">{getRtkQueryErrorMessage(error)}</p>
+                <p className="text-[13px] text-muted-foreground">
+                  {getApiErrorMessage(error, "Could not load block list")}
+                </p>
               </div>
             ) : null}
 

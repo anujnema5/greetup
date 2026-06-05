@@ -2,16 +2,15 @@
 
 import { useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { useDispatch } from "react-redux";
 import { toast } from "sonner";
 import { markRoomMinimized } from "@/features/room/lib/session/room-sync";
+import { useRoomStore } from "@/features/room/state/room.store";
 import { publicProfileHref } from "@/features/user-profile/lib/public-profile-href";
-import { minimizeVideoSession } from "@/lib/redux/slices/room-slice";
 
 /** Minimize the call to the dock, then open the peer's public profile. */
 export function useOpenPeerProfileFromCall() {
   const router = useRouter();
-  const dispatch = useDispatch();
+  const minimizeVideoSession = useRoomStore((s) => s.minimizeVideoSession);
 
   return useCallback(
     (username: string | null | undefined) => {
@@ -21,9 +20,9 @@ export function useOpenPeerProfileFromCall() {
         return;
       }
       markRoomMinimized();
-      dispatch(minimizeVideoSession());
+      minimizeVideoSession();
       router.push(href);
     },
-    [dispatch, router],
+    [minimizeVideoSession, router],
   );
 }

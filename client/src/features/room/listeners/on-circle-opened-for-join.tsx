@@ -1,21 +1,21 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import { shallowEqual } from "react-redux";
+import { useShallow } from "zustand/react/shallow";
+import { useQueryClient } from "@tanstack/react-query";
 
-import { roomApi } from "@/features/room/api/room-api";
 import {
   selectCircleRoomListenerSnapshot,
   userIsInThisCircleSession,
   userIsWaitingToJoinRtc,
 } from "@/features/room/lib/session/circle-room-listener";
-import { patchCachedRoomOpenedForJoin } from "@/features/room/lib/session/room-rtk-cache";
+import { patchRoomOpenedForJoinInCache } from "@/features/room/lib/room-cache-sync";
 import {
   CIRCLE_ROOM_SOCKET_EVENTS,
   parseCircleOpenedForJoinPayload,
 } from "@/features/room/types/socket/circle-room-socket.types";
-import { rtcApi, rtcTokenCacheTag } from "@/features/rtc/api/rtc-api";
-import { useAppDispatch, useAppSelector } from "@/lib/redux/hooks";
+import { invalidateRtcTokenCache } from "@/features/rtc/lib/rtc-token-cache";
+import { useRoomStore } from "@/features/room/state/room.store";
 import { useSocket } from "@/lib/socket";
 
 /**
@@ -24,9 +24,11 @@ import { useSocket } from "@/lib/socket";
  */
 export function OnCircleOpenedForJoin() {
   const { socket } = useSocket();
-  const dispatch = useAppDispatch();
+  const queryClient = useQueryClient();
 
-  const roomSnapshot = useAppSelector(selectCircleRoomListenerSnapshot, shallowEqual);
+  const roomSnapshot = useRoomStore(
+    useShallow((s) => selectCircleRoomListenerSnapshot(s)),
+  );
   const snapshotRef = useRef(roomSnapshot);
 
   useEffect(() => {
@@ -44,20 +46,15 @@ export function OnCircleOpenedForJoin() {
       if (!userIsInThisCircleSession(snap, parsed.roomId)) return;
       if (!userIsWaitingToJoinRtc(snap)) return;
 
-      dispatch(
-        roomApi.util.updateQueryData("getRoom", parsed.roomId, (draft) => {
-          if (!draft) return;
-          patchCachedRoomOpenedForJoin(draft);
-        }),
-      );
-      dispatch(rtcApi.util.invalidateTags([rtcTokenCacheTag(parsed.roomId)]));
+      patchRoomOpenedForJoinInCache(queryClient, parsed.roomId);
+      invalidateRtcTokenCache(parsed.roomId, queryClient);
     };
 
     socket.on(event, onOpenedForJoin);
     return () => {
       socket.off(event, onOpenedForJoin);
     };
-  }, [dispatch, socket]);
+  }, [queryClient, socket]);
 
   return null;
 }

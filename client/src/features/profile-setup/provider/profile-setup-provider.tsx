@@ -14,9 +14,9 @@ import type { Resolver, FieldValues } from 'react-hook-form'
 import type { ProfileSetupProvider as TProfileSetupProvider } from '../types'
 import type { ProfileSetupField, ProfileSetupStep } from '../types/profile-setup-api.types'
 import {
-  useGetProfileSetupStepsQuery,
-  useSaveProfileSetupMutation,
-} from '../components/profile-setup-api'
+  useProfileSetupSteps,
+  useSaveProfileSetup,
+} from '../api'
 import { useForm, FormProvider } from 'react-hook-form'
 import {
   generateStepSchema,
@@ -103,8 +103,8 @@ export const ProfileSetupProvider: React.FC<ProfileSetupProviderProps> = ({
   children,
 }) => {
   const searchParams = useSearchParams()
-  const { data, isLoading } = useGetProfileSetupStepsQuery()
-  const [saveProfileSetup, { isLoading: isSaving }] = useSaveProfileSetupMutation()
+  const { data, isLoading } = useProfileSetupSteps()
+  const { mutateAsync: saveProfileSetup, isPending: isSaving } = useSaveProfileSetup()
 
   const [currentStep, setCurrentStep] = useState(1)
   const [steps, setSteps] = useState<ProfileSetupStep[]>([])
@@ -149,8 +149,8 @@ export const ProfileSetupProvider: React.FC<ProfileSetupProviderProps> = ({
 
   // Initialize steps and form data once; restore from localStorage if available
   useEffect(() => {
-    if (data?.data?.steps && !isInitialized) {
-      const fetchedSteps = data.data.steps
+    if (data?.steps && !isInitialized) {
+      const fetchedSteps = data.steps
       queueMicrotask(() => {
         setSteps(fetchedSteps)
 
@@ -248,7 +248,7 @@ export const ProfileSetupProvider: React.FC<ProfileSetupProviderProps> = ({
 
     try {
       const payload = transformStepToApiPayload(currentStep, updatedData, currentStepData.fields)
-      await saveProfileSetup(payload).unwrap()
+      await saveProfileSetup(payload)
 
       if (currentStep === steps.length) {
         clearProfileSetupProgress()

@@ -19,18 +19,18 @@ import {
   Users,
 } from "lucide-react";
 import { toast } from "sonner";
-import type { FetchBaseQueryError } from "@reduxjs/toolkit/query";
+import { ApiError } from "@/lib/api/fetch-client";
 
 import { NavSidebar, BottomNav, PageHeader } from "@/features/app-shell";
 import {
-  useGetMyProfileQuery,
-  useGetProfileSetupStepsQuery,
-  useSaveProfileSetupMutation,
-} from "@/features/profile-setup/components/profile-setup-api";
+  useMyProfile,
+  useProfileSetupSteps,
+  useSaveProfileSetup,
+} from "@/features/profile-setup/api";
 import { getProfileImageUrl } from "@/lib/ui/profile-image";
 
 import { ProfileConnectionsSection } from "@/features/connections";
-import { useGetProfileInsightsQuery } from "../api/profile-insights-api";
+import { useProfileInsights } from "../api/profile-insights.queries";
 import { ProfileCompletionCard } from "../components/profile-completion-card";
 import { ProfileEditModals } from "../components/profile-edit-modals";
 import { ProfilePhotoDialog } from "../components/profile-photo-dialog";
@@ -44,26 +44,26 @@ import {
 } from "../utils/build-profile-save-payload";
 import { mapMyProfileToEditable } from "../utils/map-my-profile";
 import { buildProfileEditorCatalog } from "../utils/profile-editor-catalog";
-import { labelsFromIds, professionLabel, rtkErrorMessage } from "../utils/profile-utils";
+import { labelsFromIds, professionLabel, apiErrorMessage } from "../utils/profile-utils";
 
 export function ProfilePage() {
-  const profileQuery = useGetMyProfileQuery();
-  const insightsQuery = useGetProfileInsightsQuery();
-  const stepsQuery = useGetProfileSetupStepsQuery();
-  const [saveProfileSetup, { isLoading: isSaving }] = useSaveProfileSetupMutation();
+  const profileQuery = useMyProfile();
+  const insightsQuery = useProfileInsights();
+  const stepsQuery = useProfileSetupSteps();
+  const { mutateAsync: saveProfileSetup, isPending: isSaving } = useSaveProfileSetup();
 
   const [activeSection, setActiveSection] = useState<ProfileEditSectionId | null>(null);
   const [roomInviteOpen, setRoomInviteOpen] = useState(false);
   const [photoDialogOpen, setPhotoDialogOpen] = useState(false);
 
-  const rawProfile = profileQuery.data?.data;
+  const rawProfile = profileQuery.data;
   const profile = useMemo(
     () => (rawProfile ? mapMyProfileToEditable(rawProfile) : null),
     [rawProfile]
   );
 
   const catalog = useMemo(() => {
-    const steps = stepsQuery.data?.data?.steps ?? [];
+    const steps = stepsQuery.data?.steps ?? [];
     return buildProfileEditorCatalog(steps);
   }, [stepsQuery.data]);
 
@@ -85,10 +85,10 @@ export function ProfilePage() {
         throw new Error(msg);
       }
       try {
-        await saveProfileSetup(buildProfileSavePayload(section, draft)).unwrap();
+        await saveProfileSetup(buildProfileSavePayload(section, draft));
         toast.success("Profile updated");
       } catch (e) {
-        toast.error(rtkErrorMessage(e));
+        toast.error(apiErrorMessage(e));
         throw e;
       }
     },
@@ -149,8 +149,7 @@ export function ProfilePage() {
   }
 
   if (profileQuery.isError) {
-    const status = (profileQuery.error as FetchBaseQueryError | undefined)?.status;
-    if (status === 404) {
+    if (profileQuery.error instanceof ApiError && profileQuery.error.status === 404) {
       return shell(
         <div className="flex max-w-sm flex-col items-center gap-4">
           <p className="text-sm text-muted-foreground">
@@ -167,7 +166,7 @@ export function ProfilePage() {
     }
     return shell(
       <div className="flex max-w-sm flex-col items-center gap-3">
-        <p className="text-sm text-muted-foreground">{rtkErrorMessage(profileQuery.error)}</p>
+        <p className="text-sm text-muted-foreground">{apiErrorMessage(profileQuery.error)}</p>
         <button
           type="button"
           className="text-sm font-medium text-primary hover:underline"

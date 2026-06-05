@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo } from "react";
-import { useGetMatchPeerPreviewQuery } from "@/features/matching/api/matching-api";
+import { useMatchPeerPreview } from "@/features/matching/api/matching.queries";
 import { usePeerConnectionSync } from "@/features/connections/hooks/use-peer-connection-sync";
 import {
   buildPeerProfileHoverDisplay,
@@ -21,8 +21,8 @@ export function usePeerProfileHoverPreview({
   displayName: fallbackDisplayName,
   imageUrl: fallbackImageUrl,
 }: UsePeerProfileHoverPreviewArgs) {
-  const { data: preview, isFetching } = useGetMatchPeerPreviewQuery(peerUserId, {
-    skip: !enabled || !peerUserId,
+  const { data: preview, isFetching } = useMatchPeerPreview(peerUserId, {
+    enabled: enabled && Boolean(peerUserId),
   });
   const liveSync = usePeerConnectionSync(peerUserId);
 

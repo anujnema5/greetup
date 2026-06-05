@@ -6,8 +6,8 @@ import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { useAcceptedConnectionsInfiniteQuery } from "@/features/connections/api/connections-api";
-import { useUpdateRoomInviteSettingsMutation } from "@/features/profile-setup/components/profile-setup-api";
+import { useAcceptedConnections } from "@/features/connections/api/connections.queries";
+import { useUpdateRoomInviteSettings } from "@/features/profile-setup/api";
 import { cn } from "@/lib/utils";
 
 import { ProfileEditShell } from "./profile-edit-shell";
@@ -50,9 +50,9 @@ export function RoomInviteSettingsModal({
 
   const connectionsEnabled = open && policy === "selected_only";
 
-  const acceptedInfinite = useAcceptedConnectionsInfiniteQuery(
+  const acceptedInfinite = useAcceptedConnections(
     { limit: PAGE_SIZE, q: debouncedQ || undefined },
-    { skip: !connectionsEnabled },
+    connectionsEnabled,
   );
 
   useEffect(() => {
@@ -95,7 +95,7 @@ export function RoomInviteSettingsModal({
     return () => obs.disconnect();
   }, [connectionsEnabled, onIntersectLoadMore, items.length, debouncedQ]);
 
-  const [updateSettings, { isLoading: saving }] = useUpdateRoomInviteSettingsMutation();
+  const { mutateAsync: updateSettings, isPending: saving } = useUpdateRoomInviteSettings();
 
   const friendlySummary = useMemo(() => {
     if (policy === "all_connections") {
@@ -118,7 +118,7 @@ export function RoomInviteSettingsModal({
       await updateSettings({
         policy,
         allowlistedUserIds: policy === "selected_only" ? selectedIds : [],
-      }).unwrap();
+      });
       toast.success("Your choice was saved");
       onOpenChange(false);
     } catch {

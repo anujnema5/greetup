@@ -1,27 +1,25 @@
 'use client';
 
 import { useEffect } from 'react';
-import { useDispatch } from 'react-redux';
+import { useQueryClient } from '@tanstack/react-query';
 import { useSocket } from '@/lib/socket/provider';
-import { chatApi } from '../api/chat-api';
+import { queryKeys } from '@/lib/query/keys';
+import { fetchConversation, fetchConversations } from '../api/chat.queries';
 import { applyConversationActivityToInbox } from '../lib/inbox-order';
-import { unreadCountSet } from '../slices/chat.slice';
-import type { AppDispatch } from '@/lib/redux/store';
+import { useChatUiStore } from '../state/chat-ui.store';
 
 export function ChatInboxSocketBridge() {
-  const dispatch = useDispatch<AppDispatch>();
+  const qc = useQueryClient();
   const { chatSocket } = useSocket();
 
   useEffect(() => {
     if (!chatSocket) return;
 
     const onSync = (p: { conversationId: string; unreadCount: number }) => {
-      dispatch(
-        unreadCountSet({
-          conversationId: p.conversationId,
-          count:          p.unreadCount,
-        }),
-      );
+      useChatUiStore.getState().setUnreadCount({
+        conversationId: p.conversationId,
+        count: p.unreadCount,
+      });
     };
 
     const onActivity = (p: {
@@ -30,24 +28,23 @@ export function ChatInboxSocketBridge() {
       lastMessagePreview?: string | null;
     }) => {
       const { conversationId, ...patch } = p;
-      const hit = applyConversationActivityToInbox(dispatch, conversationId, patch);
+      const hit = applyConversationActivityToInbox(qc, conversationId, patch);
 
-      // Always refresh thread detail + messages — stale 403 cache after delete breaks reopen.
-      dispatch(
-        chatApi.util.invalidateTags([
-          { type: 'Conversations', id: conversationId },
-          { type: 'Messages', id: conversationId },
-        ]),
-      );
+      void qc.invalidateQueries({ queryKey: queryKeys.chat.conversation(conversationId) });
+      void qc.invalidateQueries({ queryKey: queryKeys.chat.messages(conversationId) });
 
       if (!hit) {
-        dispatch(chatApi.util.invalidateTags([{ type: 'Conversations', id: 'LIST' }]));
-        void dispatch(chatApi.endpoints.listConversations.initiate(undefined, { forceRefetch: true }));
+        void qc.invalidateQueries({ queryKey: queryKeys.chat.conversations });
+        void qc.fetchQuery({
+          queryKey: queryKeys.chat.conversations,
+          queryFn: fetchConversations,
+        });
       }
 
-      void dispatch(
-        chatApi.endpoints.getConversation.initiate(conversationId, { forceRefetch: true }),
-      );
+      void qc.fetchQuery({
+        queryKey: queryKeys.chat.conversation(conversationId),
+        queryFn: () => fetchConversation(conversationId),
+      });
     };
 
     chatSocket.on('chat:unread:sync', onSync);
@@ -56,7 +53,7 @@ export function ChatInboxSocketBridge() {
       chatSocket.off('chat:unread:sync', onSync);
       chatSocket.off('chat:conversation:activity', onActivity);
     };
-  }, [chatSocket, dispatch]);
+  }, [chatSocket, qc]);
 
   return null;
 }

@@ -2,14 +2,14 @@
 
 import { useMemo } from "react";
 
-import { useGetProfileInsightsQuery } from "@/features/profile/api/profile-insights-api";
+import { useProfileInsights } from "@/features/profile/api/profile-insights.queries";
 
 import { buildDashboardHeroStats } from "../lib/dashboard-display";
 
 export function useDashboardInsights() {
-  const query = useGetProfileInsightsQuery(undefined, {
-    refetchOnMountOrArgChange: true,
-    refetchOnFocus: true,
+  const query = useProfileInsights(undefined, {
+    refetchOnMount: 'always',
+    refetchOnWindowFocus: true,
   });
 
   const heroStats = useMemo(

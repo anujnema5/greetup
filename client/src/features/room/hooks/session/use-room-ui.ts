@@ -1,43 +1,47 @@
 "use client";
 
 import { useMemo } from "react";
-import { useAppDispatch, useAppSelector } from "@/lib/redux/hooks";
-import {
-  startVideoSession,
-  endVideoSession,
-  minimizeVideoSession,
-  expandVideoSession,
-  setRtcPrimaryRemoteUserId,
-} from "@/lib/redux/slices/room-slice";
 import {
   selectActiveRoomId,
   selectIsRoomMinimized,
   selectIsVideoSessionActive,
   selectRoomPhase,
-} from "@/lib/redux/selectors/room-selectors";
+  useRoomStore,
+} from "@/features/room/state/room.store";
 
 /**
  * Global room / video session UI — read from any route (e.g. minimized dock while browsing).
  */
 export function useRoomUi() {
-  const dispatch = useAppDispatch();
-  const sessionActive = useAppSelector(selectIsVideoSessionActive);
-  const isMinimized = useAppSelector(selectIsRoomMinimized);
-  const activeRoomId = useAppSelector(selectActiveRoomId);
-  const phase = useAppSelector(selectRoomPhase);
+  const sessionActive = useRoomStore(selectIsVideoSessionActive);
+  const isMinimized = useRoomStore(selectIsRoomMinimized);
+  const activeRoomId = useRoomStore(selectActiveRoomId);
+  const phase = useRoomStore(selectRoomPhase);
+
+  const startVideoSession = useRoomStore((s) => s.startVideoSession);
+  const endVideoSession = useRoomStore((s) => s.endVideoSession);
+  const minimizeVideoSession = useRoomStore((s) => s.minimizeVideoSession);
+  const expandVideoSession = useRoomStore((s) => s.expandVideoSession);
+  const setRtcPrimaryRemoteUserId = useRoomStore((s) => s.setRtcPrimaryRemoteUserId);
 
   const actions = useMemo(
     () => ({
       startVideoSession: (
         payload?: { roomId?: string | null; primaryRemoteUserId?: string | null },
-      ) => dispatch(startVideoSession(payload)),
-      endVideoSession: () => dispatch(endVideoSession()),
-      minimizeVideoSession: () => dispatch(minimizeVideoSession()),
-      expandVideoSession: () => dispatch(expandVideoSession()),
+      ) => startVideoSession(payload),
+      endVideoSession: () => endVideoSession(),
+      minimizeVideoSession: () => minimizeVideoSession(),
+      expandVideoSession: () => expandVideoSession(),
       setRtcPrimaryRemoteUserId: (userId: string | null) =>
-        dispatch(setRtcPrimaryRemoteUserId(userId)),
+        setRtcPrimaryRemoteUserId(userId),
     }),
-    [dispatch],
+    [
+      endVideoSession,
+      expandVideoSession,
+      minimizeVideoSession,
+      setRtcPrimaryRemoteUserId,
+      startVideoSession,
+    ],
   );
 
   return {

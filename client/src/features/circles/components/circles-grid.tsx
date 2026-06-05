@@ -4,9 +4,9 @@ import { memo, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { ChevronRight } from "lucide-react";
 
-import { getRtkMutationErrorMessage } from "@/lib/api/rtk-mutation-error";
+import { getApiErrorMessage } from "@/lib/api/fetch-client";
 import { TOUR_TARGETS } from "@/features/tour-guide";
-import { useListActiveCirclesQuery } from "../api/circles-api";
+import { useListActiveCircles } from "../api/circles.queries";
 import { CIRCLES_GRID_COPY } from "../constants/circles-browse-copy";
 import { useActiveCircleCardActions } from "../hooks/use-active-circle-card-actions";
 import { useCircleListBadges } from "../hooks/use-circle-list-badges";
@@ -22,12 +22,8 @@ const HOME_PREVIEW_LIMIT = 5;
 function CirclesGridInner() {
   const router = useRouter();
   const cardHandlers = useActiveCircleCardActions();
-  const { data, isLoading, isError, error, isFetching } = useListActiveCirclesQuery(
-    {},
-    { refetchOnMountOrArgChange: true },
-  );
+  const { data: apiData, isLoading, isError, error, isFetching } = useListActiveCircles();
 
-  const apiData = data?.data;
   const friendInvited = apiData?.friendInvited ?? [];
   const joined = apiData?.joined ?? [];
   const publicItems = apiData?.public.items ?? [];
@@ -59,7 +55,7 @@ function CirclesGridInner() {
 
       {isError ? (
         <p className="text-sm text-destructive py-6 text-center">
-          {getRtkMutationErrorMessage(error, "Could not load active circles")}
+          {getApiErrorMessage(error, "Could not load active circles")}
         </p>
       ) : isLoading && !apiData ? (
         <ActiveCircleCardSkeletonGrid count={HOME_PREVIEW_LIMIT} layout="scroll" />

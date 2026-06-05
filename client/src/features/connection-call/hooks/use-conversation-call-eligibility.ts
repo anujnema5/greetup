@@ -2,8 +2,8 @@
 
 import { useMemo } from 'react';
 import { getDmPeerUserId } from '@/features/chat/lib/conversation-peers';
+import { usePeersCallStatus } from '@/features/connections/api/connections.queries';
 import { PRESENCE_POLL_INTERVAL_MS } from '@/features/presence/constants';
-import { connectionsApi } from '@/features/connections/api/connections-api';
 import { canCallFromConversation } from '../lib/call-eligibility';
 import type { Conversation } from '@/features/chat/types/chat.types';
 
@@ -13,10 +13,10 @@ export function useConversationCallEligibility(
 ) {
   const peerUserId = conversation ? getDmPeerUserId(conversation, currentUserId) : null;
 
-  const cacheKey = peerUserId ?? '';
-  const { data: statusMap, isFetching } = connectionsApi.usePeersCallStatusQuery(cacheKey, {
-    skip: !peerUserId,
-    pollingInterval: PRESENCE_POLL_INTERVAL_MS,
+  const peerIds = useMemo(() => (peerUserId ? [peerUserId] : []), [peerUserId]);
+  const { data: statusMap, isFetching } = usePeersCallStatus(peerIds, {
+    enabled: Boolean(peerUserId),
+    refetchInterval: PRESENCE_POLL_INTERVAL_MS,
   });
 
   const peerStatus = peerUserId ? statusMap?.[peerUserId] : undefined;

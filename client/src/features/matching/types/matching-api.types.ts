@@ -1,5 +1,5 @@
 /**
- * Matching API — RTK Query / fetch shapes (align with server match routes where applicable).
+ * Matching API — fetch shapes (align with server match routes where applicable).
  */
 
 import type { PublicProfileConnectionState } from "@/features/user-profile/types/public-profile.types";

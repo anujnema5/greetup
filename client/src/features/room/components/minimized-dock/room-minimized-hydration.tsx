@@ -1,8 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
-import { useAppDispatch } from "@/lib/redux/hooks";
-import { startVideoSession, minimizeVideoSession } from "@/lib/redux/slices/room-slice";
+import { useRoomStore } from "@/features/room/state/room.store";
 import {
   isRoomMarkedActive,
   isRoomMinimizedMarked,
@@ -10,14 +9,15 @@ import {
 
 /** Restores minimized dock state after refresh when session markers are set. */
 export function RoomMinimizedHydration() {
-  const dispatch = useAppDispatch();
+  const startVideoSession = useRoomStore((s) => s.startVideoSession);
+  const minimizeVideoSession = useRoomStore((s) => s.minimizeVideoSession);
 
   useEffect(() => {
     if (isRoomMarkedActive() && isRoomMinimizedMarked()) {
-      dispatch(startVideoSession());
-      dispatch(minimizeVideoSession());
+      startVideoSession();
+      minimizeVideoSession();
     }
-  }, [dispatch]);
+  }, [minimizeVideoSession, startVideoSession]);
 
   return null;
 }

@@ -5,7 +5,7 @@ import type {
   RemotePeer,
   ScreenShareTileInfo,
 } from "@/features/rtc";
-import type { RoomActiveActivity } from "@/lib/redux/types/room-slice.types";
+import type { RoomActiveActivity } from "@/features/room/types/room-state.types";
 import type { RoomSessionType } from "@/shared/types/room-session";
 import type { EmbeddedCallPolicyLookup } from "@/features/room/embedded-activities";
 import type { RoomActivityId, RoomActivityMeta } from "@/features/room/types/call/room-activity.types";
@@ -97,7 +97,7 @@ export type InCallScreenProps = {
   remoteTrackMediaSource?: Record<string, ProducerMediaSource>;
   /**
    * Lets `InCallContainer` apply {@link resolveEmbeddedActivityCallPolicy} for invites using the
-   * in-view embedded stage id (may be set before Redux sync, e.g. chess invite pending).
+   * in-view embedded stage id (may be set before Zustand sync, e.g. chess invite pending).
    */
   onEmbeddedStageActivityChange?: (stageActivityId: RoomActivityId | null) => void;
   /** Active-only tiles from `GET /room/embedded-activities`; `InCallScreen` treats missing as `[]`. */

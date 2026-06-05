@@ -1,11 +1,11 @@
 "use client";
 
-import { useAppDispatch, useAppSelector } from "@/lib/redux/hooks";
 import {
   selectIsRoomMinimized,
   selectIsVideoSessionActive,
   selectRoomPhase,
-} from "@/lib/redux/selectors/room-selectors";
+  useRoomStore,
+} from "@/features/room/state/room.store";
 import { useSession } from "@/lib/auth-client";
 import { useRoom } from "@/features/matching";
 import {
@@ -20,10 +20,9 @@ import { useRoomJoinAndStartVideo } from "@/features/room/hooks/session/use-room
 import { isConnectionCallSession } from "@/features/room/lib/session/room-session-kind";
 
 export function RoomPage() {
-  const dispatch = useAppDispatch();
-  const sessionActive = useAppSelector(selectIsVideoSessionActive);
-  const roomPhase = useAppSelector(selectRoomPhase);
-  const isMinimized = useAppSelector(selectIsRoomMinimized);
+  const sessionActive = useRoomStore(selectIsVideoSessionActive);
+  const roomPhase = useRoomStore(selectRoomPhase);
+  const isMinimized = useRoomStore(selectIsRoomMinimized);
   const isSearchingNext = roomPhase === "searching";
   const { data: session } = useSession();
 
@@ -63,7 +62,6 @@ export function RoomPage() {
     sessionActive,
     joinWhileSessionActive: rematchLanding,
     peerId,
-    dispatch,
   });
 
   const showCallSurface = (sessionActive || isSearchingNext) && !isMinimized;

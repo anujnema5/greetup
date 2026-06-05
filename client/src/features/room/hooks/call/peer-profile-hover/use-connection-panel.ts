@@ -3,12 +3,12 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import {
-  useAcceptConnectionMutation,
-  useDisconnectConnectionMutation,
-  useRejectConnectionMutation,
-  useRequestConnectionMutation,
-  useWithdrawConnectionRequestMutation,
-} from "@/features/connections/api/connections-api";
+  useAcceptConnection,
+  useDisconnectConnection,
+  useRejectConnection,
+  useRequestConnection,
+  useWithdrawConnectionRequest,
+} from "@/features/connections/api/connections.mutations";
 import { applyPeerConnectionSync } from "@/features/connections/lib/realtime";
 import { usePeerConnectionSync } from "@/features/connections/hooks/use-peer-connection-sync";
 import {
@@ -18,11 +18,10 @@ import {
   shouldClearPanelOverride,
 } from "@/features/room/lib/call/peer-profile-hover";
 import { connectionPatchFromRequestResult } from "@/features/room/lib/call/peer-profile-hover/connection-request-result";
-import { publicProfileRtkCacheId } from "@/features/user-profile/api/public-profile-rtk-cache";
+import { publicProfileCacheId } from "@/features/user-profile/api/public-profile-cache-id";
 import type { PublicProfileConnectionPanel } from "@/features/user-profile/lib/public-profile-connection";
 import type { PublicProfileConnectionState } from "@/features/user-profile/types/public-profile.types";
-import { getRtkQueryErrorMessage } from "@/lib/api/rtk-query-error";
-import { useAppDispatch } from "@/lib/redux/hooks";
+import { getApiErrorMessage } from "@/lib/api/fetch-client";
 
 const OPTIMISTIC_CONNECTION_ID = "__optimistic__";
 
@@ -40,7 +39,6 @@ export function usePeerProfileHoverConnectionPanel({
   connectionState,
   connectionId,
 }: UsePeerProfileHoverConnectionPanelArgs) {
-  const dispatch = useAppDispatch();
   const liveSync = usePeerConnectionSync(peerUserId);
   const [panelOverride, setPanelOverride] = useState<PublicProfileConnectionPanel | null>(null);
 
@@ -81,21 +79,21 @@ export function usePeerProfileHoverConnectionPanel({
   const applyConnectionPatch = useCallback(
     (patch: { connectionState: PublicProfileConnectionState; connectionId: string | null }) => {
       setPanelOverride(getPeerProfileConnectionPanel(patch.connectionState, patch.connectionId));
-      applyPeerConnectionSync(dispatch, peerUserId, patch);
+      applyPeerConnectionSync(peerUserId, patch);
     },
-    [dispatch, peerUserId],
+    [peerUserId],
   );
 
-  const [requestConnection, { isLoading: isConnecting }] = useRequestConnectionMutation();
-  const [acceptConnection, { isLoading: isAccepting }] = useAcceptConnectionMutation();
-  const [rejectConnection, { isLoading: isRejecting }] = useRejectConnectionMutation();
-  const [disconnectConnection, { isLoading: isDisconnecting }] =
-    useDisconnectConnectionMutation();
-  const [withdrawConnectionRequest, { isLoading: isWithdrawing }] =
-    useWithdrawConnectionRequestMutation();
+  const { mutateAsync: requestConnection, isPending: isConnecting } = useRequestConnection();
+  const { mutateAsync: acceptConnection, isPending: isAccepting } = useAcceptConnection();
+  const { mutateAsync: rejectConnection, isPending: isRejecting } = useRejectConnection();
+  const { mutateAsync: disconnectConnection, isPending: isDisconnecting } =
+    useDisconnectConnection();
+  const { mutateAsync: withdrawConnectionRequest, isPending: isWithdrawing } =
+    useWithdrawConnectionRequest();
 
   const peerUsername = username?.trim() || null;
-  const invalidateUsername = peerUsername ? publicProfileRtkCacheId(peerUsername) : undefined;
+  const invalidateUsername = peerUsername ? publicProfileCacheId(peerUsername) : undefined;
 
   const onConnect = useCallback(() => {
     setPanelOverride({
@@ -107,7 +105,6 @@ export function usePeerProfileHoverConnectionPanel({
       targetUserId: peerUserId,
       invalidatePublicProfileUsername: invalidateUsername,
     })
-      .unwrap()
       .then((result) => {
         const patch = connectionPatchFromRequestResult(result);
         applyConnectionPatch(patch);
@@ -119,7 +116,7 @@ export function usePeerProfileHoverConnectionPanel({
       })
       .catch((e: unknown) => {
         setPanelOverride(null);
-        toast.error(getRtkQueryErrorMessage(e));
+        toast.error(getApiErrorMessage(e, "Could not connect"));
       });
   }, [applyConnectionPatch, invalidateUsername, peerUserId, requestConnection]);
 
@@ -129,11 +126,10 @@ export function usePeerProfileHoverConnectionPanel({
     applyConnectionPatch({ connectionState: "accepted", connectionId: id });
 
     void acceptConnection({ connectionId: id, peerUsername, peerUserId })
-      .unwrap()
       .then(() => toast.success("Connection accepted"))
       .catch((e: unknown) => {
         setPanelOverride(null);
-        toast.error(getRtkQueryErrorMessage(e));
+        toast.error(getApiErrorMessage(e, "Could not accept"));
       });
   }, [acceptConnection, applyConnectionPatch, panel, peerUserId, peerUsername]);
 
@@ -143,11 +139,10 @@ export function usePeerProfileHoverConnectionPanel({
     applyConnectionPatch({ connectionState: "none", connectionId: null });
 
     void rejectConnection({ connectionId: id, peerUsername, peerUserId })
-      .unwrap()
       .then(() => toast.success("Request declined"))
       .catch((e: unknown) => {
         setPanelOverride(null);
-        toast.error(getRtkQueryErrorMessage(e));
+        toast.error(getApiErrorMessage(e, "Could not decline"));
       });
   }, [applyConnectionPatch, panel, peerUserId, peerUsername, rejectConnection]);
 
@@ -159,11 +154,10 @@ export function usePeerProfileHoverConnectionPanel({
     applyConnectionPatch({ connectionState: "none", connectionId: null });
 
     void withdrawConnectionRequest({ connectionId: id, peerUsername, peerUserId })
-      .unwrap()
       .then(() => toast.success("Request withdrawn"))
       .catch((e: unknown) => {
         setPanelOverride(null);
-        toast.error(getRtkQueryErrorMessage(e));
+        toast.error(getApiErrorMessage(e, "Could not withdraw"));
       });
   }, [applyConnectionPatch, panel, peerUserId, peerUsername, withdrawConnectionRequest]);
 
@@ -173,11 +167,10 @@ export function usePeerProfileHoverConnectionPanel({
     applyConnectionPatch({ connectionState: "none", connectionId: null });
 
     void disconnectConnection({ connectionId: id, peerUsername, peerUserId })
-      .unwrap()
       .then(() => toast.success("Connection removed"))
       .catch((e: unknown) => {
         setPanelOverride(null);
-        toast.error(getRtkQueryErrorMessage(e));
+        toast.error(getApiErrorMessage(e, "Could not disconnect"));
       });
   }, [applyConnectionPatch, disconnectConnection, panel, peerUserId, peerUsername]);
 

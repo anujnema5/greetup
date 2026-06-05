@@ -3,7 +3,6 @@
 import { useCallback, useMemo, useRef } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { useSession } from "@/lib/auth-client";
-import { useAppDispatch, useAppSelector } from "@/lib/redux/hooks";
 import {
   selectActiveRoomId,
   selectDirectCallPeerLabel,
@@ -11,12 +10,12 @@ import {
   selectIsVideoSessionActive,
   selectRoomPhase,
   selectRtcPrimaryRemoteUserId,
-} from "@/lib/redux/selectors/room-selectors";
+  useRoomStore,
+} from "@/features/room/state/room.store";
 import {
   CIRCLE_SEARCH_PATH,
   circleRoomPath,
 } from "@/features/room/lib/navigation/circle-routes";
-import { expandVideoSession } from "@/lib/redux/slices/room-slice";
 import {
   isPersistedCircleSession,
   resolveCircleHostUserId,
@@ -25,7 +24,7 @@ import {
   isConnectionCallSession,
   isMatchSession,
 } from "@/features/room/lib/session/room-session-kind";
-import { useGetRoomQuery } from "@/features/room/api/room-api";
+import { useGetRoom } from "@/features/room/api/room.queries";
 import { useRoomVideo } from "@/features/room/hooks/session/use-room-video";
 import { useMinimizedDockMainStage } from "@/features/room/hooks/minimized-dock/use-minimized-dock-main-stage";
 import { mediaStreamVideoAttachRevision, useRtcSocketContext } from "@/features/rtc";
@@ -73,12 +72,12 @@ function displayInitials(name: string): string {
 /** Heavy RTC + dock logic — only mounted when {@link MinimizedRoomDock} gate says minimized + off /circle. */
 function MinimizedRoomDockPanel() {
   const router = useRouter();
-  const dispatch = useAppDispatch();
-  const isActive = useAppSelector(selectIsVideoSessionActive);
-  const activeRoomId = useAppSelector(selectActiveRoomId);
-  const roomPhase = useAppSelector(selectRoomPhase);
-  const rtcPrimaryRemoteUserId = useAppSelector(selectRtcPrimaryRemoteUserId);
-  const directCallPeerLabel = useAppSelector(selectDirectCallPeerLabel);
+  const expandVideoSession = useRoomStore((s) => s.expandVideoSession);
+  const isActive = useRoomStore(selectIsVideoSessionActive);
+  const activeRoomId = useRoomStore(selectActiveRoomId);
+  const roomPhase = useRoomStore(selectRoomPhase);
+  const rtcPrimaryRemoteUserId = useRoomStore(selectRtcPrimaryRemoteUserId);
+  const directCallPeerLabel = useRoomStore(selectDirectCallPeerLabel);
   const { data: session } = useSession();
   const currentUserId = session?.user?.id ?? null;
   const localProfileImageUrl = session?.user?.image ?? null;
@@ -102,8 +101,8 @@ function MinimizedRoomDockPanel() {
     clearLocalMediaDeviceError,
   } = useRtcSocketContext();
 
-  const { data: dockRoomMeta } = useGetRoomQuery(activeRoomId ?? "", {
-    skip: !activeRoomId || !isActive,
+  const { data: dockRoomMeta } = useGetRoom(activeRoomId ?? "", {
+    enabled: Boolean(activeRoomId) && isActive,
   });
   const dockSessionIsCircle = isPersistedCircleSession(dockRoomMeta, rtcRoomType);
   const dockCircleHostId = resolveCircleHostUserId(dockRoomMeta);
@@ -210,7 +209,7 @@ function MinimizedRoomDockPanel() {
   );
 
   const handleExpand = useCallback(() => {
-    dispatch(expandVideoSession());
+    expandVideoSession();
     // Keep `ROOM_MINIMIZED_KEY` until `/circle` mounts `InCallContainer` (`useRoomVideo` clears it).
     // Clearing here runs before navigation; `useRoomPageTabLease` cleanup then thinks we fully
     // left the room and dispatches `resetRoomState()`, which tears down RTC and forces re-join.
@@ -222,7 +221,7 @@ function MinimizedRoomDockPanel() {
       clearRoomMinimized();
       router.push("/home");
     }
-  }, [dispatch, router, activeRoomId, roomPhase]);
+  }, [expandVideoSession, router, activeRoomId, roomPhase]);
 
   const clearDockOffset = useCallback(() => {
     try {
@@ -539,8 +538,8 @@ function MinimizedRoomDockPanel() {
  */
 export function MinimizedRoomDock() {
   const pathname = usePathname();
-  const isActive = useAppSelector(selectIsVideoSessionActive);
-  const isMinimized = useAppSelector(selectIsRoomMinimized);
+  const isActive = useRoomStore(selectIsVideoSessionActive);
+  const isMinimized = useRoomStore(selectIsRoomMinimized);
   const isFullRoom = pathname.startsWith("/circle/");
   if (!isActive || !isMinimized || isFullRoom) return null;
   return <MinimizedRoomDockPanel />;

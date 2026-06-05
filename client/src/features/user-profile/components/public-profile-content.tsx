@@ -12,10 +12,10 @@ import {
 } from "lucide-react";
 
 import { UserAvatarWithPresence } from "@/features/presence";
-import { getRtkQueryErrorMessage } from "@/lib/api/rtk-query-error";
+import { getApiErrorMessage } from "@/lib/api/fetch-client";
 import { cn } from "@/lib/utils";
 
-import { useGetPublicProfileQuery } from "../api/public-profile-api";
+import { usePublicProfile } from "../api/public-profile.queries";
 import { PublicProfileContentSkeleton } from "./public-profile-content-skeleton";
 import { ProfileChipList } from "./profile-chip-list";
 import { ProfileDetailSection } from "./profile-detail-section";
@@ -54,8 +54,8 @@ export function PublicProfileContent({
   unavailableBackLabel = "Back to Explore",
   embedded = false,
 }: PublicProfileContentProps) {
-  const { data, isLoading, isError, error } = useGetPublicProfileQuery(username, {
-    refetchOnMountOrArgChange: true,
+  const { data, isLoading, isError, error } = usePublicProfile(username, {
+    refetchOnMount: 'always',
   });
 
   const panel = data ? getPublicProfileConnectionPanel(data) : null;
@@ -104,7 +104,7 @@ export function PublicProfileContent({
       <div className={cn("rounded-2xl border border-border bg-card p-6 text-center", className)}>
         <p className="text-sm font-medium text-foreground">Profile unavailable</p>
         <p className="mt-2 text-xs text-muted-foreground">
-          {getRtkQueryErrorMessage(error) ||
+          {getApiErrorMessage(error, "Could not load profile") ||
             "This profile doesn’t exist or you can’t view it."}
         </p>
         {unavailableBackHref ? (

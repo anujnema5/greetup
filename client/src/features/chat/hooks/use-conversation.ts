@@ -1,12 +1,12 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { useDispatch, useSelector } from 'react-redux';
+import { useCallback, useEffect, useMemo, useRef } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { useSession } from '@/lib/auth-client';
 import { useSocket } from '@/lib/socket/provider';
-import { chatApi, useGetMessagesQuery } from '../api/chat-api';
-import { typingSet, unreadCountReset, activeConversationSet } from '../slices/chat.slice';
-import type { AppDispatch, RootState } from '@/lib/redux/store';
+import { useMessages } from '../api/chat.queries';
+import { markOwnMessagesReadInCache } from '../lib/message-cache-sync';
+import { useChatUiStore } from '../state/chat-ui.store';
 import type {
   ConversationType,
   Message,
@@ -20,7 +20,7 @@ export function useConversation(
   conversationId: string,
   opts?: { conversationType?: ConversationType },
 ) {
-  const dispatch = useDispatch<AppDispatch>();
+  const qc = useQueryClient();
   const { chatSocket: socket } = useSocket();
   const { data: session } = useSession();
   const currentUserId = session?.user?.id ?? '';
@@ -28,16 +28,27 @@ export function useConversation(
 
   const hasJoined = useRef(false);
 
-  const [cursor, setCursor] = useState<string | undefined>(undefined);
-  const { data, isLoading, isFetching } = useGetMessagesQuery({ conversationId, cursor });
+  const {
+    data,
+    isLoading,
+    isFetching,
+    isFetchingNextPage,
+    hasNextPage,
+    fetchNextPage,
+  } = useMessages(conversationId);
 
-  const typingUsers = useSelector(
-    (s: RootState) => s.chat.typingState[conversationId] ?? EMPTY_TYPING_USERS,
+  const typingUsers = useChatUiStore(
+    (s) => s.typingState[conversationId] ?? EMPTY_TYPING_USERS,
   );
 
   const allMessages = useMemo(() => {
-    const list = data?.messages ?? [];
-    return [...list].sort(
+    const byId = new Map<string, Message>();
+    for (const page of data?.pages ?? []) {
+      for (const m of page.messages) {
+        byId.set(m.id, m);
+      }
+    }
+    return [...byId.values()].sort(
       (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
     );
   }, [data]);
@@ -45,11 +56,12 @@ export function useConversation(
   const lastMessageId = allMessages.length ? allMessages[allMessages.length - 1]!.id : undefined;
 
   useEffect(() => {
-    dispatch(activeConversationSet(conversationId));
+    const { setActiveConversation } = useChatUiStore.getState();
+    setActiveConversation(conversationId);
     return () => {
-      dispatch(activeConversationSet(null));
+      setActiveConversation(null);
     };
-  }, [conversationId, dispatch]);
+  }, [conversationId]);
 
   useEffect(() => {
     if (!socket) return;
@@ -64,7 +76,6 @@ export function useConversation(
       hasJoined.current = false;
     };
 
-    // Join immediately when connected, and also after every reconnect.
     if (socket.connected) {
       joinRoom();
     }
@@ -84,14 +95,16 @@ export function useConversation(
   useEffect(() => {
     if (!socket) return;
 
+    const { setTyping } = useChatUiStore.getState();
+
     const onTypingStart = (p: TypingPayload) => {
       if (p.conversationId !== conversationId) return;
-      dispatch(typingSet({ conversationId, userId: p.userId, isTyping: true }));
+      setTyping({ conversationId, userId: p.userId, isTyping: true });
     };
 
     const onTypingStop = (p: TypingPayload) => {
       if (p.conversationId !== conversationId) return;
-      dispatch(typingSet({ conversationId, userId: p.userId, isTyping: false }));
+      setTyping({ conversationId, userId: p.userId, isTyping: false });
     };
 
     const onPeerRead = (p: ReadPayload) => {
@@ -99,13 +112,7 @@ export function useConversation(
       if (!currentUserId || p.userId === currentUserId) return;
       if (conversationType === 'room_circle') return;
 
-      dispatch(chatApi.util.updateQueryData('getMessages', { conversationId }, (draft) => {
-        for (const m of draft.messages) {
-          if (m.senderId === currentUserId && m.status !== 'failed' && !m.isDeleted) {
-            m.status = 'read';
-          }
-        }
-      }));
+      markOwnMessagesReadInCache(qc, conversationId, currentUserId);
     };
 
     socket.on('chat:typing:start', onTypingStart);
@@ -117,28 +124,28 @@ export function useConversation(
       socket.off('chat:typing:stop', onTypingStop);
       socket.off('chat:message:read', onPeerRead);
     };
-  }, [socket, conversationId, dispatch, currentUserId, conversationType]);
+  }, [socket, conversationId, qc, currentUserId, conversationType]);
 
   useEffect(() => {
     if (!socket || !lastMessageId || lastMessageId.startsWith('temp_')) return;
     const t = window.setTimeout(() => {
       socket.emit('chat:message:read', { conversationId, messageId: lastMessageId });
-      dispatch(unreadCountReset(conversationId));
+      useChatUiStore.getState().resetUnreadCount(conversationId);
     }, 400);
     return () => window.clearTimeout(t);
-  }, [socket, conversationId, lastMessageId, dispatch]);
+  }, [socket, conversationId, lastMessageId]);
 
   const loadMore = useCallback(() => {
-    if (data?.nextCursor && !isFetching) {
-      setCursor(data.nextCursor);
+    if (hasNextPage && !isFetchingNextPage) {
+      void fetchNextPage();
     }
-  }, [data, isFetching]);
+  }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
 
   return {
-    messages:    allMessages,
+    messages: allMessages,
     isLoading,
-    isFetching,
-    hasMore:     !!data?.nextCursor,
+    isFetching: isFetching || isFetchingNextPage,
+    hasMore: hasNextPage,
     typingUsers,
     loadMore,
     currentUserId,

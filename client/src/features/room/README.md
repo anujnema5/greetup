@@ -23,12 +23,12 @@
 | `contracts/` | `CallCapabilities`, layout modes |
 | `listeners/` | Socket listeners |
 | `embedded-activities/` | DB-backed activity catalog |
-| `embedded-activities/hooks/` | Catalog RTK hook |
+| `embedded-activities/hooks/` | Catalog query hook |
 | `embedded-activities/catalog/` | Display + direct-call tab rules |
 | `embedded-activities/policy/` | Invite / people-tab policies |
 | `embedded-activities/parse/` | API response parsing |
 | `hooks/` | Hooks by concern (session, media, toolbar, …) |
-| `lib/session/` | Tab sync, return path, RTK cache |
+| `lib/session/` | Tab sync, return path, query cache patches |
 | `lib/call/` | Speaker rings, call duration formatting, in-call activity toasts |
 | `lib/minimized-dock/` | Dock focus / silence helpers |
 | `lib/navigation/` | Post-call navigation |
@@ -45,7 +45,7 @@
 | `lib/call/circle-pre-join.ts` | Pure pre-join state from GET room |
 | `hooks/session/use-circle-room-entry.ts` | Meet-style join gate on `RoomPage` |
 | `components/dialogs/` | Add-to-circle dialog |
-| `api/` | Room HTTP (RTK) |
+| `api/` | Room HTTP (React Query) |
 
 `features/rtc/` stays separate — mediasoup, socket, streams only.
 
@@ -54,7 +54,7 @@
 - Prefer `@/features/room/call/...`, `@/features/room/hooks/<concern>/...`, etc.
 - Public API: `@/features/room` (components, lib, types — safe for `layout.tsx`).
 - Client hooks: `@/features/room/hooks` only (not re-exported from main index).
-- Avoid deep imports into `embedded-activities/parse` unless breaking RTK cycles (see `room-api`).
+- Avoid deep imports into `embedded-activities/parse` unless breaking import cycles with `room.queries`.
 
 ## Public exports (`@/features/room`)
 

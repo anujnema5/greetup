@@ -3,7 +3,7 @@
 import { useCallback, useState } from "react";
 import { useRouter } from "next/navigation";
 
-import { useGetMyProfileQuery } from "@/features/profile-setup/components/profile-setup-api";
+import { useMyProfile } from "@/features/profile-setup/api";
 import { signOut, useSession } from "@/lib/auth-client";
 import { getProfileImageUrl } from "@/lib/ui/profile-image";
 
@@ -17,12 +17,12 @@ import type { PageHeaderAccountState, PageHeaderSessionUser } from "../types/pag
 export function usePageHeaderAccount(): PageHeaderAccountState {
   const router = useRouter();
   const { data: session } = useSession();
-  const { data: myProfileData } = useGetMyProfileQuery();
+  const { data: myProfileData } = useMyProfile();
   const mounted = useClientMounted();
   const [isSigningOut, setIsSigningOut] = useState(false);
 
   const sessionUser = session?.user as PageHeaderSessionUser | undefined;
-  const profileDisplayName = myProfileData?.data?.displayName?.trim() || "";
+  const profileDisplayName = myProfileData?.displayName?.trim() || "";
   const displayName = resolvePageHeaderDisplayName(profileDisplayName, sessionUser);
   const avatarSrc = getProfileImageUrl(mounted ? (sessionUser?.image ?? null) : null);
   const accountSubtitle = resolvePageHeaderAccountSubtitle(sessionUser);

@@ -13,7 +13,10 @@ import { usePeersOnlineStatus } from "@/features/presence";
 import { cn } from "@/lib/utils";
 import { RECENT_MATCHES } from "@/lib/copy/user-messages";
 
-import { PROFILE_INSIGHTS_RECENT_MATCHES_LIMIT, useGetProfileInsightsQuery } from "../api/profile-insights-api";
+import {
+  PROFILE_INSIGHTS_RECENT_MATCHES_LIMIT,
+  useProfileInsights,
+} from "../api/profile-insights.queries";
 import { useProfileRecentMatchCall } from "../hooks/use-profile-recent-match-call";
 import { useRecentMatchesScrollPagination } from "../hooks/use-recent-matches-scroll-pagination";
 import { RecentMatchRow } from "./recent-match-row";
@@ -42,9 +45,9 @@ export function RecentMatchesDialog({
   onOpenChange,
   connectedOnly = false,
 }: RecentMatchesDialogProps) {
-  const { data, isLoading, isFetching } = useGetProfileInsightsQuery(
+  const { data, isLoading, isFetching } = useProfileInsights(
     { recentLimit: PROFILE_INSIGHTS_RECENT_MATCHES_LIMIT },
-    { skip: !open, refetchOnMountOrArgChange: true },
+    { enabled: open, refetchOnMount: 'always' },
   );
 
   const {

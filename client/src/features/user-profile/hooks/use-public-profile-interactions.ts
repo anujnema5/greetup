@@ -4,11 +4,11 @@ import { useRouter } from "next/navigation";
 import { useCallback, useState } from "react";
 import { toast } from "sonner";
 
-import { useCreateConnectionConversationMutation } from "@/features/chat/api/chat-api";
+import { useCreateConnectionConversation } from "@/features/chat/api/chat.mutations";
+import { getApiErrorMessage } from "@/lib/api/fetch-client";
 import { messagesConversationPath } from "@/features/chat/lib/messages-routes";
 import { useConnectionCallActions } from "@/features/connection-call/hooks/use-connection-call-actions";
 import type { ConnectionCallMode } from "@/features/connection-call/types/connection-call.types";
-import { getRtkMutationErrorMessage } from "@/lib/api/rtk-mutation-error";
 
 import { publicProfileShareUrl } from "../lib/public-profile-share-url";
 import type { PublicProfilePeer } from "../types/public-profile-actions.types";
@@ -21,8 +21,8 @@ type Options = {
 
 export function usePublicProfileInteractions({ peer, messagingEnabled }: Options) {
   const router = useRouter();
-  const [createConversation, { isLoading: isOpeningChat }] =
-    useCreateConnectionConversationMutation();
+  const { mutateAsync: createConversation, isPending: isOpeningChat } =
+    useCreateConnectionConversation();
   const { startCall, isStarting: isStartingCall } = useConnectionCallActions();
   const [isBusy, setIsBusy] = useState(false);
 
@@ -39,10 +39,10 @@ export function usePublicProfileInteractions({ peer, messagingEnabled }: Options
     if (!guardMessaging()) return;
     setIsBusy(true);
     try {
-      const conv = await createConversation({ targetUserId: peer.userId }).unwrap();
+      const conv = await createConversation({ targetUserId: peer.userId });
       router.push(messagesConversationPath(conv.id, conv.type));
     } catch (error: unknown) {
-      toast.error(getRtkMutationErrorMessage(error, "Could not open messages"));
+      toast.error(getApiErrorMessage(error, "Could not open messages"));
     } finally {
       setIsBusy(false);
     }
@@ -53,13 +53,13 @@ export function usePublicProfileInteractions({ peer, messagingEnabled }: Options
       if (!guardMessaging()) return;
       setIsBusy(true);
       try {
-        const conv = await createConversation({ targetUserId: peer.userId }).unwrap();
+        const conv = await createConversation({ targetUserId: peer.userId });
         await startCall(conv.id, peer.userId, mode, {
           displayName: peer.displayTitle,
           image: peer.primaryImage,
         });
       } catch (error: unknown) {
-        toast.error(getRtkMutationErrorMessage(error, "Could not start call"));
+        toast.error(getApiErrorMessage(error, "Could not start call"));
       } finally {
         setIsBusy(false);
       }

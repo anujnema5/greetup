@@ -1,8 +1,8 @@
-import { baseApi } from "@/lib/api";
-import type { AppDispatch } from "@/lib/redux/store";
-import { applyPeerConnectionSync } from "./apply-peer-connection-sync";
-import type { ConnectionNotificationSocketRow } from "./connection-realtime.types";
-import { connectionListInvalidationTags } from "./invalidate-connection-list-tags";
+import type { QueryClient } from '@tanstack/react-query';
+
+import { invalidateConnectionListCaches } from '../invalidate-after-connection-action';
+import { applyPeerConnectionSync } from './apply-peer-connection-sync';
+import type { ConnectionNotificationSocketRow } from './connection-realtime.types';
 
 function normalizeNotification(notification: ConnectionNotificationSocketRow | undefined) {
   if (!notification) return null;
@@ -13,14 +13,14 @@ function normalizeNotification(notification: ConnectionNotificationSocketRow | u
   const connectionId = (notification.entityId ?? notification.entity_id)?.trim() || null;
 
   if (!type || !peerUserId) return null;
-  if (entityType && entityType !== "connection") return null;
+  if (entityType && entityType !== 'connection') return null;
 
   return { type, peerUserId, connectionId };
 }
 
 /** Handles connection-related `notification:new` payloads. */
 export function syncConnectionFromNotification(
-  dispatch: AppDispatch,
+  qc: QueryClient,
   notification: ConnectionNotificationSocketRow | undefined,
 ): void {
   const normalized = normalizeNotification(notification);
@@ -29,20 +29,20 @@ export function syncConnectionFromNotification(
   const { type, peerUserId, connectionId } = normalized;
 
   switch (type) {
-    case "connection_request_accepted":
-      applyPeerConnectionSync(dispatch, peerUserId, {
-        connectionState: "accepted",
+    case 'connection_request_accepted':
+      applyPeerConnectionSync(peerUserId, {
+        connectionState: 'accepted',
         connectionId,
       });
-      dispatch(baseApi.util.invalidateTags(connectionListInvalidationTags("accepted")));
+      invalidateConnectionListCaches(qc, 'accepted');
       break;
 
-    case "connection_request_received":
-      applyPeerConnectionSync(dispatch, peerUserId, {
-        connectionState: "pending_incoming",
+    case 'connection_request_received':
+      applyPeerConnectionSync(peerUserId, {
+        connectionState: 'pending_incoming',
         connectionId,
       });
-      dispatch(baseApi.util.invalidateTags(connectionListInvalidationTags("pending_incoming")));
+      invalidateConnectionListCaches(qc, 'pending_incoming');
       break;
 
     default:

@@ -1,14 +1,13 @@
 "use client";
 
 import { PRESENCE_POLL_INTERVAL_MS } from "../constants";
-import { useGetOnlinePeopleCountQuery } from "../api/presence-api";
+import { useOnlinePeopleCountQuery } from "../api/presence.queries";
 
 /** Live count of other users online; polls every 15s. */
 export function useOnlinePeopleCount() {
-  const { data, isLoading, isFetching } = useGetOnlinePeopleCountQuery(undefined, {
-    pollingInterval: PRESENCE_POLL_INTERVAL_MS,
-    refetchOnFocus: true,
-    refetchOnReconnect: true,
+  const { data, isLoading, isFetching } = useOnlinePeopleCountQuery({
+    refetchInterval: PRESENCE_POLL_INTERVAL_MS,
+    refetchOnWindowFocus: true,
   });
 
   const onlinePeopleCount = typeof data === "number" && Number.isFinite(data) ? data : 0;

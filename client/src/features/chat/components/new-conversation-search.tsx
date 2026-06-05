@@ -1,12 +1,14 @@
 'use client';
 
 import { useMemo, useState, useRef, useEffect } from 'react';
+import { toast } from 'sonner';
 import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { UserAvatarWithPresence, usePeersOnlineStatus } from '@/features/presence';
-import { useGetMyConnectionsQuery } from '@/features/connections/api/connections-api';
-import { useCreateConnectionConversationMutation } from '../api/chat-api';
+import { useMyConnections } from '@/features/connections/api/connections.queries';
+import { getApiErrorMessage } from '@/lib/api/fetch-client';
+import { useCreateConnectionConversation } from '../api/chat.mutations';
 import type { Conversation } from '../types/chat.types';
 
 interface NewConversationSearchProps {
@@ -18,14 +20,15 @@ export function NewConversationSearch({ onConversationOpen }: NewConversationSea
   const [open, setOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
 
-  const { data, isFetching } = useGetMyConnectionsQuery(
+  const { data, isFetching } = useMyConnections(
     { filter: 'accepted', q: query, limit: 10 },
-    { skip: !open },
+    { enabled: open },
   );
 
-  const [createConversation, { isLoading: isCreating }] = useCreateConnectionConversationMutation();
+  const { mutateAsync: createConversation, isPending: isCreating } =
+    useCreateConnectionConversation();
 
-  const friends = data?.data?.items ?? [];
+  const friends = data?.items ?? [];
   const peerIds = useMemo(() => friends.map((f) => f.peer.userId), [friends]);
   const { isOnline } = usePeersOnlineStatus(open ? peerIds : []);
 
@@ -41,12 +44,12 @@ export function NewConversationSearch({ onConversationOpen }: NewConversationSea
 
   async function handleSelect(targetUserId: string) {
     try {
-      const conv = await createConversation({ targetUserId }).unwrap();
+      const conv = await createConversation({ targetUserId });
       onConversationOpen(conv);
       setQuery('');
       setOpen(false);
-    } catch {
-      // ignore – error already handled by RTK
+    } catch (error: unknown) {
+      toast.error(getApiErrorMessage(error, 'Could not start conversation'));
     }
   }
 

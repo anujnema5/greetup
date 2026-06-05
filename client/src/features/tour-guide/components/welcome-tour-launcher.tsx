@@ -4,7 +4,7 @@ import { useEffect, useRef } from "react";
 
 import { useSession } from "@/lib/auth-client";
 
-import { useGetWelcomeTourStatusQuery } from "../api/tour-guide-api";
+import { useWelcomeTourStatus } from "../api/tour-guide.queries";
 import { useTourGuide } from "../context/tour-guide-provider";
 
 type WelcomeTourLauncherProps = {
@@ -27,8 +27,8 @@ export function WelcomeTourLauncher({ blocked = false }: WelcomeTourLauncherProp
     data: tourStatus,
     isLoading,
     isFetching,
-  } = useGetWelcomeTourStatusQuery(undefined, {
-    skip: !session?.user,
+  } = useWelcomeTourStatus({
+    enabled: Boolean(session?.user),
   });
 
   const statusReady = !isLoading && !isFetching;

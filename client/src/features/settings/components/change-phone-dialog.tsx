@@ -31,7 +31,8 @@ import {
 import { PhoneInput } from "@/components/ui/phone-input";
 import { useFirebasePhoneAuth } from "@/features/auth/context/firebase-phone-auth-context";
 import { getFirebaseAuth } from "@/lib/firebase/client-app";
-import { useUpdateAccountPhoneMutation } from "@/features/settings/api/account-settings-api";
+import { useUpdateAccountPhone } from "@/features/settings/api/account-settings.mutations";
+import { getApiErrorMessage } from "@/lib/api/fetch-client";
 import {
   phoneLoginSchema,
   phoneOtpVerificationSchema,
@@ -39,7 +40,6 @@ import {
   type PhoneLoginInput,
   type PhoneOtpVerificationInput,
 } from "@/features/settings/schemas/change-phone.schemas";
-import { getRtkQueryErrorMessage } from "@/lib/api/rtk-query-error";
 import { cn } from "@/lib/utils";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -58,7 +58,7 @@ export function ChangePhoneDialog({ open, onOpenChange, currentPhone }: ChangePh
   const router = useRouter();
   const { sendOtp, confirmPhoneOtpToIdToken, isSending, reset: resetFirebasePhone } =
     useFirebasePhoneAuth();
-  const [updateAccountPhone, { isLoading: isSaving }] = useUpdateAccountPhoneMutation();
+  const { mutateAsync: updateAccountPhone, isPending: isSaving } = useUpdateAccountPhone();
 
   const [step, setStep] = useState<Step>("phone");
   const [pendingE164, setPendingE164] = useState("");
@@ -131,7 +131,7 @@ export function ChangePhoneDialog({ open, onOpenChange, currentPhone }: ChangePh
         toast.error(parsed.error.issues[0]?.message ?? "Invalid token");
         return;
       }
-      await updateAccountPhone(parsed.data).unwrap();
+      await updateAccountPhone(parsed.data);
       toast.success("Phone number updated");
       try {
         await getFirebaseAuth().signOut();
@@ -142,7 +142,7 @@ export function ChangePhoneDialog({ open, onOpenChange, currentPhone }: ChangePh
       handleOpenChange(false);
       router.refresh();
     } catch (err) {
-      toast.error(getRtkQueryErrorMessage(err));
+      toast.error(getApiErrorMessage(err, "Could not update phone number"));
     }
   };
 

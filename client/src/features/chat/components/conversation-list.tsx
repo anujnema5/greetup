@@ -3,12 +3,14 @@
 import Image from 'next/image';
 import { PhoneMissed } from 'lucide-react';
 import { useSession } from '@/lib/auth-client';
-import { useSelector } from 'react-redux';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { UserAvatarWithPresence, usePeersOnlineStatus } from '@/features/presence';
-import { selectMissedCallCount } from '@/features/connection-call';
-import { useListConversationsQuery } from '../api/chat-api';
+import {
+  selectMissedCallCount,
+  useConnectionCallStore,
+} from '@/features/connection-call/state/connection-call.store';
+import { useListConversations } from '../api/chat.queries';
 import {
   conversationDisplayTitle,
   conversationListSubtitle,
@@ -16,7 +18,7 @@ import {
   formatConversationUpdatedAt,
 } from '../lib/conversation-display';
 import { useInboxDmPeerUserIds, getDmPeerUserId } from '../lib/conversation-peers';
-import type { RootState } from '@/lib/redux/store';
+import { useChatUiStore } from '../state/chat-ui.store';
 import type { Conversation } from '../types/chat.types';
 
 interface ConversationListProps {
@@ -28,9 +30,9 @@ export function ConversationList({ activeId, onSelect }: ConversationListProps) 
   const { data: session } = useSession();
   const currentUserId = session?.user?.id ?? '';
 
-  const { data: conversations = [], isLoading } = useListConversationsQuery();
+  const { data: conversations = [], isLoading } = useListConversations();
 
-  const unreadCounts = useSelector((s: RootState) => s.chat.unreadCounts);
+  const unreadCounts = useChatUiStore((s) => s.unreadCounts);
   const peerIds = useInboxDmPeerUserIds(conversations, currentUserId);
   const { isOnline } = usePeersOnlineStatus(peerIds);
 
@@ -87,7 +89,7 @@ function ConversationRow({
   peerOnline: boolean;
   onSelect: (conv: Conversation) => void;
 }) {
-  const missedCalls = useSelector((s: RootState) => selectMissedCallCount(s, conv.id));
+  const missedCalls = useConnectionCallStore(selectMissedCallCount(conv.id));
   const title = conversationDisplayTitle(conv, currentUserId);
   const subtitle = conversationListSubtitle(conv);
   const { image, label } = conversationListAvatar(conv, currentUserId);

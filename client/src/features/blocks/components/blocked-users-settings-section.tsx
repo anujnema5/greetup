@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { ChevronRight, ShieldBan } from "lucide-react";
 
-import { useListBlockedUsersQuery } from "../api/blocks-api";
+import { useListBlockedUsers } from "../api/blocks.queries";
 import { BlockedUsersDialog } from "./blocked-users-dialog";
 
 function blockedCountLabel(count: number): string {
@@ -15,7 +15,7 @@ function blockedCountLabel(count: number): string {
 /** Compact settings row — opens a dialog to view and unblock users. */
 export function BlockedUsersSettingsSection() {
   const [dialogOpen, setDialogOpen] = useState(false);
-  const { data, isLoading, isError } = useListBlockedUsersQuery();
+  const { data, isLoading, isError } = useListBlockedUsers();
   const count = data?.items.length ?? 0;
 
   const subtitle = isLoading

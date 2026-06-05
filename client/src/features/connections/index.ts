@@ -6,16 +6,16 @@ export { PeerConnectionRequestActions } from "./components/peer-connection-reque
 export { applyPeerConnectionSync } from "./lib/realtime";
 export { ProfileConnectionsSection } from "./components/profile-connections-section";
 export {
-  connectionsApi,
-  useGetMyConnectionsQuery,
-  useLazyGetMyConnectionsQuery,
-  useAcceptedConnectionsInfiniteQuery,
-  useRequestConnectionMutation,
-  useAcceptConnectionMutation,
-  useRejectConnectionMutation,
-  useDisconnectConnectionMutation,
-  useWithdrawConnectionRequestMutation,
-} from "./api/connections-api";
+  useAcceptedConnections,
+  useMyConnections,
+  usePendingIncomingConnectionCount,
+  usePeersCallStatus,
+  useAcceptConnection,
+  useDisconnectConnection,
+  useRejectConnection,
+  useRequestConnection,
+  useWithdrawConnectionRequest,
+} from "./api";
 export type {
   ConnectionListFilter,
   ConnectionListItem,

@@ -1,5 +1,5 @@
 /**
- * Activity API — RTK Query argument/result types for in-room activities.
+ * Activity API — argument/result types for in-room activities.
  */
 
 /** Common JSON envelope for activity POST responses. */

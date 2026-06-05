@@ -15,7 +15,8 @@
  * - Hook wiring types: `types/mediasoup-hooks.types.ts` (refs/setters passed between hooks)
  */
 
-export { rtcApi, useGetRtcTokenQuery } from "./api/rtc-api";
+export { useRtcToken } from "./api/rtc.queries";
+export { invalidateRtcTokenCache, patchRtcTokenRoomTypeInCache } from "./lib/rtc-token-cache";
 export type { RoomRtcState, RtcTokenApiResponse, RtcTokenPayload } from "./types/rtc-api.types";
 export { useRtcSocket } from "./hooks/use-rtc-socket";
 export type { RtcSocketState, UseRtcSocketReturn } from "./hooks/use-rtc-socket";

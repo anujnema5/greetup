@@ -1,9 +1,10 @@
-import { baseApi } from "@/lib/api";
-import type { PublicProfileConnectionState } from "@/features/user-profile/types/public-profile.types";
-import type { AppDispatch } from "@/lib/redux/store";
-import { applyPeerConnectionSync } from "./apply-peer-connection-sync";
-import type { ConnectionUpdatedSocketPayload } from "./connection-realtime.types";
-import { connectionListInvalidationTags } from "./invalidate-connection-list-tags";
+import type { QueryClient } from '@tanstack/react-query';
+
+import type { PublicProfileConnectionState } from '@/features/user-profile/types/public-profile.types';
+
+import { invalidateConnectionListCaches } from '../invalidate-after-connection-action';
+import { applyPeerConnectionSync } from './apply-peer-connection-sync';
+import type { ConnectionUpdatedSocketPayload } from './connection-realtime.types';
 
 function normalizeSocketPayload(payload: ConnectionUpdatedSocketPayload | undefined) {
   if (!payload) return null;
@@ -17,19 +18,19 @@ function normalizeSocketPayload(payload: ConnectionUpdatedSocketPayload | undefi
 }
 
 function mapSocketStatusToState(
-  status: ConnectionUpdatedSocketPayload["status"],
+  status: ConnectionUpdatedSocketPayload['status'],
 ): PublicProfileConnectionState | null {
   switch (status) {
-    case "accepted":
-      return "accepted";
-    case "pending":
-      return "pending_incoming";
-    case "rejected":
-      return "rejected";
-    case "cancelled":
-      return "cancelled";
-    case "none":
-      return "none";
+    case 'accepted':
+      return 'accepted';
+    case 'pending':
+      return 'pending_incoming';
+    case 'rejected':
+      return 'rejected';
+    case 'cancelled':
+      return 'cancelled';
+    case 'none':
+      return 'none';
     default:
       return null;
   }
@@ -37,7 +38,7 @@ function mapSocketStatusToState(
 
 /** Handles `connection:updated` — keeps in-call hover and lists in sync. */
 export function syncConnectionFromSocket(
-  dispatch: AppDispatch,
+  qc: QueryClient,
   payload: ConnectionUpdatedSocketPayload | undefined,
 ): void {
   const normalized = normalizeSocketPayload(payload);
@@ -46,10 +47,10 @@ export function syncConnectionFromSocket(
   const connectionState = mapSocketStatusToState(normalized.status);
   if (!connectionState) return;
 
-  const connectionId = connectionState === "none" ? null : normalized.connectionId;
+  const connectionId = connectionState === 'none' ? null : normalized.connectionId;
 
-  applyPeerConnectionSync(dispatch, normalized.peerUserId, { connectionState, connectionId });
+  applyPeerConnectionSync(normalized.peerUserId, { connectionState, connectionId });
 
   // Avoid invalidating MatchPeerPreview: refetch can restore stale "accepted" while hover is open.
-  dispatch(baseApi.util.invalidateTags(connectionListInvalidationTags(connectionState)));
+  invalidateConnectionListCaches(qc, connectionState);
 }

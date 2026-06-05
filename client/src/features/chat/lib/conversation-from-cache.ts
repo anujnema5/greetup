@@ -1,15 +1,17 @@
-import type { RootState } from '@/lib/redux/store';
-import { chatApi } from '../api/chat-api';
+import type { QueryClient } from '@tanstack/react-query';
+
+import { queryKeys } from '@/lib/query/keys';
+
 import type { Conversation } from '../types/chat.types';
 
-/** Resolve a conversation from RTK Query cache (list first, then detail). */
+/** Resolve a conversation from React Query cache (list first, then detail). */
 export function conversationFromCache(
-  getState: () => RootState,
+  qc: QueryClient,
   conversationId: string,
 ): Conversation | undefined {
-  const list = chatApi.endpoints.listConversations.select()(getState())?.data;
+  const list = qc.getQueryData<Conversation[]>(queryKeys.chat.conversations);
   const fromList = list?.find((conv) => conv.id === conversationId);
   if (fromList) return fromList;
 
-  return chatApi.endpoints.getConversation.select(conversationId)(getState())?.data;
+  return qc.getQueryData<Conversation>(queryKeys.chat.conversation(conversationId));
 }

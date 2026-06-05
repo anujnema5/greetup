@@ -42,7 +42,7 @@ export type PeerCallStatusEntry = {
 
 export type PeersCallStatusApiResponse = ApiResponse<{ statuses: Record<string, PeerCallStatusEntry> }>;
 
-/** Client-only: RTK cache invalidation for `getPublicProfile` after connect. */
+/** Client-only: query cache invalidation for public profile after connect. */
 export type RequestConnectionMutationArg = {
   targetUserId: string;
   invalidatePublicProfileUsername?: string;
@@ -54,7 +54,7 @@ export type RequestConnectionResult = {
   message?: string;
 };
 
-/** Accept or reject an incoming pending connection (RTK cache invalidation). */
+/** Accept or reject an incoming pending connection (query cache invalidation). */
 export type RespondConnectionMutationArg = {
   connectionId: string;
   peerUsername?: string | null;
