@@ -21,6 +21,10 @@ import {
   isPersistedCircleSession,
   resolveCircleHostUserId,
 } from "@/features/matching/types/room.types";
+import {
+  isConnectionCallSession,
+  isMatchSession,
+} from "@/features/room/lib/session/room-session-kind";
 import { useGetRoomQuery } from "@/features/room/api/room-api";
 import { useRoomVideo } from "@/features/room/hooks/session/use-room-video";
 import { useMinimizedDockMainStage } from "@/features/room/hooks/minimized-dock/use-minimized-dock-main-stage";
@@ -103,6 +107,15 @@ function MinimizedRoomDockPanel() {
   });
   const dockSessionIsCircle = isPersistedCircleSession(dockRoomMeta, rtcRoomType);
   const dockCircleHostId = resolveCircleHostUserId(dockRoomMeta);
+  const dockIsMatch = isMatchSession(dockRoomMeta);
+  const dockIsConnectionCall = isConnectionCallSession(dockRoomMeta);
+  const dockCanSkipAndRematch =
+    dockIsMatch ||
+    (roomPhase === "searching" && !dockSessionIsCircle && !dockIsConnectionCall);
+  const dockConnectionConversationId =
+    dockRoomMeta?.sessionKind === "connection_call"
+      ? dockRoomMeta.conversationId ?? null
+      : null;
 
   const { handleEnd: roomHandleEnd, handleSkip: roomHandleSkip } = useRoomVideo(
     activeRoomId ?? "",
@@ -110,6 +123,9 @@ function MinimizedRoomDockPanel() {
       skipSetup: true,
       isDbCircleCall: dockSessionIsCircle,
       circleHostUserId: dockCircleHostId,
+      canSkipAndRematch: dockCanSkipAndRematch,
+      isConnectionCallSession: dockIsConnectionCall,
+      connectionCallConversationId: dockConnectionConversationId,
     },
   );
 
@@ -493,7 +509,7 @@ function MinimizedRoomDockPanel() {
           ) : null}
         </div>
         <div className="flex shrink-0 items-center justify-end gap-1 sm:gap-3">
-          {rtcRoomType !== "circle" && !dockSessionIsCircle ? (
+          {dockCanSkipAndRematch ? (
             <button
               type="button"
               onClick={handleSkip}

@@ -18,7 +18,7 @@ import { roomParticipantsRepository } from "@/modules/rooms/repositories/room-pa
 import { syncCircleRoomTitleFromParticipants } from "@/modules/rooms/services/circle/circle-participant-title.service";
 import { notifyRtcServiceRoomType } from "@/modules/rooms/services/rtc/notify-rtc-room-type.service";
 import { canInviteWithoutExceedingCapacity } from "@/modules/rooms/lib/session/room-invite-capacity";
-import { patchSessionRoomRedisRoomType } from "@/modules/rooms/services/rtc/session-room-redis.service";
+import { patchSessionRoomRedisCircleExpand } from "@/modules/rooms/services/rtc/session-room-redis.service";
 
 export class RoomInviteError extends Error {
   constructor(
@@ -207,7 +207,7 @@ export async function respondRoomInviteService(
     throw err;
   }
 
-  await patchSessionRoomRedisRoomType(roomId, "circle");
+  await patchSessionRoomRedisCircleExpand(roomId);
 
   try {
     await syncCircleRoomTitleFromParticipants(roomId);

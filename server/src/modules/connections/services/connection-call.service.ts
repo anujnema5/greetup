@@ -27,7 +27,7 @@ import {
 } from "@/modules/connections/services/connection-call-history.service";
 import type { ConnectionCallHistoryStatus } from "@/modules/connections/lib/connection-call-system-payload";
 import { endLiveRoomSession } from "@/modules/rooms/services/session/end-live-room-session.service";
-import { provisionSessionRoomRedis } from "@/modules/rooms/services/rtc/session-room-redis.service";
+import { provisionConnectionCallSessionRoomRedis } from "@/modules/rooms/services/rtc/session-room-redis.service";
 
 export type ConnectionCallMode = "audio" | "video";
 export type ConnectionCallCancelReason = "cancelled" | "no_answer";
@@ -136,7 +136,7 @@ async function cleanupInvite(redis: ReturnType<typeof getRedis>, invite: InviteR
 
 async function finalizeDeclinedRoom(roomId: string): Promise<void> {
   await clearActiveConnectionCall(roomId);
-  await endLiveRoomSession(roomId, "match_finalized", {
+  await endLiveRoomSession(roomId, "connection_call_ended", {
     preserveScheduledSlot: false,
     notifyParticipants: false,
   });
@@ -304,12 +304,11 @@ export async function initiateConnectionCallService(
     title: "Call",
   });
 
-  await provisionSessionRoomRedis({
+  await provisionConnectionCallSessionRoomRedis({
     roomId,
     hostUserId: callerUserId,
-    roomType: "direct",
     title: "Call",
-    lobbyGateActive: false,
+    conversationId,
   });
 
   const inviteKey = CONNECTION_CALL_KEYS.invite(requestId);

@@ -18,7 +18,10 @@ import {
   cancelMatchmakingThenNavigate,
   navigateAfterCallEnd,
 } from "@/features/room/lib/navigation/after-call-navigation";
-import { getRoomReturnPath } from "@/features/room/lib/session/room-return-path";
+import {
+  consumeRoomReturnPath,
+  getRoomReturnPath,
+} from "@/features/room/lib/session/room-return-path";
 import {
   broadcastRoomMessage,
   clearRoomMinimized,
@@ -39,18 +42,26 @@ import {
   useLeaveRoomMutation,
 } from "@/features/room/api/room-api";
 import { getRtkMutationErrorMessage } from "@/lib/api/rtk-mutation-error";
+import { messagesDirectConversationPath } from "@/features/connection-call/lib/call-navigation";
 
 export type UseRoomVideoOptions = {
   skipSetup?: boolean;
   /** Native circle or 1:1 expanded to circle (same Postgres `rooms` row). */
   isDbCircleCall?: boolean;
   circleHostUserId?: string | null;
+  /** Match / `/circle/search` rematch only — never connection calls. */
+  canSkipAndRematch?: boolean;
+  isConnectionCallSession?: boolean;
+  connectionCallConversationId?: string | null;
 };
 
 export function useRoomVideo(roomId: string, options?: UseRoomVideoOptions) {
   const skipSetup = options?.skipSetup ?? false;
   const isDbCircleCall = options?.isDbCircleCall ?? false;
   const circleHostUserId = options?.circleHostUserId ?? null;
+  const canSkipAndRematch = options?.canSkipAndRematch ?? false;
+  const isConnectionCall = options?.isConnectionCallSession ?? false;
+  const connectionCallConversationId = options?.connectionCallConversationId ?? null;
   const router = useRouter();
   const dispatch = useAppDispatch();
   const { data: session } = useSession();
@@ -80,10 +91,23 @@ export function useRoomVideo(roomId: string, options?: UseRoomVideoOptions) {
     await leaveCircleRtc(roomId).unwrap().catch(() => {});
   }, [leaveCircleRtc, roomId]);
 
-  /** After leave / END_CALL — return to the route before the room. */
+  /** After leave / END_CALL — conversation for DM calls, else pre-call return path. */
   const returnAfterCallEnd = useCallback(() => {
+    if (isConnectionCall) {
+      const dest = connectionCallConversationId
+        ? messagesDirectConversationPath(connectionCallConversationId)
+        : consumeRoomReturnPath("/home");
+      void matchmaking.handleCancel().catch(() => {});
+      router.replace(dest);
+      return;
+    }
     navigateAfterCallEnd(matchmaking, router);
-  }, [matchmaking, router]);
+  }, [
+    connectionCallConversationId,
+    isConnectionCall,
+    matchmaking,
+    router,
+  ]);
 
   /** After host “end for everyone” — home. */
   const goHomeAfterHostEndedCircle = useCallback(() => {
@@ -97,6 +121,7 @@ export function useRoomVideo(roomId: string, options?: UseRoomVideoOptions) {
   }, [dispatch]);
 
   const beginSearchAfterSkip = useCallback(() => {
+    if (!canSkipAndRematch) return;
     if (skipHandledRef.current) return;
     skipHandledRef.current = true;
     const apiRoomId = resolveApiRoomId(roomId);
@@ -118,7 +143,16 @@ export function useRoomVideo(roomId: string, options?: UseRoomVideoOptions) {
     } else {
       void matchmaking.restartSearch();
     }
-  }, [dispatch, isDbCircleCall, leaveCircleRtcOnly, leaveRoom, matchmaking, roomId, router]);
+  }, [
+    canSkipAndRematch,
+    dispatch,
+    isDbCircleCall,
+    leaveCircleRtcOnly,
+    leaveRoom,
+    matchmaking,
+    roomId,
+    router,
+  ]);
 
   useEffect(() => {
     if (skipSetup) return;
@@ -131,11 +165,11 @@ export function useRoomVideo(roomId: string, options?: UseRoomVideoOptions) {
         }
       }
       if (msg.type === "SKIP_CALL") {
-        beginSearchAfterSkip();
+        if (canSkipAndRematch) beginSearchAfterSkip();
       }
     });
     return unsub;
-  }, [beginSearchAfterSkip, dispatch, returnAfterCallEnd, skipSetup]);
+  }, [beginSearchAfterSkip, canSkipAndRematch, dispatch, returnAfterCallEnd, skipSetup]);
 
   useEffect(() => {
     if (!skipHandledRef.current) return;
@@ -154,7 +188,8 @@ export function useRoomVideo(roomId: string, options?: UseRoomVideoOptions) {
     if (isDbCircleCall) {
       void leaveCircleRtcOnly().catch(() => {}).finally(returnAfterCallEnd);
     } else {
-      void leaveRoom({ roomId })
+      const apiRoomId = resolveApiRoomId(roomId) ?? roomId;
+      void leaveRoom({ roomId: apiRoomId })
         .unwrap()
         .catch(() => {})
         .finally(returnAfterCallEnd);
@@ -195,9 +230,10 @@ export function useRoomVideo(roomId: string, options?: UseRoomVideoOptions) {
   ]);
 
   const handleSkip = useCallback(() => {
+    if (!canSkipAndRematch) return;
     broadcastRoomMessage({ type: "SKIP_CALL" });
     beginSearchAfterSkip();
-  }, [beginSearchAfterSkip]);
+  }, [beginSearchAfterSkip, canSkipAndRematch]);
 
   const handleMinimize = useCallback(() => {
     markRoomMinimized();

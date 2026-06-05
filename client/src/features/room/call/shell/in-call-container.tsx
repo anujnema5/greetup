@@ -30,6 +30,7 @@ import { useRoomVideo } from "@/features/room/hooks/session/use-room-video";
 import { useLobbyPreviewMedia } from "@/features/room/hooks/lobby/use-lobby-preview-media";
 import { setLobbyMediaIntent } from "@/features/room/lib/lobby";
 import { getRtkMutationErrorMessage } from "@/lib/api/rtk-mutation-error";
+import { NSFW_LOG_ENABLED } from "@/shared/constants";
 import { buildCallCapabilities } from "@/features/room/contracts";
 import {
   resolveEmbeddedActivityCallPolicy,
@@ -40,25 +41,32 @@ import {
 import type { RoomActivityId } from "@/features/room/types/call/room-activity.types";
 import { formatScheduledStart } from "@/lib/datetime/format-scheduled-start";
 import { isClientStillBeforeScheduledStart } from "@/lib/datetime/scheduled-start-guards";
+import type { RoomData } from "@/features/matching/types/room.types";
+import {
+  isConnectionCallSession,
+  isMatchSession,
+} from "@/features/room/lib/session/room-session-kind";
 
 export type InCallContainerProps = {
   roomId: string;
   peerId: string | null;
   scoreLabel: string | null;
   myName: string;
+  /** GET `/room/:id` — drives skip / add-to-circle / activities by `sessionKind`. */
+  room?: RoomData | null;
   isGroupRoom: boolean;
   circleDisplayTitle: string | null;
   circleCanEditTitle?: boolean;
   /** DB circle host — used for “open circle for everyone” lobby control. */
   circleHostUserId?: string | null;
-  /** From GET `/room/:id` Redis payload (`db_room`). */
+  /** From GET `/room/:id` (`sessionKind: circle`). */
   circleLobbyGateActive?: "0" | "1" | null;
   /** ISO scheduled start from GET room — pre-start lobby (G-Meet–style time line). */
   circleScheduledStartAt?: string | null;
   /** Postgres circle lifecycle from GET room (`scheduled`, `live`, …). */
   circleRoomStatus?: string | null;
   /**
-   * True for a Postgres circle session: native `db_room` **or** a 1:1 match expanded
+   * True for a Postgres circle session: native `circle` **or** a 1:1 match expanded
    * in place (`room_type = circle` on the same `roomId`).
    */
   isDbCircleCall?: boolean;
@@ -69,6 +77,7 @@ export function InCallContainer({
   peerId,
   scoreLabel,
   myName,
+  room = null,
   isGroupRoom,
   circleDisplayTitle,
   circleCanEditTitle = false,
@@ -92,9 +101,18 @@ export function InCallContainer({
     useOpenCircleMeetingMutation();
   const [startScheduledCircle, { isLoading: startingScheduledCircle }] =
     useStartScheduledCircleMutation();
+  const isMatch = isMatchSession(room);
+  const isConnectionCall = isConnectionCallSession(room);
+  const canSkipAndRematch =
+    isMatch || (roomPhase === "searching" && !isGroupRoom && !isConnectionCall);
+
   const video = useRoomVideo(roomId, {
     isDbCircleCall,
     circleHostUserId,
+    canSkipAndRematch,
+    isConnectionCallSession: isConnectionCall,
+    connectionCallConversationId:
+      room?.sessionKind === "connection_call" ? room.conversationId ?? null : null,
   });
   const {
     mediasoupStatus,
@@ -154,9 +172,10 @@ export function InCallContainer({
     [embeddedStageActivityId, activeRealtimeActivity, embeddedCallPolicyLookup],
   );
 
-  const showAddToCircle = !embeddedCallPolicy.blockParticipantInvites;
+  const showAddToCircle = isMatch && !embeddedCallPolicy.blockParticipantInvites;
 
-  const showActivitiesTab = shouldShowDirectCallActivitiesTab(isGroupRoom, directRoomActivities);
+  const showActivitiesTab =
+    isMatch && shouldShowDirectCallActivitiesTab(isGroupRoom, directRoomActivities);
 
   const callCapabilities = useMemo(
     () =>
@@ -198,7 +217,7 @@ export function InCallContainer({
   }, [embeddedCallPolicy]);
 
   const searchingForNextCandidate =
-    !isGroupRoom && roomPhase === "searching";
+    isMatch && !isGroupRoom && roomPhase === "searching";
   const matchmaking = useMatchmaking();
   const directCallMatchSearchFailed =
     searchingForNextCandidate && matchmaking.status === "error";
@@ -375,7 +394,7 @@ export function InCallContainer({
       <RoomSessionExpiryWarningsLayer roomId={roomId} enabled={mediasoupReady} />
       <CircleNsfwModerationLayer
         roomId={roomId}
-        enabled={isDbCircleCall}
+        enabled={NSFW_LOG_ENABLED && isDbCircleCall}
         localStream={moderationStream}
         mediasoupReady={mediasoupReady}
         cameraEnabled={cameraEnabled}
@@ -429,7 +448,7 @@ export function InCallContainer({
         remoteParticipants={remoteParticipants}
         remotePeers={peers}
         isGroupRoom={isGroupRoom}
-        showSkip={!isGroupRoom}
+        showSkip={isMatch || (roomPhase === "searching" && !isGroupRoom)}
         mediaStatus={mediasoupStatus}
         mediaError={mediasoupError}
         micEnabled={micEnabled}

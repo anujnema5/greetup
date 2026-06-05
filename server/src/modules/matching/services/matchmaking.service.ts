@@ -1,8 +1,10 @@
 import config from "@/shared/config/config";
 import logger from "@/core/logging";
 import { clearUserActiveRtcRoom, getUserActiveRtcRoomId } from "@/modules/rooms/services/rtc/user-active-rtc-room-redis.service";
+import { finalizeConnectionCallRoomSession } from "@/modules/rooms/services/direct/finalize-connection-call-room.service";
 import { finalizeDirectMatchRoomSession } from "@/modules/rooms/services/direct/finalize-direct-match-room.service";
 import { leaveCircleRtcSessionInternal } from "@/modules/rooms/services/participation/leave-circle-rtc-session.service";
+import { roomParticipantsRepository } from "@/modules/rooms/repositories/room-participants.repository";
 import { roomsRepository } from "@/modules/rooms/repositories/rooms.repository";
 
 import type { UserMatchState } from "../types/match.types";
@@ -220,15 +222,22 @@ export const leaveRoomService = async (
   explicitRoomId?: string | null,
 ): Promise<void> => {
   const roomId = await directRoomIdForExplicitLeave(userId, explicitRoomId);
+  const room = roomId ? await roomsRepository.findRoomById(roomId) : null;
+  const isConnectionCall = room?.sessionKind === "connection_call";
+
   try {
-    const res = await matchEngineRequest("POST", "/match/leave-room", { userId });
-    await assertMatchEngineOk(res, "Match engine /match/leave-room");
+    if (!isConnectionCall) {
+      const res = await matchEngineRequest("POST", "/match/leave-room", { userId });
+      await assertMatchEngineOk(res, "Match engine /match/leave-room");
+    }
   } finally {
-    if (roomId) {
-      const room = await roomsRepository.findRoomById(roomId);
-      if (room?.roomType === "circle") {
+    if (roomId && room) {
+      if (room.roomType === "circle") {
         await leaveCircleRtcSessionInternal(userId, roomId);
-      } else if (room?.roomType === "direct") {
+      } else if (room.sessionKind === "connection_call") {
+        await roomParticipantsRepository.markParticipantLeft(roomId, userId);
+        await finalizeConnectionCallRoomSession(roomId);
+      } else if (room.roomType === "direct") {
         await finalizeDirectMatchRoomSession(roomId);
       }
     }

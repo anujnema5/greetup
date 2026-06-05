@@ -1,7 +1,7 @@
 /**
  * Matching API (find / cancel / respond / peer preview) and `/circle/[roomId]` room hook.
  *
- * - Types: `types/` (`matching-api.types`, `room.types` — includes `isCircleRoomData` / `isDirectMatchRoom`)
+ * - Types: `types/` (`matching-api.types`, `room.types` — `sessionKind` unions + layout helpers)
  * - RTC derivation: `utils/derive-room-rtc-state.ts`
  */
 export { useRoom } from "./hooks/use-room";

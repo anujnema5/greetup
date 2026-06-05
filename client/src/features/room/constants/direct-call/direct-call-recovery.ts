@@ -1,11 +1,12 @@
 export const DIRECT_CALL_RECOVERY = {
+  /** Match rematch — keep snappy after a real peer leave. */
+  matchPeerLeftDebounceMs: 200,
+  /** Connection call — absorb RTC reconnect / dev compile jitter before recovery window. */
+  connectionCallPeerLeftDebounceMs: 3_000,
+  /** Dev-only extra grace while Turbopack/HMR churns RTC sockets. */
+  connectionCallPeerLeftDebounceMsDev: 5_000,
   /**
-   * Short debounce before treating a healthy direct-call peer disappearance as a real leave.
-   * Helps absorb brief signaling ordering jitter.
-   */
-  peerLeftDebounceMs: 200,
-  /**
-   * Grace period for temporary RTC/socket outages in direct calls.
+   * After debounce, wait this long for the peer to reappear before ending a connection call.
    * If connectivity recovers before this elapses, the call continues.
    */
   networkRecoveryTimeoutMs: 15_000,
@@ -16,6 +17,15 @@ export const DIRECT_CALL_RECOVERY = {
   searchRetryDelayMs: 1_200,
 } as const;
 
-export const DIRECT_CALL_PEER_LEFT_DEBOUNCE_MS = DIRECT_CALL_RECOVERY.peerLeftDebounceMs;
+/** @deprecated Prefer {@link DIRECT_CALL_RECOVERY.matchPeerLeftDebounceMs}. */
+export const DIRECT_CALL_PEER_LEFT_DEBOUNCE_MS = DIRECT_CALL_RECOVERY.matchPeerLeftDebounceMs;
+
 export const DIRECT_CALL_NETWORK_RECOVERY_TIMEOUT_MS =
   DIRECT_CALL_RECOVERY.networkRecoveryTimeoutMs;
+
+export function resolveConnectionCallPeerLeftDebounceMs(): number {
+  if (process.env.NODE_ENV === "development") {
+    return DIRECT_CALL_RECOVERY.connectionCallPeerLeftDebounceMsDev;
+  }
+  return DIRECT_CALL_RECOVERY.connectionCallPeerLeftDebounceMs;
+}

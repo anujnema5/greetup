@@ -54,6 +54,7 @@ All paths below are from the **repository root** (`docs/...`).
 
 | Doc | What it is |
 |-----|------------|
+| [design/connection-call-session-origin.md](design/connection-call-session-origin.md) | **Connection vs match vs circle** — `session_kind` (PG) / `sessionKind` (Redis/API), phases, edge cases, regression matrix |
 | [design/chat-system-design.md](design/chat-system-design.md) | Chat system design |
 | [design/matching-system-design.md](design/matching-system-design.md) | Matching / matchmaking (see also [matching/matching-engine.md](matching/matching-engine.md)) |
 | [design/room-activities-and-chess.md](design/room-activities-and-chess.md) | Room activities & chess lifecycle |
