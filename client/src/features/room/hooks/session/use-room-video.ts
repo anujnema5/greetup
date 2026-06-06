@@ -38,6 +38,7 @@ import {
 import { getApiErrorMessage } from "@/lib/api/fetch-client";
 import { messagesDirectConversationPath } from "@/features/connection-call/lib/call-navigation";
 import { markLocalCallEndInProgress } from "@/features/room/lib/call/direct-match-leave-guard";
+import type { CircleParticipantRemoveOptions } from "@/features/room/types/call/participant-remove.types";
 
 export type UseRoomVideoOptions = {
   skipSetup?: boolean;
@@ -245,7 +246,7 @@ export function useRoomVideo(roomId: string, options?: UseRoomVideoOptions) {
     async (
       targetUserId: string,
       displayName: string,
-      options?: { restrict?: boolean },
+      options?: CircleParticipantRemoveOptions,
     ) => {
       if (!isDbCircleCall || !isCircleHost) return;
       if (kickingUserId) return;

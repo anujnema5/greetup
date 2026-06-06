@@ -3,6 +3,9 @@ export type { InCallScreenProps } from "./call/in-call-screen.types";
 export type {
   CircleParticipantKickProps,
   CircleParticipantRemoveOptions,
+  CircleParticipantRestrictOption,
+  KickCircleParticipantApiBody,
+  KickCircleParticipantMutationResult,
   KickCircleParticipantRequest,
   OnRemoveCircleParticipant,
   ParticipantRemoveTarget,
