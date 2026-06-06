@@ -189,7 +189,7 @@ export function HeroMatchDemo({ lite }: { lite: boolean }) {
   const peerVisible = lite || phase === "meet" || phase === "link" || phase === "live";
   const scanning = !lite && phase === "scan";
   const switching = !lite && phase === "shift";
-  const connectorActive = linked || phase === "meet" || phase === "link";
+  const connectorActive = linked || phase === "meet";
 
   const statusLabel = linked
     ? null
