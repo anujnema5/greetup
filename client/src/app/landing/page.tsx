@@ -32,7 +32,6 @@ import {
   MessageCircle,
   ArrowRight,
   ChevronRight,
-  Compass,
   MapPin,
   Globe,
   Shield,
@@ -49,6 +48,7 @@ import {
 import { cn } from "@/lib/utils";
 import { useSession } from "@/lib/auth-client";
 import { EARLY_RELEASE } from "@/lib/copy/user-messages";
+import { HeroMatchDemo } from "./hero-match-demo";
 
 /* Mobile / reduced-motion: drop scroll-linked nav, fixed blur layers, and looping animations */
 type LandingPerfValue = { isMobile: boolean; lite: boolean };
@@ -358,99 +358,35 @@ function Navbar({
   return <NavbarScroll isLoggedIn={isLoggedIn} firstName={firstName} />;
 }
 
-/* ─── Hero orb components ────────────────────────────────────────────────────── */
-function FloatingChip({ name, sub, color, letter, x, y, delay }: {
-  name: string; sub: string; color: string; letter: string; x: string; y: string; delay: number;
-}) {
-  const { lite } = useLandingPerf();
-  const chipClass =
-    "absolute flex items-center gap-2 max-w-[42vw] sm:max-w-none bg-[oklch(17%_0.015_110/0.92)] border border-white/10 rounded-2xl px-2.5 py-1.5 sm:px-3 sm:py-2 shadow-xl md:backdrop-blur-sm";
-  const pos = { left: x, top: y, transform: "translate(-50%, -50%)" as const };
-
-  if (lite) {
-    return (
-      <div className={chipClass} style={pos}>
-      <div className={`size-6 sm:size-7 rounded-full bg-linear-to-br ${color} flex items-center justify-center text-[10px] sm:text-xs font-bold text-white shrink-0`}>{letter}</div>
-      <div className="min-w-0">
-        <p className="text-[11px] sm:text-xs font-semibold text-white leading-none truncate">{name}</p>
-        <p className="text-[9px] sm:text-[10px] text-white/50 mt-0.5 leading-none truncate">{sub}</p>
-      </div>
-      </div>
-    );
-  }
-
+/* ─── Hero visual ────────────────────────────────────────────────────────────── */
+function HeroBackdrop() {
   return (
-    <motion.div
-      className={chipClass}
-      style={{ left: x, top: y, translateX: "-50%", translateY: "-50%" }}
-      initial={{ opacity: 0, scale: 0.7 }}
-      animate={{ opacity: 1, scale: 1, y: [0, -8, 0] }}
-      transition={{
-        opacity: { delay, duration: 0.5 },
-        scale: { delay, duration: 0.5, ease: EASE },
-        y: { delay: delay + 0.5, duration: 3.5, repeat: Infinity, ease: "easeInOut" },
-      }}
-    >
-      <div className={`size-6 sm:size-7 rounded-full bg-linear-to-br ${color} flex items-center justify-center text-[10px] sm:text-xs font-bold text-white shrink-0`}>{letter}</div>
-      <div className="min-w-0">
-        <p className="text-[11px] sm:text-xs font-semibold text-white leading-none truncate">{name}</p>
-        <p className="text-[9px] sm:text-[10px] text-white/50 mt-0.5 leading-none truncate">{sub}</p>
-      </div>
-    </motion.div>
+    <div className="pointer-events-none absolute inset-0 overflow-hidden" aria-hidden>
+      <div className="absolute inset-0 bg-[radial-gradient(ellipse_50%_40%_at_18%_42%,oklch(88%_0.11_105/0.05),transparent_65%)]" />
+      <div className="absolute inset-0 bg-[radial-gradient(ellipse_45%_50%_at_78%_45%,oklch(88%_0.11_105/0.09),transparent_68%)]" />
+      <div className="absolute inset-x-0 top-0 h-px bg-linear-to-r from-transparent via-white/8 to-transparent" />
+    </div>
   );
 }
 
-function HeroOrb() {
+const HERO_SIGNALS = [
+  { icon: Users, label: "1:1 matching" },
+  { icon: Globe, label: "Nearby or global" },
+  { icon: MessageCircle, label: "Chat & video" },
+] as const;
+
+function HeroVisual() {
   const { lite } = useLandingPerf();
 
-  if (lite) {
-    return (
-      <div className="relative w-full max-w-[280px] sm:max-w-sm mx-auto aspect-square select-none pointer-events-none">
-        <div className="absolute inset-0 rounded-full border border-[oklch(88%_0.11_105/0.15)]" />
-        <div className="absolute inset-[10%] rounded-full border border-dashed border-[oklch(88%_0.11_105/0.12)]" />
-        <div className="absolute inset-[22%] rounded-full border border-[oklch(88%_0.11_105/0.18)]" />
-        <div className="absolute inset-[30%] rounded-full bg-[oklch(88%_0.11_105/0.07)] blur-xl md:blur-2xl" />
-        <div className="absolute inset-[38%] rounded-full bg-[oklch(88%_0.11_105/0.13)] blur-md md:blur-lg" />
-        <div className="absolute inset-[36%] rounded-full bg-linear-to-br from-[oklch(90%_0.13_105)] to-[oklch(75%_0.1_105)] shadow-2xl shadow-[oklch(88%_0.11_105/0.5)]" />
-        <div className="absolute inset-[38%] rounded-full flex items-center justify-center z-10">
-          <Compass className="size-5 text-[oklch(15%_0.02_110)]" />
-        </div>
-        <svg className="absolute inset-0 w-full h-full opacity-40" viewBox="0 0 100 100" preserveAspectRatio="none">
-          {[{ x1: 18, y1: 20, x2: 50, y2: 50 }, { x1: 82, y1: 78, x2: 50, y2: 50 }, { x1: 14, y1: 56, x2: 50, y2: 50 }].map((l, i) => (
-            <line key={i} x1={l.x1} y1={l.y1} x2={l.x2} y2={l.y2} stroke="oklch(88% 0.11 105)" strokeWidth="0.4" strokeDasharray="3 2" opacity={0.35} />
-          ))}
-        </svg>
-        <FloatingChip name="Aarav" sub="Software Engineer · Backend" color="from-violet-500 to-purple-600" letter="A" x="14%" y="20%" delay={0.6} />
-        <FloatingChip name="Noah" sub="Software Engineer · Frontend" color="from-indigo-500 to-blue-600" letter="N" x="82%" y="22%" delay={0.75} />
-        <FloatingChip name="Sofia" sub="Product Designer · UX" color="from-amber-500 to-yellow-600" letter="S" x="86%" y="78%" delay={0.9} />
-        <FloatingChip name="Priya" sub="Music · Indie + Jazz" color="from-emerald-500 to-green-600" letter="P" x="14%" y="60%" delay={1.05} />
-      </div>
-    );
-  }
-
   return (
-    <div className="relative w-full max-w-[280px] sm:max-w-sm mx-auto aspect-square select-none pointer-events-none">
-      <motion.div className="absolute inset-0 rounded-full border border-[oklch(88%_0.11_105/0.15)]" animate={{ rotate: 360 }} transition={{ duration: 20, repeat: Infinity, ease: "linear" }} />
-      <motion.div className="absolute inset-[10%] rounded-full border border-dashed border-[oklch(88%_0.11_105/0.12)]" animate={{ rotate: -360 }} transition={{ duration: 14, repeat: Infinity, ease: "linear" }} />
-      <motion.div className="absolute inset-[22%] rounded-full border border-[oklch(88%_0.11_105/0.18)]" animate={{ rotate: 360 }} transition={{ duration: 9, repeat: Infinity, ease: "linear" }} />
-      <div className="absolute inset-[30%] rounded-full bg-[oklch(88%_0.11_105/0.07)] blur-2xl" />
-      <div className="absolute inset-[38%] rounded-full bg-[oklch(88%_0.11_105/0.13)] blur-lg" />
-      <motion.div className="absolute inset-[36%] rounded-full bg-linear-to-br from-[oklch(90%_0.13_105)] to-[oklch(75%_0.1_105)] shadow-2xl shadow-[oklch(88%_0.11_105/0.5)]" animate={{ scale: [0.93, 1.07, 0.93] }} transition={{ duration: 3.2, repeat: Infinity, ease: "easeInOut" }} />
-      <div className="absolute inset-[38%] rounded-full flex items-center justify-center z-10">
-        <Compass className="size-5 text-[oklch(15%_0.02_110)]" />
+    <div className="relative w-full max-w-[380px] sm:max-w-[420px] lg:max-w-[440px] mx-auto lg:mx-0 lg:ml-auto select-none pointer-events-none">
+      <div
+        className="pointer-events-none absolute -inset-6 rounded-[2rem] bg-[radial-gradient(circle,oklch(88%_0.11_105/0.08)_0%,transparent_72%)] blur-2xl"
+        aria-hidden
+      />
+      <div className="relative rounded-[1.35rem] border border-white/6 bg-[oklch(13%_0.012_110/0.55)] p-2 sm:p-2.5 md:backdrop-blur-sm">
+        <HeroMatchDemo lite={lite} />
       </div>
-      {[0, 0.8, 1.6].map((delay, i) => (
-        <motion.div key={i} className="absolute inset-[36%] rounded-full border border-[oklch(88%_0.11_105/0.35)]" animate={{ scale: [1, 1.9], opacity: [0.4, 0] }} transition={{ duration: 2.4, repeat: Infinity, ease: "easeOut", delay }} />
-      ))}
-      <svg className="absolute inset-0 w-full h-full" viewBox="0 0 100 100" preserveAspectRatio="none">
-        {[{ x1: 18, y1: 20, x2: 50, y2: 50 }, { x1: 82, y1: 78, x2: 50, y2: 50 }, { x1: 14, y1: 56, x2: 50, y2: 50 }].map((l, i) => (
-          <motion.line key={i} x1={l.x1} y1={l.y1} x2={l.x2} y2={l.y2} stroke="oklch(88% 0.11 105)" strokeWidth="0.4" strokeDasharray="3 2" initial={{ pathLength: 0, opacity: 0 }} animate={{ pathLength: 1, opacity: 0.3 }} transition={{ duration: 1.2, delay: 0.4 + i * 0.2, ease: "easeOut" }} />
-        ))}
-      </svg>
-      <FloatingChip name="Aarav" sub="Software Engineer · Backend" color="from-violet-500 to-purple-600" letter="A" x="14%" y="20%" delay={0.6} />
-      <FloatingChip name="Noah" sub="Software Engineer · Frontend" color="from-indigo-500 to-blue-600" letter="N" x="82%" y="22%" delay={0.75} />
-      <FloatingChip name="Sofia" sub="Product Designer · UX" color="from-amber-500 to-yellow-600" letter="S" x="86%" y="78%" delay={0.9} />
-      <FloatingChip name="Priya" sub="Music · Indie + Jazz" color="from-emerald-500 to-green-600" letter="P" x="14%" y="60%" delay={1.05} />
     </div>
   );
 }
@@ -681,76 +617,77 @@ function LandingPageInner() {
       <Navbar isLoggedIn={isLoggedIn} firstName={firstName} />
 
       {/* ══════════════════ HERO ══════════════════ */}
-      <section className="relative pt-28 sm:pt-32 pb-20 sm:pb-24 px-4 sm:px-6">
-        <div className="mx-auto max-w-7xl grid lg:grid-cols-2 gap-16 items-center">
+      <section className="relative min-h-[calc(100dvh-4rem)] flex flex-col justify-center pt-24 sm:pt-28 pb-16 sm:pb-24 px-4 sm:px-6">
+        <HeroBackdrop />
 
-          <motion.div variants={stagger} initial="hidden" animate="show">
-            {/* beta badge using shadcn Badge */}
-            <motion.div variants={fadeUp} className="mb-8">
+        <div className="relative mx-auto w-full max-w-7xl grid lg:grid-cols-2 gap-12 sm:gap-14 lg:gap-12 xl:gap-20 lg:items-center">
+
+          <motion.div variants={stagger} initial="hidden" animate="show" className="text-center lg:text-left lg:max-w-[34rem]">
+
+            <motion.div variants={fadeUp} className="mb-5 sm:mb-6 flex justify-center lg:justify-start">
               <Badge
                 variant="outline"
-                className="border-white/12 bg-white/5 text-white/75 md:backdrop-blur-sm rounded-full px-4 py-1.5 text-xs gap-2"
+                className="border-white/10 bg-white/3 text-white/55 rounded-full px-3.5 py-1 text-xs font-normal"
               >
-                <span className="relative flex h-2 w-2 shrink-0">
-                  {lite ? (
-                    <span className="relative inline-flex rounded-full h-2 w-2 bg-[oklch(88%_0.11_105)]" />
-                  ) : (
-                    <>
-                      <motion.span className="absolute inline-flex h-full w-full rounded-full bg-[oklch(88%_0.11_105)]" animate={{ scale: [1, 2.2, 1], opacity: [0.7, 0, 0.7] }} transition={{ duration: 2, repeat: Infinity }} />
-                      <span className="relative inline-flex rounded-full h-2 w-2 bg-[oklch(88%_0.11_105)]" />
-                    </>
-                  )}
-                </span>
-                Now in Beta · Free to join
+                Beta · Free to join
               </Badge>
             </motion.div>
 
-            <motion.h1 variants={fadeUp} className="text-4xl sm:text-6xl lg:text-7xl font-black tracking-tight leading-[1.05] mb-6">
-              Match your interests.<br />
-              <span className="bg-linear-to-r from-[oklch(88%_0.11_105)] via-[oklch(95%_0.08_90)] to-[oklch(80%_0.14_110)] bg-clip-text text-transparent">
-                Build your circles.
+            <motion.h1 variants={fadeUp} className="text-[2.35rem] leading-[1.08] sm:text-[3.5rem] lg:text-[3.75rem] xl:text-[4.15rem] font-semibold tracking-[-0.025em] mb-5 sm:mb-6">
+              Match your interests.
+              <span className="mt-1.5 block text-white/92">
+                Build your <span className="text-[oklch(88%_0.11_105)]">circles</span>.
               </span>
-              <br />Connect live.
+              <span className="mt-1.5 block text-[0.72em] font-normal text-white/48 sm:text-[0.68em]">Connect live.</span>
             </motion.h1>
 
-            <motion.p variants={fadeUp} className="text-lg text-white/55 leading-relaxed max-w-md mb-10">
-              Match by profession, interests, and location, nearby or anywhere in the world.
-              Chat, circles, calls, and more features to help you stay engaged.
+            <motion.p variants={fadeUp} className="text-base sm:text-[1.05rem] text-white/46 leading-relaxed max-w-lg mx-auto lg:mx-0 mb-6 sm:mb-7">
+              By profession, interests, or location — nearby or anywhere in the world.
             </motion.p>
 
-            <motion.div variants={fadeUp} className="flex flex-wrap gap-3">
-              <motion.div whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.96 }}>
-                <Button
-                  size="lg"
-                  className="rounded-full bg-[oklch(88%_0.11_105)] text-[oklch(12%_0.012_110)] hover:brightness-110 shadow-xl shadow-[oklch(88%_0.11_105/0.3)] font-bold px-7"
-                  asChild
-                >
-                  <Link href={isLoggedIn ? "/home" : "/register"}>
-                    {isLoggedIn ? `Welcome${firstName ? `, ${firstName}` : ""}` : "Find your people"} <ArrowRight className="size-4" />
-                  </Link>
-                </Button>
-              </motion.div>
-              <motion.div whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.96 }}>
-                <Button
-                  size="lg"
-                  variant="outline"
-                  className="rounded-full border-white/12 bg-white/6 text-white/80 hover:bg-white/10 hover:text-white md:backdrop-blur-sm px-7"
-                  asChild
-                >
-                  <Link href="#how-it-works">See how it works</Link>
-                </Button>
-              </motion.div>
+            <motion.div variants={fadeUp} className="mb-8 sm:mb-9 flex flex-wrap justify-center lg:justify-start gap-x-6 gap-y-2.5">
+              {HERO_SIGNALS.map(({ icon: Icon, label }) => (
+                <span key={label} className="inline-flex items-center gap-2 text-sm text-white/38">
+                  <Icon className="size-3.5 text-[oklch(88%_0.11_105/0.65)]" strokeWidth={1.75} />
+                  {label}
+                </span>
+              ))}
             </motion.div>
 
-            <motion.div variants={fadeUp} className="mt-10">
-              <p className="text-xs text-white/50 max-w-sm leading-relaxed">
+            <motion.div variants={fadeUp} className="flex flex-col sm:flex-row flex-wrap gap-3 justify-center lg:justify-start">
+              <Button
+                size="lg"
+                className="rounded-xl bg-[oklch(88%_0.11_105)] text-[oklch(12%_0.012_110)] hover:brightness-110 font-semibold px-6 h-11 w-full sm:w-auto shadow-[0_8px_28px_-8px_oklch(88%_0.11_105/0.55)]"
+                asChild
+              >
+                <Link href={isLoggedIn ? "/home" : "/register"}>
+                  {isLoggedIn ? `Welcome${firstName ? `, ${firstName}` : ""}` : "Find your people"} <ArrowRight className="size-4" />
+                </Link>
+              </Button>
+              <Button
+                size="lg"
+                variant="outline"
+                className="rounded-xl border-white/10 bg-white/3 text-white/78 hover:bg-white/6 hover:text-white px-6 h-11 w-full sm:w-auto"
+                asChild
+              >
+                <Link href="#how-it-works">How it works</Link>
+              </Button>
+            </motion.div>
+
+            <motion.div variants={fadeUp} className="mt-8 sm:mt-9 pt-6 sm:pt-7 border-t border-white/6">
+              <p className="text-xs text-white/32 max-w-md mx-auto lg:mx-0 leading-relaxed">
                 {EARLY_RELEASE.noticeShort}
               </p>
             </motion.div>
           </motion.div>
 
-          <motion.div className="flex justify-center lg:justify-end" initial={{ opacity: 0, scale: 0.85 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.9, delay: 0.2, ease: EASE }}>
-            <HeroOrb />
+          <motion.div
+            className="flex justify-center lg:justify-end order-first lg:order-last lg:py-4"
+            initial={lite ? false : { opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.75, delay: 0.15, ease: EASE }}
+          >
+            <HeroVisual />
           </motion.div>
         </div>
       </section>
