@@ -360,10 +360,49 @@ function Navbar({
 
 /* ─── Hero visual ────────────────────────────────────────────────────────────── */
 function HeroBackdrop() {
+  const { lite } = useLandingPerf();
+
   return (
     <div className="pointer-events-none absolute inset-0 overflow-hidden" aria-hidden>
-      <div className="absolute inset-0 bg-[radial-gradient(ellipse_50%_40%_at_18%_42%,oklch(88%_0.11_105/0.05),transparent_65%)]" />
-      <div className="absolute inset-0 bg-[radial-gradient(ellipse_45%_50%_at_78%_45%,oklch(88%_0.11_105/0.09),transparent_68%)]" />
+      <div className="absolute inset-0 bg-[radial-gradient(ellipse_90%_70%_at_50%_-10%,oklch(22%_0.025_105/0.55),transparent_72%)]" />
+
+      {lite ? (
+        <>
+          <div className="absolute -top-28 -left-36 h-[400px] w-[400px] rounded-full bg-[oklch(88%_0.11_105/0.06)] blur-[96px]" />
+          <div className="absolute top-[16%] -right-20 h-[340px] w-[340px] rounded-full bg-[oklch(88%_0.11_105/0.09)] blur-[88px]" />
+          <div className="absolute bottom-[8%] left-[22%] h-[260px] w-[260px] rounded-full bg-[oklch(62%_0.14_285/0.05)] blur-[72px]" />
+        </>
+      ) : (
+        <>
+          <motion.div
+            className="absolute -top-28 -left-36 h-[400px] w-[400px] rounded-full bg-[oklch(88%_0.11_105/0.07)] blur-[96px]"
+            animate={{ opacity: [0.55, 0.85, 0.55], scale: [1, 1.06, 1] }}
+            transition={{ duration: 9, repeat: Infinity, ease: "easeInOut" }}
+          />
+          <motion.div
+            className="absolute top-[16%] -right-20 h-[340px] w-[340px] rounded-full bg-[oklch(88%_0.11_105/0.1)] blur-[88px]"
+            animate={{ opacity: [0.6, 0.95, 0.6], scale: [1, 1.08, 1] }}
+            transition={{ duration: 11, repeat: Infinity, ease: "easeInOut", delay: 1.5 }}
+          />
+          <motion.div
+            className="absolute bottom-[8%] left-[22%] h-[260px] w-[260px] rounded-full bg-[oklch(62%_0.14_285/0.06)] blur-[72px]"
+            animate={{ opacity: [0.45, 0.75, 0.45], scale: [1, 1.1, 1] }}
+            transition={{ duration: 13, repeat: Infinity, ease: "easeInOut", delay: 3 }}
+          />
+        </>
+      )}
+
+      <div
+        className="absolute inset-0 opacity-70 [mask-image:radial-gradient(ellipse_88%_82%_at_68%_50%,#000_28%,transparent_80%)]"
+        style={{
+          backgroundImage: "radial-gradient(circle at 1px 1px, oklch(100% 0 0 / 0.055) 1px, transparent 0)",
+          backgroundSize: "30px 30px",
+        }}
+      />
+
+      <div className="absolute inset-0 bg-[radial-gradient(ellipse_50%_58%_at_84%_44%,oklch(88%_0.11_105/0.11),transparent_72%)]" />
+      <div className="absolute inset-0 bg-[radial-gradient(ellipse_38%_42%_at_14%_32%,oklch(88%_0.11_105/0.045),transparent_70%)]" />
+      <div className="absolute inset-0 bg-[radial-gradient(ellipse_120%_100%_at_50%_50%,transparent_44%,#0A0A0A_94%)]" />
       <div className="absolute inset-x-0 top-0 h-px bg-linear-to-r from-transparent via-white/8 to-transparent" />
     </div>
   );
