@@ -37,7 +37,7 @@ export const DASHBOARD_SECTIONS = {
   },
   recentMatches: {
     title: "Recent matches",
-    empty: "No matches here yet. Tap Find Match to meet someone.",
+    empty: "No matches yet. Tap Find Match to build your match history.",
     seeAll: "See all",
   },
   recentConnections: {
@@ -51,7 +51,7 @@ export const DASHBOARD_SECTIONS = {
 
 export const RECENT_MATCHES = {
   dialogTitle: "Recent matches",
-  dialogDescription: "People you matched with, newest first.",
+  dialogDescription: "Everyone you've matched with on Find Match, newest first — connected or not.",
   emptyTitle: "No matches yet",
   emptyBody: "Tap Find Match on Home to meet someone new.",
   goToHome: "Go to Home",

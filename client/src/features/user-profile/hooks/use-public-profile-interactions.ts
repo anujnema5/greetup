@@ -15,28 +15,28 @@ import type { PublicProfilePeer } from "../types/public-profile-actions.types";
 
 type Options = {
   peer: PublicProfilePeer;
-  /** Message / call require an accepted connection. */
-  messagingEnabled: boolean;
+  /** Voice/video require an accepted connection. */
+  callsEnabled: boolean;
 };
 
-export function usePublicProfileInteractions({ peer, messagingEnabled }: Options) {
+export function usePublicProfileInteractions({ peer, callsEnabled }: Options) {
   const router = useRouter();
   const { mutateAsync: createConversation, isPending: isOpeningChat } =
     useCreateConnectionConversation();
   const { startCall, isStarting: isStartingCall } = useConnectionCallActions();
   const [isBusy, setIsBusy] = useState(false);
 
-  const guardMessaging = useCallback((): boolean => {
-    if (!messagingEnabled) {
-      toast.message("Connect first to message or call");
+  const guardCalls = useCallback((): boolean => {
+    if (!callsEnabled) {
+      toast.message("Connect first to call");
       return false;
     }
     if (isBusy || isOpeningChat || isStartingCall) return false;
     return true;
-  }, [isBusy, isOpeningChat, isStartingCall, messagingEnabled]);
+  }, [callsEnabled, isBusy, isOpeningChat, isStartingCall]);
 
   const openConversation = useCallback(async () => {
-    if (!guardMessaging()) return;
+    if (isBusy || isOpeningChat || isStartingCall) return;
     setIsBusy(true);
     try {
       const conv = await createConversation({ targetUserId: peer.userId });
@@ -46,11 +46,11 @@ export function usePublicProfileInteractions({ peer, messagingEnabled }: Options
     } finally {
       setIsBusy(false);
     }
-  }, [createConversation, guardMessaging, peer.userId, router]);
+  }, [createConversation, isBusy, isOpeningChat, isStartingCall, peer.userId, router]);
 
   const startProfileCall = useCallback(
     async (mode: ConnectionCallMode) => {
-      if (!guardMessaging()) return;
+      if (!guardCalls()) return;
       setIsBusy(true);
       try {
         const conv = await createConversation({ targetUserId: peer.userId });
@@ -66,7 +66,7 @@ export function usePublicProfileInteractions({ peer, messagingEnabled }: Options
     },
     [
       createConversation,
-      guardMessaging,
+      guardCalls,
       peer.displayTitle,
       peer.primaryImage,
       peer.userId,

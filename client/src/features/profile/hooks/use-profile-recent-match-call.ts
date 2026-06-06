@@ -59,10 +59,6 @@ export function useProfileRecentMatchCall() {
 
   const openRecentMatchMessage = useCallback(
     async (match: ProfileRecentMatch) => {
-      if (!match.isConnected) {
-        toast.message("Connect first to message this person");
-        return;
-      }
       if (isBusy) return;
 
       setActivePeerId(match.peerUserId);

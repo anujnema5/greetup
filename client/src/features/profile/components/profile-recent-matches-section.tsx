@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { Zap } from "lucide-react";
 
 import { PeerContactActionIcons } from "@/features/connections/components/peer-contact-action-icons";
@@ -14,7 +14,7 @@ import { cn } from "@/lib/utils";
 
 import {
   profileAvatarGradientClass,
-  recentMatchSecondaryLabel,
+  recentMatchHistoryLabel,
 } from "../lib/profile-insights-display";
 import { RecentMatchesDialog } from "./recent-matches-dialog";
 import type { ProfileRecentMatch } from "../types/profile-insights.types";
@@ -24,11 +24,14 @@ type ProfileRecentMatchesSectionProps = {
   isLoading?: boolean;
 };
 
+const RECENT_MATCHES_PREVIEW_LIMIT = 3;
+
 function matchToPeer(match: ProfileRecentMatch): PeerContactTarget {
   return {
     peerUserId: match.peerUserId,
     displayName: match.displayName,
     image: match.image,
+    isConnected: match.isConnected,
   };
 }
 
@@ -101,7 +104,7 @@ function RecentMatchRow({
       <div className="min-w-0 flex-1">
         <p className="truncate text-[13px] font-semibold text-foreground">{match.displayName}</p>
         <p className="truncate text-[12px] text-muted-foreground">
-          {recentMatchSecondaryLabel(match)}
+          {recentMatchHistoryLabel(match)}
         </p>
       </div>
 
@@ -125,7 +128,7 @@ function RecentMatchRow({
       )}
       <PeerContactActionIcons
         size="md"
-        disabled={!match.isConnected}
+        callsDisabled={!match.isConnected}
         isCalling={isCalling}
         isMessaging={isMessaging}
         onMessage={() => onMessage(peer)}
@@ -149,7 +152,12 @@ export function ProfileRecentMatchesSection({
     isOpeningMessage,
   } = usePeerContactActions();
 
-  const peerIds = matches.map((match) => match.peerUserId);
+  const previewMatches = useMemo(
+    () => matches.slice(0, RECENT_MATCHES_PREVIEW_LIMIT),
+    [matches],
+  );
+
+  const peerIds = previewMatches.map((match) => match.peerUserId);
   const { isOnline } = usePeersOnlineStatus(peerIds);
 
   return (
@@ -187,7 +195,7 @@ export function ProfileRecentMatchesSection({
           </div>
         ) : (
           <div className="flex flex-col gap-2">
-            {matches.map((match) => (
+            {previewMatches.map((match) => (
               <RecentMatchRow
                 key={`${match.peerUserId}-${match.matchedAt}`}
                 match={match}

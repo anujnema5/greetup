@@ -14,6 +14,8 @@ export type PeerContactTarget = {
   peerUserId: string;
   displayName: string;
   image: string | null;
+  /** When false, voice/video is blocked (e.g. recent match not yet connected). */
+  isConnected?: boolean;
 };
 
 type PeerAction = "call" | "message";
@@ -30,6 +32,10 @@ export function usePeerContactActions() {
 
   const startPeerCall = useCallback(
     async (peer: PeerContactTarget, mode: ConnectionCallMode = "video") => {
+      if (peer.isConnected === false) {
+        toast.message("Connect first to call this person");
+        return;
+      }
       if (isBusy) return;
 
       setActivePeerId(peer.peerUserId);
