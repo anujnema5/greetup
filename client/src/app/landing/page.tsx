@@ -51,8 +51,8 @@ import { EARLY_RELEASE } from "@/lib/copy/user-messages";
 import { HeroMatchDemo } from "./hero-match-demo";
 
 /* Mobile / reduced-motion: drop scroll-linked nav, fixed blur layers, and looping animations */
-type LandingPerfValue = { isMobile: boolean; lite: boolean };
-const LandingPerfContext = createContext<LandingPerfValue>({ isMobile: false, lite: false });
+type LandingPerfValue = { isMobile: boolean; lite: boolean; reduceMotion: boolean };
+const LandingPerfContext = createContext<LandingPerfValue>({ isMobile: false, lite: false, reduceMotion: false });
 
 function useLandingPerf() {
   return useContext(LandingPerfContext);
@@ -70,8 +70,9 @@ function LandingPerfProvider({ children }: { children: React.ReactNode }) {
     return () => mq.removeEventListener("change", apply);
   }, []);
 
-  const lite = Boolean(prefersReduced) || isMobile;
-  const value = useMemo(() => ({ isMobile, lite }), [isMobile, lite]);
+  const reduceMotion = Boolean(prefersReduced);
+  const lite = reduceMotion || isMobile;
+  const value = useMemo(() => ({ isMobile, lite, reduceMotion }), [isMobile, lite, reduceMotion]);
 
   return <LandingPerfContext.Provider value={value}>{children}</LandingPerfContext.Provider>;
 }
@@ -415,16 +416,19 @@ const HERO_SIGNALS = [
 ] as const;
 
 function HeroVisual() {
-  const { lite } = useLandingPerf();
+  const { reduceMotion, isMobile } = useLandingPerf();
 
   return (
-    <div className="relative w-full max-w-[380px] sm:max-w-[420px] lg:max-w-[440px] mx-auto lg:mx-0 lg:ml-auto select-none pointer-events-none">
+    <div className={cn(
+      "relative w-full mx-auto select-none pointer-events-none",
+      isMobile ? "max-w-full" : "max-w-[380px] sm:max-w-[420px] lg:max-w-[440px] lg:mx-0 lg:ml-auto",
+    )}>
       <div
         className="pointer-events-none absolute -inset-6 rounded-[2rem] bg-[radial-gradient(circle,oklch(88%_0.11_105/0.08)_0%,transparent_72%)] blur-2xl"
         aria-hidden
       />
       <div className="relative rounded-[1.35rem] border border-white/6 bg-[oklch(13%_0.012_110/0.55)] p-2 sm:p-2.5 md:backdrop-blur-sm">
-        <HeroMatchDemo lite={lite} />
+        <HeroMatchDemo lite={reduceMotion} />
       </div>
     </div>
   );
@@ -632,7 +636,7 @@ function AmbientBackdrop() {
 
 /* ─── Page ───────────────────────────────────────────────────────────────────── */
 function LandingPageInner() {
-  const { lite } = useLandingPerf();
+  const { lite, reduceMotion } = useLandingPerf();
   const [activeTab, setActiveTab] = useState<CommTab>("chat");
   const { data: session } = useSession();
 
@@ -656,12 +660,12 @@ function LandingPageInner() {
       <Navbar isLoggedIn={isLoggedIn} firstName={firstName} />
 
       {/* ══════════════════ HERO ══════════════════ */}
-      <section className="relative min-h-[calc(100dvh-4rem)] flex flex-col justify-center pt-24 sm:pt-28 pb-16 sm:pb-24 px-4 sm:px-6">
+      <section className="relative min-h-[calc(100dvh-4rem)] flex flex-col justify-center pt-24 sm:pt-28 pb-12 sm:pb-24 px-4 sm:px-6">
         <HeroBackdrop />
 
-        <div className="relative mx-auto w-full max-w-7xl grid lg:grid-cols-2 gap-12 sm:gap-14 lg:gap-12 xl:gap-20 lg:items-center">
+        <div className="relative mx-auto w-full max-w-7xl flex flex-col gap-8 sm:gap-10 lg:grid lg:grid-cols-2 lg:gap-12 xl:gap-20 lg:items-center">
 
-          <motion.div variants={stagger} initial="hidden" animate="show" className="text-center lg:text-left lg:max-w-[34rem]">
+          <motion.div variants={stagger} initial="hidden" animate="show" className="text-center lg:text-left lg:max-w-[34rem] order-1">
 
             <motion.div variants={fadeUp} className="mb-5 sm:mb-6 flex justify-center lg:justify-start">
               <Badge
@@ -693,10 +697,10 @@ function LandingPageInner() {
               ))}
             </motion.div>
 
-            <motion.div variants={fadeUp} className="flex flex-col sm:flex-row flex-wrap gap-3 justify-center lg:justify-start">
+            <motion.div variants={fadeUp} className="flex flex-row flex-wrap gap-3 justify-center lg:justify-start">
               <Button
                 size="lg"
-                className="rounded-xl bg-[oklch(88%_0.11_105)] text-[oklch(12%_0.012_110)] hover:brightness-110 font-semibold px-6 h-11 w-full sm:w-auto shadow-[0_8px_28px_-8px_oklch(88%_0.11_105/0.55)]"
+                className="rounded-xl bg-[oklch(88%_0.11_105)] text-[oklch(12%_0.012_110)] hover:brightness-110 font-semibold px-6 h-11 w-auto shadow-[0_8px_28px_-8px_oklch(88%_0.11_105/0.55)]"
                 asChild
               >
                 <Link href={isLoggedIn ? "/home" : "/register"}>
@@ -706,7 +710,7 @@ function LandingPageInner() {
               <Button
                 size="lg"
                 variant="outline"
-                className="rounded-xl border-white/10 bg-white/3 text-white/78 hover:bg-white/6 hover:text-white px-6 h-11 w-full sm:w-auto"
+                className="rounded-xl border-white/10 bg-white/3 text-white/78 hover:bg-white/6 hover:text-white px-6 h-11 w-auto"
                 asChild
               >
                 <Link href="#how-it-works">How it works</Link>
@@ -721,8 +725,8 @@ function LandingPageInner() {
           </motion.div>
 
           <motion.div
-            className="flex justify-center lg:justify-end order-first lg:order-last lg:py-4"
-            initial={lite ? false : { opacity: 0, y: 20 }}
+            className="flex justify-center lg:justify-end lg:py-4 order-2 w-full"
+            initial={reduceMotion ? false : { opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.75, delay: 0.15, ease: EASE }}
           >
