@@ -7,7 +7,7 @@ import {
   selectRoomActiveActivity,
   useRoomActivityStore,
 } from "@/features/room/state/room-activity.store";
-import { selectRoomPhase, useRoomStore } from "@/features/room/state/room.store";
+import { selectLocalLeavePending, selectRoomPhase, useRoomStore } from "@/features/room/state/room.store";
 import {
   useRoomChessDrawOffer,
   useRoomChessEnd,
@@ -91,6 +91,7 @@ export function InCallContainer({
   const setDirectCallPeerLabel = useRoomStore((s) => s.setDirectCallPeerLabel);
   const { data: session } = useSession();
   const roomPhase = useRoomStore(selectRoomPhase);
+  const localLeavePending = useRoomStore(selectLocalLeavePending);
   const activeRealtimeActivity = useRoomActivityStore(selectRoomActiveActivity);
   const [addCircleOpen, setAddCircleOpen] = useState(false);
   const [embeddedStageActivityId, setEmbeddedStageActivityId] =
@@ -218,7 +219,10 @@ export function InCallContainer({
   }, [embeddedCallPolicy]);
 
   const searchingForNextCandidate =
-    !isGroupRoom && !isConnectionCall && roomPhase === "searching";
+    !localLeavePending &&
+    !isGroupRoom &&
+    !isConnectionCall &&
+    roomPhase === "searching";
   const matchmaking = useMatchmaking();
   const directCallMatchSearchFailed =
     searchingForNextCandidate && matchmaking.status === "error";

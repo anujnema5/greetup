@@ -3,6 +3,7 @@
 import {
   selectIsRoomMinimized,
   selectIsVideoSessionActive,
+  selectLocalLeavePending,
   selectRoomPhase,
   useRoomStore,
 } from "@/features/room/state/room.store";
@@ -16,6 +17,7 @@ import {
   resolveCircleHostUserId,
 } from "@/features/matching/types/room.types";
 import { InCallContainer } from "@/features/room/call/shell/in-call-container";
+import { CircleRouteLoadingShell } from "@/features/room/components/search/circle-route-loading-shell";
 import { useRoomJoinAndStartVideo } from "@/features/room/hooks/session/use-room-join-and-start-video";
 import { isConnectionCallSession } from "@/features/room/lib/session/room-session-kind";
 
@@ -23,6 +25,7 @@ export function RoomPage() {
   const sessionActive = useRoomStore(selectIsVideoSessionActive);
   const roomPhase = useRoomStore(selectRoomPhase);
   const isMinimized = useRoomStore(selectIsRoomMinimized);
+  const localLeavePending = useRoomStore(selectLocalLeavePending);
   const isSearchingNext = roomPhase === "searching";
   const { data: session } = useSession();
 
@@ -65,6 +68,22 @@ export function RoomPage() {
   });
 
   const showCallSurface = (sessionActive || isSearchingNext) && !isMinimized;
+  const transientMatchRoomLoss =
+    sessionActive &&
+    roomPhase === "in_call" &&
+    !isSearchingNext &&
+    !localLeavePending &&
+    Boolean(error) &&
+    !room &&
+    !isCircleRoom;
+
+  if (localLeavePending) {
+    return <CircleRouteLoadingShell message="Leaving call…" />;
+  }
+
+  if (transientMatchRoomLoss) {
+    return <CircleRouteLoadingShell message="Partner left — finding next match…" />;
+  }
 
   if (
     !isSearchingNext &&

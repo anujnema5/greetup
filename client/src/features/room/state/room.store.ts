@@ -8,6 +8,8 @@ export type RoomStoreState = {
   ui: {
     sessionActive: boolean;
     isMinimized: boolean;
+    /** True while the local user is leaving — suppresses rematch search UI. */
+    localLeavePending: boolean;
   };
   session: {
     activeRoomId: string | null;
@@ -49,10 +51,11 @@ type RoomStore = RoomStoreState & {
   removeRoomPeer: (userId: string) => void;
   setChatDraft: (draft: string) => void;
   setDirectCallPeerLabel: (label: string | null) => void;
+  setLocalLeavePending: (pending: boolean) => void;
 };
 
 const createInitialState = (): RoomStoreState => ({
-  ui: { sessionActive: false, isMinimized: false },
+  ui: { sessionActive: false, isMinimized: false, localLeavePending: false },
   session: {
     activeRoomId: null,
     phase: 'idle',
@@ -105,7 +108,7 @@ export const useRoomStore = create<RoomStore>((set) => ({
         }
         return {
           ...state,
-          ui: { sessionActive: false, isMinimized: false },
+          ui: { sessionActive: false, isMinimized: false, localLeavePending: false },
           session: {
             ...state.session,
             activeRoomId: nextId,
@@ -136,7 +139,7 @@ export const useRoomStore = create<RoomStore>((set) => ({
   resetVideoUi: () =>
     set((state) => ({
       ...state,
-      ui: { sessionActive: false, isMinimized: false },
+      ui: { sessionActive: false, isMinimized: false, localLeavePending: false },
     })),
 
   startVideoSession: (payload) =>
@@ -146,7 +149,7 @@ export const useRoomStore = create<RoomStore>((set) => ({
       const convId = payload?.conversationId;
       return {
         ...state,
-        ui: { sessionActive: true, isMinimized: false },
+        ui: { sessionActive: true, isMinimized: false, localLeavePending: false },
         session: {
           ...state.session,
           activeRoomId: rid !== undefined ? (rid ?? null) : state.session.activeRoomId,
@@ -162,7 +165,11 @@ export const useRoomStore = create<RoomStore>((set) => ({
     useRoomActivityStore.getState().clearOnSessionChange();
     set((state) => ({
       ...state,
-      ui: { sessionActive: false, isMinimized: false },
+      ui: {
+        sessionActive: false,
+        isMinimized: false,
+        localLeavePending: state.ui.localLeavePending,
+      },
       session: {
         ...state.session,
         activeRoomId: null,
@@ -199,7 +206,7 @@ export const useRoomStore = create<RoomStore>((set) => ({
     useRoomActivityStore.getState().clearOnSessionChange();
     set((state) => ({
       ...state,
-      ui: { sessionActive: true, isMinimized: false },
+      ui: { sessionActive: true, isMinimized: false, localLeavePending: false },
       session: {
         ...state.session,
         activeRoomId: null,
@@ -251,6 +258,12 @@ export const useRoomStore = create<RoomStore>((set) => ({
       ...state,
       session: { ...state.session, directCallPeerLabel: label },
     })),
+
+  setLocalLeavePending: (pending) =>
+    set((state) => ({
+      ...state,
+      ui: { ...state.ui, localLeavePending: pending },
+    })),
 }));
 
 export const selectRoom = (state: RoomStore) => state;
@@ -262,6 +275,8 @@ export const selectRoomSession = (state: RoomStore) => state.session;
 export const selectIsVideoSessionActive = (state: RoomStore) => state.ui.sessionActive;
 
 export const selectIsRoomMinimized = (state: RoomStore) => state.ui.isMinimized;
+
+export const selectLocalLeavePending = (state: RoomStore) => state.ui.localLeavePending;
 
 export const selectActiveRoomId = (state: RoomStore) => state.session.activeRoomId;
 

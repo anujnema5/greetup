@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo } from "react";
 import { useParams, useSearchParams, useRouter } from "next/navigation";
 import { useSession } from "@/lib/auth-client";
 import { getApiErrorMessage } from "@/lib/api/fetch-client";
-import { useRoomStore } from "@/features/room/state/room.store";
+import { useRoomStore, selectLocalLeavePending } from "@/features/room/state/room.store";
 import { useRoomPageTabLease } from "@/features/room/hooks";
 import { clearRoomStorage } from "@/features/room/lib/session/room-sync";
 import { useGetRoom } from "@/features/room/api/room.queries";
@@ -59,7 +59,8 @@ export function useRoom() {
     router,
   });
 
-  const skipRoomQuery = !roomId || sessionPending;
+  const localLeavePending = useRoomStore(selectLocalLeavePending);
+  const skipRoomQuery = !roomId || sessionPending || localLeavePending;
   const roomQuery = useGetRoom(roomId, { enabled: !skipRoomQuery });
 
   useEffect(() => {

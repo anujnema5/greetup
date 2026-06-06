@@ -37,6 +37,7 @@ import {
 } from "@/features/room/api/room.mutations";
 import { getApiErrorMessage } from "@/lib/api/fetch-client";
 import { messagesDirectConversationPath } from "@/features/connection-call/lib/call-navigation";
+import { markLocalCallEndInProgress } from "@/features/room/lib/call/direct-match-leave-guard";
 
 export type UseRoomVideoOptions = {
   skipSetup?: boolean;
@@ -176,22 +177,25 @@ export function useRoomVideo(roomId: string, options?: UseRoomVideoOptions) {
   const handleEnd = useCallback(() => {
     if (endHandledRef.current) return;
     endHandledRef.current = true;
+    if (canSkipAndRematch || isConnectionCall) {
+      markLocalCallEndInProgress();
+    }
     dismissCallUiAndBroadcastEnd();
+    returnAfterCallEnd();
     if (!resolveApiRoomId(roomId)) {
-      returnAfterCallEnd();
       return;
     }
     if (isDbCircleCall) {
-      void leaveCircleRtcOnly().catch(() => {}).finally(returnAfterCallEnd);
+      void leaveCircleRtcOnly().catch(() => {});
     } else {
       const apiRoomId = resolveApiRoomId(roomId) ?? roomId;
-      void leaveRoom({ roomId: apiRoomId })
-        .catch(() => {})
-        .finally(returnAfterCallEnd);
+      void leaveRoom({ roomId: apiRoomId }).catch(() => {});
     }
   }, [
+    canSkipAndRematch,
     dismissCallUiAndBroadcastEnd,
     returnAfterCallEnd,
+    isConnectionCall,
     isDbCircleCall,
     leaveCircleRtcOnly,
     leaveRoom,

@@ -32,6 +32,12 @@ import {
   isConnectionCallSession,
   isMatchSession,
 } from "@/features/room/lib/session/room-session-kind";
+import {
+  isLocalCallEndInProgress,
+  markDirectMatchPartnerSignalHandled,
+  registerMatchRtcFallbackCancel,
+  wasDirectMatchPartnerSignalHandled,
+} from "@/features/room/lib/call/direct-match-leave-guard";
 
 /**
  * Direct 1:1 calls: match restarts search when the peer leaves; connection calls end and
@@ -100,6 +106,7 @@ export function OnPartnerDisconnected() {
   }, []);
 
   const beginSearchForNextCandidate = useCallback(() => {
+    if (isLocalCallEndInProgress()) return;
     if (roomPhase === "searching") return;
     if (handledRef.current) return;
     handledRef.current = true;
@@ -214,9 +221,16 @@ export function OnPartnerDisconnected() {
         ? resolveConnectionCallPeerLeftDebounceMs()
         : DIRECT_CALL_RECOVERY.matchPeerLeftDebounceMs;
 
+      registerMatchRtcFallbackCancel(clearPartnerLeftTimer);
       timersRef.current.partnerLeft = window.setTimeout(() => {
         timersRef.current.partnerLeft = null;
         if (remotePeerCountRef.current >= 1) return;
+        if (isLocalCallEndInProgress()) return;
+        if (!useRoomStore.getState().ui.sessionActive) return;
+        if (useRoomStore.getState().session.phase === "searching") return;
+        const roomIdNow =
+          useRoomStore.getState().session.activeRoomId ?? resolveApiRoomId(routeRoomId);
+        if (roomIdNow && wasDirectMatchPartnerSignalHandled(roomIdNow)) return;
 
         if (isConnectionCall) {
           if (timersRef.current.networkRecovery != null) return;
@@ -254,9 +268,11 @@ export function OnPartnerDisconnected() {
 
   useEffect(() => {
     const onPartnerSkipped = (data: MatchPartnerSkippedPayload) => {
+      if (isLocalCallEndInProgress()) return;
       if (!sessionActive || roomPhase === "searching" || handledRef.current) return;
       const ourRoomId = activeRoomId ?? resolveApiRoomId(routeRoomId);
       if (!data?.roomId || !ourRoomId || data.roomId !== ourRoomId) return;
+      if (!markDirectMatchPartnerSignalHandled(data.roomId)) return;
       beginSearchForNextCandidate();
     };
 
@@ -275,6 +291,10 @@ export function OnPartnerDisconnected() {
 
   useEffect(() => {
     if (!sessionActive || roomPhase !== "searching") {
+      clearSearchRetryTimer();
+      return;
+    }
+    if (isLocalCallEndInProgress()) {
       clearSearchRetryTimer();
       return;
     }
