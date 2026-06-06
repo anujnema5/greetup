@@ -31,7 +31,6 @@ import {
   Gamepad2,
   MessageCircle,
   ArrowRight,
-  Star,
   ChevronRight,
   Compass,
   MapPin,
@@ -49,6 +48,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useSession } from "@/lib/auth-client";
+import { EARLY_RELEASE } from "@/lib/copy/user-messages";
 
 /* Mobile / reduced-motion: drop scroll-linked nav, fixed blur layers, and looping animations */
 type LandingPerfValue = { isMobile: boolean; lite: boolean };
@@ -121,7 +121,7 @@ const FEATURES = [
   },
   {
     icon: Gamepad2,
-    label: "Activities Together",
+    label: "Activities Together (Coming soon)",
     desc: "Do activities together like chess, Watch Together (YouTube), draw together, study together, debate, truth or dare, music rooms, and live polls.",
     tint: "from-emerald-400/15 to-transparent",
     iconClass: "text-emerald-400 bg-emerald-400/10 border-emerald-400/20",
@@ -166,62 +166,81 @@ const COMM_TABS = [
 type CommTab = (typeof COMM_TABS)[number]["id"];
 
 const STEPS = [
-  { n: "01", title: "Set your preferences",    desc: "Answer a few quick questions about your interests, goals, and the kind of connections you want." },
-  { n: "02", title: "Get matched",      desc: "Our engine finds people with real alignment — not just the same city, but the same wavelength." },
+  { n: "01", title: "Set your preferences", desc: "Answer a few quick questions about your interests, goals, and the kind of connections you want." },
+  { n: "02", title: "Get matched", desc: "Our engine finds people with real alignment, not just the same city, but the same wavelength." },
   { n: "03", title: "Connect & grow", desc: "Chat, call, join activities, or hop into a circle together. Build real relationships naturally." },
 ];
 
-const TESTIMONIALS = [
-  { quote: "I found one of my closest friends on Greetup. We matched on shared interests and the conversation clicked from day one.", name: "Priya K.", tag: "Music Circle", avatar: "P", color: "from-violet-500 to-purple-600" },
-  { quote: "I've tried every social app. Greetup is the first one where I felt like the people I met actually got me. The matching is genuinely uncanny.",           name: "Mateo R.", tag: "Philosophy Talks",  avatar: "M", color: "from-amber-500 to-yellow-600"  },
-  { quote: "The Circles feature is incredible. I joined a creator community and now we host weekly sessions. Real community, not just followers.",               name: "Mei C.", tag: "Art Circle", avatar: "M", color: "from-emerald-500 to-green-600" },
-];
-
-const STATS = [
-  { value: "24K+",   label: "Members"           },
-  { value: "140K+",  label: "Connections made"  },
-  { value: "4,200+", label: "Active Circles"    },
-  { value: "98%",    label: "Positive matches"  },
+const BETA_HIGHLIGHTS = [
+  { value: "Beta", label: "Early access" },
+  { value: "Free", label: "To join" },
+  { value: "1:1", label: "Match & video" },
+  { value: "Live", label: "Circles & chat" },
 ];
 
 const TRUST = [
   { icon: Shield,      label: "Privacy first"       },
-  { icon: Globe,       label: "180+ countries"       },
+  { icon: Globe,       label: "Nearby or global"     },
   { icon: Zap,         label: "Real-time matching"  },
-  { icon: Users,       label: "Verified members"    },
+  { icon: Users,       label: "Early community"     },
   { icon: ShieldCheck, label: "Safe & inclusive"    },
 ];
 
-const LIVE_STREAMS = [
+const CIRCLE_ACTIVITY_CHIPS: ReadonlyArray<{ label: string; comingSoon?: boolean }> = [
+  { label: "Startup Founder Night Talk" },
+  { label: "Jam Session for Musicians" },
+  { label: "Chess Blitz Room" },
+  { label: "Watch Together (YouTube)", comingSoon: true },
+  { label: "Icebreaker ideas", comingSoon: true },
+  { label: "Draw Together", comingSoon: true },
+  { label: "Study Together", comingSoon: true },
+  { label: "Debate Room", comingSoon: true },
+  { label: "Truth or Dare", comingSoon: true },
+  { label: "Music Room", comingSoon: true },
+  { label: "Live Polls", comingSoon: true },
+];
+
+const STEP_RING_COUNT = 3;
+const STEP_RING_CYCLE_S = 3;
+
+function StepRippleRings({ stepIndex }: { stepIndex: number }) {
+  return (
+    <>
+      {Array.from({ length: STEP_RING_COUNT }, (_, ri) => (
+        <div
+          key={ri}
+          className="landing-step-ring pointer-events-none absolute inset-0 rounded-full border border-[oklch(88%_0.11_105/0.28)]"
+          style={{
+            animationDelay: `${stepIndex * 0.2 + (ri * STEP_RING_CYCLE_S) / STEP_RING_COUNT}s`,
+          }}
+        />
+      ))}
+    </>
+  );
+}
+
+const LIVE_STREAM_EXAMPLES = [
   {
-    title: "Live Music Listening Room",
-    host: "Liam O.",
-    topic: "Share tracks and break down lyrics together",
-    viewers: 12,
+    title: "Music listening room",
+    topic: "Share tracks and talk through lyrics together",
     category: "Music",
     platforms: ["YouTube", "Twitch"],
   },
   {
-    title: "Open Sketch Studio",
-    host: "Mei C.",
+    title: "Open sketch studio",
     topic: "Collaborative drawing and visual critiques",
-    viewers: 14,
     category: "Art",
     platforms: ["YouTube", "Kick"],
   },
   {
-    title: "Late Night Philosophy Room",
-    host: "Diego P.",
+    title: "Late night philosophy room",
     topic: "Meaning, ethics, and modern life discussions",
-    viewers: 10,
     category: "Philosophy",
     platforms: ["YouTube", "X Live"],
   },
   {
-    title: "Creative Writing Circle",
-    host: "Sofia L.",
+    title: "Creative writing circle",
     topic: "Poetry prompts and short reading sessions",
-    viewers: 15,
     category: "Writing",
     platforms: ["YouTube", "Twitch"],
   },
@@ -463,7 +482,9 @@ function ChatMockup() {
             <Lightbulb className="size-2.5 text-[oklch(88%_0.11_105)]" />
           </div>
           <div>
-            <p className="text-[10px] font-semibold text-[oklch(88%_0.11_105)] uppercase tracking-wide">Conversation cue</p>
+            <p className="text-[10px] font-semibold text-[oklch(88%_0.11_105)] uppercase tracking-wide">
+              Conversation cue · Coming soon
+            </p>
             <p className="text-[10px] text-white/70 leading-relaxed">
               Your new match likes chess and music. Use an icebreaker suggestion, then invite them to Watch Together.
             </p>
@@ -477,7 +498,7 @@ function ChatMockup() {
       </div>
       <div className="self-start max-w-[78%]">
         <div className="bg-white/6 border border-white/8 text-white/80 text-xs px-3.5 py-2.5 rounded-2xl rounded-bl-sm">
-          Hey! Saw you&apos;re into chess too — do you play blitz?
+          Hey! Saw you&apos;re into chess too. Do you play blitz?
         </div>
       </div>
       <div className="self-end max-w-[78%]">
@@ -693,9 +714,8 @@ function LandingPageInner() {
             </motion.h1>
 
             <motion.p variants={fadeUp} className="text-lg text-white/55 leading-relaxed max-w-md mb-10">
-              Greetup helps you connect with the exact kind of people you want by profession, interests, and location
-              (nearby, city, country, or global). Smart conversation cues help with what to say about your new match, so
-              every 1:1 chat or circle starts smoothly.
+              Match by profession, interests, and location, nearby or anywhere in the world.
+              Chat, circles, calls, and more features to help you stay engaged.
             </motion.p>
 
             <motion.div variants={fadeUp} className="flex flex-wrap gap-3">
@@ -722,17 +742,9 @@ function LandingPageInner() {
               </motion.div>
             </motion.div>
 
-            {/* social proof */}
-            <motion.div variants={fadeUp} className="mt-10 flex items-center gap-3">
-              <div className="flex -space-x-2">
-                {(["#7c3aed","#d97706","#059669","#2563eb","#db2777"] as const).map((c, i) => (
-                  <motion.div key={i} className="size-8 rounded-full border-2 border-[oklch(12%_0.012_110)] flex items-center justify-center text-[10px] font-bold text-white" style={{ background: c }} initial={{ opacity: 0, x: -8 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.5 + i * 0.07, duration: 0.4 }}>
-                    {["N","M","L","S","D"][i]}
-                  </motion.div>
-                ))}
-              </div>
-              <p className="text-xs text-white/50">
-                <span className="text-white/80 font-semibold">2,400+</span> people joined this week
+            <motion.div variants={fadeUp} className="mt-10">
+              <p className="text-xs text-white/50 max-w-sm leading-relaxed">
+                {EARLY_RELEASE.noticeShort}
               </p>
             </motion.div>
           </motion.div>
@@ -743,10 +755,10 @@ function LandingPageInner() {
         </div>
       </section>
 
-      {/* ══════════════════ STATS ══════════════════ */}
+      {/* ══════════════════ BETA HIGHLIGHTS ══════════════════ */}
       <RevealSection className="mx-4 sm:mx-6 lg:mx-auto max-w-7xl">
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-px bg-white/5 rounded-3xl overflow-hidden border border-white/8">
-          {STATS.map((s) => (
+          {BETA_HIGHLIGHTS.map((s) => (
             <motion.div key={s.label} variants={cardIn} className="bg-[oklch(15%_0.015_110)] px-8 py-7 flex flex-col items-center gap-1">
               <span className="text-3xl font-black bg-linear-to-r from-[oklch(88%_0.11_105)] to-[oklch(95%_0.08_90)] bg-clip-text text-transparent">{s.value}</span>
               <span className="text-xs text-white/45 font-medium tracking-wide uppercase">{s.label}</span>
@@ -763,7 +775,7 @@ function LandingPageInner() {
               Everything you need
             </Badge>
             <h2 className="text-4xl sm:text-5xl font-black tracking-tight">Built for real connection</h2>
-            <p className="mt-4 text-white/50 max-w-lg mx-auto">Every feature exists for one reason — to help you meet people who feel like people, not profiles.</p>
+            <p className="mt-4 text-white/50 max-w-lg mx-auto">Every feature exists for one reason: to help you meet people who feel like people, not profiles.</p>
           </motion.div>
 
           <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-5">
@@ -879,7 +891,7 @@ function LandingPageInner() {
             </motion.p>
             <motion.div variants={stagger} className="flex flex-col gap-4">
               {[
-                { icon: MessageCircle, color: "text-sky-400 bg-sky-400/10 border-sky-400/20", title: "Instant chat", desc: "Real-time messaging with conversation cues tailored to your new match." },
+                { icon: MessageCircle, color: "text-sky-400 bg-sky-400/10 border-sky-400/20", title: "Instant chat", desc: "Real-time messaging with conversation cues tailored to your new match. Cues coming soon." },
                 { icon: Phone, color: "text-emerald-400 bg-emerald-400/10 border-emerald-400/20", title: "Voice calls", desc: "Jump into audio to network quickly with people who share your niche." },
                 { icon: Video, color: "text-violet-400 bg-violet-400/10 border-violet-400/20", title: "Video calls", desc: "Use face-to-face calls for stronger chemistry and deeper conversations." },
               ].map(({ icon: Icon, color, title, desc }) => (
@@ -983,39 +995,30 @@ function LandingPageInner() {
                     <p className="text-[10px] text-[oklch(88%_0.11_105/0.7)] font-semibold tracking-wide uppercase">Group room examples</p>
                   </div>
                   <div className="flex flex-wrap gap-1.5">
-                    {[
-                      "Startup Founder Night Talk",
-                      "Jam Session for Musicians",
-                      "Chess Blitz Room",
-                      "Watch Together (YouTube)",
-                      "Icebreaker Suggestions",
-                      "Draw Together",
-                      "Study Together",
-                      "Debate Room",
-                      "Truth or Dare",
-                      "Music Room",
-                      "Live Polls",
-                    ].map((chip, i) =>
-                      lite ? (
-                        <button
-                          key={chip}
-                          type="button"
-                          className="text-[10px] font-medium px-2.5 py-1 rounded-full border border-[oklch(88%_0.11_105/0.25)] bg-[oklch(88%_0.11_105/0.07)] text-white/70 hover:border-[oklch(88%_0.11_105/0.5)] hover:text-white transition-all cursor-default"
-                        >
-                          {chip}
+                    {CIRCLE_ACTIVITY_CHIPS.map((chip, i) => {
+                      const chipLabel = chip.comingSoon ? `${chip.label} · Soon` : chip.label;
+                      const chipClass = cn(
+                        "text-[10px] font-medium px-2.5 py-1 rounded-full border transition-all cursor-default",
+                        chip.comingSoon
+                          ? "border-white/10 bg-white/4 text-white/40"
+                          : "border-[oklch(88%_0.11_105/0.25)] bg-[oklch(88%_0.11_105/0.07)] text-white/70 hover:border-[oklch(88%_0.11_105/0.5)] hover:text-white",
+                      );
+                      return lite ? (
+                        <button key={chip.label} type="button" className={chipClass}>
+                          {chipLabel}
                         </button>
                       ) : (
                         <motion.button
-                          key={chip}
+                          key={chip.label}
                           initial={{ opacity: 0, y: 6 }}
                           animate={{ opacity: 1, y: 0 }}
                           transition={{ delay: 0.5 + i * 0.12, duration: 0.35, ease: EASE }}
-                          className="text-[10px] font-medium px-2.5 py-1 rounded-full border border-[oklch(88%_0.11_105/0.25)] bg-[oklch(88%_0.11_105/0.07)] text-white/70 hover:border-[oklch(88%_0.11_105/0.5)] hover:text-white transition-all cursor-default"
+                          className={chipClass}
                         >
-                          {chip}
+                          {chipLabel}
                         </motion.button>
-                      ),
-                    )}
+                      );
+                    })}
                   </div>
                 </div>
                 <div className="mx-4 mb-4 flex items-center gap-2 rounded-xl bg-white/5 border border-white/8 px-3 py-2.5">
@@ -1047,7 +1050,7 @@ function LandingPageInner() {
               {[
                 { icon: Users, text: "Public and private circles for open communities or close trusted groups" },
                 { icon: MessageCircle, text: "Move from circle chat to 1:1 when you find someone you click with" },
-                { icon: Lightbulb, text: "Get conversation cues about that person so starting a conversation feels effortless" },
+                { icon: Lightbulb, text: "Get conversation cues about that person so starting a conversation feels effortless. Coming soon." },
                 { icon: Wind, text: "Invite your friend into the conversation and grow your network naturally" },
               ].map(({ icon: Icon, text }) => (
                 <motion.div key={text} variants={cardIn} className="flex items-start gap-3">
@@ -1071,19 +1074,18 @@ function LandingPageInner() {
             </Badge>
             <h2 className="text-4xl sm:text-5xl font-black tracking-tight">Go live from your matches and circles</h2>
             <p className="mt-4 text-white/50 max-w-2xl mx-auto">
-              Turn any active match or circle conversation into a live session in one tap, then stream out to platforms like YouTube from the same flow.
+              Turn any active match or circle conversation into a live session in one tap, then stream out to platforms like YouTube from the same flow. Coming soon.
             </p>
           </motion.div>
 
           <motion.div variants={fadeUp} className="flex flex-wrap justify-center gap-3 mb-8">
             <Button
               size="sm"
-              className="rounded-full bg-[oklch(88%_0.11_105)] text-[oklch(15%_0.02_110)] hover:brightness-110 font-semibold px-5"
-              asChild
+              variant="outline"
+              className="rounded-full border-white/12 bg-white/6 text-white/60 px-5 cursor-default"
+              disabled
             >
-              <Link href={isLoggedIn ? "/home" : "/login"}>
-                Start live session <Video className="size-3.5" />
-              </Link>
+              Start live session · Coming soon
             </Button>
             <Button
               size="sm"
@@ -1099,7 +1101,7 @@ function LandingPageInner() {
           </motion.p>
 
           <div className="grid md:grid-cols-2 xl:grid-cols-4 gap-5">
-            {LIVE_STREAMS.map((stream) => (
+            {LIVE_STREAM_EXAMPLES.map((stream) => (
               <motion.div key={stream.title} variants={cardIn}>
                 <Card className="border-white/8 bg-[oklch(16%_0.013_110)] shadow-xl p-0 gap-0">
                   <CardContent className="p-6 flex flex-col gap-5">
@@ -1108,44 +1110,29 @@ function LandingPageInner() {
                         <p className="text-base font-bold text-white leading-tight">{stream.title}</p>
                         <p className="text-xs text-white/55 mt-1">{stream.topic}</p>
                       </div>
-                      <div className="inline-flex items-center gap-1 rounded-full border border-red-500/25 bg-red-500/12 px-2 py-1 text-[10px] font-semibold text-red-300">
-                        {lite ? (
-                          <span className="size-1.5 rounded-full bg-red-400" />
-                        ) : (
-                          <motion.span
-                            className="size-1.5 rounded-full bg-red-400"
-                            animate={{ opacity: [1, 0.35, 1] }}
-                            transition={{ duration: 1.3, repeat: Infinity }}
-                          />
-                        )}
-                        LIVE
+                      <div className="inline-flex items-center gap-1 rounded-full border border-white/10 bg-white/6 px-2 py-1 text-[10px] font-semibold text-white/55">
+                        Example
                       </div>
                     </div>
 
-                    <div className="flex items-center justify-between gap-3">
-                      <div className="flex items-center gap-2.5 min-w-0">
-                        <div className="size-8 rounded-full bg-[oklch(88%_0.11_105/0.18)] border border-[oklch(88%_0.11_105/0.26)] flex items-center justify-center text-xs font-bold text-[oklch(88%_0.11_105)] shrink-0">
-                          {stream.host.slice(0, 1)}
-                        </div>
-                        <div className="min-w-0">
-                          <p className="text-xs text-white/80 truncate">{stream.host}</p>
-                          <p className="text-[11px] text-white/45 truncate">{stream.category}</p>
-                        </div>
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <div className="size-8 rounded-full bg-[oklch(88%_0.11_105/0.18)] border border-[oklch(88%_0.11_105/0.26)] flex items-center justify-center text-xs font-bold text-[oklch(88%_0.11_105)] shrink-0">
+                        {stream.category.slice(0, 1)}
                       </div>
-                      <p className="text-[11px] text-white/45 shrink-0">{stream.viewers} in room</p>
+                      <p className="text-[11px] text-white/45 truncate">{stream.category}</p>
                     </div>
 
                     <div className="flex items-center justify-between">
                       <div className="inline-flex items-center gap-1.5 rounded-full border border-white/8 bg-white/4 px-2.5 py-1 text-[10px] text-white/55">
                         <Users className="size-3" />
-                        Connected room
+                        Room idea
                       </div>
-                      <Button size="sm" className="rounded-full bg-[oklch(88%_0.11_105)] text-[oklch(15%_0.02_110)] hover:brightness-110 font-semibold px-4" asChild>
-                        <Link href={isLoggedIn ? "/home" : "/login"}>Go live</Link>
+                      <Button size="sm" variant="outline" className="rounded-full border-white/12 bg-white/6 text-white/50 px-4 cursor-default" disabled>
+                        Go live · Soon
                       </Button>
                     </div>
                     <p className="text-[10px] text-white/45">
-                      Stream to: {stream.platforms.join(" · ")}
+                      Planned streaming: {stream.platforms.join(" · ")}
                     </p>
                   </CardContent>
                 </Card>
@@ -1173,51 +1160,12 @@ function LandingPageInner() {
                   <div className="size-20 rounded-full border border-[oklch(88%_0.11_105/0.2)] bg-[oklch(17%_0.015_110)] flex items-center justify-center">
                     <span className="text-2xl font-black text-[oklch(88%_0.11_105)]">{step.n}</span>
                   </div>
-                  {!lite &&
-                    [0, 0.7, 1.4].map((d, ri) => (
-                      <motion.div key={ri} className="absolute inset-0 rounded-full border border-[oklch(88%_0.11_105/0.3)]" animate={{ scale: [1, 1.8], opacity: [0.4, 0] }} transition={{ duration: 2.2, repeat: Infinity, ease: "easeOut", delay: i * 0.4 + d }} />
-                    ))}
+                  {!lite && <StepRippleRings stepIndex={i} />}
                 </div>
                 <div>
                   <h3 className="text-lg font-bold text-white mb-2">{step.title}</h3>
                   <p className="text-sm text-white/50 leading-relaxed">{step.desc}</p>
                 </div>
-              </motion.div>
-            ))}
-          </div>
-        </RevealSection>
-      </section>
-
-      {/* ══════════════════ TESTIMONIALS ══════════════════ */}
-      <section className="py-24 sm:py-32 px-4 sm:px-6" id="community">
-        <RevealSection className="mx-auto max-w-7xl">
-          <motion.div variants={fadeUp} className="text-center mb-16">
-            <Badge variant="outline" className="border-[oklch(88%_0.11_105/0.3)] bg-[oklch(88%_0.11_105/0.08)] text-[oklch(88%_0.11_105/0.8)] rounded-full mb-5 tracking-widest uppercase text-[10px]">
-              From the community
-            </Badge>
-            <h2 className="text-4xl sm:text-5xl font-black tracking-tight">Real people. Real stories.</h2>
-          </motion.div>
-
-          <div className="grid md:grid-cols-3 gap-6">
-            {TESTIMONIALS.map((t) => (
-              <motion.div key={t.name} variants={cardIn} whileHover={lite ? undefined : { y: -5, transition: { duration: 0.22 } }}>
-                <Card className="border-white/8 bg-[oklch(16%_0.013_110)] h-full shadow-xl p-0 gap-0">
-                  <CardContent className="p-7 flex flex-col gap-5 h-full">
-                    <div className="flex gap-1">
-                      {Array.from({ length: 5 }).map((_, si) => (
-                        <Star key={si} className="size-3.5 fill-[oklch(88%_0.11_105)] text-[oklch(88%_0.11_105)]" />
-                      ))}
-                    </div>
-                    <p className="text-sm text-white/65 leading-relaxed flex-1">&ldquo;{t.quote}&rdquo;</p>
-                    <div className="flex items-center gap-3 pt-2 border-t border-white/6">
-                      <div className={`size-9 rounded-full bg-linear-to-br ${t.color} flex items-center justify-center text-sm font-bold text-white`}>{t.avatar}</div>
-                      <div>
-                        <p className="text-sm font-semibold text-white">{t.name}</p>
-                        <p className="text-xs text-white/40">{t.tag}</p>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
               </motion.div>
             ))}
           </div>
@@ -1251,8 +1199,7 @@ function LandingPageInner() {
         <RevealSection className="relative mx-auto max-w-3xl text-center">
           <motion.div variants={fadeUp} className="mb-8">
             <Badge variant="outline" className="border-white/12 bg-white/5 text-white/70 md:backdrop-blur-sm rounded-full px-4 py-1.5 text-xs gap-2">
-              <MapPin className="size-3 text-[oklch(88%_0.11_105)]" />
-              Your people are already here
+              {EARLY_RELEASE.badge}
             </Badge>
           </motion.div>
 
@@ -1276,7 +1223,7 @@ function LandingPageInner() {
                 asChild
               >
                 <Link href={isLoggedIn ? "/home" : "/register"}>
-                  {isLoggedIn ? `Continue${firstName ? `, ${firstName}` : ""}` : "Join Greetup — it's free"} <ArrowRight className="size-5" />
+                  {isLoggedIn ? `Continue${firstName ? `, ${firstName}` : ""}` : "Join Greetup. It's free"} <ArrowRight className="size-5" />
                 </Link>
               </Button>
             </motion.div>
