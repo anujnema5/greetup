@@ -16,7 +16,7 @@ export function ContactForm() {
   function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
-    const subject = encodeURIComponent(`Greetup contact — ${name || "New message"}`);
+    const subject = encodeURIComponent(`Greetup contact: ${name || "New message"}`);
     const body = encodeURIComponent(
       `Name: ${name}\nEmail: ${email}\n\n${message}`,
     );

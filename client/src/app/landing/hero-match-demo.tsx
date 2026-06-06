@@ -36,7 +36,7 @@ const STORY: StoryStep[] = [
       tag: "Backend · Go",
       letter: "A",
       avatar: "oklch(52% 0.12 295)",
-      note: "Hey — saw you're on Node too",
+      note: "Hey, saw you're on Node too",
     },
   },
   {
@@ -163,7 +163,7 @@ function EmptySlot({ scanning, lite }: { scanning: boolean; lite: boolean }) {
         />
       )}
       <div className="size-12 rounded-full bg-white/6 ring-2 ring-white/4" />
-      <p className="text-[11px] text-white/34">{scanning ? "Searching…" : "—"}</p>
+      <p className="text-[11px] text-white/34">{scanning ? "Searching…" : "..."}</p>
     </div>
   );
 }

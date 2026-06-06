@@ -18,12 +18,12 @@ export const ABOUT_CONTENT = {
   eyebrow: "About Greetup",
   title: "Real connection, built around what you care about",
   description:
-    "Greetup helps you meet people through shared interests, profession, and location — then talk live through chat, voice, video, and circles.",
+    "Greetup helps you meet people through shared interests, profession, and location, then talk live through chat, voice, video, and circles.",
   sections: [
     {
       title: "Why we built Greetup",
       paragraphs: [
-        "Most platforms optimize for attention. We optimize for alignment — finding people you actually want to talk to, not endless scrolling through profiles.",
+        "Most platforms optimize for attention. We optimize for alignment: finding people you actually want to talk to, not endless scrolling through profiles.",
         "Whether you want collaborators, friends, mentors, or a wider network, Greetup matches you in real time and gives you a comfortable space to connect.",
       ],
     },
@@ -184,5 +184,5 @@ export const CONTACT_CONTENT = {
   eyebrow: "Contact",
   title: "We'd love to hear from you",
   description:
-    "Questions, feedback, partnership ideas, or help with your account — reach out anytime.",
+    "Questions, feedback, partnership ideas, or help with your account. Reach out anytime.",
 };

@@ -686,7 +686,7 @@ function LandingPageInner() {
             </motion.h1>
 
             <motion.p variants={fadeUp} className="text-[13px] leading-[1.55] sm:text-[1.05rem] sm:leading-relaxed text-white/42 max-w-[18rem] sm:max-w-lg mx-auto lg:mx-0 mb-4 sm:mb-7">
-              By profession, interests, or location — nearby or anywhere in the world.
+              By profession, interests, or location, nearby or anywhere in the world.
             </motion.p>
 
             <motion.div variants={fadeUp} className="mb-7 sm:mb-9 flex flex-wrap justify-center lg:justify-start gap-x-5 sm:gap-x-6 gap-y-2">

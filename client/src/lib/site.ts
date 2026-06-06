@@ -7,7 +7,7 @@ export const siteConfig = {
   url: "https://greetup.co",
   tagline: "Match your interests. Build your circles.",
   description:
-    "Match by profession, interests, or location — nearby or anywhere in the world. Chat, call, video, and join live circles with people who align with you.",
+    "Match by profession, interests, or location, nearby or anywhere in the world. Chat, call, video, and join live circles with people who align with you.",
   contactEmail: "hello@greetup.co",
   supportEmail: "support@greetup.co",
   locale: "en_US",
@@ -34,7 +34,7 @@ export function buildPageMetadata({
   noIndex = false,
 }: PageMetadataInput): Metadata {
   const url = absoluteUrl(path);
-  const fullTitle = path === "/" ? `${siteConfig.name} — ${title}` : `${title} · ${siteConfig.name}`;
+  const fullTitle = path === "/" ? `${siteConfig.name} | ${title}` : `${title} · ${siteConfig.name}`;
 
   return {
     title: fullTitle,
