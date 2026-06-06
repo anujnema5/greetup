@@ -21,7 +21,10 @@ import type {
   UpdateRoomTitleMutationArg,
   UpdateRoomTitleMutationResult,
 } from '../types/api/room-api.types';
-import type { KickCircleParticipantRequest } from '@/features/room/types/call/participant-remove.types';
+import {
+  serializeKickCircleParticipantBody,
+  type KickCircleParticipantRequest,
+} from '@/features/room/types/call/participant-remove.types';
 
 const { MATCHING, ROOM } = API_ENDPOINTS;
 
@@ -131,7 +134,7 @@ export function useKickCircleParticipant() {
         ROOM.kickParticipant(roomId, userId),
         {
           method: 'POST',
-          body: restrict ? JSON.stringify({ restrict: true }) : undefined,
+          body: serializeKickCircleParticipantBody(restrict),
         },
         'Could not remove participant',
       ),

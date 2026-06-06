@@ -56,3 +56,14 @@ export function createIdleRtcSocketContextValue(
     dominantSpeakerSpeakingMs: {},
   };
 }
+
+/** Stub context while the lazy mediasoup chunk is loading. */
+export function createConnectingRtcSocketContextValue(
+  activeRoomId: string,
+): RtcSocketContextValue {
+  return {
+    ...createIdleRtcSocketContextValue(activeRoomId),
+    rtcTokenLoading: true,
+    mediasoupStatus: "connecting_socket",
+  };
+}

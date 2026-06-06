@@ -4,6 +4,7 @@
  * Layout:
  * - Token HTTP: `api/rtc-api.ts`, `types/rtc-api.types.ts`
  * - Socket: `hooks/use-rtc-socket.ts`, `providers/rtc-socket-provider.tsx`
+ *   (mediasoup loads lazily via `providers/rtc-live-session-provider.tsx`)
  * - Room orchestration: `hooks/use-mediasoup-room.ts` composes:
  *   - `hooks/use-mediasoup-room-session.ts` — join, transports, consumers
  *   - `hooks/use-mediasoup-local-media.ts` — mic / camera / screen produce
