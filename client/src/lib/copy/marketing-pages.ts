@@ -182,7 +182,6 @@ export const COMMUNITY_GUIDELINES_CONTENT = {
 
 export const CONTACT_CONTENT = {
   eyebrow: "Contact",
-  title: "We'd love to hear from you",
-  description:
-    "Questions, feedback, partnership ideas, or help with your account. Reach out anytime.",
+  title: "Get in touch",
+  description: "Email us directly, or use the form below.",
 };

@@ -271,7 +271,7 @@ function NavbarInner({
   );
 
   return (
-    <div className="mx-auto max-w-7xl px-4 sm:px-6 py-4 sm:py-5 flex items-center justify-between">
+    <div className="mx-auto max-w-7xl px-5 sm:px-6 py-4 sm:py-5 flex items-center justify-between">
       {lite ? (
         <div>
           <Logo />
@@ -661,7 +661,7 @@ function LandingPageInner() {
       <Navbar isLoggedIn={isLoggedIn} firstName={firstName} />
 
       {/* ══════════════════ HERO ══════════════════ */}
-      <section className="relative lg:min-h-[calc(100dvh-4rem)] flex flex-col justify-center pt-24 sm:pt-28 pb-8 sm:pb-16 lg:pb-24 px-4 sm:px-6">
+      <section className="relative lg:min-h-[calc(100dvh-4rem)] flex flex-col justify-center pt-24 sm:pt-28 pb-8 sm:pb-16 lg:pb-24 px-5 sm:px-6">
         <HeroBackdrop />
 
         <div className="relative mx-auto w-full max-w-7xl flex flex-col gap-5 sm:gap-8 lg:grid lg:grid-cols-2 lg:gap-12 xl:gap-20 lg:items-center">
@@ -698,20 +698,21 @@ function LandingPageInner() {
               ))}
             </motion.div>
 
-            <motion.div variants={fadeUp} className="flex flex-row flex-wrap gap-3 justify-center lg:justify-start">
+            <motion.div variants={fadeUp} className="flex flex-row flex-wrap gap-2 sm:gap-3 justify-center lg:justify-start">
               <Button
-                size="lg"
-                className="rounded-xl bg-[oklch(88%_0.11_105)] text-[oklch(12%_0.012_110)] hover:brightness-110 font-semibold px-6 h-11 w-auto shadow-[0_8px_28px_-8px_oklch(88%_0.11_105/0.55)]"
+                size="sm"
+                className="rounded-full bg-[oklch(88%_0.11_105)] text-[oklch(12%_0.012_110)] hover:brightness-110 font-medium sm:font-semibold px-5 sm:px-6 has-[>svg]:px-5 sm:has-[>svg]:px-6 h-8 sm:h-10 lg:h-11 text-xs sm:text-sm w-auto shadow-[0_4px_18px_-6px_oklch(88%_0.11_105/0.45)] sm:shadow-[0_8px_28px_-8px_oklch(88%_0.11_105/0.55)]"
                 asChild
               >
                 <Link href={isLoggedIn ? "/home" : "/register"}>
-                  {isLoggedIn ? `Welcome${firstName ? `, ${firstName}` : ""}` : "Find your people"} <ArrowRight className="size-4" />
+                  {isLoggedIn ? `Welcome${firstName ? `, ${firstName}` : ""}` : "Find your people"}{" "}
+                  <ArrowRight className="size-3 sm:size-4" />
                 </Link>
               </Button>
               <Button
-                size="lg"
+                size="sm"
                 variant="outline"
-                className="rounded-xl border-white/10 bg-white/3 text-white/78 hover:bg-white/6 hover:text-white px-6 h-11 w-auto"
+                className="rounded-full border-white/10 bg-white/3 text-white/78 hover:bg-white/6 hover:text-white px-4 sm:px-6 h-8 sm:h-10 lg:h-11 text-xs sm:text-sm font-medium sm:font-semibold w-auto"
                 asChild
               >
                 <Link href="#how-it-works">How it works</Link>
@@ -737,7 +738,7 @@ function LandingPageInner() {
       </section>
 
       {/* ══════════════════ BETA HIGHLIGHTS ══════════════════ */}
-      <RevealSection className="mx-4 sm:mx-6 lg:mx-auto max-w-7xl pt-2 sm:pt-0">
+      <RevealSection className="mx-5 sm:mx-6 lg:mx-auto max-w-7xl pt-2 sm:pt-0">
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-px bg-white/5 rounded-3xl overflow-hidden border border-white/8">
           {BETA_HIGHLIGHTS.map((s) => (
             <motion.div key={s.label} variants={cardIn} className="bg-[oklch(15%_0.015_110)] px-4 py-5 sm:px-8 sm:py-7 flex flex-col items-center gap-1">
@@ -749,7 +750,7 @@ function LandingPageInner() {
       </RevealSection>
 
       {/* ══════════════════ FEATURES ══════════════════ */}
-      <section className="relative py-12 sm:py-20 lg:py-32 px-4 sm:px-6" id="features">
+      <section className="relative py-12 sm:py-20 lg:py-32 px-5 sm:px-6" id="features">
         <RevealSection className="mx-auto max-w-7xl">
           <motion.div variants={fadeUp} className="text-center mb-8 sm:mb-12 lg:mb-16">
             <Badge variant="outline" className="border-[oklch(88%_0.11_105/0.3)] bg-[oklch(88%_0.11_105/0.08)] text-[oklch(88%_0.11_105/0.8)] rounded-full mb-3 sm:mb-5 tracking-widest uppercase text-[10px]">
@@ -781,7 +782,7 @@ function LandingPageInner() {
       </section>
 
       {/* ══════════════════ MATCHING CONTROL ══════════════════ */}
-      <section className="relative py-12 sm:py-20 lg:py-24 px-4 sm:px-6 bg-[oklch(13%_0.013_110)]">
+      <section className="relative py-12 sm:py-20 lg:py-24 px-5 sm:px-6 bg-[oklch(13%_0.013_110)]">
         <RevealSection className="mx-auto max-w-7xl">
           <motion.div variants={fadeUp} className="text-center mb-8 sm:mb-12 lg:mb-14">
             <Badge variant="outline" className="border-[oklch(88%_0.11_105/0.3)] bg-[oklch(88%_0.11_105/0.08)] text-[oklch(88%_0.11_105/0.8)] rounded-full mb-3 sm:mb-5 tracking-widest uppercase text-[10px]">
@@ -815,7 +816,7 @@ function LandingPageInner() {
       </section>
 
       {/* ══════════════════ SAFETY BANNER ══════════════════ */}
-      <RevealSection className="mx-4 sm:mx-6 lg:mx-auto max-w-7xl py-2 sm:py-4">
+      <RevealSection className="mx-5 sm:mx-6 lg:mx-auto max-w-7xl py-2 sm:py-4">
         <motion.div
           variants={fadeIn}
           className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 sm:gap-6 rounded-2xl border border-white/8 bg-[oklch(16%_0.013_110)] px-4 sm:px-7 py-4 sm:py-5"
@@ -847,7 +848,7 @@ function LandingPageInner() {
       </RevealSection>
 
       {/* ══════════════════ CONNECT INSTANTLY (Chat / Video / Voice) ══════════════════ */}
-      <section className="relative py-12 sm:py-20 lg:py-28 px-4 sm:px-6 bg-[oklch(13%_0.013_110)] overflow-hidden">
+      <section className="relative py-12 sm:py-20 lg:py-28 px-5 sm:px-6 bg-[oklch(13%_0.013_110)] overflow-hidden">
         <div className="pointer-events-none absolute inset-0 flex items-center justify-end pr-0">
           <div className="w-[400px] h-[400px] rounded-full bg-[oklch(88%_0.11_105/0.05)] blur-[48px] md:blur-[100px]" />
         </div>
@@ -945,7 +946,7 @@ function LandingPageInner() {
       </section>
 
       {/* ══════════════════ CIRCLES IN ACTION ══════════════════ */}
-      <section className="relative py-12 sm:py-20 lg:py-28 px-4 sm:px-6 overflow-hidden">
+      <section className="relative py-12 sm:py-20 lg:py-28 px-5 sm:px-6 overflow-hidden">
         <div className="pointer-events-none absolute inset-0 flex items-center justify-start pl-0">
           <div className="w-[400px] h-[400px] rounded-full bg-[oklch(65%_0.15_280/0.05)] blur-[48px] md:blur-[100px]" />
         </div>
@@ -1047,7 +1048,7 @@ function LandingPageInner() {
       </section>
 
       {/* ══════════════════ LIVE STREAMS ══════════════════ */}
-      <section className="relative py-12 sm:py-20 lg:py-24 px-4 sm:px-6 bg-[oklch(13%_0.013_110)]">
+      <section className="relative py-12 sm:py-20 lg:py-24 px-5 sm:px-6 bg-[oklch(13%_0.013_110)]">
         <RevealSection className="mx-auto max-w-7xl">
           <motion.div variants={fadeUp} className="text-center mb-8 sm:mb-12">
             <Badge variant="outline" className="border-[oklch(88%_0.11_105/0.3)] bg-[oklch(88%_0.11_105/0.08)] text-[oklch(88%_0.11_105/0.85)] rounded-full mb-3 sm:mb-5 tracking-widest uppercase text-[10px]">
@@ -1124,7 +1125,7 @@ function LandingPageInner() {
       </section>
 
       {/* ══════════════════ HOW IT WORKS ══════════════════ */}
-      <section className="relative py-12 sm:py-20 lg:py-24 px-4 sm:px-6 bg-[oklch(14%_0.013_110)]" id="how-it-works">
+      <section className="relative py-12 sm:py-20 lg:py-24 px-5 sm:px-6 bg-[oklch(14%_0.013_110)]" id="how-it-works">
         <RevealSection className="mx-auto max-w-5xl">
           <motion.div variants={fadeUp} className="text-center mb-8 sm:mb-12 lg:mb-16">
             <Badge variant="outline" className="border-[oklch(88%_0.11_105/0.3)] bg-[oklch(88%_0.11_105/0.08)] text-[oklch(88%_0.11_105/0.8)] rounded-full mb-3 sm:mb-5 tracking-widest uppercase text-[10px]">
@@ -1154,7 +1155,7 @@ function LandingPageInner() {
       </section>
 
       {/* ══════════════════ TRUST ══════════════════ */}
-      <div className="py-8 sm:py-12 px-4 sm:px-6 border-y border-white/5 bg-[oklch(14%_0.013_110)]">
+      <div className="py-8 sm:py-12 px-5 sm:px-6 border-y border-white/5 bg-[oklch(14%_0.013_110)]">
         <RevealSection className="mx-auto max-w-4xl flex flex-wrap items-center justify-center gap-x-8 sm:gap-x-12 gap-y-4 sm:gap-y-5">
           {TRUST.map(({ icon: Icon, label }) => (
             <motion.div key={label} variants={fadeIn} className="flex items-center gap-2 text-sm font-medium text-white/30">
@@ -1166,7 +1167,7 @@ function LandingPageInner() {
       </div>
 
       {/* ══════════════════ FINAL CTA ══════════════════ */}
-      <section className="relative py-14 sm:py-24 lg:py-36 px-4 sm:px-6 overflow-hidden" id="join">
+      <section className="relative py-14 sm:py-24 lg:py-36 px-5 sm:px-6 overflow-hidden" id="join">
         {lite ? (
           <div className="absolute inset-0 flex items-center justify-center pointer-events-none" aria-hidden>
             <div className="w-[min(100vw,700px)] h-[min(100vw,700px)] rounded-full bg-[oklch(88%_0.11_105/0.07)] blur-[64px] md:blur-[130px]" />
@@ -1217,7 +1218,7 @@ function LandingPageInner() {
       </section>
 
       {/* ══════════════════ FOOTER ══════════════════ */}
-      <footer className="border-t border-white/5 bg-[oklch(12%_0.01_110)] px-4 sm:px-6 py-8 sm:py-12">
+      <footer className="border-t border-white/5 bg-[oklch(12%_0.01_110)] px-5 sm:px-6 py-8 sm:py-12">
         <RevealSection className="mx-auto max-w-7xl flex flex-col sm:flex-row items-center justify-between gap-6">
           <motion.div variants={fadeIn}><Logo /></motion.div>
           <motion.div variants={stagger} className="flex flex-wrap justify-center gap-x-1 gap-y-1">
