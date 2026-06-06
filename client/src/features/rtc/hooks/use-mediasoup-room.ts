@@ -288,8 +288,15 @@ export function useMediasoupRoom(options: UseMediasoupRoomArgs): UseMediasoupRoo
     toggleCamera,
   });
 
+  /** Avoid wiping pre-join intent while RTC is still connecting (`enabled` starts false). */
+  const mediasoupWasEnabledRef = useRef(false);
   useEffect(() => {
-    if (options.enabled) return;
+    if (options.enabled) {
+      mediasoupWasEnabledRef.current = true;
+      return;
+    }
+    if (!mediasoupWasEnabledRef.current) return;
+    mediasoupWasEnabledRef.current = false;
     clearLobbyMediaIntent();
     clearLobbyMediaHandoff();
   }, [options.enabled]);

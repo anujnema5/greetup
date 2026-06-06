@@ -2,6 +2,7 @@
 
 import { OnCircleOpenedForJoin } from "./on-circle-opened-for-join";
 import { OnCircleTitleUpdated } from "./on-circle-title-updated";
+import { OnConnectionCallEnded } from "./on-connection-call-ended";
 import { OnHostEndedCircle } from "./on-host-ended-circle";
 import { OnParticipantRemovedFromCircle } from "./on-participant-removed-from-circle";
 import { OnPartnerDisconnected } from "./on-partner-disconnected";
@@ -20,6 +21,7 @@ export function RoomSocketBridge() {
       <OnCircleOpenedForJoin />
       <OnHostEndedCircle />
       <OnParticipantRemovedFromCircle />
+      <OnConnectionCallEnded />
       <OnPartnerDisconnected />
       <OnRoomActivityToasts />
     </>
