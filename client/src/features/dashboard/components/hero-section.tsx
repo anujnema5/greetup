@@ -3,7 +3,7 @@
 import { memo } from "react";
 import { Video, Zap, X } from "lucide-react";
 
-import { DASHBOARD_HERO } from "@/lib/copy/user-messages";
+import { DASHBOARD_HERO, EARLY_RELEASE } from "@/lib/copy/user-messages";
 import { TOUR_TARGETS } from "@/features/tour-guide";
 import { CircleOrb, useStartCircleModal } from "@/features/circles";
 import { MatchOrb } from "./match-orb";
@@ -106,33 +106,39 @@ function HeroSectionInner({
         <p className="relative z-10 -mt-2 text-xs text-destructive text-center max-w-sm">{error}</p>
       )}
 
-      <div className="relative z-10 flex flex-wrap items-center justify-center gap-3 text-xs text-muted-foreground md:gap-5">
-        <span className="flex items-center gap-1.5">
-          <Video size={12} className="text-primary" />
-          <span>
-            {insightsLoading ? (
-              <span className="inline-block h-3 w-4 animate-pulse rounded bg-muted" />
-            ) : (
-              <strong className="text-foreground">{heroStats.matchCount}</strong>
-            )}{" "}
-            {DASHBOARD_HERO.stats.matches(heroStats.matchCount)}
+      <div className="relative z-10 flex flex-col items-center gap-2">
+        <div className="flex flex-wrap items-center justify-center gap-3 text-xs text-muted-foreground md:gap-5">
+          <span className="flex items-center gap-1.5">
+            <Video size={12} className="text-primary" />
+            <span>
+              {insightsLoading ? (
+                <span className="inline-block h-3 w-4 animate-pulse rounded bg-muted" />
+              ) : (
+                <strong className="text-foreground">{heroStats.matchCount}</strong>
+              )}{" "}
+              {DASHBOARD_HERO.stats.matches(heroStats.matchCount)}
+            </span>
           </span>
-        </span>
-        <span className="hidden h-3 w-px bg-border sm:block" />
-        <span className="flex items-center gap-1.5">
-          <Zap size={12} className="text-primary" />
-          <span>
-            Profile{" "}
-            {insightsLoading ? (
-              <span className="inline-block h-3 w-6 animate-pulse rounded bg-muted" />
-            ) : heroStats.profileCompletion != null ? (
-              <strong className="text-foreground">{heroStats.profileCompletion}%</strong>
-            ) : (
-              <strong className="text-foreground">—</strong>
-            )}{" "}
-            {DASHBOARD_HERO.stats.profileComplete}
+          <span className="hidden h-3 w-px bg-border sm:block" />
+          <span className="flex items-center gap-1.5">
+            <Zap size={12} className="text-primary" />
+            <span>
+              Profile{" "}
+              {insightsLoading ? (
+                <span className="inline-block h-3 w-6 animate-pulse rounded bg-muted" />
+              ) : heroStats.profileCompletion != null ? (
+                <strong className="text-foreground">{heroStats.profileCompletion}%</strong>
+              ) : (
+                <strong className="text-foreground">-</strong>
+              )}{" "}
+              {DASHBOARD_HERO.stats.profileComplete}
+            </span>
           </span>
-        </span>
+        </div>
+        <p className="text-[11px] text-muted-foreground/75 text-center max-w-md leading-relaxed">
+          {EARLY_RELEASE.noticeShort}
+        </p>
+        <p className="text-[11px] text-muted-foreground/60">{DASHBOARD_HERO.aiCuesComingSoon}</p>
       </div>
     </div>
   );
