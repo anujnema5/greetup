@@ -50,7 +50,7 @@ export function PublicProfileActions({
     isStartingCall,
   } = usePublicProfileInteractions({
     peer,
-    messagingEnabled: isConnected,
+    callsEnabled: isConnected,
   });
 
   const { block, isBlocking } = useBlockUserAction(peer);
@@ -109,6 +109,8 @@ export function PublicProfileActions({
       <div className={cn("w-full", className)}>
         <PublicProfileConnectPanel
           connectionHandlers={connectionHandlers}
+          onMessage={() => void openConversation()}
+          isOpeningChat={isOpeningChat}
           overflow={overflowMenu}
         />
         {dialogLayer}
@@ -121,6 +123,8 @@ export function PublicProfileActions({
       <div className={cn("w-full", className)}>
         <PublicProfilePendingIncomingPanel
           connectionHandlers={connectionHandlers}
+          onMessage={() => void openConversation()}
+          isOpeningChat={isOpeningChat}
           overflow={overflowMenu}
         />
         {dialogLayer}
@@ -135,6 +139,8 @@ export function PublicProfileActions({
           connectionHandlers={connectionHandlers}
           overflow={overflowMenu}
           onWithdrawClick={() => patchDialogs({ withdraw: true })}
+          onMessage={() => void openConversation()}
+          isOpeningChat={isOpeningChat}
         />
         {dialogLayer}
       </div>

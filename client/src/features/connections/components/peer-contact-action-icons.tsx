@@ -7,7 +7,10 @@ import type { ConnectionCallMode } from "@/features/connection-call/types/connec
 import { cn } from "@/lib/utils";
 
 type PeerContactActionIconsProps = {
+  /** Disables all actions (message, call, video). */
   disabled?: boolean;
+  /** Disables audio/video only; message stays available. */
+  callsDisabled?: boolean;
   isCalling?: boolean;
   isMessaging?: boolean;
   onMessage: () => void;
@@ -22,6 +25,7 @@ const iconButtonClass =
 
 export function PeerContactActionIcons({
   disabled = false,
+  callsDisabled = false,
   isCalling = false,
   isMessaging = false,
   onMessage,
@@ -30,14 +34,16 @@ export function PeerContactActionIcons({
   size = "sm",
 }: PeerContactActionIconsProps) {
   const isBusy = isCalling || isMessaging;
-  const canInteract = !disabled && !isBusy;
+  const canMessage = !disabled && !isBusy;
+  const canCall = !disabled && !callsDisabled && !isBusy;
+  const callsBlockedTitle = callsDisabled ? "Connect first to call" : undefined;
   const buttonSize = size === "md" ? "h-7 w-7" : "h-6 w-6";
   const iconSize = size === "md" ? "h-3.5 w-3.5" : "h-3 w-3";
 
-  const guard = (event: MouseEvent, action: () => void) => {
+  const guard = (event: MouseEvent, allowed: boolean, action: () => void) => {
     event.preventDefault();
     event.stopPropagation();
-    if (!canInteract) return;
+    if (!allowed) return;
     action();
   };
 
@@ -45,8 +51,8 @@ export function PeerContactActionIcons({
     <div className={cn("flex shrink-0 items-center gap-0.5", className)} onClick={(e) => e.stopPropagation()}>
       <button
         type="button"
-        disabled={!canInteract}
-        onClick={(event) => guard(event, onMessage)}
+        disabled={!canMessage}
+        onClick={(event) => guard(event, canMessage, onMessage)}
         className={cn(iconButtonClass, buttonSize)}
         aria-label="Message"
         title="Message"
@@ -59,11 +65,11 @@ export function PeerContactActionIcons({
       </button>
       <button
         type="button"
-        disabled={!canInteract}
-        onClick={(event) => guard(event, () => onCall("audio"))}
+        disabled={!canCall}
+        onClick={(event) => guard(event, canCall, () => onCall("audio"))}
         className={cn(iconButtonClass, buttonSize)}
         aria-label="Audio call"
-        title="Call"
+        title={callsBlockedTitle ?? "Call"}
       >
         {isCalling ? (
           <Loader2 className={cn(iconSize, "animate-spin text-primary/80")} />
@@ -73,11 +79,11 @@ export function PeerContactActionIcons({
       </button>
       <button
         type="button"
-        disabled={!canInteract}
-        onClick={(event) => guard(event, () => onCall("video"))}
+        disabled={!canCall}
+        onClick={(event) => guard(event, canCall, () => onCall("video"))}
         className={cn(iconButtonClass, buttonSize)}
         aria-label="Video call"
-        title="Video"
+        title={callsBlockedTitle ?? "Video"}
       >
         {isCalling ? (
           <Loader2 className={cn(iconSize, "animate-spin text-primary/80")} />

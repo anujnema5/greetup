@@ -32,24 +32,21 @@ export function RecentMatchCallActions({
   variant = "icons",
 }: RecentMatchCallActionsProps) {
   const isBusy = isCalling || isMessaging;
-  const canInteract = match.isConnected && !disabled && !isBusy;
-  const blockedTitle = match.isConnected
-    ? undefined
-    : onMessage
-      ? "Connect first to message or call"
-      : "Connect first to call";
+  const canMessage = !disabled && !isBusy;
+  const canCall = match.isConnected && !disabled && !isBusy;
+  const callsBlockedTitle = match.isConnected ? undefined : "Connect first to call";
 
   const startCall = (event: MouseEvent, mode: ConnectionCallMode) => {
     event.preventDefault();
     event.stopPropagation();
-    if (!canInteract) return;
+    if (!canCall) return;
     onCall(match, mode);
   };
 
   const startMessage = (event: MouseEvent) => {
     event.preventDefault();
     event.stopPropagation();
-    if (!canInteract || !onMessage) return;
+    if (!canMessage || !onMessage) return;
     onMessage(match);
   };
 
@@ -59,7 +56,7 @@ export function RecentMatchCallActions({
         type="button"
         variant="outline"
         size={variant === "labeled" ? "sm" : "icon"}
-        disabled={!canInteract}
+        disabled={!canMessage}
         onClick={startMessage}
         className={
           variant === "labeled"
@@ -67,7 +64,7 @@ export function RecentMatchCallActions({
             : "h-8 w-8 cursor-pointer rounded-lg disabled:cursor-not-allowed"
         }
         aria-label={variant === "icons" ? "Message" : undefined}
-        title={blockedTitle ?? "Message"}
+        title="Message"
       >
         {isMessaging ? (
           <Loader2
@@ -91,10 +88,10 @@ export function RecentMatchCallActions({
           type="button"
           variant="outline"
           size="sm"
-          disabled={!canInteract}
+          disabled={!canCall}
           onClick={(event) => startCall(event, "audio")}
           className="h-8 cursor-pointer gap-1 rounded-lg px-2.5 text-[12px] font-medium disabled:cursor-not-allowed"
-          title={blockedTitle ?? "Audio call"}
+          title={callsBlockedTitle ?? "Audio call"}
         >
           {isCalling ? (
             <Loader2 className="h-3.5 w-3.5 shrink-0 animate-spin" />
@@ -107,10 +104,10 @@ export function RecentMatchCallActions({
           type="button"
           variant="outline"
           size="sm"
-          disabled={!canInteract}
+          disabled={!canCall}
           onClick={(event) => startCall(event, "video")}
           className="h-8 cursor-pointer gap-1 rounded-lg px-2.5 text-[12px] font-medium disabled:cursor-not-allowed"
-          title={blockedTitle ?? "Video call"}
+          title={callsBlockedTitle ?? "Video call"}
         >
           {isCalling ? (
             <Loader2 className="h-3.5 w-3.5 shrink-0 animate-spin" />
@@ -130,11 +127,11 @@ export function RecentMatchCallActions({
         type="button"
         variant="outline"
         size="icon"
-        disabled={!canInteract}
+        disabled={!canCall}
         onClick={(event) => startCall(event, "audio")}
         className="h-8 w-8 cursor-pointer rounded-lg disabled:cursor-not-allowed"
         aria-label="Audio call"
-        title={blockedTitle ?? "Audio call"}
+        title={callsBlockedTitle ?? "Audio call"}
       >
         {isCalling ? (
           <Loader2 className="h-3.5 w-3.5 animate-spin" />
@@ -146,11 +143,11 @@ export function RecentMatchCallActions({
         type="button"
         variant="outline"
         size="icon"
-        disabled={!canInteract}
+        disabled={!canCall}
         onClick={(event) => startCall(event, "video")}
         className="h-8 w-8 cursor-pointer rounded-lg disabled:cursor-not-allowed"
         aria-label="Video call"
-        title={blockedTitle ?? "Video call"}
+        title={callsBlockedTitle ?? "Video call"}
       >
         {isCalling ? (
           <Loader2 className="h-3.5 w-3.5 animate-spin" />

@@ -8,15 +8,20 @@ import type { PublicProfileConnectionHandlers } from "@/features/user-profile/ty
 
 import { PublicProfileOverflowMenu, type PublicProfileOverflowMenuProps } from "./overflow-menu";
 import { PublicProfileStatusBanner } from "./status-banner";
+import { PublicProfileMessageButton } from "./message-button";
 
 type PublicProfilePendingIncomingPanelProps = {
   connectionHandlers: PublicProfileConnectionHandlers;
+  onMessage: () => void;
+  isOpeningChat?: boolean;
   overflow: PublicProfileOverflowMenuProps;
   className?: string;
 };
 
 export function PublicProfilePendingIncomingPanel({
   connectionHandlers,
+  onMessage,
+  isOpeningChat = false,
   overflow,
   className,
 }: PublicProfilePendingIncomingPanelProps) {
@@ -51,6 +56,11 @@ export function PublicProfilePendingIncomingPanel({
           {connectionHandlers.isSubmittingAccept ? "Accepting…" : "Accept"}
         </Button>
       </div>
+      <PublicProfileMessageButton
+        onClick={onMessage}
+        isOpeningChat={isOpeningChat}
+        className="w-full"
+      />
     </div>
   );
 }

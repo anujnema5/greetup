@@ -24,8 +24,6 @@ import { RecentMatchRow } from "./recent-match-row";
 type RecentMatchesDialogProps = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  /** When true, only shows matches where you tapped Connect. */
-  connectedOnly?: boolean;
 };
 
 function MatchRowSkeleton() {
@@ -43,7 +41,6 @@ function MatchRowSkeleton() {
 export function RecentMatchesDialog({
   open,
   onOpenChange,
-  connectedOnly = false,
 }: RecentMatchesDialogProps) {
   const { data, isLoading, isFetching } = useProfileInsights(
     { recentLimit: PROFILE_INSIGHTS_RECENT_MATCHES_LIMIT },
@@ -59,14 +56,11 @@ export function RecentMatchesDialog({
     isOpeningMessage,
   } = useProfileRecentMatchCall();
 
-  const matches = useMemo(() => {
-    const rows = data?.recentMatches ?? [];
-    return connectedOnly ? rows.filter((match) => match.isConnected) : rows;
-  }, [connectedOnly, data?.recentMatches]);
+  const matches = useMemo(() => data?.recentMatches ?? [], [data?.recentMatches]);
 
   const scrollRootRef = useRef<HTMLDivElement>(null);
 
-  const resetKey = open ? `${connectedOnly ? "connected" : "all"}-${matches.length}` : "closed";
+  const resetKey = open ? `all-${matches.length}` : "closed";
 
   const { visibleCount, hasMore, isLoadingMore, loadMoreSentinelRef } =
     useRecentMatchesScrollPagination({

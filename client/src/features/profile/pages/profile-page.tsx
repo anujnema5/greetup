@@ -30,7 +30,7 @@ import {
 import { getProfileImageUrl } from "@/lib/ui/profile-image";
 
 import { ProfileConnectionsSection } from "@/features/connections";
-import { useProfileInsights } from "../api/profile-insights.queries";
+import { useProfileInsights, PROFILE_INSIGHTS_RECENT_MATCHES_LIMIT } from "../api/profile-insights.queries";
 import { ProfileCompletionCard } from "../components/profile-completion-card";
 import { ProfileEditModals } from "../components/profile-edit-modals";
 import { ProfilePhotoDialog } from "../components/profile-photo-dialog";
@@ -48,7 +48,7 @@ import { labelsFromIds, professionLabel, apiErrorMessage } from "../utils/profil
 
 export function ProfilePage() {
   const profileQuery = useMyProfile();
-  const insightsQuery = useProfileInsights();
+  const insightsQuery = useProfileInsights({ recentLimit: PROFILE_INSIGHTS_RECENT_MATCHES_LIMIT });
   const stepsQuery = useProfileSetupSteps();
   const { mutateAsync: saveProfileSetup, isPending: isSaving } = useSaveProfileSetup();
 

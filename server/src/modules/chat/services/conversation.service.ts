@@ -68,8 +68,8 @@ export const conversationService = {
 
   async getOrCreateConnectionConversation(userA: string, userB: string) {
     await assertMessagingAllowed(userA, userB);
-    const conv = await conversationRepository.findOrCreateConnectionConversation(userA, userB);
-    if (!conv) throw new Error('NOT_CONNECTIONS');
+    const conv = await conversationRepository.findOrCreatePeerConversation(userA, userB);
+    if (!conv) throw new Error('NOT_FOUND');
     await conversationRepository.rejoin(conv.id, userA);
     const refreshed = await conversationRepository.findById(conv.id);
     if (!refreshed) throw new Error('NOT_FOUND');
