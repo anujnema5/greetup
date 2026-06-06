@@ -5,6 +5,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { API_ENDPOINTS } from '@/lib/api';
 import { API_BASE_URL } from '@/shared/constants/environments';
 
+import { invalidateCirclesCaches } from '@/features/circles/lib/invalidate-circles-cache';
 import {
   invalidateRoomAfterOpenMeeting,
   invalidateRoomAfterRtcSessionChange,
@@ -135,7 +136,10 @@ export function useKickCircleParticipant() {
         'Could not remove participant',
       ),
     onSuccess: (_result, { roomId }) => {
-      invalidateRoomAfterRtcSessionChange(qc, roomId);
+      // Host stays in the same RTC session — do not refetch the token (new JWT reconnects
+      // rtc-service and tears down mediasoup, turning off mic/camera).
+      invalidateRoomAndPeersCallStatus(qc, roomId);
+      invalidateCirclesCaches(qc);
     },
   });
 }
