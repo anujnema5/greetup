@@ -36,7 +36,7 @@ const STORY: StoryStep[] = [
       tag: "Backend · Go",
       letter: "A",
       avatar: "oklch(52% 0.12 295)",
-      note: "Hey — saw you’re on Node too",
+      note: "Hey — saw you're on Node too",
     },
   },
   {
@@ -123,27 +123,27 @@ function PersonCard({
   return (
     <div
       className={cn(
-        "flex flex-1 flex-col items-center gap-2 rounded-xl border px-3 py-3.5 text-center transition-colors duration-300",
+        "flex flex-1 flex-col items-center gap-2.5 rounded-xl border px-3 py-4 text-center transition-colors duration-300",
         highlight
-          ? "border-[oklch(88%_0.11_105/0.22)] bg-[oklch(88%_0.11_105/0.05)]"
-          : "border-white/7 bg-white/2",
+          ? "border-[oklch(88%_0.11_105/0.24)] bg-[oklch(88%_0.11_105/0.06)]"
+          : "border-white/8 bg-[oklch(12%_0.012_110/0.5)]",
       )}
     >
       <div
-        className="flex size-11 items-center justify-center rounded-full text-sm font-medium text-white/90"
+        className="flex size-12 items-center justify-center rounded-full text-sm font-medium text-white/90 ring-2 ring-white/6"
         style={{ backgroundColor: person.avatar }}
       >
         {person.letter}
       </div>
       <div className="min-w-0 w-full">
-        <p className="truncate text-sm font-medium text-white/90">{person.name}</p>
-        <p className="mt-0.5 truncate text-[11px] text-white/42">{person.tag}</p>
+        <p className="truncate text-sm font-medium text-white/92">{person.name}</p>
+        <p className="mt-0.5 truncate text-[11px] text-white/44">{person.tag}</p>
       </div>
       {highlight && !lite && (
         <motion.span
-          initial={{ opacity: 0, scale: 0.9 }}
-          animate={{ opacity: 1, scale: 1 }}
-          className="text-[10px] font-medium text-[oklch(88%_0.11_105/0.85)]"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          className="rounded-full bg-[oklch(88%_0.11_105/0.12)] px-2 py-0.5 text-[10px] font-medium text-[oklch(88%_0.11_105/0.9)]"
         >
           matched
         </motion.span>
@@ -154,33 +154,30 @@ function PersonCard({
 
 function EmptySlot({ scanning, lite }: { scanning: boolean; lite: boolean }) {
   return (
-    <div className="relative flex flex-1 flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-white/10 bg-white/2 px-3 py-3.5">
+    <div className="relative flex flex-1 flex-col items-center justify-center gap-2.5 rounded-xl border border-dashed border-white/10 bg-[oklch(12%_0.012_110/0.35)] px-3 py-4">
       {scanning && !lite && (
         <motion.div
-          className="pointer-events-none absolute inset-2 rounded-lg border border-[oklch(88%_0.11_105/0.2)]"
-          animate={{ opacity: [0.35, 0, 0.35] }}
+          className="pointer-events-none absolute inset-2 rounded-lg border border-[oklch(88%_0.11_105/0.18)]"
+          animate={{ opacity: [0.4, 0, 0.4] }}
           transition={{ duration: 1.8, repeat: Infinity, ease: "easeOut" }}
         />
       )}
-      <div className="size-11 rounded-full bg-white/6" />
-      <p className="text-[11px] text-white/32">{scanning ? "Searching…" : "—"}</p>
+      <div className="size-12 rounded-full bg-white/6 ring-2 ring-white/4" />
+      <p className="text-[11px] text-white/34">{scanning ? "Searching…" : "—"}</p>
     </div>
   );
 }
 
 function Connector({ active, lite }: { active: boolean; lite: boolean }) {
   return (
-    <div className="flex w-8 shrink-0 flex-col items-center justify-center self-center">
-      <div className="h-px w-full bg-white/8" />
+    <div className="flex w-7 shrink-0 items-center self-center">
+      <div className="h-px flex-1 bg-white/8" />
       <motion.div
-        className={cn(
-          "my-1 size-1.5 rounded-full",
-          active ? "bg-[oklch(88%_0.11_105)]" : "bg-white/15",
-        )}
-        animate={active && !lite ? { scale: [1, 1.25, 1] } : undefined}
+        className={cn("mx-1 size-1.5 shrink-0 rounded-full", active ? "bg-[oklch(88%_0.11_105)]" : "bg-white/15")}
+        animate={active && !lite ? { scale: [1, 1.3, 1] } : undefined}
         transition={{ duration: 1.4, repeat: Infinity, ease: "easeInOut" }}
       />
-      <div className="h-px w-full bg-white/8" />
+      <div className="h-px flex-1 bg-white/8" />
     </div>
   );
 }
@@ -195,7 +192,7 @@ export function HeroMatchDemo({ lite }: { lite: boolean }) {
   const connectorActive = linked || phase === "meet" || phase === "link";
 
   const statusLabel = linked
-    ? "Connected"
+    ? null
     : switching
       ? beat.switchLabel
       : scanning
@@ -205,10 +202,10 @@ export function HeroMatchDemo({ lite }: { lite: boolean }) {
           : null;
 
   return (
-    <div className="w-full overflow-hidden rounded-2xl border border-white/8 bg-[oklch(14.5%_0.012_110)] shadow-[0_16px_48px_-24px_rgba(0,0,0,0.7)]">
+    <div className="w-full overflow-hidden rounded-xl border border-white/7 bg-[oklch(14.5%_0.012_110)]">
       <div className="flex items-start justify-between gap-3 border-b border-white/6 px-4 py-4 sm:px-5">
         <div className="min-w-0">
-          <p className="text-[11px] text-white/38">{beat.filter}</p>
+          <p className="text-[11px] text-white/36">{beat.filter}</p>
           <AnimatePresence mode="wait">
             <motion.h3
               key={`${step}-${beat.preference}`}
@@ -216,101 +213,119 @@ export function HeroMatchDemo({ lite }: { lite: boolean }) {
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -4 }}
               transition={{ duration: 0.25, ease: EASE }}
-              className="mt-1 text-lg font-semibold leading-tight text-white sm:text-xl"
+              className="mt-1 text-lg font-semibold leading-tight text-white sm:text-[1.35rem]"
             >
               {beat.preference}
             </motion.h3>
           </AnimatePresence>
         </div>
-        {linked && (
-          <span className="mt-0.5 flex shrink-0 items-center gap-1.5 text-[11px] text-[oklch(88%_0.11_105/0.9)]">
+        <span
+          className={cn(
+            "mt-0.5 flex shrink-0 items-center gap-1.5 rounded-full px-2 py-0.5 text-[10px] font-medium",
+            linked
+              ? "bg-[oklch(88%_0.11_105/0.1)] text-[oklch(88%_0.11_105/0.95)]"
+              : "bg-white/4 text-white/38",
+          )}
+        >
+          {linked && (
             <span className="relative flex size-1.5">
               {!lite && (
                 <span className="absolute inline-flex size-full animate-ping rounded-full bg-[oklch(88%_0.11_105/0.45)]" />
               )}
               <span className="relative inline-flex size-1.5 rounded-full bg-[oklch(88%_0.11_105)]" />
             </span>
-            Live
-          </span>
-        )}
+          )}
+          {linked ? "Live" : "Searching"}
+        </span>
       </div>
 
       <div className="px-4 py-4 sm:px-5 sm:py-5">
-        <div className="flex items-stretch gap-2">
-          <AnimatePresence mode="wait">
-            <motion.div key={`you-${step}`} className="flex flex-1" initial={false} animate={{ opacity: 1 }}>
-              <PersonCard person={beat.you} lite={lite} />
-            </motion.div>
-          </AnimatePresence>
-
-          <Connector active={connectorActive} lite={lite} />
-
-          <AnimatePresence mode="wait">
-            {peerVisible ? (
-              <motion.div
-                key={`${step}-${beat.peer.name}`}
-                className="flex flex-1"
-                initial={lite ? false : { opacity: 0, x: 8 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: 8 }}
-                transition={{ duration: 0.3, ease: EASE }}
-              >
-                <PersonCard person={beat.peer} highlight={linked} lite={lite} />
+        <div className="rounded-xl bg-[oklch(12%_0.012_110/0.55)] p-2.5 ring-1 ring-white/4 ring-inset">
+          <div className="flex items-stretch gap-1.5">
+            <AnimatePresence mode="wait">
+              <motion.div key={`you-${step}`} className="flex flex-1" initial={false} animate={{ opacity: 1 }}>
+                <PersonCard person={beat.you} lite={lite} />
               </motion.div>
-            ) : (
-              <motion.div key="slot" className="flex flex-1">
-                <EmptySlot scanning={scanning} lite={lite} />
-              </motion.div>
-            )}
-          </AnimatePresence>
+            </AnimatePresence>
+
+            <Connector active={connectorActive} lite={lite} />
+
+            <AnimatePresence mode="wait">
+              {peerVisible ? (
+                <motion.div
+                  key={`${step}-${beat.peer.name}`}
+                  className="flex flex-1"
+                  initial={lite ? false : { opacity: 0, x: 10 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: 10 }}
+                  transition={{ duration: 0.32, ease: EASE }}
+                >
+                  <PersonCard person={beat.peer} highlight={linked} lite={lite} />
+                </motion.div>
+              ) : (
+                <motion.div key="slot" className="flex flex-1">
+                  <EmptySlot scanning={scanning} lite={lite} />
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
         </div>
 
         <AnimatePresence mode="wait">
           {linked && beat.peer.note && (
             <motion.div
               key={`msg-${step}`}
-              initial={lite ? false : { opacity: 0, y: 6 }}
+              initial={lite ? false : { opacity: 0, y: 8 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0 }}
-              transition={{ duration: 0.3, delay: 0.1, ease: EASE }}
-              className="mt-4 rounded-xl rounded-tl-sm border border-white/7 bg-white/4 px-3.5 py-2.5"
+              transition={{ duration: 0.32, delay: 0.08, ease: EASE }}
+              className="mt-3.5 flex gap-2.5"
             >
-              <p className="text-[10px] text-white/35">{beat.peer.name}</p>
-              <p className="mt-0.5 text-xs leading-relaxed text-white/72">{beat.peer.note}</p>
+              <div
+                className="mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-full text-[11px] font-medium text-white/90"
+                style={{ backgroundColor: beat.peer.avatar }}
+              >
+                {beat.peer.letter}
+              </div>
+              <div className="min-w-0 flex-1 rounded-2xl rounded-tl-md border border-white/7 bg-white/4 px-3.5 py-2.5">
+                <p className="text-xs leading-relaxed text-white/75">{beat.peer.note}</p>
+              </div>
             </motion.div>
           )}
         </AnimatePresence>
       </div>
 
-      <div className="flex items-center justify-between border-t border-white/6 px-4 py-3 sm:px-5">
-        <AnimatePresence mode="wait">
-          {statusLabel && (
-            <motion.p
-              key={statusLabel}
-              initial={lite ? false : { opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className={cn("text-xs", linked ? "text-white/45" : "text-white/35")}
-            >
-              {statusLabel}
-            </motion.p>
-          )}
-        </AnimatePresence>
+      {(statusLabel || !lite) && (
+        <div className="flex items-center justify-between border-t border-white/6 px-4 py-3 sm:px-5">
+          <AnimatePresence mode="wait">
+            {statusLabel && (
+              <motion.p
+                key={statusLabel}
+                initial={lite ? false : { opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="text-xs text-white/36"
+              >
+                {statusLabel}
+              </motion.p>
+            )}
+          </AnimatePresence>
 
-        {!lite && (
-          <div className="flex items-center gap-1.5">
-            {STORY.map((s, i) => (
-              <span
-                key={s.id}
-                className={cn(
-                  "h-1 rounded-full transition-all duration-400",
-                  i === step ? "w-3.5 bg-[oklch(88%_0.11_105/0.75)]" : "w-1 bg-white/15",
-                )}
-              />
-            ))}
-          </div>
-        )}
-      </div>
+          {!lite && (
+            <div className={cn("flex items-center gap-1.5", !statusLabel && "ml-auto")}>
+              {STORY.map((s, i) => (
+                <span
+                  key={s.id}
+                  className={cn(
+                    "h-1 rounded-full transition-all duration-400",
+                    i === step ? "w-4 bg-[oklch(88%_0.11_105/0.7)]" : "w-1 bg-white/14",
+                  )}
+                />
+              ))}
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }

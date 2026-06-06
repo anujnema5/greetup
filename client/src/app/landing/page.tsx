@@ -362,21 +362,31 @@ function Navbar({
 function HeroBackdrop() {
   return (
     <div className="pointer-events-none absolute inset-0 overflow-hidden" aria-hidden>
-      <div className="absolute inset-0 bg-[radial-gradient(ellipse_55%_45%_at_72%_38%,oklch(88%_0.11_105/0.07),transparent_70%)]" />
+      <div className="absolute inset-0 bg-[radial-gradient(ellipse_50%_40%_at_18%_42%,oklch(88%_0.11_105/0.05),transparent_65%)]" />
+      <div className="absolute inset-0 bg-[radial-gradient(ellipse_45%_50%_at_78%_45%,oklch(88%_0.11_105/0.09),transparent_68%)]" />
+      <div className="absolute inset-x-0 top-0 h-px bg-linear-to-r from-transparent via-white/8 to-transparent" />
     </div>
   );
 }
+
+const HERO_SIGNALS = [
+  { icon: Users, label: "1:1 matching" },
+  { icon: Globe, label: "Nearby or global" },
+  { icon: MessageCircle, label: "Chat & video" },
+] as const;
 
 function HeroVisual() {
   const { lite } = useLandingPerf();
 
   return (
-    <div className="relative w-full max-w-[360px] sm:max-w-[400px] mx-auto select-none pointer-events-none">
+    <div className="relative w-full max-w-[380px] sm:max-w-[420px] lg:max-w-[440px] mx-auto lg:mx-0 lg:ml-auto select-none pointer-events-none">
       <div
-        className="pointer-events-none absolute -inset-8 rounded-full bg-[radial-gradient(circle,oklch(88%_0.11_105/0.07)_0%,transparent_70%)] blur-2xl"
+        className="pointer-events-none absolute -inset-6 rounded-[2rem] bg-[radial-gradient(circle,oklch(88%_0.11_105/0.08)_0%,transparent_72%)] blur-2xl"
         aria-hidden
       />
-      <HeroMatchDemo lite={lite} />
+      <div className="relative rounded-[1.35rem] border border-white/6 bg-[oklch(13%_0.012_110/0.55)] p-2 sm:p-2.5 md:backdrop-blur-sm">
+        <HeroMatchDemo lite={lite} />
+      </div>
     </div>
   );
 }
@@ -607,69 +617,75 @@ function LandingPageInner() {
       <Navbar isLoggedIn={isLoggedIn} firstName={firstName} />
 
       {/* ══════════════════ HERO ══════════════════ */}
-      <section className="relative min-h-[calc(100dvh-4rem)] flex flex-col justify-center pt-24 sm:pt-28 pb-16 sm:pb-20 px-4 sm:px-6">
+      <section className="relative min-h-[calc(100dvh-4rem)] flex flex-col justify-center pt-24 sm:pt-28 pb-16 sm:pb-24 px-4 sm:px-6">
         <HeroBackdrop />
 
-        <div className="relative mx-auto w-full max-w-7xl grid lg:grid-cols-[1.05fr_0.95fr] gap-10 sm:gap-12 lg:gap-10 xl:gap-16 items-center">
+        <div className="relative mx-auto w-full max-w-7xl grid lg:grid-cols-2 gap-12 sm:gap-14 lg:gap-12 xl:gap-20 lg:items-center">
 
-          <motion.div variants={stagger} initial="hidden" animate="show" className="text-center lg:text-left">
-            <motion.div variants={fadeUp} className="mb-6 sm:mb-8 flex justify-center lg:justify-start">
+          <motion.div variants={stagger} initial="hidden" animate="show" className="text-center lg:text-left lg:max-w-[34rem]">
+
+            <motion.div variants={fadeUp} className="mb-5 sm:mb-6 flex justify-center lg:justify-start">
               <Badge
                 variant="outline"
-                className="border-white/10 bg-transparent text-white/55 rounded-lg px-3 py-1 text-xs font-normal"
+                className="border-white/10 bg-white/3 text-white/55 rounded-full px-3.5 py-1 text-xs font-normal"
               >
                 Beta · Free to join
               </Badge>
             </motion.div>
 
-            <motion.h1 variants={fadeUp} className="text-[2.35rem] leading-[1.1] sm:text-6xl lg:text-[4rem] xl:text-[4.25rem] font-semibold tracking-tight mb-5 sm:mb-6">
+            <motion.h1 variants={fadeUp} className="text-[2.35rem] leading-[1.08] sm:text-[3.5rem] lg:text-[3.75rem] xl:text-[4.15rem] font-semibold tracking-[-0.025em] mb-5 sm:mb-6">
               Match your interests.
-              <span className="mt-1 block text-white/90">
+              <span className="mt-1.5 block text-white/92">
                 Build your <span className="text-[oklch(88%_0.11_105)]">circles</span>.
               </span>
-              <span className="mt-1 block text-white/55">Connect live.</span>
+              <span className="mt-1.5 block text-[0.72em] font-normal text-white/48 sm:text-[0.68em]">Connect live.</span>
             </motion.h1>
 
-            <motion.p variants={fadeUp} className="text-base sm:text-lg text-white/45 leading-relaxed max-w-md mx-auto lg:mx-0 mb-8 sm:mb-10">
+            <motion.p variants={fadeUp} className="text-base sm:text-[1.05rem] text-white/46 leading-relaxed max-w-lg mx-auto lg:mx-0 mb-6 sm:mb-7">
               By profession, interests, or location — nearby or anywhere in the world.
             </motion.p>
 
-            <motion.div variants={fadeUp} className="flex flex-wrap gap-3 justify-center lg:justify-start">
-              <motion.div whileHover={lite ? undefined : { scale: 1.02 }} whileTap={lite ? undefined : { scale: 0.98 }}>
-                <Button
-                  size="lg"
-                  className="rounded-xl bg-[oklch(88%_0.11_105)] text-[oklch(12%_0.012_110)] hover:brightness-110 font-semibold px-6 h-11"
-                  asChild
-                >
-                  <Link href={isLoggedIn ? "/home" : "/register"}>
-                    {isLoggedIn ? `Welcome${firstName ? `, ${firstName}` : ""}` : "Find your people"} <ArrowRight className="size-4" />
-                  </Link>
-                </Button>
-              </motion.div>
-              <motion.div whileHover={lite ? undefined : { scale: 1.02 }} whileTap={lite ? undefined : { scale: 0.98 }}>
-                <Button
-                  size="lg"
-                  variant="outline"
-                  className="rounded-xl border-white/10 bg-transparent text-white/75 hover:bg-white/5 hover:text-white px-6 h-11"
-                  asChild
-                >
-                  <Link href="#how-it-works">How it works</Link>
-                </Button>
-              </motion.div>
+            <motion.div variants={fadeUp} className="mb-8 sm:mb-9 flex flex-wrap justify-center lg:justify-start gap-x-6 gap-y-2.5">
+              {HERO_SIGNALS.map(({ icon: Icon, label }) => (
+                <span key={label} className="inline-flex items-center gap-2 text-sm text-white/38">
+                  <Icon className="size-3.5 text-[oklch(88%_0.11_105/0.65)]" strokeWidth={1.75} />
+                  {label}
+                </span>
+              ))}
             </motion.div>
 
-            <motion.div variants={fadeUp} className="mt-7 sm:mt-8">
-              <p className="text-xs text-white/30 max-w-sm mx-auto lg:mx-0 leading-relaxed">
+            <motion.div variants={fadeUp} className="flex flex-col sm:flex-row flex-wrap gap-3 justify-center lg:justify-start">
+              <Button
+                size="lg"
+                className="rounded-xl bg-[oklch(88%_0.11_105)] text-[oklch(12%_0.012_110)] hover:brightness-110 font-semibold px-6 h-11 w-full sm:w-auto shadow-[0_8px_28px_-8px_oklch(88%_0.11_105/0.55)]"
+                asChild
+              >
+                <Link href={isLoggedIn ? "/home" : "/register"}>
+                  {isLoggedIn ? `Welcome${firstName ? `, ${firstName}` : ""}` : "Find your people"} <ArrowRight className="size-4" />
+                </Link>
+              </Button>
+              <Button
+                size="lg"
+                variant="outline"
+                className="rounded-xl border-white/10 bg-white/3 text-white/78 hover:bg-white/6 hover:text-white px-6 h-11 w-full sm:w-auto"
+                asChild
+              >
+                <Link href="#how-it-works">How it works</Link>
+              </Button>
+            </motion.div>
+
+            <motion.div variants={fadeUp} className="mt-8 sm:mt-9 pt-6 sm:pt-7 border-t border-white/6">
+              <p className="text-xs text-white/32 max-w-md mx-auto lg:mx-0 leading-relaxed">
                 {EARLY_RELEASE.noticeShort}
               </p>
             </motion.div>
           </motion.div>
 
           <motion.div
-            className="flex justify-center lg:justify-end order-first lg:order-last"
-            initial={lite ? false : { opacity: 0, y: 16 }}
+            className="flex justify-center lg:justify-end order-first lg:order-last lg:py-4"
+            initial={lite ? false : { opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.7, delay: 0.12, ease: EASE }}
+            transition={{ duration: 0.75, delay: 0.15, ease: EASE }}
           >
             <HeroVisual />
           </motion.div>
