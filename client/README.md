@@ -2,6 +2,8 @@
 
 Next.js app (App Router), Redux Toolkit Query for API calls, Tailwind.
 
+**State migration:** [docs/state-migration.md](./docs/state-migration.md) — RTK Query + Redux → React Query + Zustand (living checklist).
+
 ## Run
 
 ```bash

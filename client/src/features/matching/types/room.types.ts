@@ -96,7 +96,7 @@ function parseCircleSessionKindPayload(d: Record<string, unknown>): CircleRoomDa
   };
 }
 
-/** Parses API `data` envelope — used by RTK Query `transformResponse`. */
+/** Parses API `data` envelope for room responses. */
 export function parseRoomData(data: unknown): RoomData {
   if (!data || typeof data !== "object") {
     throw new Error("Unexpected room payload");
@@ -211,7 +211,7 @@ export function isCircleHostUser(
 
 /**
  * RTC credential fields returned by `useRoom`.
- * Derived from `getRtcToken` (RTK Query) + room gating.
+ * Derived from RTC token query + room gating.
  */
 export type RoomRtcState = {
   rtcToken: string | null;

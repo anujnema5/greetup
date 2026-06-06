@@ -3,7 +3,7 @@
  *
  * - **Catalog hook** → Activities tab tiles + policy lookup for `InCallContainer` / `InCallScreen`.
  * - **Policy helpers** → People tab, invites, duplicate cameras (pure, testable).
- * - **RTK** → `parse/parse-list-response` + `types` are imported from here by path in `room-api` (avoid cycles).
+ * - `parse/parse-list-response` + `types` are imported from here by path in `room.queries` (avoid cycles).
  */
 
 export type {

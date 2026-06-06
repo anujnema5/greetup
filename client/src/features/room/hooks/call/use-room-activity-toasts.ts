@@ -8,19 +8,19 @@ import {
   syncScreenShareActivityToasts,
   type RoomActivityToastTracker,
 } from "@/features/room/lib/call/room-activity";
-import { useAppSelector } from "@/lib/redux/hooks";
 import {
   selectActiveRoomId,
   selectIsVideoSessionActive,
-} from "@/lib/redux/selectors/room-selectors";
+  useRoomStore,
+} from "@/features/room/state/room.store";
 
 /**
  * In-call activity toasts: peer join/leave and screen share start/stop.
  * Skips the initial roster on join so existing participants do not spam toasts.
  */
 export function useRoomActivityToasts() {
-  const sessionActive = useAppSelector(selectIsVideoSessionActive);
-  const activeRoomId = useAppSelector(selectActiveRoomId);
+  const sessionActive = useRoomStore(selectIsVideoSessionActive);
+  const activeRoomId = useRoomStore(selectActiveRoomId);
   const { peers, mediasoupStatus, screenShareTiles, rtcRoomType } =
     useRtcSocketContext();
 

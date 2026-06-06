@@ -4,6 +4,7 @@ import { useEffect, useCallback, useRef, useTransition } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { setRoomReturnPath } from "@/features/room";
 import { stashCircleRoomBootstrap } from "@/features/matching/lib/circle-room-bootstrap";
+import { isLocalCallEndInProgress } from "@/features/room/lib/call/direct-match-leave-guard";
 import { circleRoomPath } from "@/features/room/lib/navigation/circle-routes";
 import { useFindMatch } from "./useFindMatch";
 
@@ -36,6 +37,8 @@ export function useAppMatchFlow() {
   } = useFindMatch();
 
   useEffect(() => {
+    if (isLocalCallEndInProgress()) return;
+
     const roomId = result?.roomId;
     const matchIsReady = status === "matched" && roomId != null;
 

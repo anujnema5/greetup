@@ -27,3 +27,6 @@ export type MatchStatePayload = {
 export type MatchNoMatchPayload = { attemptId: string; reason: string };
 
 export type MatchProposalCancelledPayload = { attemptId: string; reason: string };
+
+/** Emitted to the peer still in-room when the other user skips (Next) during a live 1:1 match. */
+export type MatchPartnerSkippedPayload = { roomId: string };

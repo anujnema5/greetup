@@ -1,7 +1,7 @@
 import type { RoomActivityId } from "@/features/room/types/call/room-activity.types";
 import type { EmbeddedCallPolicyLookup } from "@/features/room/embedded-activities";
 import { resolveEmbeddedActivityCallPolicy } from "@/features/room/embedded-activities";
-import type { RoomActiveActivity } from "@/lib/redux/types/room-slice.types";
+import type { RoomActiveActivity } from "@/features/room/types/room-state.types";
 
 export type CallRoomKind = "direct" | "circle";
 

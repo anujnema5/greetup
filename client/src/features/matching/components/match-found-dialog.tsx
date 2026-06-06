@@ -9,7 +9,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
-import { useGetMatchPeerPreviewQuery } from "../api/matching-api";
+import { useMatchPeerPreview } from "../api/matching.queries";
 
 const GOLD = "oklch(86% 0.11 105)";
 const GOLD_BORDER = "oklch(78% 0.1 105 / 0.55)";
@@ -39,8 +39,8 @@ export function MatchFoundDialog({
   onCancelSearch,
 }: MatchFoundDialogProps) {
   const skipQuery = !open || !peerUserId;
-  const { data: peer, isFetching } = useGetMatchPeerPreviewQuery(peerUserId ?? "", {
-    skip: skipQuery,
+  const { data: peer, isFetching } = useMatchPeerPreview(peerUserId ?? "", {
+    enabled: !skipQuery,
   });
 
   const displayName = peer?.displayName ?? "Someone";

@@ -11,4 +11,4 @@ export { PRESENCE_POLL_INTERVAL_MS } from './constants';
 export { peersCallStatusCacheKey } from './lib/peers-call-status-cache-key';
 export { usePeersOnlineStatus, useUserOnlineStatus } from './hooks/use-peers-online-status';
 export { useOnlinePeopleCount } from './hooks/use-online-people-count';
-export { presenceApi, useGetOnlinePeopleCountQuery } from './api/presence-api';
+export { useOnlinePeopleCountQuery } from './api/presence.queries';

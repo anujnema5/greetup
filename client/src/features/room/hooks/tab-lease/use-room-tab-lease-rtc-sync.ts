@@ -15,7 +15,7 @@ type UseRoomTabLeaseRtcSyncArgs = {
 };
 
 /**
- * Keeps the tab lease timestamp fresh while Redux has an active room id (including minimized dock).
+ * Keeps the tab lease timestamp fresh while the room store has an active room id (including minimized dock).
  * Clears the lease when the video session ends so another tab can join after a clean leave.
  */
 export function useRoomTabLeaseRtcSync({

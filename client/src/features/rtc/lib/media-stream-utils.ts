@@ -1,4 +1,4 @@
-/** Small helpers shared by full-screen room and minimized dock (no Redux — streams stay non-serializable). */
+/** Small helpers shared by full-screen room and minimized dock (streams stay non-serializable). */
 
 export function hasLiveVideo(stream: MediaStream | null | undefined): boolean {
   if (!stream) return false;

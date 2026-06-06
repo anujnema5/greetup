@@ -12,7 +12,7 @@ import { cn } from "@/lib/utils";
 import { ChatPanel } from "@/features/chat/components/chat-panel";
 import type { RoomActivityId, RoomActivityMeta } from "@/features/room/types/call/room-activity.types";
 import type { RoomCallRightPanelTab } from "@/features/room/types/call/room-call-panel.types";
-import type { RoomActiveActivity } from "@/lib/redux/types/room-slice.types";
+import type { RoomActiveActivity } from "@/features/room/types/room-state.types";
 
 export type RightSidebarVariant = "dock" | "sheet";
 

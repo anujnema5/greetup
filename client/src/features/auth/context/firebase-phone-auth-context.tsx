@@ -55,7 +55,7 @@ type FirebasePhoneAuthContextValue = {
   confirmOtp: (code: string, options?: { displayName?: string }) => Promise<void>;
   /**
    * After SMS verification, returns a Firebase ID token for the phone credential.
-   * Caller (e.g. settings + RTK) sends it to `updateAccountPhone`; then call `reset()` and Firebase `signOut()`.
+   * Caller (e.g. settings mutation) sends it to `updateAccountPhone`; then call `reset()` and Firebase `signOut()`.
    */
   confirmPhoneOtpToIdToken: (code: string) => Promise<string>;
   isSending: boolean;

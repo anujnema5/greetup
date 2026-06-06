@@ -3,7 +3,7 @@
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
-import type { RoomChessLastOutcome } from "@/lib/redux/types/activity-slice.types";
+import type { RoomChessLastOutcome } from "@/features/room/types/activity-state.types";
 import { buildChessOutcomePresentation } from "@/features/activity/chess/lib/chess-outcome-copy";
 
 export type ChessGameOutcomeDialogProps = {

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import type { FetchBaseQueryError } from "@reduxjs/toolkit/query";
+import { getApiErrorMessage } from "@/lib/api/fetch-client";
 import { Camera, ImageIcon, Loader2, UserRound, Wand2 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -13,10 +13,10 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import {
-  useEnsureProfilePhotoPublicMutation,
-  usePresignProfilePhotoMutation,
-  useSaveProfileSetupMutation,
-} from "@/features/profile-setup/components/profile-setup-api";
+  useEnsureProfilePhotoPublic,
+  usePresignProfilePhoto,
+  useSaveProfileSetup,
+} from "@/features/profile-setup/api";
 import type { MyProfileResponse } from "@/features/profile/types/my-profile.types";
 
 const DICEBEAR_PNG = (seed: string) =>
@@ -48,22 +48,6 @@ function buildPhotosPayload(
   return [{ url: newUrl, order: 0 }, ...rest].slice(0, 6);
 }
 
-function rtkErrorMessage(error: unknown): string {
-  if (error && typeof error === "object" && "data" in error) {
-    const d = (error as FetchBaseQueryError).data;
-    if (
-      d &&
-      typeof d === "object" &&
-      "message" in d &&
-      typeof (d as { message?: string }).message === "string"
-    ) {
-      return (d as { message: string }).message;
-    }
-  }
-  if (error instanceof Error && error.message) return error.message;
-  return "Something went wrong";
-}
-
 function truncateFilename(name: string): string {
   return name.length > 30 ? name.slice(0, 30) + "…" : name;
 }
@@ -86,9 +70,9 @@ export function ProfilePhotoDialog({
   const [isUploading, setIsUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
-  const [presign] = usePresignProfilePhotoMutation();
-  const [ensurePublic] = useEnsureProfilePhotoPublicMutation();
-  const [saveProfile] = useSaveProfileSetupMutation();
+  const { mutateAsync: presign } = usePresignProfilePhoto();
+  const { mutateAsync: ensurePublic } = useEnsureProfilePhotoPublic();
+  const { mutateAsync: saveProfile } = useSaveProfileSetup();
 
   const busy = isUploading || isGenerating;
   const currentPhotoUrl = existingPhotos[0]?.url ?? "";
@@ -146,8 +130,7 @@ export function ProfilePhotoDialog({
     }
     setIsUploading(true);
     try {
-      const pres = await presign({ contentType }).unwrap();
-      const inner = pres.data;
+      const inner = await presign({ contentType });
       const putHeaders =
         inner.uploadHeaders ?? ({ "Content-Type": inner.contentType } as Record<string, string>);
       const put = await fetch(inner.uploadUrl, {
@@ -161,18 +144,18 @@ export function ProfilePhotoDialog({
         return;
       }
       try {
-        await ensurePublic({ publicUrl: inner.publicUrl }).unwrap();
+        await ensurePublic({ publicUrl: inner.publicUrl });
       } catch {
         toast.warning("Photo uploaded; fixing public access… saving profile will retry.");
       }
       const photos = buildPhotosPayload(inner.publicUrl, existingPhotos);
-      await saveProfile({ step: 5, data: { photos } }).unwrap();
+      await saveProfile({ step: 5, data: { photos } });
       toast.success("Profile photo updated");
       reset();
       onOpenChange(false);
       onUploaded?.();
     } catch (e) {
-      toast.error(rtkErrorMessage(e));
+      toast.error(getApiErrorMessage(e, "Something went wrong"));
     } finally {
       setIsUploading(false);
     }

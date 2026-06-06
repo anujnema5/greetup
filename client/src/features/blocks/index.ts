@@ -1,9 +1,5 @@
-export {
-  blocksApi,
-  useListBlockedUsersQuery,
-  useBlockUserMutation,
-  useUnblockUserMutation,
-} from "./api/blocks-api";
+export { useListBlockedUsers } from "./api/blocks.queries";
+export { useBlockUser, useUnblockUser } from "./api/blocks.mutations";
 export { BlockUserDialog } from "./components/block-user-dialog";
 export { BlockedUsersDialog } from "./components/blocked-users-dialog";
 export { UnblockUserDialog } from "./components/unblock-user-dialog";

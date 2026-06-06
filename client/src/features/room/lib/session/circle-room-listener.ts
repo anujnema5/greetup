@@ -1,7 +1,7 @@
-import type { RootState } from "@/lib/redux/store";
-import type { RoomMediaStatus, RoomSessionPhase } from "@/lib/redux/types/room-slice.types";
+import type { RoomStoreState } from "@/features/room/state/room.store";
+import type { RoomMediaStatus, RoomSessionPhase } from "@/features/room/types/room-state.types";
 
-/** Redux fields read by global circle Socket.IO bridge components under `listeners/`. */
+/** Room store fields read by global circle Socket.IO bridge components under `listeners/`. */
 export type CircleRoomListenerSnapshot = {
   activeRoomId: string | null;
   sessionActive: boolean;
@@ -10,13 +10,15 @@ export type CircleRoomListenerSnapshot = {
   mediaStatus: RoomMediaStatus;
 };
 
-export function selectCircleRoomListenerSnapshot(state: RootState): CircleRoomListenerSnapshot {
+export function selectCircleRoomListenerSnapshot(
+  state: RoomStoreState,
+): CircleRoomListenerSnapshot {
   return {
-    activeRoomId: state.room.session.activeRoomId,
-    sessionActive: state.room.ui.sessionActive,
-    isMinimized: state.room.ui.isMinimized,
-    phase: state.room.session.phase,
-    mediaStatus: state.room.media.status,
+    activeRoomId: state.session.activeRoomId,
+    sessionActive: state.ui.sessionActive,
+    isMinimized: state.ui.isMinimized,
+    phase: state.session.phase,
+    mediaStatus: state.media.status,
   };
 }
 

@@ -13,27 +13,9 @@ export type {
   UseMinimizedDockMainStageArgs,
 } from "./types/minimized-dock/minimized-dock-main-stage.types";
 export { RoomPage } from "./pages/room-page";
-export type { RoomSliceState } from "@/lib/redux/slices/room-slice";
-export {
-  enterRoomPage,
-  resetRoomState,
-  resetVideoUi,
-  startVideoSession,
-  endVideoSession,
-  minimizeVideoSession,
-  expandVideoSession,
-  setRoomPhase,
-  setMediaStatus,
-  setRtcPrimaryRemoteUserId,
-  upsertRoomPeer,
-  removeRoomPeer,
-  setChatDraft,
-} from "@/lib/redux/slices/room-slice";
-export {
-  setActiveActivity,
-  setLastChessOutcome,
-  clearLastChessOutcome,
-} from "@/lib/redux/slices/room-activity-slice";
+export type { RoomSliceState, RoomStoreState } from "@/features/room/state/room.store";
+export { useRoomStore } from "@/features/room/state/room.store";
+export { useRoomActivityStore } from "@/features/room/state/room-activity.store";
 export * from "./embedded-activities";
 export {
   MOCK_MATCH,
@@ -58,20 +40,19 @@ export {
   OnParticipantRemovedFromCircle,
   OnPartnerDisconnected,
 } from "./listeners";
+export { useGetRoom, useRoomEmbeddedActivities } from "./api/room.queries";
 export {
-  roomApi,
   leaveRoomKeepalive,
   leaveCircleRtcKeepalive,
-  useLeaveRoomMutation,
-  useGetRoomQuery,
-  useGetRoomEmbeddedActivitiesQuery,
-  useJoinRoomMutation,
-  useStartScheduledCircleMutation,
-  useOpenCircleMeetingMutation,
-  useLeaveCircleRtcMutation,
-  useHostEndCircleForEveryoneMutation,
-  useKickCircleParticipantMutation,
-  useRoomInviteMutation,
-  useRoomInviteRespondMutation,
-  useUpdateRoomTitleMutation,
-} from "./api/room-api";
+  useLeaveRoom,
+  useJoinRoom,
+  useStartScheduledCircle,
+  useOpenCircleMeeting,
+  useLeaveCircleRtc,
+  useHostEndCircleForEveryone,
+  useKickCircleParticipant,
+  useReportCircleNsfwViolation,
+  useRoomInvite,
+  useRoomInviteRespond,
+  useUpdateRoomTitle,
+} from "./api/room.mutations";

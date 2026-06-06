@@ -13,12 +13,13 @@ export {
 export type { MatchmakingContextValue } from "./providers/matchmaking-provider";
 export { MatchFoundDialog } from "./components/match-found-dialog";
 export { MatchPrepDialog } from "./components/match-prep-dialog";
+export { useMatchPeerPreview } from "./api/matching.queries";
 export {
-  matchingApi,
   useFindMatchMutation,
   useCancelMatchMutation,
-  useGetMatchPeerPreviewQuery,
-} from "./api/matching-api";
+  useRespondMatchProposalMutation,
+} from "./api/matching.mutations";
+export { patchMatchPeerPreviewCache } from "./lib/peer-preview-cache";
 export type * from "./types";
 export {
   isCircleHostUser,

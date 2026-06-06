@@ -58,7 +58,7 @@ export type UseMediasoupRoomArgs = {
   localDisplayName?: string | null;
   /** Current user's profile image URL — shared to peers for camera-off avatar fallbacks. */
   localProfileImageUrl?: string | null;
-  /** Redux / product: who gets the main remote tile (1:1 match peer, or pinned circle member). */
+  /** Room store / product: who gets the main remote tile (1:1 match peer, or pinned circle member). */
   preferredRemotePeerId?: string | null;
 };
 

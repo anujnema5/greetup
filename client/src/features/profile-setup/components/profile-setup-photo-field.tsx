@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import type { FetchBaseQueryError } from "@reduxjs/toolkit/query";
+import { getApiErrorMessage } from "@/lib/api/fetch-client";
 import { Camera, ImageOff, Loader2, UserRound, Wand2 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -13,9 +13,9 @@ import {
 import { cn } from "@/lib/utils";
 
 import {
-  useEnsureProfilePhotoPublicMutation,
-  usePresignProfilePhotoMutation,
-} from "./profile-setup-api";
+  useEnsureProfilePhotoPublic,
+  usePresignProfilePhoto,
+} from "../api";
 
 const MAX_BYTES = 5 * 1024 * 1024;
 const ALLOWED_CONTENT_TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);
@@ -58,17 +58,6 @@ function mergePrimaryPhoto(
   return [{ url: publicUrl, order: 0 }, ...rest].slice(0, max);
 }
 
-function rtkErrorMessage(error: unknown): string {
-  if (error && typeof error === "object" && "data" in error) {
-    const d = (error as FetchBaseQueryError).data;
-    if (d && typeof d === "object" && "message" in d && typeof (d as { message?: string }).message === "string") {
-      return (d as { message: string }).message;
-    }
-  }
-  if (error instanceof Error && error.message) return error.message;
-  return "Something went wrong";
-}
-
 type ProfileSetupPhotoFieldProps = {
   label: string;
   description?: string;
@@ -93,8 +82,8 @@ export function ProfileSetupPhotoField({
   const fileRef = useRef<HTMLInputElement | null>(null);
   const [pending, setPending] = useState<"upload" | "generate" | null>(null);
   const [localPreview, setLocalPreview] = useState<string | null>(null);
-  const [presign] = usePresignProfilePhotoMutation();
-  const [ensurePublic] = useEnsureProfilePhotoPublicMutation();
+  const { mutateAsync: presign } = usePresignProfilePhoto();
+  const { mutateAsync: ensurePublic } = useEnsureProfilePhotoPublic();
   const busy = pending !== null;
 
   const primary = value[0];
@@ -132,8 +121,7 @@ export function ProfileSetupPhotoField({
         return;
       }
 
-      const pres = await presign({ contentType: ct }).unwrap();
-      const inner = pres.data;
+      const inner = await presign({ contentType: ct });
       const putHeaders =
         inner.uploadHeaders ?? ({ "Content-Type": inner.contentType } as Record<string, string>);
       const put = await fetch(inner.uploadUrl, {
@@ -148,7 +136,7 @@ export function ProfileSetupPhotoField({
       }
 
       try {
-        await ensurePublic({ publicUrl: inner.publicUrl }).unwrap();
+        await ensurePublic({ publicUrl: inner.publicUrl });
       } catch {
         toast.warning(
           "Photo uploaded, but it may not show until permissions update. Try saving this step or re-upload.",
@@ -183,7 +171,7 @@ export function ProfileSetupPhotoField({
     try {
       await uploadBlob(f, f.name);
     } catch (err) {
-      toast.error(rtkErrorMessage(err));
+      toast.error(getApiErrorMessage(err, "Something went wrong"));
       setLocalPreview(null);
     } finally {
       setPending(null);
@@ -205,7 +193,7 @@ export function ProfileSetupPhotoField({
       const blob = await res.blob();
       await uploadBlob(blob, `avatar-${seed.slice(0, 8)}.png`);
     } catch (err) {
-      toast.error(rtkErrorMessage(err));
+      toast.error(getApiErrorMessage(err, "Something went wrong"));
     } finally {
       setPending(null);
     }

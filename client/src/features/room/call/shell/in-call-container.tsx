@@ -3,21 +3,22 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { useSession } from "@/lib/auth-client";
-import { useAppDispatch, useAppSelector } from "@/lib/redux/hooks";
-import { selectRoomPhase } from "@/lib/redux/selectors/room-selectors";
-import { selectRoomActiveActivity } from "@/lib/redux/selectors/room-activity-selectors";
-import { setDirectCallPeerLabel } from "@/lib/redux/slices/room-slice";
 import {
-  useRoomChessDrawOfferMutation,
-  useRoomChessEndMutation,
-  useRoomChessInviteMutation,
-} from "@/features/activity";
+  selectRoomActiveActivity,
+  useRoomActivityStore,
+} from "@/features/room/state/room-activity.store";
+import { selectLocalLeavePending, selectRoomPhase, useRoomStore } from "@/features/room/state/room.store";
+import {
+  useRoomChessDrawOffer,
+  useRoomChessEnd,
+  useRoomChessInvite,
+} from "@/features/activity/api/activity.mutations";
 import { useRtcSocketContext } from "@/features/rtc";
 import { useMatchmaking } from "@/features/matching";
 import {
-  useOpenCircleMeetingMutation,
-  useStartScheduledCircleMutation,
-} from "@/features/room/api/room-api";
+  useOpenCircleMeeting,
+  useStartScheduledCircle,
+} from "@/features/room/api/room.mutations";
 import { Button } from "@/components/ui/button";
 import { AddToCircleDialog } from "@/features/room/components/dialogs/add-to-circle-dialog";
 import { CircleLobbyOverlay } from "@/features/room/components/lobby/circle-lobby-overlay";
@@ -29,7 +30,7 @@ import { useRemoteParticipantLabel } from "@/features/room/hooks/media/use-remot
 import { useRoomVideo } from "@/features/room/hooks/session/use-room-video";
 import { useLobbyPreviewMedia } from "@/features/room/hooks/lobby/use-lobby-preview-media";
 import { setLobbyMediaIntent } from "@/features/room/lib/lobby";
-import { getRtkMutationErrorMessage } from "@/lib/api/rtk-mutation-error";
+import { getApiErrorMessage } from "@/lib/api/fetch-client";
 import { NSFW_LOG_ENABLED } from "@/shared/constants";
 import { buildCallCapabilities } from "@/features/room/contracts";
 import {
@@ -87,20 +88,21 @@ export function InCallContainer({
   circleRoomStatus = null,
   isDbCircleCall = false,
 }: InCallContainerProps) {
-  const dispatch = useAppDispatch();
+  const setDirectCallPeerLabel = useRoomStore((s) => s.setDirectCallPeerLabel);
   const { data: session } = useSession();
-  const roomPhase = useAppSelector(selectRoomPhase);
-  const activeRealtimeActivity = useAppSelector(selectRoomActiveActivity);
+  const roomPhase = useRoomStore(selectRoomPhase);
+  const localLeavePending = useRoomStore(selectLocalLeavePending);
+  const activeRealtimeActivity = useRoomActivityStore(selectRoomActiveActivity);
   const [addCircleOpen, setAddCircleOpen] = useState(false);
   const [embeddedStageActivityId, setEmbeddedStageActivityId] =
     useState<RoomActivityId | null>(null);
-  const [inviteToChess, { isLoading: requestingChess }] = useRoomChessInviteMutation();
-  const [endChess, { isLoading: endingChess }] = useRoomChessEndMutation();
-  const [offerDraw, { isLoading: offeringDraw }] = useRoomChessDrawOfferMutation();
-  const [openCircleMeeting, { isLoading: openingCircleMeeting }] =
-    useOpenCircleMeetingMutation();
-  const [startScheduledCircle, { isLoading: startingScheduledCircle }] =
-    useStartScheduledCircleMutation();
+  const { mutateAsync: inviteToChess, isPending: requestingChess } = useRoomChessInvite();
+  const { mutateAsync: endChess, isPending: endingChess } = useRoomChessEnd();
+  const { mutateAsync: offerDraw, isPending: offeringDraw } = useRoomChessDrawOffer();
+  const { mutateAsync: openCircleMeeting, isPending: openingCircleMeeting } =
+    useOpenCircleMeeting();
+  const { mutateAsync: startScheduledCircle, isPending: startingScheduledCircle } =
+    useStartScheduledCircle();
   const isMatch = isMatchSession(room);
   const isConnectionCall = isConnectionCallSession(room);
   const canSkipAndRematch =
@@ -153,7 +155,7 @@ export function InCallContainer({
 
   const moderationStream = localCompositeStream ?? localMediaStream;
 
-  /** DB-backed tiles + policy map; invite gating uses `embeddedStageActivityId` (can run ahead of Redux). */
+  /** DB-backed tiles + policy map; invite gating uses `embeddedStageActivityId` (can run ahead of Zustand). */
   const { directRoomActivities, embeddedCallPolicyLookup } = useRoomEmbeddedActivitiesCatalog();
 
   const excludeAddIds = [
@@ -217,7 +219,10 @@ export function InCallContainer({
   }, [embeddedCallPolicy]);
 
   const searchingForNextCandidate =
-    isMatch && !isGroupRoom && roomPhase === "searching";
+    !localLeavePending &&
+    !isGroupRoom &&
+    !isConnectionCall &&
+    roomPhase === "searching";
   const matchmaking = useMatchmaking();
   const directCallMatchSearchFailed =
     searchingForNextCandidate && matchmaking.status === "error";
@@ -225,29 +230,29 @@ export function InCallContainer({
   const handleRequestChessInvite = async () => {
     if (isGroupRoom) return;
     try {
-      await inviteToChess({ roomId }).unwrap();
+      await inviteToChess({ roomId });
       toast.success("Chess invite sent");
     } catch (e: unknown) {
-      toast.error(getRtkMutationErrorMessage(e, "Could not send chess invite"));
+      toast.error(getApiErrorMessage(e, "Could not send chess invite"));
     }
   };
 
   const handleEndActiveGame = async () => {
     if (!activeRealtimeActivity || activeRealtimeActivity.kind !== "chess") return;
     try {
-      await endChess({ roomId, gameId: activeRealtimeActivity.gameId }).unwrap();
+      await endChess({ roomId, gameId: activeRealtimeActivity.gameId });
     } catch (e: unknown) {
-      toast.error(getRtkMutationErrorMessage(e, "Could not end chess game"));
+      toast.error(getApiErrorMessage(e, "Could not end chess game"));
     }
   };
 
   const handleOfferDraw = async () => {
     if (!activeRealtimeActivity || activeRealtimeActivity.kind !== "chess") return;
     try {
-      await offerDraw({ roomId, gameId: activeRealtimeActivity.gameId }).unwrap();
+      await offerDraw({ roomId, gameId: activeRealtimeActivity.gameId });
       toast.success("Draw offer sent");
     } catch (e: unknown) {
-      toast.error(getRtkMutationErrorMessage(e, "Could not send draw offer"));
+      toast.error(getApiErrorMessage(e, "Could not send draw offer"));
     }
   };
 
@@ -258,8 +263,8 @@ export function InCallContainer({
   });
 
   useEffect(() => {
-    dispatch(setDirectCallPeerLabel(isGroupRoom ? null : peerLabel));
-  }, [dispatch, isGroupRoom, peerLabel]);
+    setDirectCallPeerLabel(isGroupRoom ? null : peerLabel);
+  }, [isGroupRoom, peerLabel, setDirectCallPeerLabel]);
 
   useEffect(() => {
     if (!embeddedCallPolicy.blockParticipantInvites) return;
@@ -286,7 +291,7 @@ export function InCallContainer({
     });
   }, [rtcTokenErrorCode, rtcToken]);
 
-  /** Keeps lobby visible while RTK refetch clears `isError` (avoids flash of the call UI). */
+  /** Keeps lobby visible while room query refetch clears `isError` (avoids flash of the call UI). */
   const rtcLobbyGateCode = useMemo((): LobbyGateCode | null => {
     if (rtcTokenErrorCode === "LOBBY_NOT_READY" || rtcTokenErrorCode === "LOBBY_WAITING_FOR_HOST") {
       return rtcTokenErrorCode;
@@ -365,21 +370,21 @@ export function InCallContainer({
 
   const handleOpenCircleMeeting = useCallback(async () => {
     try {
-      await openCircleMeeting(roomId).unwrap();
+      await openCircleMeeting(roomId);
       toast.success("Everyone can join the circle now.");
     } catch (e: unknown) {
-      toast.error(getRtkMutationErrorMessage(e, "Could not open the circle for everyone"));
+      toast.error(getApiErrorMessage(e, "Could not open the circle for everyone"));
     }
   }, [openCircleMeeting, roomId]);
 
   const handleHostStartScheduledCircleNow = useCallback(async () => {
     try {
       setLobbyMediaIntent({ mic: lobbyPreview.micOn, camera: lobbyPreview.camOn });
-      await startScheduledCircle(roomId).unwrap();
+      await startScheduledCircle(roomId);
       toast.success("Circle is live — connecting you now.");
       void refetchRtcToken();
     } catch (e: unknown) {
-      toast.error(getRtkMutationErrorMessage(e, "Could not start the circle"));
+      toast.error(getApiErrorMessage(e, "Could not start the circle"));
     }
   }, [
     lobbyPreview.camOn,

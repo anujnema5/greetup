@@ -4,9 +4,9 @@ import { useCallback, useState } from "react";
 import { toast } from "sonner";
 
 import {
-  useRequestConnectionMutation,
-  useWithdrawConnectionRequestMutation,
-} from "@/features/connections/api/connections-api";
+  useRequestConnection,
+  useWithdrawConnectionRequest,
+} from "@/features/connections/api/connections.mutations";
 
 export type PeerConnectionRequestTarget = {
   userId: string;
@@ -19,8 +19,8 @@ type PendingOutgoing = {
 };
 
 export function usePeerConnectionRequestActions() {
-  const [requestConnection] = useRequestConnectionMutation();
-  const [withdrawRequest] = useWithdrawConnectionRequestMutation();
+  const { mutateAsync: requestConnection } = useRequestConnection();
+  const { mutateAsync: withdrawRequest } = useWithdrawConnectionRequest();
   const [connectingUserId, setConnectingUserId] = useState<string | null>(null);
   const [withdrawingUserId, setWithdrawingUserId] = useState<string | null>(null);
   const [pendingOutgoingByUserId, setPendingOutgoingByUserId] = useState<
@@ -58,7 +58,7 @@ export function usePeerConnectionRequestActions() {
         const result = await requestConnection({
           targetUserId: target.userId,
           invalidatePublicProfileUsername: target.username,
-        }).unwrap();
+        });
 
         const ok = result?.success === true && result.data?.status;
         if (!ok) {
@@ -93,7 +93,7 @@ export function usePeerConnectionRequestActions() {
         await withdrawRequest({
           connectionId,
           peerUsername: target.username,
-        }).unwrap();
+        });
         clearOutgoing(target.userId);
         toast.success("Request withdrawn");
       } catch {

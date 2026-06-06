@@ -9,7 +9,7 @@
 
 import type { RoomEmbeddedActivityDto } from "@/features/room/embedded-activities/types";
 import type { RoomActivityId } from "@/features/room/types/call/room-activity.types";
-import type { RoomActiveActivity } from "@/lib/redux/types/room-slice.types";
+import type { RoomActiveActivity } from "@/features/room/types/room-state.types";
 
 /** Keys we can resolve — extend when `RoomActiveActivity` gains new `kind` values. */
 export type EmbeddedCallPolicyKey = RoomActivityId | RoomActiveActivity["kind"];

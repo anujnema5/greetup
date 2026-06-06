@@ -3,12 +3,12 @@
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useSession } from "@/lib/auth-client";
-import { useAppDispatch, useAppSelector } from "@/lib/redux/hooks";
 import {
   selectIsRoomMinimized,
   selectIsVideoSessionActive,
   selectRoomPhase,
-} from "@/lib/redux/selectors/room-selectors";
+  useRoomStore,
+} from "@/features/room/state/room.store";
 import { InCallContainer } from "@/features/room/call/shell/in-call-container";
 import { CircleRouteLoadingShell } from "@/features/room/components/search/circle-route-loading-shell";
 import { useRoomPageTabLease, useClientMounted } from "@/features/room/hooks";
@@ -18,18 +18,16 @@ import { CIRCLE_SEARCH_SEGMENT } from "@/features/room/lib/navigation/circle-rou
 export function CircleSearchPage() {
   const mounted = useClientMounted();
   const router = useRouter();
-  const dispatch = useAppDispatch();
   const { data: session, isPending: sessionPending } = useSession();
-  const sessionActive = useAppSelector(selectIsVideoSessionActive);
-  const roomPhase = useAppSelector(selectRoomPhase);
-  const isMinimized = useAppSelector(selectIsRoomMinimized);
+  const sessionActive = useRoomStore(selectIsVideoSessionActive);
+  const roomPhase = useRoomStore(selectRoomPhase);
+  const isMinimized = useRoomStore(selectIsRoomMinimized);
   const isSearchingNext = roomPhase === "searching";
 
   const { duplicateTabRedirect } = useRoomPageTabLease({
     roomId: CIRCLE_SEARCH_SEGMENT,
     currentUserId: session?.user?.id ?? null,
     sessionPending,
-    dispatch,
     router,
   });
 

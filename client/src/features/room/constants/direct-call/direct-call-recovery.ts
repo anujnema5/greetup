@@ -1,6 +1,9 @@
 export const DIRECT_CALL_RECOVERY = {
-  /** Match rematch — keep snappy after a real peer leave. */
-  matchPeerLeftDebounceMs: 200,
+  /**
+   * Match rematch RTC fallback — wait for `match:partner_skipped` first (usually <300ms).
+   * Only used when the peer drops without a server leave signal (crash / network).
+   */
+  matchPeerLeftDebounceMs: 1_500,
   /** Connection call — absorb RTC reconnect / dev compile jitter before recovery window. */
   connectionCallPeerLeftDebounceMs: 3_000,
   /** Dev-only extra grace while Turbopack/HMR churns RTC sockets. */

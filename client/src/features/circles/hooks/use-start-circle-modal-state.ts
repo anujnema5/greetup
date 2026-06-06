@@ -5,13 +5,13 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm, useWatch } from "react-hook-form";
 import { toast } from "sonner";
 
-import { useGetMyConnectionsQuery } from "@/features/connections/api/connections-api";
+import { useMyConnections } from "@/features/connections/api/connections.queries";
 import {
-  useCreateCircleMutation,
-  useDeleteScheduledCircleMutation,
-  useListCircleCategoriesQuery,
-  useUpdateScheduledCircleMutation,
-} from "@/features/circles/api/circles-api";
+  useCreateCircle,
+  useDeleteScheduledCircle,
+  useUpdateScheduledCircle,
+} from "@/features/circles/api/circles.mutations";
+import { useListCircleCategories } from "@/features/circles/api/circles.queries";
 import { START_CIRCLE_COPY as C } from "@/features/circles/constants/start-circle-copy";
 import { filterStartCircleCategories } from "@/features/circles/lib/start-circle-categories";
 import { combineDateAndTime } from "@/features/circles/lib/start-circle-utils";
@@ -23,7 +23,7 @@ import {
 } from "@/features/circles/schemas/start-circle-form.schema";
 import type { ActiveCircleItem } from "@/features/circles/types/circles-api.types";
 import { toApiAdvancedOptions, normalizeMeetingStartExclusivity } from "@/features/circles/types/start-circle-ui.types";
-import { getRtkMutationErrorMessage } from "@/lib/api/rtk-mutation-error";
+import { getApiErrorMessage } from "@/lib/api/fetch-client";
 
 export type StartCircleShellValue = {
   openModal: () => void;
@@ -58,27 +58,23 @@ export function useStartCircleModalState() {
     isFetching: categoriesLoading,
     isError: categoriesError,
     refetch: refetchCategories,
-  } = useListCircleCategoriesQuery(undefined, {
-    skip: !open,
-    refetchOnMountOrArgChange: true,
-  });
+  } = useListCircleCategories(open);
 
-  const { data: connectionsRes, isFetching: connectionsLoading } =
-    useGetMyConnectionsQuery(
-      { filter: "accepted" },
-      { skip: !open, refetchOnMountOrArgChange: true },
-    );
+  const { data: connectionsRes, isFetching: connectionsLoading } = useMyConnections(
+    { filter: "accepted" },
+    { enabled: open },
+  );
 
-  const [createCircle, { isLoading: creating }] = useCreateCircleMutation();
-  const [updateScheduledCircle, { isLoading: updating }] =
-    useUpdateScheduledCircleMutation();
-  const [deleteScheduledCircle, { isLoading: deleting }] =
-    useDeleteScheduledCircleMutation();
+  const { mutateAsync: createCircle, isPending: creating } = useCreateCircle();
+  const { mutateAsync: updateScheduledCircle, isPending: updating } =
+    useUpdateScheduledCircle();
+  const { mutateAsync: deleteScheduledCircle, isPending: deleting } =
+    useDeleteScheduledCircle();
 
-  const connections = connectionsRes?.data?.items ?? [];
+  const connections = connectionsRes?.items ?? [];
   const categories = useMemo(
-    () => filterStartCircleCategories(categoriesRes?.data?.categories ?? []),
-    [categoriesRes?.data?.categories],
+    () => filterStartCircleCategories(categoriesRes?.categories ?? []),
+    [categoriesRes?.categories],
   );
 
   const form = useForm<StartCircleFormValues>({
@@ -218,11 +214,11 @@ export function useStartCircleModalState() {
     if (!editRoomId) return;
     if (!window.confirm(C.confirmDeleteScheduled)) return;
     try {
-      await deleteScheduledCircle(editRoomId).unwrap();
+      await deleteScheduledCircle(editRoomId);
       toast.success(C.toastDeleted);
       handleOpenChange(false);
     } catch (err: unknown) {
-      toast.error(getRtkMutationErrorMessage(err, C.toastDeleteError));
+      toast.error(getApiErrorMessage(err, C.toastDeleteError));
     }
   }, [editRoomId, deleteScheduledCircle, handleOpenChange]);
 
@@ -262,11 +258,11 @@ export function useStartCircleModalState() {
                 ? {}
                 : { invitedUserIds: Array.from(invitedPeerIds) }),
             },
-          }).unwrap();
+          });
           toast.success(C.toastUpdated);
           handleOpenChange(false);
         } catch (err: unknown) {
-          toast.error(getRtkMutationErrorMessage(err, C.toastUpdateError));
+          toast.error(getApiErrorMessage(err, C.toastUpdateError));
         }
         return;
       }
@@ -294,24 +290,22 @@ export function useStartCircleModalState() {
           advancedOptions: toApiAdvancedOptions(data.advanced),
           invitedUserIds:
             invitedPeerIds.size > 0 ? Array.from(invitedPeerIds) : undefined,
-        }).unwrap();
+        });
 
-        if (res.success) {
-          const invite = res.data.room.inviteCode;
-          const n = res.data.friendInvitesCreated ?? 0;
-          const inviteLine = invite
-            ? `Invite code: ${invite} · Share it for private joins.`
-            : "You are live — others can discover this circle.";
-          const friendsLine =
-            n > 0 ? `${n} friend invite${n === 1 ? "" : "s"} sent.` : null;
-          toast.success(res.message, {
-            description: [inviteLine, friendsLine].filter(Boolean).join(" "),
-          });
-          setInviteDialogOpen(false);
-          handleOpenChange(false);
-        }
+        const invite = res.data.room.inviteCode;
+        const n = res.data.friendInvitesCreated ?? 0;
+        const inviteLine = invite
+          ? `Invite code: ${invite} · Share it for private joins.`
+          : "You are live — others can discover this circle.";
+        const friendsLine =
+          n > 0 ? `${n} friend invite${n === 1 ? "" : "s"} sent.` : null;
+        toast.success(res.message ?? "Circle created", {
+          description: [inviteLine, friendsLine].filter(Boolean).join(" "),
+        });
+        setInviteDialogOpen(false);
+        handleOpenChange(false);
       } catch (err: unknown) {
-        toast.error(getRtkMutationErrorMessage(err, C.toastCreateError));
+        toast.error(getApiErrorMessage(err, C.toastCreateError));
       }
     },
     [

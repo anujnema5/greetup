@@ -1,7 +1,7 @@
-import { getRtkQueryErrorCode, getRtkQueryErrorMessage } from "@/lib/api/rtk-query-error";
+import { getApiErrorCode, getApiErrorMessage } from "@/lib/api/fetch-client";
 import type { RoomRtcState, RtcTokenPayload } from "@/features/rtc/types/rtc-api.types";
 
-/** Snapshot of `useGetRtcTokenQuery` fields we need (avoids coupling to full hook result type). */
+/** Snapshot of RTC token query fields we need (avoids coupling to full hook result type). */
 export type RtcTokenQuerySnapshot = {
   data?: RtcTokenPayload;
   error?: unknown;
@@ -13,7 +13,7 @@ export type RtcTokenQuerySnapshot = {
 };
 
 /**
- * Maps RTK Query RTC token state into provider-friendly shape.
+ * Maps RTC token query state into provider-friendly shape.
  * When `skip` is true (no room / auth not ready), loading and error are suppressed.
  */
 export function deriveRoomRtcState(skip: boolean, q: RtcTokenQuerySnapshot): RoomRtcState {
@@ -32,8 +32,10 @@ export function deriveRoomRtcState(skip: boolean, q: RtcTokenQuerySnapshot): Roo
   const rtcToken = q.isSuccess && q.data ? q.data.token : null;
   const rtcTokenExpiresInSec = q.isSuccess && q.data ? q.data.expiresInSec : null;
   const rtcTokenLoading = !q.isSuccess && !q.isError && (q.isLoading || q.isFetching);
-  const rtcTokenError = q.isError ? getRtkQueryErrorMessage(q.error ?? "Unknown error") : null;
-  const rtcTokenErrorCode = q.isError ? getRtkQueryErrorCode(q.error ?? null) : null;
+  const rtcTokenError = q.isError
+    ? getApiErrorMessage(q.error ?? "Unknown error", "Unknown error")
+    : null;
+  const rtcTokenErrorCode = q.isError ? getApiErrorCode(q.error ?? null) : null;
 
   return {
     rtcToken,

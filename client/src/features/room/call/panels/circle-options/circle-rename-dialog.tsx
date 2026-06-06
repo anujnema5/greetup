@@ -11,8 +11,8 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import { useUpdateRoomTitleMutation } from "@/features/room/api/room-api";
-import { getRtkMutationErrorMessage } from "@/lib/api/rtk-mutation-error";
+import { useUpdateRoomTitle } from "@/features/room/api/room.mutations";
+import { getApiErrorMessage } from "@/lib/api/fetch-client";
 import {
   IN_CALL_DIALOG_CONTENT_Z,
   IN_CALL_DIALOG_OVERLAY_Z,
@@ -38,7 +38,7 @@ export function CircleRenameDialog({
   displayTitle,
 }: CircleRenameDialogProps) {
   const [draft, setDraft] = useState(displayTitle);
-  const [updateTitle, { isLoading }] = useUpdateRoomTitleMutation();
+  const { mutateAsync: updateTitle, isPending: isLoading } = useUpdateRoomTitle();
 
   useEffect(() => {
     if (!open) return;
@@ -62,11 +62,11 @@ export function CircleRenameDialog({
       return;
     }
     try {
-      await updateTitle({ roomId, title: next }).unwrap();
+      await updateTitle({ roomId, title: next });
       toast.success("Circle name saved");
       handleOpenChange(false);
     } catch (err: unknown) {
-      toast.error(getRtkMutationErrorMessage(err, "Could not save name"));
+      toast.error(getApiErrorMessage(err, "Could not save name"));
     }
   };
 

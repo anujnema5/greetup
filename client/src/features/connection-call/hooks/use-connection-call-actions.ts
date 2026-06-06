@@ -6,13 +6,13 @@ import { toast } from 'sonner';
 import { stashCircleRoomBootstrap } from '@/features/matching/lib/circle-room-bootstrap';
 import { circleRoomPath } from '@/features/room/lib/navigation/circle-routes';
 import { setRoomReturnPath } from '@/features/room/lib/session/room-return-path';
-import { getRtkMutationErrorMessage } from '@/lib/api/rtk-mutation-error';
+import { getApiErrorMessage } from '@/lib/api/fetch-client';
 import {
-  useCancelConnectionCallMutation,
-  useInitiateConnectionCallMutation,
-  useMarkConnectionCallMissedMutation,
-  useRespondConnectionCallMutation,
-} from '../api/connection-call-api';
+  useCancelConnectionCall,
+  useInitiateConnectionCall,
+  useMarkConnectionCallMissed,
+  useRespondConnectionCall,
+} from '../api/connection-call.mutations';
 import { applyConnectionCallMediaIntent } from '../lib/call-media-intent';
 import {
   clearOutgoingCall,
@@ -29,10 +29,10 @@ type StartCallPeer = {
 export function useConnectionCallActions() {
   const router = useRouter();
   const pathname = usePathname();
-  const [initiate, initiateState] = useInitiateConnectionCallMutation();
-  const [respond, respondState] = useRespondConnectionCallMutation();
-  const [cancel, cancelState] = useCancelConnectionCallMutation();
-  const [markMissed] = useMarkConnectionCallMissedMutation();
+  const { mutateAsync: initiate, isPending: isStarting } = useInitiateConnectionCall();
+  const { mutateAsync: respond, isPending: isResponding } = useRespondConnectionCall();
+  const { mutateAsync: cancel, isPending: isCancelling } = useCancelConnectionCall();
+  const { mutateAsync: markMissed } = useMarkConnectionCallMissed();
 
   const joinCallRoom = useCallback(
     (roomId: string, peerUserId: string, mode: ConnectionCallMode) => {
@@ -52,7 +52,7 @@ export function useConnectionCallActions() {
       peer: StartCallPeer,
     ) => {
       try {
-        const result = await initiate({ conversationId, mode }).unwrap();
+        const result = await initiate({ conversationId, mode });
         setOutgoingCall({
           ...result,
           startedAt: Date.now(),
@@ -63,7 +63,7 @@ export function useConnectionCallActions() {
         joinCallRoom(result.roomId, peerUserId, mode);
         return result;
       } catch (e: unknown) {
-        toast.error(getRtkMutationErrorMessage(e, 'Could not start call'));
+        toast.error(getApiErrorMessage(e, 'Could not start call'));
         return null;
       }
     },
@@ -73,11 +73,11 @@ export function useConnectionCallActions() {
   const acceptCall = useCallback(
     async (requestId: string, roomId: string, callerUserId: string, mode: ConnectionCallMode) => {
       try {
-        const result = await respond({ requestId, accept: true }).unwrap();
+        const result = await respond({ requestId, accept: true });
         if (result.accepted) joinCallRoom(roomId, callerUserId, mode);
         return result;
       } catch (e: unknown) {
-        toast.error(getRtkMutationErrorMessage(e, 'Could not accept call'));
+        toast.error(getApiErrorMessage(e, 'Could not accept call'));
         return null;
       }
     },
@@ -87,10 +87,10 @@ export function useConnectionCallActions() {
   const declineCall = useCallback(
     async (requestId: string) => {
       try {
-        await respond({ requestId, accept: false }).unwrap();
+        await respond({ requestId, accept: false });
         return true;
       } catch (e: unknown) {
-        toast.error(getRtkMutationErrorMessage(e, 'Could not decline call'));
+        toast.error(getApiErrorMessage(e, 'Could not decline call'));
         return false;
       }
     },
@@ -100,7 +100,7 @@ export function useConnectionCallActions() {
   const cancelCall = useCallback(
     async (requestId: string, reason: 'cancelled' | 'no_answer' = 'cancelled') => {
       try {
-        await cancel({ requestId, reason }).unwrap();
+        await cancel({ requestId, reason });
         return true;
       } catch {
         return false;
@@ -112,7 +112,7 @@ export function useConnectionCallActions() {
   const markCallMissed = useCallback(
     async (requestId: string) => {
       try {
-        await markMissed({ requestId }).unwrap();
+        await markMissed({ requestId });
         return true;
       } catch {
         return false;
@@ -133,8 +133,8 @@ export function useConnectionCallActions() {
     cancelCall,
     markCallMissed,
     onCallConnected,
-    isStarting: initiateState.isLoading,
-    isResponding: respondState.isLoading,
-    isCancelling: cancelState.isLoading,
+    isStarting,
+    isResponding,
+    isCancelling,
   };
 }

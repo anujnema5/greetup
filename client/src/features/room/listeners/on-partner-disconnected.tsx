@@ -2,16 +2,18 @@
 
 import { useCallback, useEffect, useRef } from "react";
 import { useParams, usePathname, useRouter } from "next/navigation";
-import { useAppDispatch, useAppSelector } from "@/lib/redux/hooks";
 import {
   selectActiveRoomId,
   selectIsVideoSessionActive,
   selectRoomPhase,
-} from "@/lib/redux/selectors/room-selectors";
-import { beginSearchingNextCall, endVideoSession } from "@/lib/redux/slices/room-slice";
+  useRoomStore,
+} from "@/features/room/state/room.store";
 import { useRtcSocketContext, remotePeerIdsStableKey, remotePeerCountFromStableKey } from "@/features/rtc";
 import { useMatchmaking } from "@/features/matching";
-import { useGetRoomQuery, useLeaveRoomMutation } from "@/features/room/api/room-api";
+import type { MatchPartnerSkippedPayload } from "@/features/matching/hooks/match-socket-types";
+import { useGetRoom } from "@/features/room/api/room.queries";
+import { useSocket } from "@/lib/socket";
+import { useLeaveRoom } from "@/features/room/api/room.mutations";
 import { messagesDirectConversationPath } from "@/features/connection-call/lib/call-navigation";
 import {
   DIRECT_CALL_NETWORK_RECOVERY_TIMEOUT_MS,
@@ -30,6 +32,12 @@ import {
   isConnectionCallSession,
   isMatchSession,
 } from "@/features/room/lib/session/room-session-kind";
+import {
+  isLocalCallEndInProgress,
+  markDirectMatchPartnerSignalHandled,
+  registerMatchRtcFallbackCancel,
+  wasDirectMatchPartnerSignalHandled,
+} from "@/features/room/lib/call/direct-match-leave-guard";
 
 /**
  * Direct 1:1 calls: match restarts search when the peer leaves; connection calls end and
@@ -37,19 +45,21 @@ import {
  * friends join late.
  */
 export function OnPartnerDisconnected() {
-  const dispatch = useAppDispatch();
+  const beginSearchingNextCall = useRoomStore((s) => s.beginSearchingNextCall);
+  const endVideoSession = useRoomStore((s) => s.endVideoSession);
   const params = useParams();
   const pathname = usePathname();
   const router = useRouter();
   const routeRoomId = resolveCircleRouteRoomId(params, pathname);
-  const activeRoomId = useAppSelector(selectActiveRoomId);
+  const activeRoomId = useRoomStore(selectActiveRoomId);
+  const { socket } = useSocket();
   const matchmaking = useMatchmaking();
   const matchmakingStatus = matchmaking.status;
   const waitingForPeerConnect = matchmaking.waitingForPeerConnect;
-  const sessionActive = useAppSelector(selectIsVideoSessionActive);
-  const roomPhase = useAppSelector(selectRoomPhase);
+  const sessionActive = useRoomStore(selectIsVideoSessionActive);
+  const roomPhase = useRoomStore(selectRoomPhase);
   const { peers, rtcRoomType } = useRtcSocketContext();
-  const [leaveRoom] = useLeaveRoomMutation();
+  const { mutateAsync: leaveRoom } = useLeaveRoom();
 
   const remotePeerKey = remotePeerIdsStableKey(Object.keys(peers));
   const remotePeerCount = remotePeerCountFromStableKey(remotePeerKey);
@@ -61,8 +71,8 @@ export function OnPartnerDisconnected() {
     remotePeerCountRef.current = remotePeerCount;
   }, [remotePeerCount]);
 
-  const { data: roomData, isFetching: roomFetching } = useGetRoomQuery(callRoomId ?? "", {
-    skip: !callRoomId || !sessionActive,
+  const { data: roomData, isFetching: roomFetching } = useGetRoom(callRoomId ?? "", {
+    enabled: Boolean(callRoomId) && sessionActive,
   });
 
   const hadRemotePeerRef = useRef(false);
@@ -96,17 +106,18 @@ export function OnPartnerDisconnected() {
   }, []);
 
   const beginSearchForNextCandidate = useCallback(() => {
+    if (isLocalCallEndInProgress()) return;
     if (roomPhase === "searching") return;
     if (handledRef.current) return;
     handledRef.current = true;
     clearPartnerLeftTimer();
     clearNetworkRecoveryTimer();
     clearSearchRetryTimer();
-    dispatch(beginSearchingNextCall());
+    beginSearchingNextCall();
     goToCircleSearch(router);
     const roomIdToLeave = activeRoomId ?? resolveApiRoomId(routeRoomId);
     const leavePromise = roomIdToLeave
-      ? leaveRoom({ roomId: roomIdToLeave }).unwrap()
+      ? leaveRoom({ roomId: roomIdToLeave })
       : Promise.resolve();
     void leavePromise.catch(() => {}).finally(() => {
       void matchmaking.restartSearch();
@@ -116,7 +127,7 @@ export function OnPartnerDisconnected() {
     clearNetworkRecoveryTimer,
     clearPartnerLeftTimer,
     clearSearchRetryTimer,
-    dispatch,
+    beginSearchingNextCall,
     leaveRoom,
     matchmaking,
     roomPhase,
@@ -131,7 +142,7 @@ export function OnPartnerDisconnected() {
     clearNetworkRecoveryTimer();
     clearSearchRetryTimer();
     clearRoomStorage();
-    dispatch(endVideoSession());
+    endVideoSession();
     const roomIdToLeave = activeRoomId ?? resolveApiRoomId(routeRoomId);
     const conversationId =
       roomData?.sessionKind === "connection_call" ? roomData.conversationId : undefined;
@@ -140,7 +151,7 @@ export function OnPartnerDisconnected() {
       : consumeRoomReturnPath("/home");
     void matchmaking.handleCancel().catch(() => {});
     const leavePromise = roomIdToLeave
-      ? leaveRoom({ roomId: roomIdToLeave }).unwrap()
+      ? leaveRoom({ roomId: roomIdToLeave })
       : Promise.resolve();
     void leavePromise.catch(() => {}).finally(() => {
       router.replace(dest);
@@ -150,7 +161,7 @@ export function OnPartnerDisconnected() {
     clearNetworkRecoveryTimer,
     clearPartnerLeftTimer,
     clearSearchRetryTimer,
-    dispatch,
+    endVideoSession,
     leaveRoom,
     matchmaking,
     roomData,
@@ -210,9 +221,16 @@ export function OnPartnerDisconnected() {
         ? resolveConnectionCallPeerLeftDebounceMs()
         : DIRECT_CALL_RECOVERY.matchPeerLeftDebounceMs;
 
+      registerMatchRtcFallbackCancel(clearPartnerLeftTimer);
       timersRef.current.partnerLeft = window.setTimeout(() => {
         timersRef.current.partnerLeft = null;
         if (remotePeerCountRef.current >= 1) return;
+        if (isLocalCallEndInProgress()) return;
+        if (!useRoomStore.getState().ui.sessionActive) return;
+        if (useRoomStore.getState().session.phase === "searching") return;
+        const roomIdNow =
+          useRoomStore.getState().session.activeRoomId ?? resolveApiRoomId(routeRoomId);
+        if (roomIdNow && wasDirectMatchPartnerSignalHandled(roomIdNow)) return;
 
         if (isConnectionCall) {
           if (timersRef.current.networkRecovery != null) return;
@@ -249,7 +267,34 @@ export function OnPartnerDisconnected() {
   ]);
 
   useEffect(() => {
+    const onPartnerSkipped = (data: MatchPartnerSkippedPayload) => {
+      if (isLocalCallEndInProgress()) return;
+      if (!sessionActive || roomPhase === "searching" || handledRef.current) return;
+      const ourRoomId = activeRoomId ?? resolveApiRoomId(routeRoomId);
+      if (!data?.roomId || !ourRoomId || data.roomId !== ourRoomId) return;
+      if (!markDirectMatchPartnerSignalHandled(data.roomId)) return;
+      beginSearchForNextCandidate();
+    };
+
+    socket.on("match:partner_skipped", onPartnerSkipped);
+    return () => {
+      socket.off("match:partner_skipped", onPartnerSkipped);
+    };
+  }, [
+    activeRoomId,
+    beginSearchForNextCandidate,
+    routeRoomId,
+    roomPhase,
+    sessionActive,
+    socket,
+  ]);
+
+  useEffect(() => {
     if (!sessionActive || roomPhase !== "searching") {
+      clearSearchRetryTimer();
+      return;
+    }
+    if (isLocalCallEndInProgress()) {
       clearSearchRetryTimer();
       return;
     }

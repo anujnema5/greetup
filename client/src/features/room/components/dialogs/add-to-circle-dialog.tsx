@@ -14,12 +14,12 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import { useRoomInviteMutation } from "@/features/room/api/room-api";
-import { getRtkMutationErrorMessage } from "@/lib/api/rtk-mutation-error";
+import { useRoomInvite } from "@/features/room/api/room.mutations";
+import { getApiErrorMessage } from "@/lib/api/fetch-client";
 import {
-  useGetMyConnectionsQuery,
-  usePeersCallStatusQuery,
-} from "@/features/connections/api/connections-api";
+  useMyConnections,
+  usePeersCallStatus,
+} from "@/features/connections/api/connections.queries";
 import type { ConnectionListItem } from "@/features/connections/types/connections-api.types";
 import { cn } from "@/lib/utils";
 import {
@@ -52,34 +52,33 @@ export function AddToCircleDialog({
   const [search, setSearch] = useState("");
   const exclude = useMemo(() => new Set(excludeUserIds.filter(Boolean)), [excludeUserIds]);
 
-  const { data, isLoading } = useGetMyConnectionsQuery(
+  const { data, isLoading } = useMyConnections(
     { filter: "accepted", limit: 50, page: 1 },
-    { skip: !open },
+    { enabled: open },
   );
 
   const items = useMemo(() => {
-    const raw = data?.data?.items ?? [];
+    const raw = data?.items ?? [];
     return raw.filter(
       (i: ConnectionListItem) => i.status === "accepted" && !exclude.has(i.peer.userId),
     );
-  }, [data?.data?.items, exclude]);
+  }, [data?.items, exclude]);
 
-  const peerIdsKey = useMemo(() => {
-    const ids = items.map((i: ConnectionListItem) => i.peer.userId).sort();
-    return ids.join("|");
-  }, [items]);
+  const peerIds = useMemo(
+    () => items.map((i: ConnectionListItem) => i.peer.userId).sort(),
+    [items],
+  );
 
   const {
     data: statusMap,
     isFetching: statusLoading,
     refetch: refetchStatuses,
-  } = usePeersCallStatusQuery(peerIdsKey, {
-    skip: !open || peerIdsKey.length === 0,
-    // Always fetch fresh statuses whenever the dialog opens.
-    refetchOnMountOrArgChange: true,
+  } = usePeersCallStatus(peerIds, {
+    enabled: open && peerIds.length > 0,
+    refetchOnMount: true,
   });
 
-  const [sendRoomInvite] = useRoomInviteMutation();
+  const { mutateAsync: sendRoomInvite } = useRoomInvite();
   const [invitingUserId, setInvitingUserId] = useState<string | null>(null);
 
   const filtered = useMemo(() => {
@@ -116,12 +115,12 @@ export function AddToCircleDialog({
     }
     try {
       setInvitingUserId(targetUserId);
-      await sendRoomInvite({ roomId, inviteeUserId: targetUserId }).unwrap();
+      await sendRoomInvite({ roomId, inviteeUserId: targetUserId });
       toast.success(`Invite sent to ${peerLabel(item)}`);
       onOpenChange(false);
       setSearch("");
     } catch (e: unknown) {
-      toast.error(getRtkMutationErrorMessage(e, "Could not send invite"));
+      toast.error(getApiErrorMessage(e, "Could not send invite"));
     } finally {
       setInvitingUserId(null);
     }

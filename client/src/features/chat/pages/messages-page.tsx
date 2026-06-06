@@ -16,11 +16,9 @@ import { useSession } from '@/lib/auth-client';
 
 import { cn } from '@/lib/utils';
 
-import { missedConnectionCallCleared } from '@/features/connection-call';
+import { useConnectionCallStore } from '@/features/connection-call/state/connection-call.store';
 
-import { useAppDispatch } from '@/lib/redux/hooks';
-
-import { useGetConversationQuery, useListConversationsQuery } from '../api/chat-api';
+import { useConversation, useListConversations } from '../api/chat.queries';
 
 import { ChatPanel } from '../components/chat-panel';
 
@@ -59,8 +57,6 @@ interface MessagesPageProps {
 
 export function MessagesPage({ urlKind, urlConversationId }: MessagesPageProps) {
 
-  const dispatch = useAppDispatch();
-
   const router = useRouter();
 
   const pathname = usePathname();
@@ -71,7 +67,7 @@ export function MessagesPage({ urlKind, urlConversationId }: MessagesPageProps) 
 
 
 
-  const { data: conversations = [] } = useListConversationsQuery();
+  const { data: conversations = [] } = useListConversations();
 
   const listConv = urlConversationId
     ? conversations.find((c) => c.id === urlConversationId)
@@ -85,11 +81,7 @@ export function MessagesPage({ urlKind, urlConversationId }: MessagesPageProps) 
 
     isFetching: convFetching,
 
-  } = useGetConversationQuery(urlConversationId!, {
-
-    skip: !urlConversationId,
-
-  });
+  } = useConversation(urlConversationId, Boolean(urlConversationId));
 
 
 
@@ -117,9 +109,9 @@ export function MessagesPage({ urlKind, urlConversationId }: MessagesPageProps) 
 
     if (!activeConv?.id) return;
 
-    dispatch(missedConnectionCallCleared(activeConv.id));
+    useConnectionCallStore.getState().clearMissed(activeConv.id);
 
-  }, [activeConv?.id, dispatch]);
+  }, [activeConv?.id]);
 
 
 

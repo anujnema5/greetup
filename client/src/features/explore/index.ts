@@ -2,8 +2,10 @@ export { ExplorePage } from "./pages/explore-page";
 export { useExploreSearch } from "./hooks/use-explore-search";
 export { useExploreBrowseNiches } from "./hooks/use-explore-browse-niches";
 export { useExploreNicheRoomsModal } from "./hooks/use-explore-niche-rooms-modal";
-export { userSearchApi, useSearchUsersQuery, useLazySearchUsersQuery } from "./api/user-search-api";
-export { suggestedPeopleApi, useGetSuggestedPeopleQuery } from "./api/suggested-people-api";
+export { useBrowseNiches, useFetchBrowseNicheRooms } from "./api/browse-niches.queries";
+export { useSearchUsers } from "./api/user-search.queries";
+export { useSuggestedPeople } from "./api/suggested-people.queries";
+export { invalidateSuggestedPeopleCache } from "./lib/invalidate-suggested-people-cache";
 export {
   SUGGESTED_PEOPLE_PAGE_SIZE,
   SUGGESTED_PEOPLE_FETCH_LIMIT,

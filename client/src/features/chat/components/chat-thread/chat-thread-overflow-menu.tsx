@@ -16,13 +16,13 @@ import {
 import {
   BlockUserDialog,
   UnblockUserDialog,
-  useUnblockUserMutation,
+  useUnblockUser,
 } from '@/features/blocks';
 import { useBlockUserAction } from '@/features/blocks/hooks/use-block-user-action';
-import { getRtkMutationErrorMessage } from '@/lib/api/rtk-mutation-error';
+import { getApiErrorMessage } from '@/lib/api/fetch-client';
 import { cn } from '@/lib/utils';
 
-import { useDeleteConversationMutation } from '../../api/chat-api';
+import { useDeleteConversation } from '../../api/chat.mutations';
 import { conversationDisplayTitle } from '../../lib/conversation-display';
 import {
   getDmPeerBlockUserPeer,
@@ -70,8 +70,8 @@ export function ChatThreadOverflowMenu({
     redirectTo: null,
     conversationId: conversation.id,
   });
-  const [unblockUser, { isLoading: isUnblocking }] = useUnblockUserMutation();
-  const [deleteConversation, { isLoading: isDeleting }] = useDeleteConversationMutation();
+  const { mutateAsync: unblockUser, isPending: isUnblocking } = useUnblockUser();
+  const { mutateAsync: deleteConversation, isPending: isDeleting } = useDeleteConversation();
 
   const handleBlockConfirm = () => {
     if (!peer) return;
@@ -87,26 +87,24 @@ export function ChatThreadOverflowMenu({
       peerUsername: peer.username,
       conversationId: conversation.id,
     })
-      .unwrap()
       .then(() => {
         toast.success(`${peer.displayTitle} unblocked`);
         setUnblockDialogOpen(false);
       })
       .catch((error: unknown) => {
-        toast.error(getRtkMutationErrorMessage(error, 'Could not unblock user'));
+        toast.error(getApiErrorMessage(error, 'Could not unblock user'));
       });
   };
 
   const handleDeleteConfirm = () => {
     void deleteConversation(conversation.id)
-      .unwrap()
       .then(() => {
         toast.success(isCircle ? 'Chat left' : 'Chat deleted');
         setDeleteDialogOpen(false);
         router.push('/messages');
       })
       .catch((error: unknown) => {
-        toast.error(getRtkMutationErrorMessage(error, 'Could not remove chat'));
+        toast.error(getApiErrorMessage(error, 'Could not remove chat'));
       });
   };
 
