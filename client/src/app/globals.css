@@ -395,3 +395,18 @@ html {
   backface-visibility: hidden;
 }
 
+@keyframes landing-match-beam-flow {
+  0% {
+    stroke-dashoffset: 0;
+  }
+  100% {
+    stroke-dashoffset: -24;
+  }
+}
+
+.landing-match-line {
+  stroke-dasharray: 6 4;
+  animation: landing-match-beam-flow 0.75s linear infinite;
+  filter: drop-shadow(0 0 4px oklch(88% 0.11 105 / 0.6));
+}
+
