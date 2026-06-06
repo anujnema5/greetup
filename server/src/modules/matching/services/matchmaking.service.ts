@@ -1,5 +1,6 @@
 import config from "@/shared/config/config";
 import logger from "@/core/logging";
+import { emitToUser } from "@/core/socket/socket";
 import { clearUserActiveRtcRoom, getUserActiveRtcRoomId } from "@/modules/rooms/services/rtc/user-active-rtc-room-redis.service";
 import { finalizeConnectionCallRoomSession } from "@/modules/rooms/services/direct/finalize-connection-call-room.service";
 import { finalizeDirectMatchRoomSession } from "@/modules/rooms/services/direct/finalize-direct-match-room.service";
@@ -173,6 +174,27 @@ async function directRoomIdForExplicitLeave(
   return getUserActiveRtcRoomId(userId);
 }
 
+/** Tells the remaining 1:1 match peer to rematch when the other user skips or leaves. */
+async function notifyDirectMatchPeerSkipped(roomId: string, skippingUserId: string): Promise<void> {
+  const room = await roomsRepository.findRoomById(roomId);
+  if (!room || room.roomType !== "direct" || room.sessionKind !== "match") {
+    return;
+  }
+
+  const participantIds = await roomParticipantsRepository.listAllParticipantUserIds(roomId);
+  const peerUserId = participantIds.find((id) => id !== skippingUserId);
+  if (!peerUserId) {
+    return;
+  }
+
+  logger.info("[leaveRoom] notifying peer to rematch after partner skip", {
+    roomId,
+    skippingUserId,
+    peerUserId,
+  });
+  emitToUser(peerUserId, "match:partner_skipped", { roomId });
+}
+
 export const findMatchService = async (userId: string, requestId: string) => {
   const res = await matchEngineRequest("POST", "/match/find", { userId, requestId });
   await assertMatchEngineOk(res, "Match engine /match/find");
@@ -224,6 +246,10 @@ export const leaveRoomService = async (
   const roomId = await directRoomIdForExplicitLeave(userId, explicitRoomId);
   const room = roomId ? await roomsRepository.findRoomById(roomId) : null;
   const isConnectionCall = room?.sessionKind === "connection_call";
+
+  if (roomId && room?.roomType === "direct" && room.sessionKind === "match") {
+    await notifyDirectMatchPeerSkipped(roomId, userId);
+  }
 
   try {
     if (!isConnectionCall) {

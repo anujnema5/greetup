@@ -10,7 +10,9 @@ import {
 } from "@/features/room/state/room.store";
 import { useRtcSocketContext, remotePeerIdsStableKey, remotePeerCountFromStableKey } from "@/features/rtc";
 import { useMatchmaking } from "@/features/matching";
+import type { MatchPartnerSkippedPayload } from "@/features/matching/hooks/match-socket-types";
 import { useGetRoom } from "@/features/room/api/room.queries";
+import { useSocket } from "@/lib/socket";
 import { useLeaveRoom } from "@/features/room/api/room.mutations";
 import { messagesDirectConversationPath } from "@/features/connection-call/lib/call-navigation";
 import {
@@ -44,6 +46,7 @@ export function OnPartnerDisconnected() {
   const router = useRouter();
   const routeRoomId = resolveCircleRouteRoomId(params, pathname);
   const activeRoomId = useRoomStore(selectActiveRoomId);
+  const { socket } = useSocket();
   const matchmaking = useMatchmaking();
   const matchmakingStatus = matchmaking.status;
   const waitingForPeerConnect = matchmaking.waitingForPeerConnect;
@@ -247,6 +250,27 @@ export function OnPartnerDisconnected() {
     clearPartnerLeftTimer,
     beginSearchForNextCandidate,
     endConnectionCallAfterPeerLeft,
+  ]);
+
+  useEffect(() => {
+    const onPartnerSkipped = (data: MatchPartnerSkippedPayload) => {
+      if (!sessionActive || roomPhase === "searching" || handledRef.current) return;
+      const ourRoomId = activeRoomId ?? resolveApiRoomId(routeRoomId);
+      if (!data?.roomId || !ourRoomId || data.roomId !== ourRoomId) return;
+      beginSearchForNextCandidate();
+    };
+
+    socket.on("match:partner_skipped", onPartnerSkipped);
+    return () => {
+      socket.off("match:partner_skipped", onPartnerSkipped);
+    };
+  }, [
+    activeRoomId,
+    beginSearchForNextCandidate,
+    routeRoomId,
+    roomPhase,
+    sessionActive,
+    socket,
   ]);
 
   useEffect(() => {

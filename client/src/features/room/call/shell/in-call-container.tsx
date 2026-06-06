@@ -218,7 +218,7 @@ export function InCallContainer({
   }, [embeddedCallPolicy]);
 
   const searchingForNextCandidate =
-    isMatch && !isGroupRoom && roomPhase === "searching";
+    !isGroupRoom && !isConnectionCall && roomPhase === "searching";
   const matchmaking = useMatchmaking();
   const directCallMatchSearchFailed =
     searchingForNextCandidate && matchmaking.status === "error";

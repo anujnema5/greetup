@@ -122,23 +122,23 @@ export function useRoomVideo(roomId: string, options?: UseRoomVideoOptions) {
     if (skipHandledRef.current) return;
     skipHandledRef.current = true;
     const apiRoomId = resolveApiRoomId(roomId);
-    beginSearchingNextCall();
-    goToCircleSearch(router);
-    if (isDbCircleCall) {
-      void leaveCircleRtcOnly()
-        .catch(() => {})
-        .finally(() => {
-          void matchmaking.restartSearch();
-        });
-    } else if (apiRoomId) {
-      void leaveRoom({ roomId: apiRoomId })
-        .catch(() => {})
-        .finally(() => {
-          void matchmaking.restartSearch();
-        });
-    } else {
-      void matchmaking.restartSearch();
-    }
+
+    const run = async () => {
+      try {
+        if (isDbCircleCall) {
+          await leaveCircleRtcOnly();
+        } else if (apiRoomId) {
+          await leaveRoom({ roomId: apiRoomId });
+        }
+      } catch {
+        /* best-effort — still enter search so the user is not stuck in-room */
+      }
+      beginSearchingNextCall();
+      goToCircleSearch(router);
+      await matchmaking.restartSearch().catch(() => {});
+    };
+
+    void run();
   }, [
     beginSearchingNextCall,
     canSkipAndRematch,
