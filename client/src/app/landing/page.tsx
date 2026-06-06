@@ -48,6 +48,7 @@ import {
 import { cn } from "@/lib/utils";
 import { useSession } from "@/lib/auth-client";
 import { EARLY_RELEASE } from "@/lib/copy/user-messages";
+import { FOOTER_LINKS } from "@/lib/copy/marketing-pages";
 import { HeroMatchDemo } from "./hero-match-demo";
 
 /* Mobile / reduced-motion: drop scroll-linked nav, fixed blur layers, and looping animations */
@@ -1220,10 +1221,10 @@ function LandingPageInner() {
         <RevealSection className="mx-auto max-w-7xl flex flex-col sm:flex-row items-center justify-between gap-6">
           <motion.div variants={fadeIn}><Logo /></motion.div>
           <motion.div variants={stagger} className="flex flex-wrap justify-center gap-x-1 gap-y-1">
-            {["About","Privacy","Terms","Community Guidelines","Contact"].map((link) => (
-              <motion.div key={link} variants={fadeIn}>
+            {FOOTER_LINKS.map(({ label, href }) => (
+              <motion.div key={href} variants={fadeIn}>
                 <Button variant="ghost" size="sm" className="text-white/35 hover:text-white/60 hover:bg-white/5 text-xs rounded-full" asChild>
-                  <a href="#">{link}</a>
+                  <Link href={href}>{label}</Link>
                 </Button>
               </motion.div>
             ))}

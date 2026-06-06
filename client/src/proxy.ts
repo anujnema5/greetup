@@ -48,6 +48,7 @@ const COMMON_ROUTES = [
   "/faq",
   "/terms",
   "/privacy",
+  "/community-guidelines",
 ];
 
 // ==================== CACHE CONFIGURATION ====================

@@ -31,10 +31,9 @@ const plusJakartaSans = Plus_Jakarta_Sans({
 });
 
 
-export const metadata: Metadata = {
-  title: "Greetup",
-  description: "Find people who get you.",
-};
+import { rootMetadata } from "@/lib/site";
+
+export const metadata: Metadata = rootMetadata;
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
