@@ -2,7 +2,6 @@
 
 import { useEffect, useReducer } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { Check, MessageCircle, Video } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const EASE: [number, number, number, number] = [0.22, 1, 0.36, 1];
@@ -11,12 +10,13 @@ type Person = {
   name: string;
   tag: string;
   letter: string;
-  color: string;
+  avatar: string;
+  note?: string;
 };
 
 type StoryStep = {
   id: string;
-  category: string;
+  filter: string;
   preference: string;
   scanLabel: string;
   switchLabel?: string;
@@ -27,58 +27,46 @@ type StoryStep = {
 const STORY: StoryStep[] = [
   {
     id: "profession",
-    category: "Profession",
+    filter: "By profession",
     preference: "Backend engineers",
-    scanLabel: "Scanning for backend engineers…",
-    you: {
-      name: "You",
-      tag: "Backend · Node",
-      letter: "Y",
-      color: "from-violet-500 to-indigo-600",
-    },
+    scanLabel: "Finding backend engineers…",
+    you: { name: "You", tag: "Backend · Node", letter: "Y", avatar: "oklch(58% 0.14 285)" },
     peer: {
       name: "Aarav",
       tag: "Backend · Go",
       letter: "A",
-      color: "from-violet-500 to-purple-600",
+      avatar: "oklch(52% 0.12 295)",
+      note: "Hey — saw you’re on Node too",
     },
   },
   {
     id: "interest",
-    category: "Interests",
+    filter: "By interests",
     preference: "Artists",
-    scanLabel: "Scanning for artists…",
-    switchLabel: "Preference updated",
-    you: {
-      name: "You",
-      tag: "Illustrator · SF",
-      letter: "Y",
-      color: "from-rose-500 to-pink-500",
-    },
+    scanLabel: "Finding artists…",
+    switchLabel: "Switched to interests",
+    you: { name: "You", tag: "Illustrator · SF", letter: "Y", avatar: "oklch(62% 0.16 15)" },
     peer: {
       name: "Mei",
       tag: "Visual artist · NYC",
       letter: "M",
-      color: "from-rose-500 to-pink-500",
+      avatar: "oklch(58% 0.14 10)",
+      note: "Love your sketch style!",
     },
   },
   {
     id: "open",
-    category: "Open",
-    preference: "Anyone you want to meet",
-    scanLabel: "Opening match pool…",
-    switchLabel: "Open matching",
-    you: {
-      name: "You",
-      tag: "Open to anyone",
-      letter: "Y",
-      color: "from-amber-500 to-orange-500",
-    },
+    filter: "Open match",
+    preference: "Anyone",
+    scanLabel: "Finding someone new…",
+    switchLabel: "Open to anyone",
+    you: { name: "You", tag: "Open to anyone", letter: "Y", avatar: "oklch(68% 0.12 75)" },
     peer: {
       name: "James",
       tag: "Jazz · Berlin",
       letter: "J",
-      color: "from-amber-500 to-orange-500",
+      avatar: "oklch(62% 0.11 65)",
+      note: "Want to jam sometime?",
     },
   },
 ];
@@ -98,9 +86,7 @@ const PHASE_MS: Record<Phase, number> = {
 type DemoState = { step: number; phase: Phase };
 
 function advanceDemo(state: DemoState): DemoState {
-  if (state.phase === "shift") {
-    return { ...state, phase: "scan" };
-  }
+  if (state.phase === "shift") return { ...state, phase: "scan" };
 
   const idx = PHASE_ORDER.indexOf(state.phase);
   const next = PHASE_ORDER[idx + 1];
@@ -121,142 +107,80 @@ function useDemoLoop(active: boolean) {
     return () => clearTimeout(id);
   }, [active, state.step, state.phase]);
 
-  if (!active) {
-    return { step: 0, phase: "live" as Phase };
-  }
+  if (!active) return { step: 0, phase: "live" as Phase };
   return state;
 }
 
-function ScanRing({ lite }: { lite: boolean }) {
-  if (lite) {
-    return (
-      <div className="relative flex size-10 shrink-0 items-center justify-center">
-        <div className="size-10 rounded-full border border-white/10 bg-white/4" />
-      </div>
-    );
-  }
-
-  return (
-    <div className="relative flex size-10 shrink-0 items-center justify-center">
-      <motion.div
-        className="absolute inset-0 rounded-full border border-[oklch(88%_0.11_105/0.25)]"
-        animate={{ scale: [1, 1.18, 1], opacity: [0.5, 0, 0.5] }}
-        transition={{ duration: 1.6, repeat: Infinity, ease: "easeOut" }}
-      />
-      <motion.div
-        className="absolute inset-1 rounded-full border border-[oklch(88%_0.11_105/0.18)]"
-        animate={{ scale: [1, 1.12, 1], opacity: [0.35, 0, 0.35] }}
-        transition={{ duration: 1.6, repeat: Infinity, ease: "easeOut", delay: 0.25 }}
-      />
-      <div className="relative size-10 rounded-full border border-white/8 bg-[oklch(12%_0.012_110)]">
-        <motion.div
-          className="absolute inset-x-2 top-1/2 h-px -translate-y-1/2 bg-linear-to-r from-transparent via-[oklch(88%_0.11_105/0.5)] to-transparent"
-          animate={{ rotate: 360 }}
-          transition={{ duration: 2.4, repeat: Infinity, ease: "linear" }}
-        />
-      </div>
-    </div>
-  );
-}
-
-function ProfileRow({
+function PersonCard({
   person,
-  linked,
+  highlight,
   lite,
-  side,
-  role,
 }: {
   person: Person;
-  linked: boolean;
+  highlight?: boolean;
   lite: boolean;
-  side: "you" | "peer";
-  role: string;
 }) {
-  const row = (
+  return (
     <div
       className={cn(
-        "relative flex items-center gap-3 rounded-xl px-3 py-3 transition-all duration-300",
-        linked && side === "peer" && "bg-[oklch(88%_0.11_105/0.04)] ring-1 ring-[oklch(88%_0.11_105/0.12)]",
-        side === "you" && "bg-white/2",
+        "flex flex-1 flex-col items-center gap-2 rounded-xl border px-3 py-3.5 text-center transition-colors duration-300",
+        highlight
+          ? "border-[oklch(88%_0.11_105/0.22)] bg-[oklch(88%_0.11_105/0.05)]"
+          : "border-white/7 bg-white/2",
       )}
     >
       <div
-        className={cn(
-          "flex size-11 shrink-0 items-center justify-center rounded-full bg-linear-to-br text-sm font-semibold text-white shadow-sm",
-          person.color,
-        )}
+        className="flex size-11 items-center justify-center rounded-full text-sm font-medium text-white/90"
+        style={{ backgroundColor: person.avatar }}
       >
         {person.letter}
       </div>
-      <div className="min-w-0 flex-1">
-        <p className="text-[10px] font-medium uppercase tracking-wider text-white/30">{role}</p>
-        <p className="mt-0.5 text-sm font-medium leading-none text-white">{person.name}</p>
-        <p className="mt-1 text-xs text-white/42">{person.tag}</p>
+      <div className="min-w-0 w-full">
+        <p className="truncate text-sm font-medium text-white/90">{person.name}</p>
+        <p className="mt-0.5 truncate text-[11px] text-white/42">{person.tag}</p>
       </div>
-      {linked && side === "peer" && (
-        <div className="flex size-7 shrink-0 items-center justify-center rounded-full bg-[oklch(88%_0.11_105/0.14)]">
-          <Check className="size-3.5 text-[oklch(88%_0.11_105)]" strokeWidth={2.5} />
-        </div>
-      )}
-    </div>
-  );
-
-  if (lite) return row;
-
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: side === "you" ? -8 : 8 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: side === "you" ? -4 : 4 }}
-      transition={{ duration: 0.32, ease: EASE }}
-    >
-      {row}
-    </motion.div>
-  );
-}
-
-function PeerSearching({ scanning, lite }: { scanning: boolean; lite: boolean }) {
-  return (
-    <div className="flex items-center gap-3 rounded-xl bg-white/2 px-3 py-3">
-      <ScanRing lite={lite || !scanning} />
-      <div className="min-w-0 flex-1">
-        <p className="text-[10px] font-medium uppercase tracking-wider text-white/30">Next match</p>
-        <p className="mt-0.5 text-sm text-white/55">
-          {scanning ? "Looking for a fit…" : "Waiting…"}
-        </p>
-      </div>
-      {scanning && !lite && (
-        <div className="flex gap-0.5">
-          {[0, 0.15, 0.3].map((d) => (
-            <motion.span
-              key={d}
-              className="size-1 rounded-full bg-[oklch(88%_0.11_105/0.7)]"
-              animate={{ opacity: [0.25, 1, 0.25] }}
-              transition={{ duration: 0.9, repeat: Infinity, delay: d }}
-            />
-          ))}
-        </div>
-      )}
-    </div>
-  );
-}
-
-function StepTabs({ step }: { step: number }) {
-  return (
-    <div className="flex items-center gap-0.5 rounded-lg bg-white/4 p-0.5">
-      {STORY.map((s, i) => (
-        <div
-          key={s.id}
-          className={cn(
-            "rounded-md px-2 py-0.5 text-[10px] font-medium transition-all duration-400",
-            i === step
-              ? "bg-[oklch(18%_0.013_110)] text-white/80 shadow-sm"
-              : "text-white/28",
-          )}
+      {highlight && !lite && (
+        <motion.span
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+          className="text-[10px] font-medium text-[oklch(88%_0.11_105/0.85)]"
         >
-          {s.category}
-        </div>
-      ))}
+          matched
+        </motion.span>
+      )}
+    </div>
+  );
+}
+
+function EmptySlot({ scanning, lite }: { scanning: boolean; lite: boolean }) {
+  return (
+    <div className="relative flex flex-1 flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-white/10 bg-white/2 px-3 py-3.5">
+      {scanning && !lite && (
+        <motion.div
+          className="pointer-events-none absolute inset-2 rounded-lg border border-[oklch(88%_0.11_105/0.2)]"
+          animate={{ opacity: [0.35, 0, 0.35] }}
+          transition={{ duration: 1.8, repeat: Infinity, ease: "easeOut" }}
+        />
+      )}
+      <div className="size-11 rounded-full bg-white/6" />
+      <p className="text-[11px] text-white/32">{scanning ? "Searching…" : "—"}</p>
+    </div>
+  );
+}
+
+function Connector({ active, lite }: { active: boolean; lite: boolean }) {
+  return (
+    <div className="flex w-8 shrink-0 flex-col items-center justify-center self-center">
+      <div className="h-px w-full bg-white/8" />
+      <motion.div
+        className={cn(
+          "my-1 size-1.5 rounded-full",
+          active ? "bg-[oklch(88%_0.11_105)]" : "bg-white/15",
+        )}
+        animate={active && !lite ? { scale: [1, 1.25, 1] } : undefined}
+        transition={{ duration: 1.4, repeat: Infinity, ease: "easeInOut" }}
+      />
+      <div className="h-px w-full bg-white/8" />
     </div>
   );
 }
@@ -268,146 +192,124 @@ export function HeroMatchDemo({ lite }: { lite: boolean }) {
   const peerVisible = lite || phase === "meet" || phase === "link" || phase === "live";
   const scanning = !lite && phase === "scan";
   const switching = !lite && phase === "shift";
+  const connectorActive = linked || phase === "meet" || phase === "link";
 
-  const statusLabel =
-    linked
-      ? "You're connected — say hi"
-      : switching
-        ? beat.switchLabel ?? "Updating…"
-        : scanning
-          ? beat.scanLabel
-          : phase === "meet"
-            ? "Match found"
-            : null;
+  const statusLabel = linked
+    ? "Connected"
+    : switching
+      ? beat.switchLabel
+      : scanning
+        ? beat.scanLabel
+        : phase === "meet"
+          ? `${beat.peer.name} looks like a fit`
+          : null;
 
   return (
-    <div className="relative w-full overflow-hidden rounded-2xl border border-white/7 bg-[oklch(15%_0.013_110)] shadow-[0_24px_64px_-28px_rgba(0,0,0,0.75)] sm:rounded-[1.35rem]">
-      <div
-        className="pointer-events-none absolute inset-0 opacity-80"
-        style={{
-          background: `
-            radial-gradient(ellipse 80% 55% at 50% -15%, oklch(88% 0.11 105 / 0.08) 0%, transparent 58%),
-            radial-gradient(ellipse 40% 30% at 100% 100%, oklch(65% 0.15 280 / 0.05) 0%, transparent 60%)
-          `,
-        }}
-        aria-hidden
-      />
-
-      <div className="relative flex items-center justify-between gap-3 border-b border-white/6 px-4 py-3 sm:px-5">
-        <span className="text-xs font-medium text-white/40">Match</span>
-        <StepTabs step={step} />
-        <span
-          className={cn(
-            "shrink-0 text-[11px] font-medium",
-            linked ? "text-[oklch(88%_0.11_105/0.85)]" : "text-white/35",
-          )}
-        >
-          {linked ? "Live" : "Searching"}
-        </span>
-      </div>
-
-      <div className="relative space-y-4 px-4 py-4 sm:space-y-5 sm:px-5 sm:py-5">
-        <div className="space-y-2">
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="text-[11px] text-white/35">Looking for</span>
-            <span className="rounded-md bg-white/5 px-2 py-0.5 text-[10px] font-medium text-white/45">
-              {beat.category}
-            </span>
-          </div>
+    <div className="w-full overflow-hidden rounded-2xl border border-white/8 bg-[oklch(14.5%_0.012_110)] shadow-[0_16px_48px_-24px_rgba(0,0,0,0.7)]">
+      <div className="flex items-start justify-between gap-3 border-b border-white/6 px-4 py-4 sm:px-5">
+        <div className="min-w-0">
+          <p className="text-[11px] text-white/38">{beat.filter}</p>
           <AnimatePresence mode="wait">
             <motion.h3
               key={`${step}-${beat.preference}`}
-              initial={lite ? false : { opacity: 0, y: 6 }}
+              initial={lite ? false : { opacity: 0, y: 4 }}
               animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -6 }}
-              transition={{ duration: 0.3, ease: EASE }}
-              className="text-xl font-semibold leading-tight tracking-tight text-white sm:text-[1.65rem]"
+              exit={{ opacity: 0, y: -4 }}
+              transition={{ duration: 0.25, ease: EASE }}
+              className="mt-1 text-lg font-semibold leading-tight text-white sm:text-xl"
             >
               {beat.preference}
             </motion.h3>
           </AnimatePresence>
         </div>
+        {linked && (
+          <span className="mt-0.5 flex shrink-0 items-center gap-1.5 text-[11px] text-[oklch(88%_0.11_105/0.9)]">
+            <span className="relative flex size-1.5">
+              {!lite && (
+                <span className="absolute inline-flex size-full animate-ping rounded-full bg-[oklch(88%_0.11_105/0.45)]" />
+              )}
+              <span className="relative inline-flex size-1.5 rounded-full bg-[oklch(88%_0.11_105)]" />
+            </span>
+            Live
+          </span>
+        )}
+      </div>
 
-        <div className="overflow-hidden rounded-xl border border-white/6 bg-[oklch(13%_0.012_110/0.85)] p-1.5 ring-1 ring-white/4 ring-inset">
+      <div className="px-4 py-4 sm:px-5 sm:py-5">
+        <div className="flex items-stretch gap-2">
           <AnimatePresence mode="wait">
-            <ProfileRow
-              key={`you-${step}`}
-              person={beat.you}
-              linked={linked}
-              lite={lite}
-              side="you"
-              role="You"
-            />
+            <motion.div key={`you-${step}`} className="flex flex-1" initial={false} animate={{ opacity: 1 }}>
+              <PersonCard person={beat.you} lite={lite} />
+            </motion.div>
           </AnimatePresence>
 
-          <div className="relative mx-2 my-1 flex items-center justify-center py-0.5">
-            <div className="absolute inset-x-0 top-1/2 h-px bg-white/5" />
-            <span
-              className={cn(
-                "relative rounded-full px-2.5 py-0.5 text-[10px] font-medium",
-                linked
-                  ? "bg-[oklch(15%_0.013_110)] text-[oklch(88%_0.11_105/0.8)]"
-                  : "bg-[oklch(15%_0.013_110)] text-white/30",
-              )}
-            >
-              {linked ? "matched" : scanning ? "pairing" : "—"}
-            </span>
-          </div>
+          <Connector active={connectorActive} lite={lite} />
 
           <AnimatePresence mode="wait">
             {peerVisible ? (
-              <ProfileRow
-                key={`${step}-${beat.peer.name}`}
-                person={beat.peer}
-                linked={linked}
-                lite={lite}
-                side="peer"
-                role="Match"
-              />
-            ) : (
-              <PeerSearching key="peer-slot" scanning={scanning} lite={lite} />
-            )}
-          </AnimatePresence>
-
-          {scanning && !lite && (
-            <div className="mx-1.5 mt-1.5 h-0.5 overflow-hidden rounded-full bg-white/5">
               <motion.div
-                className="h-full rounded-full bg-[oklch(88%_0.11_105/0.55)]"
-                initial={{ width: "0%" }}
-                animate={{ width: "100%" }}
-                transition={{ duration: 1.75, ease: "easeInOut" }}
-              />
-            </div>
-          )}
-        </div>
-
-        <div className="flex items-center justify-between gap-3 pt-0.5">
-          <AnimatePresence mode="wait">
-            {statusLabel && (
-              <motion.p
-                key={statusLabel}
-                initial={lite ? false : { opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                transition={{ duration: 0.22 }}
-                className={cn("text-xs", linked ? "text-white/52" : "text-white/36")}
+                key={`${step}-${beat.peer.name}`}
+                className="flex flex-1"
+                initial={lite ? false : { opacity: 0, x: 8 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: 8 }}
+                transition={{ duration: 0.3, ease: EASE }}
               >
-                {statusLabel}
-              </motion.p>
+                <PersonCard person={beat.peer} highlight={linked} lite={lite} />
+              </motion.div>
+            ) : (
+              <motion.div key="slot" className="flex flex-1">
+                <EmptySlot scanning={scanning} lite={lite} />
+              </motion.div>
             )}
           </AnimatePresence>
-
-          {linked && (
-            <div className="flex shrink-0 items-center gap-1.5">
-              <span className="flex size-7 items-center justify-center rounded-lg bg-white/5 text-white/45">
-                <MessageCircle className="size-3.5" />
-              </span>
-              <span className="flex size-7 items-center justify-center rounded-lg bg-[oklch(88%_0.11_105/0.12)] text-[oklch(88%_0.11_105/0.9)]">
-                <Video className="size-3.5" />
-              </span>
-            </div>
-          )}
         </div>
+
+        <AnimatePresence mode="wait">
+          {linked && beat.peer.note && (
+            <motion.div
+              key={`msg-${step}`}
+              initial={lite ? false : { opacity: 0, y: 6 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.3, delay: 0.1, ease: EASE }}
+              className="mt-4 rounded-xl rounded-tl-sm border border-white/7 bg-white/4 px-3.5 py-2.5"
+            >
+              <p className="text-[10px] text-white/35">{beat.peer.name}</p>
+              <p className="mt-0.5 text-xs leading-relaxed text-white/72">{beat.peer.note}</p>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
+
+      <div className="flex items-center justify-between border-t border-white/6 px-4 py-3 sm:px-5">
+        <AnimatePresence mode="wait">
+          {statusLabel && (
+            <motion.p
+              key={statusLabel}
+              initial={lite ? false : { opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className={cn("text-xs", linked ? "text-white/45" : "text-white/35")}
+            >
+              {statusLabel}
+            </motion.p>
+          )}
+        </AnimatePresence>
+
+        {!lite && (
+          <div className="flex items-center gap-1.5">
+            {STORY.map((s, i) => (
+              <span
+                key={s.id}
+                className={cn(
+                  "h-1 rounded-full transition-all duration-400",
+                  i === step ? "w-3.5 bg-[oklch(88%_0.11_105/0.75)]" : "w-1 bg-white/15",
+                )}
+              />
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );

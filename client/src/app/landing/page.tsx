@@ -373,7 +373,7 @@ function HeroVisual() {
   return (
     <div className="relative w-full max-w-[360px] sm:max-w-[400px] mx-auto select-none pointer-events-none">
       <div
-        className="pointer-events-none absolute -inset-3 rounded-[1.75rem] border border-white/4 bg-white/1"
+        className="pointer-events-none absolute -inset-8 rounded-full bg-[radial-gradient(circle,oklch(88%_0.11_105/0.07)_0%,transparent_70%)] blur-2xl"
         aria-hidden
       />
       <HeroMatchDemo lite={lite} />
@@ -622,14 +622,16 @@ function LandingPageInner() {
               </Badge>
             </motion.div>
 
-            <motion.h1 variants={fadeUp} className="text-[2.35rem] leading-[1.08] sm:text-6xl lg:text-[4rem] xl:text-[4.5rem] font-bold tracking-tight mb-5 sm:mb-6">
+            <motion.h1 variants={fadeUp} className="text-[2.35rem] leading-[1.1] sm:text-6xl lg:text-[4rem] xl:text-[4.25rem] font-semibold tracking-tight mb-5 sm:mb-6">
               Match your interests.
-              <span className="mt-1 block text-white/95">Build your <span className="text-[oklch(88%_0.11_105)]">circles</span>.</span>
-              <span className="mt-1 block text-white/70">Connect live.</span>
+              <span className="mt-1 block text-white/90">
+                Build your <span className="text-[oklch(88%_0.11_105)]">circles</span>.
+              </span>
+              <span className="mt-1 block text-white/55">Connect live.</span>
             </motion.h1>
 
-            <motion.p variants={fadeUp} className="text-base sm:text-lg text-white/50 leading-relaxed max-w-md mx-auto lg:mx-0 mb-8 sm:mb-10">
-              Match by profession, interests, and location — nearby or anywhere in the world.
+            <motion.p variants={fadeUp} className="text-base sm:text-lg text-white/45 leading-relaxed max-w-md mx-auto lg:mx-0 mb-8 sm:mb-10">
+              By profession, interests, or location — nearby or anywhere in the world.
             </motion.p>
 
             <motion.div variants={fadeUp} className="flex flex-wrap gap-3 justify-center lg:justify-start">
@@ -657,10 +659,7 @@ function LandingPageInner() {
             </motion.div>
 
             <motion.div variants={fadeUp} className="mt-7 sm:mt-8">
-              <p className="text-sm text-white/35 max-w-sm mx-auto lg:mx-0">
-                Free to join · Privacy-first · Nearby or global
-              </p>
-              <p className="mt-3 text-xs text-white/30 max-w-sm mx-auto lg:mx-0 leading-relaxed">
+              <p className="text-xs text-white/30 max-w-sm mx-auto lg:mx-0 leading-relaxed">
                 {EARLY_RELEASE.noticeShort}
               </p>
             </motion.div>
