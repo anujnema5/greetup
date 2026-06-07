@@ -1,7 +1,7 @@
-# DEVELOPMENT — Production image build: cloudbuild.rtc.production.yaml (prod VM / registry may differ)
+# rtc-service image (WebRTC / mediasoup). Deploy the image on the GCE VM via docker compose.
 
 substitutions:
-  _REGION: us-central1
+  _REGION: asia-south1
   _ARTIFACT_REPO: greetup
   _IMAGE: rtc-service
 
