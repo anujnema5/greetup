@@ -2,15 +2,21 @@
 
 import { useMemo } from "react";
 
-import { useGetProfileInsightsQuery } from "@/features/profile/api/profile-insights-api";
+import {
+  PROFILE_INSIGHTS_RECENT_MATCHES_LIMIT,
+  useProfileInsights,
+} from "@/features/profile/api/profile-insights.queries";
 
 import { buildDashboardHeroStats } from "../lib/dashboard-display";
 
 export function useDashboardInsights() {
-  const query = useGetProfileInsightsQuery(undefined, {
-    refetchOnMountOrArgChange: true,
-    refetchOnFocus: true,
-  });
+  const query = useProfileInsights(
+    { recentLimit: PROFILE_INSIGHTS_RECENT_MATCHES_LIMIT },
+    {
+      refetchOnMount: 'always',
+      refetchOnWindowFocus: true,
+    },
+  );
 
   const heroStats = useMemo(
     () => buildDashboardHeroStats(query.data?.stats, query.data?.recentMatches),

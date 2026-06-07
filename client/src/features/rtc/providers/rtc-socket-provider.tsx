@@ -1,132 +1,76 @@
 "use client";
 
-import { createContext, useContext, useEffect, useMemo } from "react";
+import { lazy, Suspense, useEffect, useMemo } from "react";
 import { useSession } from "@/lib/auth-client";
-import { useAppDispatch, useAppSelector } from "@/lib/redux/hooks";
-import { useGetMyProfileQuery } from "@/features/profile-setup/components/profile-setup-api";
+import { useMyProfile } from "@/features/profile-setup/api";
 import { useRoomTabLeaseRtcSync } from "@/features/room/hooks";
 import {
   selectActiveRoomId,
   selectIsVideoSessionActive,
   selectRtcPrimaryRemoteUserId,
-} from "@/lib/redux/selectors/room-selectors";
-import { setMediaStatus } from "@/lib/redux/slices/room-slice";
-import { deriveRoomRtcState } from "@/features/rtc/lib/derive-room-rtc-state";
-import { useGetRtcTokenQuery } from "../api/rtc-api";
-import { useRtcSocket } from "../hooks/use-rtc-socket";
-import { useMediasoupRoom } from "../hooks/use-mediasoup-room";
-import type {
-  MediasoupRoomStatus,
-  ProducerMediaSource,
-  RemoteParticipant,
-  RemotePeer,
-  ScreenShareTileInfo,
-} from "../types/mediasoup-room.types";
-import type { RoomRtcState } from "../types/rtc-api.types";
-import type { UseRtcSocketReturn } from "../hooks/use-rtc-socket";
-import type { RoomSessionType } from "@/shared/types/room-session";
+  useRoomStore,
+} from "@/features/room/state/room.store";
+import {
+  createConnectingRtcSocketContextValue,
+  createIdleRtcSocketContextValue,
+} from "@/features/rtc/lib/rtc-idle-mediasoup-state";
+import { RtcSocketContext, useRtcSocketContext } from "@/features/rtc/providers/rtc-socket-context";
+import type { RtcLiveSessionProviderProps } from "@/features/rtc/providers/rtc-live-session-provider";
 
-export type RtcSocketContextValue = RoomRtcState &
-  UseRtcSocketReturn & {
-    rtcRoomId: string | null;
-    /** Chat conversation auto-created for this room (null until token query resolves). */
-    roomConversationId: string | null;
-    mediasoupStatus: MediasoupRoomStatus;
-    mediasoupError: string | null;
-    localMediaStream: MediaStream | null;
-    localCompositeStream: MediaStream | null;
-    localScreenTrackId: string | null;
-    remoteMediaStream: MediaStream | null;
-    mainStageShowsScreen: boolean;
-    remotePeerCameraStream: MediaStream | null;
-    remoteParticipants: RemoteParticipant[];
-    peers: Record<string, RemotePeer>;
-    micEnabled: boolean;
-    cameraEnabled: boolean;
-    screenSharing: boolean;
-    toggleMic: () => void;
-    toggleCamera: () => void;
-    toggleScreenShare: () => void;
-    rtcRoomType: RoomSessionType | null;
-    localMediaDeviceError: string | null;
-    clearLocalMediaDeviceError: () => void;
-    screenShareTiles: ScreenShareTileInfo[];
-    focusedScreenShareKey: string | null;
-    setFocusedScreenShareKey: (key: string | null) => void;
-    remoteTrackMediaSource: Record<string, ProducerMediaSource>;
-    dominantSpeakerPeerId: string | null;
-    dominantSpeakerSpeakingMs: Record<string, number>;
-  };
+export type { RtcSocketContextValue } from "@/features/rtc/types/rtc-socket-context.types";
+export { useRtcSocketContext };
 
-const RtcSocketContext = createContext<RtcSocketContextValue | null>(null);
+const RtcLiveSessionProvider = lazy(async () => {
+  const mod = await import("@/features/rtc/providers/rtc-live-session-provider");
+  return { default: mod.RtcLiveSessionProvider };
+});
 
-function mapMediasoupToSliceStatus(
-  sessionActive: boolean,
-  ms: MediasoupRoomStatus,
-): "idle" | "connecting" | "connected" | "error" {
-  if (!sessionActive) return "idle";
-  switch (ms) {
-    case "ready":
-      return "connected";
-    case "error":
-      return "error";
-    case "joining":
-    case "negotiating":
-    case "connecting_socket":
-      return "connecting";
-    default:
-      return "idle";
-  }
+type RtcLiveSessionSuspenseFallbackProps = {
+  activeRoomId: string;
+  children: React.ReactNode;
+};
+
+function RtcLiveSessionSuspenseFallback({
+  activeRoomId,
+  children,
+}: RtcLiveSessionSuspenseFallbackProps) {
+  const setMediaStatus = useRoomStore((s) => s.setMediaStatus);
+  const value = useMemo(
+    () => createConnectingRtcSocketContextValue(activeRoomId),
+    [activeRoomId],
+  );
+
+  useEffect(() => {
+    setMediaStatus("connecting");
+  }, [setMediaStatus]);
+
+  return <RtcSocketContext.Provider value={value}>{children}</RtcSocketContext.Provider>;
 }
 
 /**
  * Owns rtc-service Socket.IO + mediasoup session for the active call.
- * Mediasoup stays mounted while `sessionActive` so minimized dock keeps the same streams.
+ * Mediasoup-client loads in a separate chunk only when a call session starts.
  */
 export function RtcSocketProvider({ children }: { children: React.ReactNode }) {
-  const dispatch = useAppDispatch();
-  const activeRoomId = useAppSelector(selectActiveRoomId);
-  const sessionActive = useAppSelector(selectIsVideoSessionActive);
-  const rtcPrimaryRemoteUserId = useAppSelector(selectRtcPrimaryRemoteUserId);
+  const activeRoomId = useRoomStore(selectActiveRoomId);
+  const sessionActive = useRoomStore(selectIsVideoSessionActive);
+  const rtcPrimaryRemoteUserId = useRoomStore(selectRtcPrimaryRemoteUserId);
+  const setMediaStatus = useRoomStore((s) => s.setMediaStatus);
   const { data: session, isPending: sessionPending } = useSession();
-  const { data: myProfileData } = useGetMyProfileQuery(undefined, { skip: sessionPending });
+  const { data: myProfileData } = useMyProfile({ enabled: !sessionPending });
   const sessionUser = session?.user as
     | { id?: string | null; displayName?: string | null; name?: string | null; image?: string | null }
     | undefined;
-  const profileDisplayName = myProfileData?.data?.displayName ?? null;
+  const profileDisplayName = myProfileData?.displayName ?? null;
 
-  const skipRtcToken = !activeRoomId || sessionPending || !sessionUser?.id;
-
-  const rtcQuery = useGetRtcTokenQuery(activeRoomId ?? "", {
-    skip: skipRtcToken,
-  });
-
-  const rtc = deriveRoomRtcState(skipRtcToken, rtcQuery);
-  const { rtcSocket, rtcSocketState } = useRtcSocket(rtc.rtcToken ?? null);
-
-  const mediasoupEnabled =
-    sessionActive &&
-    Boolean(activeRoomId) &&
-    rtcSocketState === "connected";
-
-  const rtcRoomType = rtcQuery.data?.roomType ?? null;
-  const roomConversationId = rtcQuery.data?.conversationId ?? null;
-
-  const mediasoup = useMediasoupRoom({
-    enabled: mediasoupEnabled,
-    rtcSocket,
-    rtcSocketState,
-    rtcRoomId: activeRoomId,
-    rtcRoomType,
-    localUserId: sessionUser?.id ?? null,
-    localDisplayName: profileDisplayName ?? sessionUser?.displayName ?? sessionUser?.name ?? null,
-    localProfileImageUrl: sessionUser?.image ?? null,
-    preferredRemotePeerId: rtcPrimaryRemoteUserId,
-  });
+  const rtcSessionLive =
+    sessionActive && Boolean(activeRoomId) && !sessionPending && Boolean(sessionUser?.id);
 
   useEffect(() => {
-    dispatch(setMediaStatus(mapMediasoupToSliceStatus(sessionActive, mediasoup.status)));
-  }, [dispatch, sessionActive, mediasoup.status]);
+    if (!rtcSessionLive) {
+      setMediaStatus("idle");
+    }
+  }, [rtcSessionLive, setMediaStatus]);
 
   useRoomTabLeaseRtcSync({
     activeRoomId,
@@ -134,92 +78,33 @@ export function RtcSocketProvider({ children }: { children: React.ReactNode }) {
     sessionActive,
   });
 
-  const value = useMemo<RtcSocketContextValue>(
-    () => ({
-      rtcToken: rtc.rtcToken,
-      rtcTokenExpiresInSec: rtc.rtcTokenExpiresInSec,
-      rtcTokenLoading: rtc.rtcTokenLoading,
-      rtcTokenError: rtc.rtcTokenError,
-      rtcTokenErrorCode: rtc.rtcTokenErrorCode,
-      rtcTokenSkipped: rtc.rtcTokenSkipped,
-      refetchRtcToken: rtc.refetchRtcToken,
-      rtcSocket,
-      rtcSocketState,
-      rtcRoomId: activeRoomId,
-      roomConversationId,
-      rtcRoomType,
-      mediasoupStatus: mediasoup.status,
-      mediasoupError: mediasoup.error,
-    localMediaStream: mediasoup.localPreviewStream,
-    localCompositeStream: mediasoup.localStream,
-    localScreenTrackId: mediasoup.localScreenTrackId,
-    remoteMediaStream: mediasoup.remoteStream,
-      mainStageShowsScreen: mediasoup.mainStageShowsScreen,
-      remotePeerCameraStream: mediasoup.remotePeerCameraStream,
-      remoteParticipants: mediasoup.remoteParticipants,
-      peers: mediasoup.peers,
-      micEnabled: mediasoup.micEnabled,
-      cameraEnabled: mediasoup.cameraEnabled,
-      screenSharing: mediasoup.screenSharing,
-      toggleMic: mediasoup.toggleMic,
-      toggleCamera: mediasoup.toggleCamera,
-      toggleScreenShare: mediasoup.toggleScreenShare,
-      localMediaDeviceError: mediasoup.localMediaDeviceError,
-      clearLocalMediaDeviceError: mediasoup.clearLocalMediaDeviceError,
-      screenShareTiles: mediasoup.screenShareTiles,
-      focusedScreenShareKey: mediasoup.focusedScreenShareKey,
-      setFocusedScreenShareKey: mediasoup.setFocusedScreenShareKey,
-      remoteTrackMediaSource: mediasoup.remoteTrackMediaSource,
-      dominantSpeakerPeerId: mediasoup.dominantSpeakerPeerId,
-      dominantSpeakerSpeakingMs: mediasoup.dominantSpeakerSpeakingMs,
-    }),
-    [
-      rtc.rtcToken,
-      rtc.rtcTokenExpiresInSec,
-      rtc.rtcTokenLoading,
-      rtc.rtcTokenError,
-      rtc.rtcTokenErrorCode,
-      rtc.rtcTokenSkipped,
-      rtc.refetchRtcToken,
-      rtcSocket,
-      rtcSocketState,
-      activeRoomId,
-      roomConversationId,
-      rtcRoomType,
-      mediasoup.status,
-      mediasoup.error,
-    mediasoup.localPreviewStream,
-    mediasoup.localStream,
-    mediasoup.localScreenTrackId,
-    mediasoup.remoteStream,
-      mediasoup.mainStageShowsScreen,
-      mediasoup.remotePeerCameraStream,
-      mediasoup.remoteParticipants,
-      mediasoup.peers,
-      mediasoup.micEnabled,
-      mediasoup.cameraEnabled,
-      mediasoup.screenSharing,
-      mediasoup.toggleMic,
-      mediasoup.toggleCamera,
-      mediasoup.toggleScreenShare,
-      mediasoup.localMediaDeviceError,
-      mediasoup.clearLocalMediaDeviceError,
-      mediasoup.screenShareTiles,
-      mediasoup.focusedScreenShareKey,
-      mediasoup.setFocusedScreenShareKey,
-      mediasoup.remoteTrackMediaSource,
-      mediasoup.dominantSpeakerPeerId,
-      mediasoup.dominantSpeakerSpeakingMs,
-    ],
+  const idleValue = useMemo(
+    () => createIdleRtcSocketContextValue(activeRoomId),
+    [activeRoomId],
   );
 
-  return <RtcSocketContext.Provider value={value}>{children}</RtcSocketContext.Provider>;
-}
-
-export function useRtcSocketContext(): RtcSocketContextValue {
-  const ctx = useContext(RtcSocketContext);
-  if (!ctx) {
-    throw new Error("useRtcSocketContext must be used within RtcSocketProvider");
+  if (!rtcSessionLive || !activeRoomId || !sessionUser?.id) {
+    return <RtcSocketContext.Provider value={idleValue}>{children}</RtcSocketContext.Provider>;
   }
-  return ctx;
+
+  const liveProps: RtcLiveSessionProviderProps = {
+    activeRoomId,
+    sessionActive,
+    rtcPrimaryRemoteUserId,
+    sessionUser,
+    profileDisplayName,
+    children,
+  };
+
+  return (
+    <Suspense
+      fallback={
+        <RtcLiveSessionSuspenseFallback activeRoomId={activeRoomId}>
+          {children}
+        </RtcLiveSessionSuspenseFallback>
+      }
+    >
+      <RtcLiveSessionProvider {...liveProps} />
+    </Suspense>
+  );
 }

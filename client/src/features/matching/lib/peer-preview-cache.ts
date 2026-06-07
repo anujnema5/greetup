@@ -1,21 +1,29 @@
-import { matchingApi } from "@/features/matching/api/matching-api";
-import type { PublicProfileConnectionState } from "@/features/user-profile/types/public-profile.types";
-import type { AppDispatch } from "@/lib/redux/store";
+import type { QueryClient } from '@tanstack/react-query';
 
-/** Updates cached `getMatchPeerPreview` connection fields without a network round-trip. */
+import { queryClient } from '@/lib/query/client';
+import { queryKeys } from '@/lib/query/keys';
+import type { PublicProfileConnectionState } from '@/features/user-profile/types/public-profile.types';
+
+import type { MatchPeerPreview } from '../types/matching-api.types';
+
+/** Updates cached match peer preview connection fields without a network round-trip. */
 export function patchMatchPeerPreviewCache(
-  dispatch: AppDispatch,
   peerUserId: string,
   patch: {
     connectionState: PublicProfileConnectionState;
     connectionId: string | null;
   },
+  qc: QueryClient = queryClient,
 ): void {
-  dispatch(
-    matchingApi.util.updateQueryData("getMatchPeerPreview", peerUserId, (draft) => {
-      if (!draft) return;
-      draft.connectionState = patch.connectionState;
-      draft.connectionId = patch.connectionId;
-    }),
-  );
+  const id = peerUserId.trim();
+  if (!id) return;
+
+  qc.setQueryData<MatchPeerPreview>(queryKeys.matching.peerPreview(id), (draft) => {
+    if (!draft) return draft;
+    return {
+      ...draft,
+      connectionState: patch.connectionState,
+      connectionId: patch.connectionId,
+    };
+  });
 }

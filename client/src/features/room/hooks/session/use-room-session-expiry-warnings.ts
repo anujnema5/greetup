@@ -2,7 +2,7 @@
 
 import { useEffect, useRef } from "react";
 import { toast } from "sonner";
-import { useGetRoomQuery } from "@/features/room/api/room-api";
+import { useGetRoom } from "@/features/room/api/room.queries";
 import {
   ROOM_SESSION_WARNING_COPY,
   ROOM_SESSION_WARNING_MINUTES,
@@ -16,10 +16,9 @@ const REFRESH_BEFORE_FIRST_WARNING_MS = 16 * 60_000;
  * Avoids 60s polling during calls — schedules timeouts and one refresh before the warning window.
  */
 export function useRoomSessionExpiryWarnings(roomId: string, enabled: boolean): void {
-  const { data: room, refetch } = useGetRoomQuery(roomId, {
-    skip: !enabled || !roomId,
-    pollingInterval: 0,
-    refetchOnFocus: false,
+  const { data: room, refetch } = useGetRoom(roomId, {
+    enabled: enabled && Boolean(roomId),
+    refetchOnWindowFocus: false,
     refetchOnReconnect: true,
   });
 

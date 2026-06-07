@@ -13,4 +13,5 @@ export {
   DIRECT_CALL_RECOVERY,
   DIRECT_CALL_PEER_LEFT_DEBOUNCE_MS,
   DIRECT_CALL_NETWORK_RECOVERY_TIMEOUT_MS,
+  resolveConnectionCallPeerLeftDebounceMs,
 } from "./direct-call/direct-call-recovery";

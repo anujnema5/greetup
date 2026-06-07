@@ -4,9 +4,9 @@
 
 | Folder | Purpose |
 |--------|---------|
-| `api/` | RTK Query — list, request, accept, reject, withdraw, disconnect |
-| `state/` | Redux slice for live per-peer connection state (in-call hover) |
-| `lib/realtime/` | Socket + notification sync into cache and Redux |
+| `api/` | React Query — list, request, accept, reject, withdraw, disconnect |
+| `state/` | Zustand store for live per-peer connection state (in-call hover) |
+| `lib/realtime/` | Socket + notification sync into React Query cache and Zustand |
 | `hooks/` | `usePeerConnectionSync` — read live state for a peer |
 | `components/` | Pages UI, dialogs, `ConnectionRealtimeBridge` |
 | `types/` | API types |
@@ -20,8 +20,8 @@ When connection state changes on the server, peers receive:
 
 Both call `applyPeerConnectionSync()` which updates:
 
-1. `connectionRealtimeSync` Redux slice (in-call hover reads this)
-2. `getMatchPeerPreview` RTK cache (when already loaded)
+1. `connectionRealtimeSync` Zustand store (in-call hover reads this)
+2. `matchPeerPreview` React Query cache (when already loaded)
 
 Import from `@/features/connections/lib/realtime`.
 

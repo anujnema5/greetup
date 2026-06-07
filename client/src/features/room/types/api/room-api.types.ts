@@ -1,5 +1,5 @@
 /**
- * Room API — RTK Query argument/result types for room routes.
+ * Room API — argument/result types for room routes.
  */
 
 /** Common JSON envelope for room POST responses. */

@@ -1,10 +1,9 @@
 'use client';
 
 import { useEffect } from 'react';
-import { useDispatch } from 'react-redux';
+import { useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { useSocket } from '@/lib/socket/provider';
-import type { AppDispatch } from '@/lib/redux/store';
 import { CHAT_SOCKET_ERROR } from '../../constants/messaging-block.constants';
 import {
   invalidateAllConversationsCache,
@@ -21,13 +20,13 @@ const INTERACTION_EVENTS = new Set([
 
 /** Keeps conversation block state in sync when someone blocks / unblocks mid-session. */
 export function ChatMessagingBlockBridge() {
-  const dispatch = useDispatch<AppDispatch>();
+  const qc = useQueryClient();
   const { chatSocket } = useSocket();
 
   useEffect(() => {
     if (!chatSocket) return;
 
-    const refreshConversations = () => invalidateAllConversationsCache(dispatch);
+    const refreshConversations = () => invalidateAllConversationsCache(qc);
 
     const onMessagingBlock = (_payload: MessagingBlockSocketPayload) => {
       refreshConversations();
@@ -48,7 +47,7 @@ export function ChatMessagingBlockBridge() {
       chatSocket.off('chat:messaging:block', onMessagingBlock);
       chatSocket.off('chat:error', onChatError);
     };
-  }, [chatSocket, dispatch]);
+  }, [chatSocket, qc]);
 
   return null;
 }

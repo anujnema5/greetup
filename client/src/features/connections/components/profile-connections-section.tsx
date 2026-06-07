@@ -5,17 +5,18 @@ import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } fro
 import { ChevronRight, Loader2, Search, UserPlus } from "lucide-react";
 import { useSearchParams } from "next/navigation";
 
-import type { FetchBaseQueryError } from "@reduxjs/toolkit/query";
-
 import {
-  useAcceptConnectionMutation,
-  useAcceptedConnectionsInfiniteQuery,
-  useDisconnectConnectionMutation,
-  useGetMyConnectionsQuery,
-  usePeersCallStatusQuery,
-  useRejectConnectionMutation,
-  useWithdrawConnectionRequestMutation,
-} from "@/features/connections/api/connections-api";
+  useAcceptConnection,
+  useDisconnectConnection,
+  useRejectConnection,
+  useWithdrawConnectionRequest,
+} from "@/features/connections/api/connections.mutations";
+import {
+  useAcceptedConnections,
+  useMyConnections,
+  usePeersCallStatus,
+} from "@/features/connections/api/connections.queries";
+import { getApiErrorMessage } from "@/lib/api/fetch-client";
 import { PeerContactActionIcons } from "@/features/connections/components/peer-contact-action-icons";
 import type { PeerContactTarget } from "@/features/connections/hooks/use-peer-contact-actions";
 import { usePeerContactActions } from "@/features/connections/hooks/use-peer-contact-actions";
@@ -109,15 +110,8 @@ function ConnectionPeerTrigger({
   );
 }
 
-function rtkErrorMessage(error: unknown): string {
-  if (error && typeof error === "object" && "data" in error) {
-    const d = (error as FetchBaseQueryError).data;
-    if (d && typeof d === "object" && "message" in d && typeof (d as { message?: string }).message === "string") {
-      return (d as { message: string }).message;
-    }
-  }
-  if (error instanceof Error && error.message) return error.message;
-  return "Something went wrong";
+function actionErrorMessage(error: unknown): string {
+  return getApiErrorMessage(error, "Something went wrong");
 }
 
 function ConnectionPeerSummary({
@@ -173,8 +167,8 @@ function ConnectionRow({
   onSelectProfile?: (username: string) => void;
   onPeerDisconnected?: (username: string | null) => void;
 }) {
-  const [disconnect] = useDisconnectConnectionMutation();
-  const [withdraw] = useWithdrawConnectionRequestMutation();
+  const { mutateAsync: disconnect } = useDisconnectConnection();
+  const { mutateAsync: withdraw } = useWithdrawConnectionRequest();
   const [busy, setBusy] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
   const [confirmOpen, setConfirmOpen] = useState(false);
@@ -206,14 +200,13 @@ function ConnectionRow({
     setActionError(null);
     setBusy(true);
     void disconnect(mutationArg)
-      .unwrap()
       .then(() => {
         setConfirmOpen(false);
         toast.success("Connection removed");
         onPeerDisconnected?.(peerUsername);
       })
       .catch((e: unknown) => {
-        const msg = rtkErrorMessage(e);
+        const msg = actionErrorMessage(e);
         setActionError(msg);
         toast.error(msg);
       })
@@ -224,14 +217,13 @@ function ConnectionRow({
     setActionError(null);
     setBusy(true);
     void withdraw(mutationArg)
-      .unwrap()
       .then(() => {
         setWithdrawConfirmOpen(false);
         toast.success("Request withdrawn");
         onPeerDisconnected?.(peerUsername);
       })
       .catch((e: unknown) => {
-        const msg = rtkErrorMessage(e);
+        const msg = actionErrorMessage(e);
         setActionError(msg);
         toast.error(msg);
       })
@@ -351,8 +343,8 @@ function IncomingRequestRow({
   onSelectProfile?: (username: string) => void;
   onPeerDisconnected?: (username: string | null) => void;
 }) {
-  const [accept] = useAcceptConnectionMutation();
-  const [reject] = useRejectConnectionMutation();
+  const { mutateAsync: accept } = useAcceptConnection();
+  const { mutateAsync: reject } = useRejectConnection();
   const [busy, setBusy] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
 
@@ -373,7 +365,7 @@ function IncomingRequestRow({
         onSuccess?.();
       })
       .catch((e: unknown) => {
-        const msg = rtkErrorMessage(e);
+        const msg = actionErrorMessage(e);
         setActionError(msg);
         toast.error(msg);
       })
@@ -422,7 +414,7 @@ function IncomingRequestRow({
             className="rounded-xl"
             disabled={busy}
             onClick={() =>
-              runRespond(reject(mutationArg).unwrap(), () => onPeerDisconnected?.(peerUsername))
+              runRespond(reject(mutationArg), () => onPeerDisconnected?.(peerUsername))
             }
           >
             Reject
@@ -432,7 +424,7 @@ function IncomingRequestRow({
             size="sm"
             className="rounded-xl"
             disabled={busy}
-            onClick={() => runRespond(accept(mutationArg).unwrap())}
+            onClick={() => runRespond(accept(mutationArg))}
           >
             Accept
           </Button>
@@ -497,23 +489,17 @@ export function ProfileConnectionsSection({
     return () => window.clearTimeout(t);
   }, [search]);
 
-  const incoming = useGetMyConnectionsQuery(
-    { filter: "pending_incoming" },
-    { refetchOnMountOrArgChange: true, refetchOnFocus: true, refetchOnReconnect: true },
-  );
-  const outgoing = useGetMyConnectionsQuery(
-    { filter: "pending_outgoing" },
-    { refetchOnMountOrArgChange: true, refetchOnFocus: true, refetchOnReconnect: true },
-  );
+  const incoming = useMyConnections({ filter: "pending_incoming" });
+  const outgoing = useMyConnections({ filter: "pending_outgoing" });
 
-  const acceptedPreview = useGetMyConnectionsQuery(
+  const acceptedPreview = useMyConnections(
     { filter: "accepted", limit: ACCEPTED_PREVIEW_LIMIT, page: 1 },
-    { skip: isPage },
+    { enabled: !isPage },
   );
 
-  const acceptedInfinite = useAcceptedConnectionsInfiniteQuery(
+  const acceptedInfinite = useAcceptedConnections(
     { limit: ACCEPTED_PAGE_SIZE, q: debouncedQ || undefined },
-    { skip: !isPage },
+    isPage,
   );
 
   const loadingCore =
@@ -525,33 +511,30 @@ export function ProfileConnectionsSection({
     incoming.isError || outgoing.isError || (isPage ? acceptedInfinite.isError : acceptedPreview.isError);
   const error = incoming.error ?? outgoing.error ?? (isPage ? acceptedInfinite.error : acceptedPreview.error);
 
-  const incomingItems = incoming.data?.data?.items ?? [];
-  const outgoingItems = outgoing.data?.data?.items ?? [];
+  const incomingItems = incoming.data?.items ?? [];
+  const outgoingItems = outgoing.data?.items ?? [];
 
   const acceptedItems: ConnectionListItem[] = useMemo(() => {
     if (isPage) {
       return acceptedInfinite.data?.pages.flatMap((p) => p.items) ?? [];
     }
-    return acceptedPreview.data?.data?.items ?? [];
+    return acceptedPreview.data?.items ?? [];
   }, [isPage, acceptedInfinite.data, acceptedPreview.data]);
 
-  const acceptedPeerStatusKey = useMemo(
+  const acceptedPeerIds = useMemo(
     () =>
       acceptedItems
         .filter((i) => i.status === "accepted")
         .map((i) => i.peer.userId)
-        .sort()
-        .join("|"),
+        .sort(),
     [acceptedItems],
   );
 
-  const { data: peerCallStatuses } = usePeersCallStatusQuery(acceptedPeerStatusKey, {
-    skip: acceptedPeerStatusKey.length === 0,
-    refetchOnMountOrArgChange: true,
-    refetchOnFocus: true,
+  const { data: peerCallStatuses } = usePeersCallStatus(acceptedPeerIds, {
+    enabled: acceptedPeerIds.length > 0,
   });
 
-  const previewHasMore = acceptedPreview.data?.data?.hasMore === true;
+  const previewHasMore = acceptedPreview.data?.hasMore === true;
 
   const hasNextAcceptedPage = isPage ? acceptedInfinite.hasNextPage : false;
   const isFetchingNextAccepted = isPage ? acceptedInfinite.isFetchingNextPage : false;
@@ -605,7 +588,7 @@ export function ProfileConnectionsSection({
             <h3 className="text-sm font-semibold text-foreground">Connections</h3>
           )}
         </div>
-        <p className="text-sm text-muted-foreground mb-2">{rtkErrorMessage(error)}</p>
+        <p className="text-sm text-muted-foreground mb-2">{actionErrorMessage(error)}</p>
         <button
           type="button"
           onClick={() => refetchAll()}

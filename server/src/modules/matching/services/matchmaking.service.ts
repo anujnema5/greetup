@@ -1,8 +1,13 @@
 import config from "@/shared/config/config";
 import logger from "@/core/logging";
+import { emitToUser } from "@/core/socket/socket";
+import { emitConnectionCallEnded } from "@/modules/connections/socket/connection-call-socket.handler";
+import { resolveConnectionCallConversationId } from "@/modules/rooms/lib/session/resolve-connection-call-conversation-id";
 import { clearUserActiveRtcRoom, getUserActiveRtcRoomId } from "@/modules/rooms/services/rtc/user-active-rtc-room-redis.service";
+import { finalizeConnectionCallRoomSession } from "@/modules/rooms/services/direct/finalize-connection-call-room.service";
 import { finalizeDirectMatchRoomSession } from "@/modules/rooms/services/direct/finalize-direct-match-room.service";
 import { leaveCircleRtcSessionInternal } from "@/modules/rooms/services/participation/leave-circle-rtc-session.service";
+import { roomParticipantsRepository } from "@/modules/rooms/repositories/room-participants.repository";
 import { roomsRepository } from "@/modules/rooms/repositories/rooms.repository";
 
 import type { UserMatchState } from "../types/match.types";
@@ -171,6 +176,54 @@ async function directRoomIdForExplicitLeave(
   return getUserActiveRtcRoomId(userId);
 }
 
+/** Tells the remaining 1:1 match peer to rematch when the other user skips or leaves. */
+async function notifyDirectMatchPeerSkipped(roomId: string, skippingUserId: string): Promise<void> {
+  const room = await roomsRepository.findRoomById(roomId);
+  if (!room || room.roomType !== "direct" || room.sessionKind !== "match") {
+    return;
+  }
+
+  const participantIds = await roomParticipantsRepository.listAllParticipantUserIds(roomId);
+  const peerUserId = participantIds.find((id) => id !== skippingUserId);
+  if (!peerUserId) {
+    return;
+  }
+
+  logger.info("[leaveRoom] notifying peer to rematch after partner skip", {
+    roomId,
+    skippingUserId,
+    peerUserId,
+  });
+  emitToUser(peerUserId, "match:partner_skipped", { roomId });
+}
+
+/** Tells the remaining connection-call peer to hang up when the other user leaves. */
+async function notifyConnectionCallPeerEnded(roomId: string, leavingUserId: string): Promise<void> {
+  const room = await roomsRepository.findRoomById(roomId);
+  if (!room || room.sessionKind !== "connection_call") {
+    return;
+  }
+
+  const activeParticipantIds = await roomParticipantsRepository.listActiveParticipantUserIds(roomId);
+  const peerUserId = activeParticipantIds.find((id) => id !== leavingUserId);
+  if (!peerUserId) {
+    return;
+  }
+
+  const conversationId = (await resolveConnectionCallConversationId(roomId)) ?? "";
+
+  logger.info("[leaveRoom] notifying peer connection call ended", {
+    roomId,
+    leavingUserId,
+    peerUserId,
+  });
+  emitConnectionCallEnded(peerUserId, {
+    roomId,
+    conversationId,
+    endedByUserId: leavingUserId,
+  });
+}
+
 export const findMatchService = async (userId: string, requestId: string) => {
   const res = await matchEngineRequest("POST", "/match/find", { userId, requestId });
   await assertMatchEngineOk(res, "Match engine /match/find");
@@ -220,15 +273,27 @@ export const leaveRoomService = async (
   explicitRoomId?: string | null,
 ): Promise<void> => {
   const roomId = await directRoomIdForExplicitLeave(userId, explicitRoomId);
+  const room = roomId ? await roomsRepository.findRoomById(roomId) : null;
+  const isConnectionCall = room?.sessionKind === "connection_call";
+
+  if (roomId && room?.roomType === "direct" && room.sessionKind === "match") {
+    await notifyDirectMatchPeerSkipped(roomId, userId);
+  }
+
   try {
-    const res = await matchEngineRequest("POST", "/match/leave-room", { userId });
-    await assertMatchEngineOk(res, "Match engine /match/leave-room");
+    if (!isConnectionCall) {
+      const res = await matchEngineRequest("POST", "/match/leave-room", { userId });
+      await assertMatchEngineOk(res, "Match engine /match/leave-room");
+    }
   } finally {
-    if (roomId) {
-      const room = await roomsRepository.findRoomById(roomId);
-      if (room?.roomType === "circle") {
+    if (roomId && room) {
+      if (room.roomType === "circle") {
         await leaveCircleRtcSessionInternal(userId, roomId);
-      } else if (room?.roomType === "direct") {
+      } else if (room.sessionKind === "connection_call") {
+        await notifyConnectionCallPeerEnded(roomId, userId);
+        await roomParticipantsRepository.markParticipantLeft(roomId, userId);
+        await finalizeConnectionCallRoomSession(roomId);
+      } else if (room.roomType === "direct") {
         await finalizeDirectMatchRoomSession(roomId);
       }
     }

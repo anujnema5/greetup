@@ -2,7 +2,7 @@
 
 import { useMemo } from "react";
 
-import { useBrowseActiveCirclesInfiniteQuery } from "../api/circles-api";
+import { useBrowseActiveCircles } from "../api/circles.queries";
 import { CIRCLES_BROWSE_PAGE_SIZE } from "../constants/circles-browse-copy";
 import { parseBrowseCirclePages } from "../lib/parse-browse-circle-pages";
 
@@ -16,10 +16,7 @@ type BrowseQueryOptions = {
 export function useCirclesBrowseData(options: BrowseQueryOptions = {}) {
   const pageSize = options.pageSize ?? CIRCLES_BROWSE_PAGE_SIZE;
 
-  const query = useBrowseActiveCirclesInfiniteQuery(
-    { limit: pageSize },
-    { refetchOnMountOrArgChange: true },
-  );
+  const query = useBrowseActiveCircles({ limit: pageSize });
 
   const { friendInvited, joined, discoverItems } = useMemo(
     () => parseBrowseCirclePages(query.data?.pages),

@@ -1,3 +1,5 @@
+import type { ProfileRecentMatch } from "@/features/profile/types/profile-insights.types";
+
 const PROFILE_AVATAR_GRADIENTS = [
   "from-violet-400 to-indigo-600",
   "from-pink-400 to-rose-600",
@@ -28,6 +30,16 @@ export function recentMatchSecondaryLabel(match: {
   if (tagline && tagline.length <= RECENT_MATCH_TAGLINE_MAX) return tagline;
 
   return "Met on Greetup";
+}
+
+/** Sidebar / home preview: @handle plus when you matched (full history, not connections-only). */
+export function recentMatchHistoryLabel(match: Pick<ProfileRecentMatch, "username" | "tagline" | "matchedAt">): string {
+  const when = formatRecentMatchDate(match.matchedAt);
+  const username = match.username?.trim();
+  if (username && when) return `@${username} · ${when}`;
+  if (username) return `@${username}`;
+  if (when) return `Matched ${when}`;
+  return recentMatchSecondaryLabel(match);
 }
 
 export function formatRecentMatchDate(iso: string): string {

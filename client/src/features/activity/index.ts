@@ -1,2 +1,2 @@
-export * from "./api/activity-api";
+export * from "./api/activity.mutations";
 export * from "./chess";

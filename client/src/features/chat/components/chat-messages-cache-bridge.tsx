@@ -1,27 +1,25 @@
 'use client';
 
 import { useEffect, useLayoutEffect, useRef } from 'react';
-import { useDispatch, useSelector, useStore } from 'react-redux';
+import { useQueryClient } from '@tanstack/react-query';
 import { useSession } from '@/lib/auth-client';
 import { useSocket } from '@/lib/socket/provider';
-import type { AppDispatch, RootState } from '@/lib/redux/store';
 import {
   applySocketDeletedMessage,
   applySocketEditedMessage,
   applySocketNewMessage,
   applySocketReactionUpdate,
-} from '../lib/message-rtk-sync';
-import { unreadCountReset } from '../slices/chat.slice';
+} from '../lib/message-cache-sync';
+import { useChatUiStore } from '../state/chat-ui.store';
 import type { Message, MessageDeletedPayload, ReactionUpdatePayload } from '../types/chat.types';
 
-/** Keeps message RTK cache in sync with chat socket events. */
+/** Keeps message React Query cache in sync with chat socket events. */
 export function ChatMessagesCacheBridge() {
-  const dispatch = useDispatch<AppDispatch>();
-  const store = useStore<RootState>();
+  const qc = useQueryClient();
   const { chatSocket: socket } = useSocket();
   const { data: session } = useSession();
   const currentUserId = session?.user?.id ?? '';
-  const activeConversationId = useSelector((s: RootState) => s.chat.activeConversationId);
+  const activeConversationId = useChatUiStore((s) => s.activeConversationId);
   const activeRef = useRef(activeConversationId);
 
   useLayoutEffect(() => {
@@ -30,10 +28,9 @@ export function ChatMessagesCacheBridge() {
 
   useEffect(() => {
     if (!socket || !currentUserId) return;
-    const getState = () => store.getState();
 
     const onNew = (msg: Message) => {
-      applySocketNewMessage(dispatch, getState, msg, currentUserId);
+      applySocketNewMessage(qc, msg, currentUserId);
 
       const active = activeRef.current;
       if (
@@ -42,13 +39,13 @@ export function ChatMessagesCacheBridge() {
         msg.senderId &&
         msg.senderId !== currentUserId
       ) {
-        dispatch(unreadCountReset(msg.conversationId));
+        useChatUiStore.getState().resetUnreadCount(msg.conversationId);
       }
     };
 
-    const onEdited = (msg: Message) => applySocketEditedMessage(dispatch, msg);
-    const onDeleted = (p: MessageDeletedPayload) => applySocketDeletedMessage(dispatch, p);
-    const onReaction = (p: ReactionUpdatePayload) => applySocketReactionUpdate(dispatch, p);
+    const onEdited = (msg: Message) => applySocketEditedMessage(qc, msg);
+    const onDeleted = (p: MessageDeletedPayload) => applySocketDeletedMessage(qc, p);
+    const onReaction = (p: ReactionUpdatePayload) => applySocketReactionUpdate(qc, p);
 
     socket.on('chat:message:new', onNew);
     socket.on('chat:message:edited', onEdited);
@@ -61,7 +58,7 @@ export function ChatMessagesCacheBridge() {
       socket.off('chat:message:deleted', onDeleted);
       socket.off('chat:reaction:update', onReaction);
     };
-  }, [socket, dispatch, store, currentUserId]);
+  }, [socket, qc, currentUserId]);
 
   return null;
 }

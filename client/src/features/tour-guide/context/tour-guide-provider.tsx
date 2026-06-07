@@ -16,7 +16,7 @@ import "../styles/tour-guide.css";
 
 import { useMediaQuery } from "@/lib/hooks/use-media-query";
 
-import { useMarkWelcomeTourSeenMutation } from "../api/tour-guide-api";
+import { useMarkWelcomeTourSeen } from "../api/tour-guide.mutations";
 import { createTourDriver } from "../lib/create-tour-driver";
 import { setPendingTour } from "../lib/tour-storage";
 import { usePendingTourOnHome } from "../hooks/use-pending-tour-on-home";
@@ -37,7 +37,7 @@ export function TourGuideProvider({ children }: TourGuideProviderProps) {
   const isLgUp = useMediaQuery("(min-width: 1024px)");
   const driverRef = useRef<Driver | null>(null);
   const [isTourActive, setIsTourActive] = useState(false);
-  const [markWelcomeTourSeen] = useMarkWelcomeTourSeenMutation();
+  const { mutate: markWelcomeTourSeen } = useMarkWelcomeTourSeen();
 
   const destroyActiveDriver = useCallback(() => {
     driverRef.current?.destroy();

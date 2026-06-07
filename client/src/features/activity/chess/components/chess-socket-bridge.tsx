@@ -11,10 +11,10 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
 import { ChessGameOutcomeDialog } from "@/features/activity/chess/components/chess-game-outcome-dialog";
 import {
-  useRoomChessDrawRespondMutation,
-  useRoomChessInviteMutation,
-  useRoomChessRespondMutation,
-} from "@/features/activity/api/activity-api";
+  useRoomChessDrawRespond,
+  useRoomChessInvite,
+  useRoomChessRespond,
+} from "@/features/activity/api/activity.mutations";
 import {
   CHESS_SOCKET_EVENTS,
   parseChessDeclinedPayload,
@@ -26,38 +26,33 @@ import {
   parseChessStartedPayload,
   type ChessInvitePayload,
 } from "@/features/activity/chess/types/chess-socket.types";
-import { getRtkMutationErrorMessage } from "@/lib/api/rtk-mutation-error";
-import { useAppDispatch, useAppSelector } from "@/lib/redux/hooks";
+import { getApiErrorMessage } from "@/lib/api/fetch-client";
+import {
+  selectRoomActiveActivity,
+  selectRoomLastChessOutcome,
+  useRoomActivityStore,
+} from "@/features/room/state/room-activity.store";
 import {
   selectActiveRoomId,
   selectDirectCallPeerLabel,
   selectIsVideoSessionActive,
-} from "@/lib/redux/selectors/room-selectors";
-import {
-  selectRoomActiveActivity,
-  selectRoomLastChessOutcome,
-} from "@/lib/redux/selectors/room-activity-selectors";
-import {
-  clearLastChessOutcome,
-  setActiveActivity,
-  setLastChessOutcome,
-} from "@/lib/redux/slices/room-activity-slice";
+  useRoomStore,
+} from "@/features/room/state/room.store";
 import { useSocket } from "@/lib/socket";
 
 export function ChessSocketBridge() {
   const { data: session } = useSession();
   const { socket } = useSocket();
-  const dispatch = useAppDispatch();
-  const activeRoomId = useAppSelector(selectActiveRoomId);
-  const isVideoSessionActive = useAppSelector(selectIsVideoSessionActive);
-  const activeRealtimeActivity = useAppSelector(selectRoomActiveActivity);
-  const lastChessOutcome = useAppSelector(selectRoomLastChessOutcome);
-  const directCallPeerLabel = useAppSelector(selectDirectCallPeerLabel);
+  const activeRoomId = useRoomStore(selectActiveRoomId);
+  const isVideoSessionActive = useRoomStore(selectIsVideoSessionActive);
+  const activeRealtimeActivity = useRoomActivityStore(selectRoomActiveActivity);
+  const lastChessOutcome = useRoomActivityStore(selectRoomLastChessOutcome);
+  const directCallPeerLabel = useRoomStore(selectDirectCallPeerLabel);
   const [invite, setInvite] = useState<ChessInvitePayload | null>(null);
   const [drawOffer, setDrawOffer] = useState<{ roomId: string; gameId: string } | null>(null);
-  const [respond, { isLoading: responding }] = useRoomChessRespondMutation();
-  const [respondDraw, { isLoading: respondingDraw }] = useRoomChessDrawRespondMutation();
-  const [requestRematch, { isLoading: requestingRematch }] = useRoomChessInviteMutation();
+  const { mutateAsync: respond, isPending: responding } = useRoomChessRespond();
+  const { mutateAsync: respondDraw, isPending: respondingDraw } = useRoomChessDrawRespond();
+  const { mutateAsync: requestRematch, isPending: requestingRematch } = useRoomChessInvite();
 
   const onInvite = useEffectEvent((payload: unknown) => {
     const parsed = parseChessInvitePayload(payload);
@@ -78,9 +73,8 @@ export function ChessSocketBridge() {
     if (!parsed) return;
     if (!activeRoomId || parsed.roomId !== activeRoomId) return;
     setInvite(null);
-    dispatch(clearLastChessOutcome());
-    dispatch(
-      setActiveActivity({
+    useRoomActivityStore.getState().clearLastChessOutcome();
+    useRoomActivityStore.getState().setActiveActivity({
         kind: "chess",
         gameId: parsed.gameId,
         roomId: parsed.roomId,
@@ -93,8 +87,7 @@ export function ChessSocketBridge() {
         moveNumber: 0,
         lastMoveSan: null,
         lastMoveAt: null,
-      }),
-    );
+    });
     toast.success("Chess started");
   });
 
@@ -103,16 +96,14 @@ export function ChessSocketBridge() {
     if (!parsed) return;
     if (!activeRoomId || parsed.roomId !== activeRoomId) return;
     if (activeRealtimeActivity?.kind !== "chess" || activeRealtimeActivity.gameId !== parsed.gameId) return;
-    dispatch(
-      setActiveActivity({
-        ...activeRealtimeActivity,
-        fen: parsed.fen,
-        turn: parsed.turn,
-        moveNumber: parsed.moveNumber,
-        lastMoveSan: parsed.san,
-        lastMoveAt: parsed.movedAt,
-      }),
-    );
+    useRoomActivityStore.getState().setActiveActivity({
+      ...activeRealtimeActivity,
+      fen: parsed.fen,
+      turn: parsed.turn,
+      moveNumber: parsed.moveNumber,
+      lastMoveSan: parsed.san,
+      lastMoveAt: parsed.movedAt,
+    });
   });
 
   const onDrawOffered = useEffectEvent((payload: unknown) => {
@@ -140,20 +131,18 @@ export function ChessSocketBridge() {
         : null;
 
     if (chess) {
-      dispatch(
-        setLastChessOutcome({
-          roomId: parsed.roomId,
-          gameId: parsed.gameId,
-          endedByUserId: parsed.endedByUserId,
-          endedAt: parsed.endedAt,
-          startedAt: parsed.startedAt,
-          winnerUserId: parsed.winnerUserId,
-          result: parsed.result,
-          whiteUserId: chess.whiteUserId,
-          blackUserId: chess.blackUserId,
-        }),
-      );
-      dispatch(setActiveActivity(null));
+      useRoomActivityStore.getState().setLastChessOutcome({
+        roomId: parsed.roomId,
+        gameId: parsed.gameId,
+        endedByUserId: parsed.endedByUserId,
+        endedAt: parsed.endedAt,
+        startedAt: parsed.startedAt,
+        winnerUserId: parsed.winnerUserId,
+        result: parsed.result,
+        whiteUserId: chess.whiteUserId,
+        blackUserId: chess.blackUserId,
+      });
+      useRoomActivityStore.getState().setActiveActivity(null);
     }
     setDrawOffer(null);
   });
@@ -185,11 +174,11 @@ export function ChessSocketBridge() {
         roomId: invite.roomId,
         requestId: invite.requestId,
         accept,
-      }).unwrap();
+      });
       if (!accept) toast.message("Chess invite declined");
       setInvite(null);
     } catch (e: unknown) {
-      toast.error(getRtkMutationErrorMessage(e, "Could not respond to chess invite"));
+      toast.error(getApiErrorMessage(e, "Could not respond to chess invite"));
     }
   };
 
@@ -202,7 +191,7 @@ export function ChessSocketBridge() {
 
   /**
    * Single visible modal — rematch `invite` replaces the game-over dialog immediately
-   * (no extra close). Outcome stays in Redux so if the user declines the invite, the
+   * (no extra close). Outcome stays in Zustand so if the user declines the invite, the
    * result sheet can show again.
    */
   const inviteDialogOpen = Boolean(invite);
@@ -210,17 +199,17 @@ export function ChessSocketBridge() {
   const drawDialogOpen = Boolean(drawOffer) && !invite && !outcomeDialogOpen;
 
   const dismissOutcome = () => {
-    dispatch(clearLastChessOutcome());
+    useRoomActivityStore.getState().clearLastChessOutcome();
   };
 
   const onPlayAgainFromOutcome = async () => {
     if (!lastChessOutcome || !activeRoomId || lastChessOutcome.roomId !== activeRoomId) return;
     try {
-      await requestRematch({ roomId: lastChessOutcome.roomId }).unwrap();
+      await requestRematch({ roomId: lastChessOutcome.roomId });
       toast.success("Chess invite sent");
-      dispatch(clearLastChessOutcome());
+      useRoomActivityStore.getState().clearLastChessOutcome();
     } catch (e: unknown) {
-      toast.error(getRtkMutationErrorMessage(e, "Could not send chess invite"));
+      toast.error(getApiErrorMessage(e, "Could not send chess invite"));
     }
   };
 
@@ -231,11 +220,11 @@ export function ChessSocketBridge() {
         roomId: drawOffer.roomId,
         gameId: drawOffer.gameId,
         accept,
-      }).unwrap();
+      });
       setDrawOffer(null);
       if (!accept) toast.message("Draw offer declined");
     } catch (e: unknown) {
-      toast.error(getRtkMutationErrorMessage(e, "Could not respond to draw offer"));
+      toast.error(getApiErrorMessage(e, "Could not respond to draw offer"));
     }
   };
 

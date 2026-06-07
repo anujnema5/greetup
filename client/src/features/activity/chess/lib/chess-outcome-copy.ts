@@ -1,4 +1,4 @@
-import type { RoomChessLastOutcome } from "@/lib/redux/types/activity-slice.types";
+import type { RoomChessLastOutcome } from "@/features/room/types/activity-state.types";
 
 export type ChessOutcomePresentation =
   | {

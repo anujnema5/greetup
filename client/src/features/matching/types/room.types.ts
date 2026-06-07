@@ -1,92 +1,139 @@
 import type { RoomSessionType } from "@/shared/types/room-session";
+import {
+  isCircleGroupSession,
+  isCircleSession,
+  isConnectionCallSession,
+  isMatchSession,
+} from "@/features/room/lib/session/room-session-kind";
 
 export type { RoomSessionType };
+export type SessionKind = "match" | "connection_call" | "circle";
+
+/** Random match 1:1 (Redis pair or expanded in place). */
+export type MatchRoomData = {
+  sessionKind: "match";
+  roomId: string;
+  userA: string;
+  userB: string;
+  matchScore: string | null;
+  userAName?: string | null;
+  userBName?: string | null;
+  /** After an in-place 1:1 → circle expansion, Postgres `room_type` is `circle`. */
+  roomType?: RoomSessionType;
+  title?: string;
+  hostUserId?: string;
+  startedAt?: string | null;
+  expiresAt?: string | null;
+};
+
+/** Connection DM call (`room_type = direct`, `session_kind = connection_call`). */
+export type ConnectionCallRoomData = {
+  sessionKind: "connection_call";
+  roomId: string;
+  hostUserId: string;
+  roomType: "direct";
+  title: string;
+  conversationId?: string;
+  lobbyGateActive?: "0" | "1";
+  startedAt?: string | null;
+  expiresAt?: string | null;
+};
+
+/** Hosted / scheduled circle (`session_kind = circle`). */
+export type CircleRoomData = {
+  sessionKind: "circle";
+  roomId: string;
+  hostUserId: string;
+  roomType: RoomSessionType | string;
+  title: string;
+  status?: string;
+  lobbyGateActive?: "0" | "1";
+  scheduledStartAt?: string;
+  startedAt?: string | null;
+  expiresAt?: string | null;
+};
 
 /**
- * Room document from GET `/room/:roomId` (match engine Redis pair or DB-backed room).
+ * Room document from GET `/room/:roomId` (match pair, connection call, or circle).
  */
-export type RoomData =
-  | {
-      sessionKind?: undefined;
-      roomId: string;
-      userA: string;
-      userB: string;
-      matchScore: string | null;
-      userAName?: string | null;
-      userBName?: string | null;
-      /** After an in-place 1:1 → circle expansion, Postgres `room_type` is `circle`. */
-      roomType?: RoomSessionType;
-      /** Present when expanded circle: DB `rooms.title`. */
-      title?: string;
-      /** Present when expanded circle: DB `rooms.host_user_id`. */
-      hostUserId?: string;
-      /** Live session timing from Postgres when the pair row is `live`. */
-      startedAt?: string | null;
-      expiresAt?: string | null;
-    }
-  | {
-      sessionKind: "db_room";
-      roomId: string;
-      hostUserId: string;
-      /** API may send other strings; callers treat unknown values defensively. */
-      roomType: RoomSessionType | string;
-      title: string;
-      /** Postgres `rooms.status` for circle lifecycle (`scheduled`, `live`, …). */
-      status?: string;
-      /** Redis lobby gate: `"1"` until the host opens the circle for non-host RTC. */
-      lobbyGateActive?: "0" | "1";
-      /** Scheduled start (ISO), when the circle has a start time — used in pre-start lobby. */
-      scheduledStartAt?: string;
-      startedAt?: string | null;
-      expiresAt?: string | null;
-    };
+export type RoomData = MatchRoomData | ConnectionCallRoomData | CircleRoomData;
 
-/** Parses API `data` envelope — used by RTK Query `transformResponse`. */
+function parseTimingFields(d: Record<string, unknown>) {
+  const startedAt =
+    typeof d.startedAt === "string" && d.startedAt.length > 0 ? d.startedAt : null;
+  const expiresAt =
+    typeof d.expiresAt === "string" && d.expiresAt.length > 0 ? d.expiresAt : null;
+  return {
+    ...(startedAt ? { startedAt } : {}),
+    ...(expiresAt ? { expiresAt } : {}),
+  };
+}
+
+function parseCircleSessionKindPayload(d: Record<string, unknown>): CircleRoomData {
+  const rtRaw = d.roomType;
+  const roomType: RoomSessionType | string =
+    rtRaw === "circle" || rtRaw === "direct" ? rtRaw : String(rtRaw);
+  const lobbyRaw = d.lobbyGateActive;
+  const lobbyGateActive: "0" | "1" | undefined =
+    lobbyRaw === "0" || lobbyRaw === "1" ? lobbyRaw : undefined;
+  const schedRaw = d.scheduledStartAt;
+  const scheduledStartAt =
+    typeof schedRaw === "string" && schedRaw.length > 0 ? schedRaw : undefined;
+  const statusRaw = d.status;
+  const status =
+    typeof statusRaw === "string" && statusRaw.length > 0 ? statusRaw : undefined;
+
+  return {
+    sessionKind: "circle",
+    roomId: String(d.roomId),
+    hostUserId: String(d.hostUserId),
+    roomType,
+    title: String(d.title),
+    ...(status ? { status } : {}),
+    ...(lobbyGateActive ? { lobbyGateActive } : {}),
+    ...(scheduledStartAt ? { scheduledStartAt } : {}),
+    ...parseTimingFields(d),
+  };
+}
+
+/** Parses API `data` envelope for room responses. */
 export function parseRoomData(data: unknown): RoomData {
   if (!data || typeof data !== "object") {
     throw new Error("Unexpected room payload");
   }
   const d = data as Record<string, unknown>;
-  if (d.sessionKind === "db_room") {
-    const rtRaw = d.roomType;
-    const roomType: RoomSessionType | string =
-      rtRaw === "circle" || rtRaw === "direct" ? rtRaw : String(rtRaw);
+
+  if (d.sessionKind === "connection_call") {
+    const conversationId =
+      typeof d.conversationId === "string" && d.conversationId.length > 0
+        ? d.conversationId
+        : undefined;
     const lobbyRaw = d.lobbyGateActive;
     const lobbyGateActive: "0" | "1" | undefined =
       lobbyRaw === "0" || lobbyRaw === "1" ? lobbyRaw : undefined;
-    const schedRaw = d.scheduledStartAt;
-    const scheduledStartAt =
-      typeof schedRaw === "string" && schedRaw.length > 0 ? schedRaw : undefined;
-    const statusRaw = d.status;
-    const status =
-      typeof statusRaw === "string" && statusRaw.length > 0 ? statusRaw : undefined;
-    const startedAt =
-      typeof d.startedAt === "string" && d.startedAt.length > 0 ? d.startedAt : null;
-    const expiresAt =
-      typeof d.expiresAt === "string" && d.expiresAt.length > 0 ? d.expiresAt : null;
     return {
-      sessionKind: "db_room",
+      sessionKind: "connection_call",
       roomId: String(d.roomId),
       hostUserId: String(d.hostUserId),
-      roomType,
-      title: String(d.title),
-      ...(status ? { status } : {}),
+      roomType: "direct",
+      title: typeof d.title === "string" && d.title.length > 0 ? d.title : "Call",
+      ...(conversationId ? { conversationId } : {}),
       ...(lobbyGateActive ? { lobbyGateActive } : {}),
-      ...(scheduledStartAt ? { scheduledStartAt } : {}),
-      ...(startedAt ? { startedAt } : {}),
-      ...(expiresAt ? { expiresAt } : {}),
+      ...parseTimingFields(d),
     };
   }
-  if ("userA" in d && "userB" in d && "roomId" in d) {
+
+  if (d.sessionKind === "circle") {
+    return parseCircleSessionKindPayload(d);
+  }
+
+  if (d.sessionKind === "match" || ("userA" in d && "userB" in d && "roomId" in d)) {
     const ms = d.matchScore;
     const rt = d.roomType;
     const title = d.title;
     const hostUserId = d.hostUserId;
-    const startedAt =
-      typeof d.startedAt === "string" && d.startedAt.length > 0 ? d.startedAt : null;
-    const expiresAt =
-      typeof d.expiresAt === "string" && d.expiresAt.length > 0 ? d.expiresAt : null;
     return {
+      sessionKind: "match",
       roomId: String(d.roomId),
       userA: String(d.userA),
       userB: String(d.userB),
@@ -96,39 +143,39 @@ export function parseRoomData(data: unknown): RoomData {
       roomType: rt === "circle" || rt === "direct" ? rt : undefined,
       title: typeof title === "string" ? title : undefined,
       hostUserId: typeof hostUserId === "string" ? hostUserId : undefined,
-      ...(startedAt ? { startedAt } : {}),
-      ...(expiresAt ? { expiresAt } : {}),
+      ...parseTimingFields(d),
     };
   }
+
   throw new Error("Unexpected room payload");
 }
 
-/** DB-backed circle / group room (`GET /room/:id`). */
+/** Postgres-backed circle session (`sessionKind === 'circle'`). */
 export function isCircleRoomData(
   room: RoomData | null | undefined,
-): room is Extract<RoomData, { sessionKind: "db_room" }> {
-  return Boolean(room && "sessionKind" in room && room.sessionKind === "db_room");
+): room is CircleRoomData {
+  return isCircleSession(room);
 }
 
-/** Redis match-pair (1:1) room — not a circle. */
-export function isDirectMatchRoom(room: RoomData | null | undefined): boolean {
-  return Boolean(room && !isCircleRoomData(room));
+/** Redis / API match-pair 1:1 room. */
+export function isDirectMatchRoom(room: RoomData | null | undefined): room is MatchRoomData {
+  if (!room) return false;
+  return isMatchSession(room) || ("userA" in room && !isCircleSession(room) && !isConnectionCallSession(room));
 }
 
-/** Use circle (gallery) layout when the DB/RTC session is a group room. */
+/** Use circle (gallery) layout when the session is a group room. */
 export function isRoomGroupLayout(
   room: RoomData | null | undefined,
   rtcRoomType: RoomSessionType | null | undefined,
 ): boolean {
-  if (rtcRoomType === "circle") return true;
-  if (room && isCircleRoomData(room)) return true;
+  if (isCircleGroupSession(room, rtcRoomType)) return true;
   if (room && "userA" in room && room.roomType === "circle") return true;
   return false;
 }
 
 /**
- * Postgres-backed circle session: native scheduled circles **or** a 1:1 match
- * promoted in place (`room_type = circle`, Redis match payload + `hostUserId`).
+ * Postgres-backed circle session: native `circle` **or** a 1:1 match
+ * promoted in place (`room_type = circle`, same `roomId`).
  */
 export function isPersistedCircleSession(
   room: RoomData | null | undefined,
@@ -140,7 +187,7 @@ export function isPersistedCircleSession(
   return false;
 }
 
-/** `rooms.host_user_id` from GET `/room/:id` (db_room or expanded match payload). */
+/** `rooms.host_user_id` from GET `/room/:id` (circle or expanded match payload). */
 export function resolveCircleHostUserId(
   room: RoomData | null | undefined,
 ): string | null {
@@ -164,7 +211,7 @@ export function isCircleHostUser(
 
 /**
  * RTC credential fields returned by `useRoom`.
- * Derived from `getRtcToken` (RTK Query) + room gating.
+ * Derived from RTC token query + room gating.
  */
 export type RoomRtcState = {
   rtcToken: string | null;

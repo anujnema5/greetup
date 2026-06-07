@@ -14,14 +14,13 @@ export { CirclesPage } from "./pages/circles-page";
 export { CIRCLES_BROWSE_PATH } from "./lib/circles-browse-path";
 
 export {
-  circlesApi,
-  useCreateCircleMutation,
-  useDeleteScheduledCircleMutation,
-  useListCircleCategoriesQuery,
-  useListActiveCirclesQuery,
-  useBrowseActiveCirclesInfiniteQuery,
-  useUpdateScheduledCircleMutation,
-} from "./api/circles-api";
+  useBrowseActiveCircles,
+  useCreateCircle,
+  useDeleteScheduledCircle,
+  useListActiveCircles,
+  useListCircleCategories,
+  useUpdateScheduledCircle,
+} from "./api";
 export type { StartCircleAdvancedFormState } from "./types/start-circle-ui.types";
 export type { ActiveCircleItem, FriendInvitedCircleItem } from "./types/circles-api.types";
 export {

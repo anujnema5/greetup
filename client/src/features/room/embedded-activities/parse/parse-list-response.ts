@@ -3,9 +3,15 @@ import type {
   RoomEmbeddedActivityDto,
 } from "@/features/room/embedded-activities/types";
 
-/** Unwraps RTK `transformResponse` for `getRoomEmbeddedActivities` in `room-api.ts`. */
+type EmbeddedActivitiesEnvelope = {
+  success: boolean;
+  data?: RoomEmbeddedActivityDto[] | null;
+  message?: string;
+};
+
+/** Unwraps API envelope for embedded activities list responses. */
 export function parseListRoomEmbeddedActivitiesResponse(
-  response: ListRoomEmbeddedActivitiesApiResponse,
+  response: EmbeddedActivitiesEnvelope | ListRoomEmbeddedActivitiesApiResponse,
 ): RoomEmbeddedActivityDto[] {
   if (!response.success || response.data == null) {
     throw new Error(response.message ?? "Could not load room activities");

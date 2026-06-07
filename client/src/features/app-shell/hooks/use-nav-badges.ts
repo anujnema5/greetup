@@ -1,7 +1,7 @@
 'use client';
 
 import { useMemo } from 'react';
-import { useGetPendingIncomingConnectionCountQuery } from '@/features/connections/api/connections-api';
+import { usePendingIncomingConnectionCount } from '@/features/connections/api/connections.queries';
 import { useTotalUnreadMessageCount } from '@/features/chat/hooks/use-total-unread-message-count';
 import type { NavBadgeId } from '../constants/nav-config';
 
@@ -17,12 +17,9 @@ export type NavBadgeLookup = (badgeId?: NavBadgeId) => NavBadgeSnapshot | null;
  * To add a badge: extend `NavBadgeId`, assign `badgeId` on a `NAV_ITEMS` entry, wire the count here.
  */
 export function useNavBadgeLookup(): NavBadgeLookup {
-  const { data: pendingIncomingData } = useGetPendingIncomingConnectionCountQuery(undefined, {
-    pollingInterval: 15_000,
-    refetchOnFocus: true,
-    refetchOnReconnect: true,
+  const { data: pendingIncomingCount = 0 } = usePendingIncomingConnectionCount({
+    refetchInterval: 15_000,
   });
-  const pendingIncomingCount = pendingIncomingData?.data?.pendingIncomingCount ?? 0;
   const unreadMessageCount = useTotalUnreadMessageCount();
 
   return useMemo(() => {

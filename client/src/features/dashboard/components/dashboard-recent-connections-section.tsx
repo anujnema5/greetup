@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useMemo } from "react";
 
-import { useGetMyConnectionsQuery } from "@/features/connections/api/connections-api";
+import { useMyConnections } from "@/features/connections/api/connections.queries";
 import { PeerContactActionIcons } from "@/features/connections/components/peer-contact-action-icons";
 import type { PeerContactTarget } from "@/features/connections/hooks/use-peer-contact-actions";
 import { usePeerContactActions } from "@/features/connections/hooks/use-peer-contact-actions";
@@ -136,15 +136,15 @@ export function DashboardRecentConnectionsSection() {
     isOpeningMessage,
   } = usePeerContactActions();
 
-  const { data, isLoading, isFetching } = useGetMyConnectionsQuery({
+  const { data, isLoading, isFetching } = useMyConnections({
     filter: "accepted",
     limit: RECENT_CONNECTIONS_PREVIEW_LIMIT,
     page: 1,
   });
 
   const connections = useMemo(
-    () => data?.data?.items ?? [],
-    [data?.data?.items],
+    () => data?.items ?? [],
+    [data?.items],
   );
 
   const peerIds = useMemo(
@@ -154,7 +154,7 @@ export function DashboardRecentConnectionsSection() {
 
   const { isOnline } = usePeersOnlineStatus(peerIds);
   const loading = isLoading || isFetching;
-  const hasMore = (data?.data?.hasMore ?? false) || connections.length > 0;
+  const hasMore = (data?.hasMore ?? false) || connections.length > 0;
 
   return (
     <div>

@@ -29,6 +29,12 @@ export type ConnectionCallDeclinedPayload = {
   reason: "declined" | "missed" | "cancelled";
 };
 
+export type ConnectionCallEndedPayload = {
+  roomId: string;
+  conversationId: string;
+  endedByUserId: string;
+};
+
 function logEmit(event: string, userId: string, payload: { requestId: string; roomId: string; reason?: string }) {
   logger.debug("connection_call_socket_emit", {
     event,
@@ -68,4 +74,17 @@ export function emitConnectionCallMissed(
 ): void {
   logEmit(CONNECTION_CALL_SOCKET_EVENTS.missed, userId, payload);
   emitToUser(userId, CONNECTION_CALL_SOCKET_EVENTS.missed, payload);
+}
+
+export function emitConnectionCallEnded(
+  peerUserId: string,
+  payload: ConnectionCallEndedPayload,
+): void {
+  logger.debug("connection_call_socket_emit", {
+    event: CONNECTION_CALL_SOCKET_EVENTS.ended,
+    userId: peerUserId,
+    roomId: payload.roomId,
+    endedByUserId: payload.endedByUserId,
+  });
+  emitToUser(peerUserId, CONNECTION_CALL_SOCKET_EVENTS.ended, payload);
 }

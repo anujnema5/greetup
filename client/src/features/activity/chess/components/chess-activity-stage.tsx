@@ -11,16 +11,16 @@ import { memo, useCallback, useEffect, useMemo, useRef, useState, type CSSProper
 import { toast } from "sonner";
 import { Chess, type Move, type Square } from "chess.js";
 import { Chessboard } from "react-chessboard";
-import { useRoomChessMoveMutation } from "@/features/activity";
+import { useRoomChessMove } from "@/features/activity/api/activity.mutations";
 import { capturedPieceKeysFromSans, type ChessPieceKey } from "@/features/activity/chess/utils/chess-captured";
 import { playChessSound, preloadChessSounds } from "@/features/activity/chess/utils/chess-sounds";
 import {
   RoomActivityLayout,
   RoomActivityVideoTiles,
 } from "@/features/room/call/activities/stages/room-activity-layout";
-import { getRtkMutationErrorMessage } from "@/lib/api/rtk-mutation-error";
+import { getApiErrorMessage } from "@/lib/api/fetch-client";
 import { cn } from "@/lib/utils";
-import type { RoomChessActivityState } from "@/lib/redux/types/room-slice.types";
+import type { RoomChessActivityState } from "@/features/room/types/room-state.types";
 
 /** React 19 — `useEffectEvent` types may lag; runtime provides the hook. */
 const useEffectEvent = React.useEffectEvent as <T extends (...args: never[]) => unknown>(fn: T) => T;
@@ -248,7 +248,7 @@ function lastMoveFromSanList(sans: string[]): Move | null {
 
 /**
  * Mobile: board + video strip + scroll footer. Desktop: board + right column (match / moves).
- * Moves: REST (`useRoomChessMoveMutation`) + Redux/socket keeping `chessActivity` in sync.
+ * Moves: REST (`useRoomChessMoveMutation`) + Zustand/socket keeping `chessActivity` in sync.
  */
 export function ChessActivityStage({
   peerLabel,
@@ -269,7 +269,7 @@ export function ChessActivityStage({
   peerAvatarUrl = null,
   myAvatarUrl = null,
 }: ChessActivityStageProps) {
-  const [submitMove, { isLoading: moveSubmitting }] = useRoomChessMoveMutation();
+  const { mutateAsync: submitMove, isPending: moveSubmitting } = useRoomChessMove();
   /** Square of the piece “lifted” for a move (highlights + legal targets). */
   const [selectedSquare, setSelectedSquare] = useState<string | null>(null);
   const [syncedMoves, setSyncedMoves] = useState<string[]>([]);
@@ -423,11 +423,9 @@ export function ChessActivityStage({
         isGameOver,
         winnerUserId,
         result,
-      })
-        .unwrap()
-        .catch((e: unknown) => {
-          toast.error(getRtkMutationErrorMessage(e, "Could not submit chess move"));
-        });
+      }).catch((e: unknown) => {
+        toast.error(getApiErrorMessage(e, "Could not submit chess move"));
+      });
 
       setSelectedSquare(null);
       return true;

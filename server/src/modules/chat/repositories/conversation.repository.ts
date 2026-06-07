@@ -1,4 +1,4 @@
-import { and, eq, isNull, or } from 'drizzle-orm';
+import { and, asc, eq, inArray, isNull, or } from 'drizzle-orm';
 import { db } from '@/core/database';
 import {
   conversations,
@@ -50,6 +50,13 @@ export const conversationRepository = {
   },
 
   async findOrCreateConnectionConversation(userA: string, userB: string) {
+    return this.findOrCreatePeerConversation(userA, userB);
+  },
+
+  /** DM between two users — connection thread when accepted, otherwise room_direct. */
+  async findOrCreatePeerConversation(userA: string, userB: string) {
+    if (userA === userB) throw new Error('INVALID_PEER');
+
     return db.transaction(async (tx) => {
       const conn = await tx.query.userConnections.findFirst({
         where: and(
@@ -61,28 +68,54 @@ export const conversationRepository = {
         ),
       });
 
-      if (!conn) throw new Error('NOT_CONNECTIONS');
+      if (conn) {
+        await tx
+          .select({ id: userConnections.id })
+          .from(userConnections)
+          .where(eq(userConnections.id, conn.id))
+          .for('update');
 
-      await tx
-        .select({ id: userConnections.id })
-        .from(userConnections)
-        .where(eq(userConnections.id, conn.id))
-        .for('update');
+        const existing = await tx.query.conversations.findFirst({
+          where: and(
+            eq(conversations.type, 'connection'),
+            eq(conversations.connectionId, conn.id),
+          ),
+          with: conversationWithDisplay,
+        });
 
-      const existing = await tx.query.conversations.findFirst({
-        where: and(
-          eq(conversations.type, 'connection'),
-          eq(conversations.connectionId, conn.id),
-        ),
-        with: conversationWithDisplay,
-      });
+        if (existing) return existing;
 
-      if (existing) return existing;
+        const [conv] = await tx.insert(conversations).values({
+          type:         'connection',
+          connectionId: conn.id,
+          isPersisted:  true,
+        }).returning();
+
+        await tx.insert(conversationParticipants).values([
+          { conversationId: conv.id, userId: userA },
+          { conversationId: conv.id, userId: userB },
+        ]).onConflictDoNothing({
+          target: [conversationParticipants.conversationId, conversationParticipants.userId],
+        });
+
+        return tx.query.conversations.findFirst({
+          where: eq(conversations.id, conv.id),
+          with: conversationWithDisplay,
+        });
+      }
+
+      const existingPeerId = await findExistingPeerConversationId(tx, userA, userB);
+      if (existingPeerId) {
+        return tx.query.conversations.findFirst({
+          where: eq(conversations.id, existingPeerId),
+          with: conversationWithDisplay,
+        });
+      }
 
       const [conv] = await tx.insert(conversations).values({
-        type:         'connection',
-        connectionId: conn.id,
-        isPersisted:  true,
+        type:        'room_direct',
+        roomId:      null,
+        isPersisted: false,
       }).returning();
 
       await tx.insert(conversationParticipants).values([
@@ -205,3 +238,40 @@ export const conversationRepository = {
       .where(eq(conversations.id, conversationId));
   },
 };
+
+async function findExistingPeerConversationId(
+  tx: Parameters<Parameters<typeof db.transaction>[0]>[0],
+  userA: string,
+  userB: string,
+): Promise<string | null> {
+  const userARows = await tx.query.conversationParticipants.findMany({
+    where: eq(conversationParticipants.userId, userA),
+    columns: { conversationId: true },
+  });
+  const userAConversationIds = userARows.map((row) => row.conversationId);
+  if (userAConversationIds.length === 0) return null;
+
+  const sharedRows = await tx.query.conversationParticipants.findMany({
+    where: and(
+      eq(conversationParticipants.userId, userB),
+      inArray(conversationParticipants.conversationId, userAConversationIds),
+    ),
+    columns: { conversationId: true },
+  });
+  const sharedConversationIds = sharedRows.map((row) => row.conversationId);
+  if (sharedConversationIds.length === 0) return null;
+
+  const existing = await tx.query.conversations.findFirst({
+    where: and(
+      inArray(conversations.id, sharedConversationIds),
+      or(
+        eq(conversations.type, 'room_direct'),
+        eq(conversations.type, 'connection'),
+      ),
+    ),
+    columns: { id: true },
+    orderBy: asc(conversations.createdAt),
+  });
+
+  return existing?.id ?? null;
+}

@@ -5,7 +5,7 @@ import type { RoomSessionType } from "@/shared/types/room-session";
 
 const sessionRoomKey = (roomId: string) => `${ROOM_KEYS.ROOM}${roomId}`;
 
-export type DbSessionRoomRedisPayload = {
+export type CircleSessionRoomRedisPayload = {
   roomId: string;
   hostUserId: string;
   roomType: RoomSessionType;
@@ -17,15 +17,22 @@ export type DbSessionRoomRedisPayload = {
   lobbyGateActive: boolean;
 };
 
-/** Ephemeral `room:{id}` hash for a live DB-backed session (idempotent). */
+export type ConnectionCallSessionRoomRedisPayload = {
+  roomId: string;
+  hostUserId: string;
+  title: string;
+  conversationId: string;
+};
+
+/** Ephemeral `room:{id}` hash for a live circle session (idempotent). */
 export async function provisionSessionRoomRedis(
-  payload: DbSessionRoomRedisPayload,
+  payload: CircleSessionRoomRedisPayload,
 ): Promise<void> {
   const redis = getRedis();
   const key = sessionRoomKey(payload.roomId);
 
   await redis.hset(key, {
-    sessionKind: "db_room",
+    sessionKind: "circle",
     roomId: payload.roomId,
     hostUserId: payload.hostUserId,
     roomType: payload.roomType,
@@ -38,6 +45,32 @@ export async function provisionSessionRoomRedis(
   logger.info("Session room provisioned in Redis", {
     roomId: payload.roomId,
     roomType: payload.roomType,
+    sessionKind: "circle",
+  });
+}
+
+/** Ephemeral `room:{id}` hash for a live connection (DM) call. */
+export async function provisionConnectionCallSessionRoomRedis(
+  payload: ConnectionCallSessionRoomRedisPayload,
+): Promise<void> {
+  const redis = getRedis();
+  const key = sessionRoomKey(payload.roomId);
+
+  await redis.hset(key, {
+    sessionKind: "connection_call",
+    roomId: payload.roomId,
+    hostUserId: payload.hostUserId,
+    roomType: "direct",
+    title: payload.title,
+    conversationId: payload.conversationId,
+    createdAt: String(Date.now()),
+    lobbyGateActive: "0",
+  });
+  await redis.expire(key, ROOM_TTL);
+
+  logger.info("Connection call session room provisioned in Redis", {
+    roomId: payload.roomId,
+    sessionKind: "connection_call",
   });
 }
 
@@ -50,6 +83,16 @@ export async function patchSessionRoomRedisRoomType(
   const exists = await redis.exists(key);
   if (!exists) return;
   await redis.hset(key, { roomType });
+  await redis.expire(key, ROOM_TTL);
+}
+
+/** After match → circle expand: align Redis with Postgres `session_kind` / `room_type`. */
+export async function patchSessionRoomRedisCircleExpand(roomId: string): Promise<void> {
+  const redis = getRedis();
+  const key = sessionRoomKey(roomId);
+  const exists = await redis.exists(key);
+  if (!exists) return;
+  await redis.hset(key, { roomType: "circle", sessionKind: "circle" });
   await redis.expire(key, ROOM_TTL);
 }
 

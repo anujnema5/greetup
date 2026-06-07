@@ -6,6 +6,7 @@ export const CONNECTION_CALL_SOCKET_EVENTS = {
   declined: 'connection:call:declined',
   cancelled: 'connection:call:cancelled',
   missed: 'connection:call:missed',
+  ended: 'connection:call:ended',
 } as const;
 
 export type ConnectionCallRingPayload = {
@@ -32,6 +33,12 @@ export type ConnectionCallDeclinedPayload = {
   roomId: string;
   calleeUserId: string;
   reason: 'declined' | 'missed' | 'cancelled';
+};
+
+export type ConnectionCallEndedPayload = {
+  roomId: string;
+  conversationId: string;
+  endedByUserId: string;
 };
 
 function isRecord(v: unknown): v is Record<string, unknown> {
@@ -82,6 +89,15 @@ export function parseConnectionCallAcceptedPayload(payload: unknown): Connection
     calleeUserId,
     mode: readMode(payload),
   };
+}
+
+export function parseConnectionCallEndedPayload(payload: unknown): ConnectionCallEndedPayload | null {
+  if (!isRecord(payload)) return null;
+  const roomId = readString(payload, 'roomId');
+  const endedByUserId = readString(payload, 'endedByUserId');
+  if (!roomId || !endedByUserId) return null;
+  const conversationId = readString(payload, 'conversationId') ?? '';
+  return { roomId, conversationId, endedByUserId };
 }
 
 export function parseConnectionCallDeclinedPayload(payload: unknown): ConnectionCallDeclinedPayload | null {

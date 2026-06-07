@@ -2,11 +2,12 @@
 
 import { useEffect } from "react";
 import { toast } from "sonner";
+import { useQueryClient } from "@tanstack/react-query";
+
 import { syncConnectionFromNotification } from "@/features/connections/lib/realtime";
-import { baseApi } from "@/lib/api";
-import { useAppDispatch } from "@/lib/redux/hooks";
 import { useSocket } from "@/lib/socket";
-import { notificationInvalidationTags } from "../constants";
+
+import { invalidateNotificationCaches } from "../lib/invalidate-notification-caches";
 
 type NotificationSocketPayload = {
   notification?: {
@@ -21,21 +22,17 @@ type NotificationSocketPayload = {
 };
 
 export function NotificationsRealtimeBridge() {
-  const dispatch = useAppDispatch();
+  const queryClient = useQueryClient();
   const { socket } = useSocket();
 
   useEffect(() => {
-    const invalidateNotificationCaches = () => {
-      dispatch(baseApi.util.invalidateTags(notificationInvalidationTags));
-    };
-
     const onRealtimeSync = () => {
-      invalidateNotificationCaches();
+      invalidateNotificationCaches(queryClient);
     };
 
     const onNotificationNew = (payload?: NotificationSocketPayload) => {
-      invalidateNotificationCaches();
-      syncConnectionFromNotification(dispatch, payload?.notification);
+      invalidateNotificationCaches(queryClient);
+      syncConnectionFromNotification(queryClient, payload?.notification);
       const title = payload?.notification?.title?.trim();
       const body = payload?.notification?.body?.trim();
       if (!title && !body) return;
@@ -52,7 +49,7 @@ export function NotificationsRealtimeBridge() {
       socket.off("notification:new", onNotificationNew);
       socket.off("connect", onRealtimeSync);
     };
-  }, [dispatch, socket]);
+  }, [queryClient, socket]);
 
   return null;
 }

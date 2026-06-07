@@ -1,11 +1,11 @@
 'use client';
 
 import { useCallback } from 'react';
-import { useDispatch, useStore } from 'react-redux';
+import { useQueryClient, type QueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { useSession } from '@/lib/auth-client';
 import { useSocket } from '@/lib/socket/provider';
-import { chatApi } from '../api/chat-api';
+import { queryKeys } from '@/lib/query/keys';
 import { CHAT_SOCKET_ERROR } from '../constants/messaging-block.constants';
 import { applyConversationActivityToInbox } from '../lib/inbox-order';
 import {
@@ -13,20 +13,20 @@ import {
   messagingBlockSendToast,
 } from '../lib/messaging-block';
 import {
-  patchMessageInGetMessagesCache,
+  patchMessageInCache,
   pushOptimisticMessage,
-} from '../lib/message-rtk-sync';
-import type { AppDispatch, RootState } from '@/lib/redux/store';
+  removeMessageFromCache,
+} from '../lib/message-cache-sync';
 import type { Message, MessagingBlock } from '../types/chat.types';
 
-function syncInboxAfterSendAck(dispatch: AppDispatch, conversationId: string): void {
-  const hit = applyConversationActivityToInbox(dispatch, conversationId, {
+function syncInboxAfterSendAck(qc: QueryClient, conversationId: string) {
+  const hit = applyConversationActivityToInbox(qc, conversationId, {
     lastActivityAt: new Date().toISOString(),
   });
   if (!hit) {
-    dispatch(chatApi.util.invalidateTags([{ type: 'Conversations', id: 'LIST' }]));
+    void qc.invalidateQueries({ queryKey: queryKeys.chat.conversations });
   }
-  dispatch(chatApi.util.invalidateTags([{ type: 'Messages', id: conversationId }]));
+  void qc.invalidateQueries({ queryKey: queryKeys.chat.messages(conversationId) });
 }
 
 function buildOptimisticMessage(
@@ -42,27 +42,27 @@ function buildOptimisticMessage(
 ): Message {
   const myId = me?.id ?? '';
   return {
-    id:             params.tempId,
+    id: params.tempId,
     conversationId: params.conversationId,
-    senderId:       myId,
-    sender:         me
+    senderId: myId,
+    sender: me
       ? {
-          id:          me.id,
-          name:        me.name ?? '',
+          id: me.id,
+          name: me.name ?? '',
           displayName: me.name ?? null,
-          image:       me.image ?? null,
+          image: me.image ?? null,
         }
       : undefined,
-    content:       params.content,
-    messageType:   params.messageType ?? 'text',
-    replyToId:     params.replyToId ?? null,
-    mentions:      params.mentions ?? null,
+    content: params.content,
+    messageType: params.messageType ?? 'text',
+    replyToId: params.replyToId ?? null,
+    mentions: params.mentions ?? null,
     systemPayload: null,
-    editedAt:      null,
-    isDeleted:     false,
+    editedAt: null,
+    isDeleted: false,
     deletedForAll: false,
-    createdAt:     new Date().toISOString(),
-    status:        'sending',
+    createdAt: new Date().toISOString(),
+    status: 'sending',
   };
 }
 
@@ -73,8 +73,7 @@ type UseChatOptions = {
 };
 
 export function useChat(conversationId: string, options?: UseChatOptions) {
-  const dispatch = useDispatch<AppDispatch>();
-  const store = useStore<RootState>();
+  const qc = useQueryClient();
   const { chatSocket: socket } = useSocket();
   const { data: session } = useSession();
   const me = session?.user;
@@ -96,14 +95,14 @@ export function useChat(conversationId: string, options?: UseChatOptions) {
         me,
       );
 
-      pushOptimisticMessage(dispatch, () => store.getState(), conversationId, optimisticMsg);
+      pushOptimisticMessage(qc, conversationId, optimisticMsg);
 
       socket.emit(
         'chat:message:send',
         { conversationId, ...params },
         (ack: { success: boolean; messageId?: string; error?: string }) => {
           if (ack.success && ack.messageId) {
-            syncInboxAfterSendAck(dispatch, conversationId);
+            syncInboxAfterSendAck(qc, conversationId);
             return;
           }
 
@@ -111,10 +110,10 @@ export function useChat(conversationId: string, options?: UseChatOptions) {
             toast.error('You are sending too quickly. Wait a moment and try again.');
           } else if (ack.error === CHAT_SOCKET_ERROR.MESSAGING_BLOCKED) {
             toast.error(messagingBlockSendToast(messagingBlock));
-            invalidateConversationCache(dispatch, conversationId);
+            invalidateConversationCache(conversationId, qc);
           }
 
-          patchMessageInGetMessagesCache(dispatch, conversationId, tempId, {
+          patchMessageInCache(qc, conversationId, tempId, {
             status: 'failed',
           });
         },
@@ -122,23 +121,19 @@ export function useChat(conversationId: string, options?: UseChatOptions) {
 
       return tempId;
     },
-    [socket, dispatch, store, conversationId, me, interactionsEnabled, messagingBlock],
+    [socket, qc, conversationId, me, interactionsEnabled, messagingBlock],
   );
 
   const retryFailedMessage = useCallback(
     (failed: Message) => {
       if (!interactionsEnabled || failed.status !== 'failed') return;
-      dispatch(
-        chatApi.util.updateQueryData('getMessages', { conversationId }, (draft) => {
-          draft.messages = draft.messages.filter((m) => m.id !== failed.id);
-        }),
-      );
+      removeMessageFromCache(qc, conversationId, failed.id);
       sendMessage({
-        content:   failed.content,
+        content: failed.content,
         replyToId: failed.replyToId ?? undefined,
       });
     },
-    [conversationId, dispatch, sendMessage, interactionsEnabled],
+    [conversationId, qc, sendMessage, interactionsEnabled],
   );
 
   const markRead = useCallback(

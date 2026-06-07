@@ -1,5 +1,8 @@
-import { chatApi } from '../api/chat-api';
-import type { AppDispatch } from '@/lib/redux/store';
+import type { QueryClient } from '@tanstack/react-query';
+
+import { queryKeys } from '@/lib/query/keys';
+
+import type { Conversation } from '../types/chat.types';
 
 export type InboxActivityPatch = {
   lastActivityAt?: string;
@@ -7,26 +10,29 @@ export type InboxActivityPatch = {
 };
 
 export function applyConversationActivityToInbox(
-  dispatch: AppDispatch,
+  qc: QueryClient,
   conversationId: string,
   patch: InboxActivityPatch,
 ): boolean {
   let hit = false;
-  dispatch(
-    chatApi.util.updateQueryData('listConversations', undefined, (draft) => {
-      const i = draft.findIndex((c) => c.id === conversationId);
-      if (i === -1) return;
-      hit = true;
-      if (patch.lastActivityAt) {
-        draft[i].updatedAt = patch.lastActivityAt;
-        draft.sort(
-          (a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime(),
-        );
-      }
-      if ('lastMessagePreview' in patch) {
-        draft[i].lastMessagePreview = patch.lastMessagePreview ?? null;
-      }
-    }),
-  );
+  qc.setQueryData<Conversation[]>(queryKeys.chat.conversations, (draft) => {
+    if (!draft) return draft;
+    const i = draft.findIndex((c) => c.id === conversationId);
+    if (i === -1) return draft;
+    hit = true;
+    const next = [...draft];
+    const row = { ...next[i] };
+    if (patch.lastActivityAt) {
+      row.updatedAt = patch.lastActivityAt;
+    }
+    if ('lastMessagePreview' in patch) {
+      row.lastMessagePreview = patch.lastMessagePreview ?? null;
+    }
+    next[i] = row;
+    next.sort(
+      (a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime(),
+    );
+    return next;
+  });
   return hit;
 }

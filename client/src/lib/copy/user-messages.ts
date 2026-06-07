@@ -1,5 +1,13 @@
 /** Shared product copy — plain language, user-first. */
 
+export const EARLY_RELEASE = {
+  badge: "Early beta",
+  notice:
+    "We're in early beta and just getting started. Join now, try matching and circles, and help us build something real.",
+  noticeShort:
+    "We're in early beta and just getting started. Join now, try matching and circles, and help us build something real.",
+} as const;
+
 export const DASHBOARD_GREETING_SUBTITLE =
   "Match with someone new, message friends, or join a live circle." as const;
 
@@ -9,6 +17,7 @@ export const DASHBOARD_HERO = {
   matchLabel: "Match",
   circleLabel: "Circle",
   cancelSearch: "Cancel search",
+  aiCuesComingSoon: "Conversation cues coming soon",
   idle: {
     heading: "Find people you want to talk to, live",
     subtitle:
@@ -21,7 +30,7 @@ export const DASHBOARD_HERO = {
   proposed: {
     heading: "You have a match",
     subtitle:
-      "Tap Connect if you are interested. Both people need to connect before you can chat.",
+      "Tap Connect if you want to stay in touch. You can message now; connect to call them later.",
   },
   stats: {
     matches: (count: number) => (count === 1 ? "match" : "matches"),
@@ -37,7 +46,7 @@ export const DASHBOARD_SECTIONS = {
   },
   recentMatches: {
     title: "Recent matches",
-    empty: "No matches here yet. Tap Find Match to meet someone.",
+    empty: "No matches yet. Tap Find Match to build your match history.",
     seeAll: "See all",
   },
   recentConnections: {
@@ -51,7 +60,7 @@ export const DASHBOARD_SECTIONS = {
 
 export const RECENT_MATCHES = {
   dialogTitle: "Recent matches",
-  dialogDescription: "People you matched with, newest first.",
+  dialogDescription: "Everyone you've matched with on Find Match, newest first, connected or not.",
   emptyTitle: "No matches yet",
   emptyBody: "Tap Find Match on Home to meet someone new.",
   goToHome: "Go to Home",
@@ -103,7 +112,7 @@ export const EXPLORE = {
     error: "Could not load niches. Pull to refresh or try again.",
     empty: "No niches yet. Check back after categories are set up.",
     modalTitle: (niche: string) => `Circles in ${niche}`,
-    modalSubtitle: "Live now and scheduled — tap Join to enter the room or lobby",
+    modalSubtitle: "Live now and scheduled. Tap Join to enter the room or lobby",
     modalSectionLive: "Live now",
     modalSectionScheduled: "Scheduled",
     modalLoading: "Loading circles…",
@@ -120,7 +129,7 @@ export const EXPLORE = {
   peopleLikeYou: {
     title: "People like you",
     subtitleWithInterests:
-      "Based on your interests — people with a similar vibe you can connect with.",
+      "Based on your interests: people with a similar vibe you can connect with.",
     subtitleNoInterests:
       "Add interests on your profile to see people in your niche.",
     emptyNoMatches: "No one in your niche yet. Try adding more interests to your profile.",

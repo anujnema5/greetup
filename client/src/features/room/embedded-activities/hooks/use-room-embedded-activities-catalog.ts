@@ -2,7 +2,7 @@
 
 import { useMemo } from "react";
 
-import { useGetRoomEmbeddedActivitiesQuery } from "@/features/room/api/room-api";
+import { useRoomEmbeddedActivities } from "@/features/room/api/room.queries";
 import {
   embeddedCallPolicyLookupFromApiRows,
   type EmbeddedCallPolicyLookup,
@@ -30,7 +30,7 @@ function activeTilesFromRows(rows: RoomEmbeddedActivityDto[]): RoomActivityMeta[
  * Fetches the embedded-activities catalog once per call surface and splits it into UI tiles vs policy.
  */
 export function useRoomEmbeddedActivitiesCatalog(): RoomEmbeddedActivitiesCatalog {
-  const { data: rows } = useGetRoomEmbeddedActivitiesQuery();
+  const { data: rows } = useRoomEmbeddedActivities();
 
   const directRoomActivities = useMemo((): RoomActivityMeta[] => {
     if (!rows?.length) return [];

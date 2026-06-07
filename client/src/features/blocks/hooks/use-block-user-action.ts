@@ -4,9 +4,9 @@ import { useRouter } from "next/navigation";
 import { useCallback } from "react";
 import { toast } from "sonner";
 
-import { getRtkMutationErrorMessage } from "@/lib/api/rtk-mutation-error";
+import { getApiErrorMessage } from "@/lib/api/fetch-client";
 
-import { useBlockUserMutation } from "../api/blocks-api";
+import { useBlockUser } from "../api/blocks.mutations";
 import type { BlockUserPeer } from "../types/blocks-api.types";
 
 type Options = {
@@ -21,7 +21,7 @@ type Options = {
  */
 export function useBlockUserAction(peer: BlockUserPeer, options?: Options) {
   const router = useRouter();
-  const [blockUser, { isLoading: isBlocking }] = useBlockUserMutation();
+  const { mutateAsync: blockUser, isPending: isBlocking } = useBlockUser();
   const redirectTo = options?.redirectTo !== undefined ? options.redirectTo : "/explore";
   const conversationId = options?.conversationId;
 
@@ -33,14 +33,14 @@ export function useBlockUserAction(peer: BlockUserPeer, options?: Options) {
         targetUserId: peer.userId,
         peerUsername: peer.username,
         conversationId,
-      }).unwrap();
+      });
       toast.success(`${peer.displayTitle} blocked`);
       if (redirectTo !== null) {
         router.push(redirectTo);
       }
       return true;
     } catch (error: unknown) {
-      toast.error(getRtkMutationErrorMessage(error, "Could not block user"));
+      toast.error(getApiErrorMessage(error, "Could not block user"));
       return false;
     }
   }, [blockUser, conversationId, peer.displayTitle, peer.userId, peer.username, redirectTo, router]);

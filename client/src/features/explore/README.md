@@ -6,7 +6,7 @@ Search people, browse niches (live + scheduled circles), and “People like you�
 
 | Folder | Purpose |
 |--------|---------|
-| `api/` | RTK Query — user search, suggested people, browse niches + niche rooms |
+| `api/` | React Query — user search, suggested people, browse niches + niche rooms |
 | `components/` | UI sections, rows, modals (presentational + thin wiring) |
 | `constants/` | Page sizes, niche card gradients |
 | `hooks/` | Data fetching, scroll, modal state, local search |

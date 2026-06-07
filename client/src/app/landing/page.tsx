@@ -31,9 +31,7 @@ import {
   Gamepad2,
   MessageCircle,
   ArrowRight,
-  Star,
   ChevronRight,
-  Compass,
   MapPin,
   Globe,
   Shield,
@@ -49,10 +47,13 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useSession } from "@/lib/auth-client";
+import { EARLY_RELEASE } from "@/lib/copy/user-messages";
+import { FOOTER_LINKS } from "@/lib/copy/marketing-pages";
+import { HeroMatchDemo } from "./hero-match-demo";
 
 /* Mobile / reduced-motion: drop scroll-linked nav, fixed blur layers, and looping animations */
-type LandingPerfValue = { isMobile: boolean; lite: boolean };
-const LandingPerfContext = createContext<LandingPerfValue>({ isMobile: false, lite: false });
+type LandingPerfValue = { isMobile: boolean; lite: boolean; reduceMotion: boolean };
+const LandingPerfContext = createContext<LandingPerfValue>({ isMobile: false, lite: false, reduceMotion: false });
 
 function useLandingPerf() {
   return useContext(LandingPerfContext);
@@ -70,8 +71,9 @@ function LandingPerfProvider({ children }: { children: React.ReactNode }) {
     return () => mq.removeEventListener("change", apply);
   }, []);
 
-  const lite = Boolean(prefersReduced) || isMobile;
-  const value = useMemo(() => ({ isMobile, lite }), [isMobile, lite]);
+  const reduceMotion = Boolean(prefersReduced);
+  const lite = reduceMotion || isMobile;
+  const value = useMemo(() => ({ isMobile, lite, reduceMotion }), [isMobile, lite, reduceMotion]);
 
   return <LandingPerfContext.Provider value={value}>{children}</LandingPerfContext.Provider>;
 }
@@ -121,7 +123,7 @@ const FEATURES = [
   },
   {
     icon: Gamepad2,
-    label: "Activities Together",
+    label: "Activities Together (Coming soon)",
     desc: "Do activities together like chess, Watch Together (YouTube), draw together, study together, debate, truth or dare, music rooms, and live polls.",
     tint: "from-emerald-400/15 to-transparent",
     iconClass: "text-emerald-400 bg-emerald-400/10 border-emerald-400/20",
@@ -166,62 +168,81 @@ const COMM_TABS = [
 type CommTab = (typeof COMM_TABS)[number]["id"];
 
 const STEPS = [
-  { n: "01", title: "Set your preferences",    desc: "Answer a few quick questions about your interests, goals, and the kind of connections you want." },
-  { n: "02", title: "Get matched",      desc: "Our engine finds people with real alignment — not just the same city, but the same wavelength." },
+  { n: "01", title: "Set your preferences", desc: "Answer a few quick questions about your interests, goals, and the kind of connections you want." },
+  { n: "02", title: "Get matched", desc: "Our engine finds people with real alignment, not just the same city, but the same wavelength." },
   { n: "03", title: "Connect & grow", desc: "Chat, call, join activities, or hop into a circle together. Build real relationships naturally." },
 ];
 
-const TESTIMONIALS = [
-  { quote: "I found one of my closest friends on Greetup. We matched on shared interests and the conversation clicked from day one.", name: "Priya K.", tag: "Music Circle", avatar: "P", color: "from-violet-500 to-purple-600" },
-  { quote: "I've tried every social app. Greetup is the first one where I felt like the people I met actually got me. The matching is genuinely uncanny.",           name: "Mateo R.", tag: "Philosophy Talks",  avatar: "M", color: "from-amber-500 to-yellow-600"  },
-  { quote: "The Circles feature is incredible. I joined a creator community and now we host weekly sessions. Real community, not just followers.",               name: "Mei C.", tag: "Art Circle", avatar: "M", color: "from-emerald-500 to-green-600" },
-];
-
-const STATS = [
-  { value: "24K+",   label: "Members"           },
-  { value: "140K+",  label: "Connections made"  },
-  { value: "4,200+", label: "Active Circles"    },
-  { value: "98%",    label: "Positive matches"  },
+const BETA_HIGHLIGHTS = [
+  { value: "Beta", label: "Early access" },
+  { value: "Free", label: "To join" },
+  { value: "1:1", label: "Match & video" },
+  { value: "Live", label: "Circles & chat" },
 ];
 
 const TRUST = [
   { icon: Shield,      label: "Privacy first"       },
-  { icon: Globe,       label: "180+ countries"       },
+  { icon: Globe,       label: "Nearby or global"     },
   { icon: Zap,         label: "Real-time matching"  },
-  { icon: Users,       label: "Verified members"    },
+  { icon: Users,       label: "Early community"     },
   { icon: ShieldCheck, label: "Safe & inclusive"    },
 ];
 
-const LIVE_STREAMS = [
+const CIRCLE_ACTIVITY_CHIPS: ReadonlyArray<{ label: string; comingSoon?: boolean }> = [
+  { label: "Startup Founder Night Talk" },
+  { label: "Jam Session for Musicians" },
+  { label: "Chess Blitz Room" },
+  { label: "Watch Together (YouTube)", comingSoon: true },
+  { label: "Icebreaker ideas", comingSoon: true },
+  { label: "Draw Together", comingSoon: true },
+  { label: "Study Together", comingSoon: true },
+  { label: "Debate Room", comingSoon: true },
+  { label: "Truth or Dare", comingSoon: true },
+  { label: "Music Room", comingSoon: true },
+  { label: "Live Polls", comingSoon: true },
+];
+
+const STEP_RING_COUNT = 3;
+const STEP_RING_CYCLE_S = 3;
+
+function StepRippleRings({ stepIndex }: { stepIndex: number }) {
+  return (
+    <>
+      {Array.from({ length: STEP_RING_COUNT }, (_, ri) => (
+        <div
+          key={ri}
+          className="landing-step-ring pointer-events-none absolute inset-0 rounded-full border border-[oklch(88%_0.11_105/0.28)]"
+          style={{
+            animationDelay: `${stepIndex * 0.2 + (ri * STEP_RING_CYCLE_S) / STEP_RING_COUNT}s`,
+          }}
+        />
+      ))}
+    </>
+  );
+}
+
+const LIVE_STREAM_EXAMPLES = [
   {
-    title: "Live Music Listening Room",
-    host: "Liam O.",
-    topic: "Share tracks and break down lyrics together",
-    viewers: 12,
+    title: "Music listening room",
+    topic: "Share tracks and talk through lyrics together",
     category: "Music",
     platforms: ["YouTube", "Twitch"],
   },
   {
-    title: "Open Sketch Studio",
-    host: "Mei C.",
+    title: "Open sketch studio",
     topic: "Collaborative drawing and visual critiques",
-    viewers: 14,
     category: "Art",
     platforms: ["YouTube", "Kick"],
   },
   {
-    title: "Late Night Philosophy Room",
-    host: "Diego P.",
+    title: "Late night philosophy room",
     topic: "Meaning, ethics, and modern life discussions",
-    viewers: 10,
     category: "Philosophy",
     platforms: ["YouTube", "X Live"],
   },
   {
-    title: "Creative Writing Circle",
-    host: "Sofia L.",
+    title: "Creative writing circle",
     topic: "Poetry prompts and short reading sessions",
-    viewers: 15,
     category: "Writing",
     platforms: ["YouTube", "Twitch"],
   },
@@ -250,7 +271,7 @@ function NavbarInner({
   );
 
   return (
-    <div className="mx-auto max-w-7xl px-4 sm:px-6 py-4 sm:py-5 flex items-center justify-between">
+    <div className="mx-auto max-w-7xl px-5 sm:px-6 py-4 sm:py-5 flex items-center justify-between">
       {lite ? (
         <div>
           <Logo />
@@ -339,99 +360,77 @@ function Navbar({
   return <NavbarScroll isLoggedIn={isLoggedIn} firstName={firstName} />;
 }
 
-/* ─── Hero orb components ────────────────────────────────────────────────────── */
-function FloatingChip({ name, sub, color, letter, x, y, delay }: {
-  name: string; sub: string; color: string; letter: string; x: string; y: string; delay: number;
-}) {
+/* ─── Hero visual ────────────────────────────────────────────────────────────── */
+function HeroBackdrop() {
   const { lite } = useLandingPerf();
-  const chipClass =
-    "absolute flex items-center gap-2 max-w-[42vw] sm:max-w-none bg-[oklch(17%_0.015_110/0.92)] border border-white/10 rounded-2xl px-2.5 py-1.5 sm:px-3 sm:py-2 shadow-xl md:backdrop-blur-sm";
-  const pos = { left: x, top: y, transform: "translate(-50%, -50%)" as const };
-
-  if (lite) {
-    return (
-      <div className={chipClass} style={pos}>
-      <div className={`size-6 sm:size-7 rounded-full bg-linear-to-br ${color} flex items-center justify-center text-[10px] sm:text-xs font-bold text-white shrink-0`}>{letter}</div>
-      <div className="min-w-0">
-        <p className="text-[11px] sm:text-xs font-semibold text-white leading-none truncate">{name}</p>
-        <p className="text-[9px] sm:text-[10px] text-white/50 mt-0.5 leading-none truncate">{sub}</p>
-      </div>
-      </div>
-    );
-  }
 
   return (
-    <motion.div
-      className={chipClass}
-      style={{ left: x, top: y, translateX: "-50%", translateY: "-50%" }}
-      initial={{ opacity: 0, scale: 0.7 }}
-      animate={{ opacity: 1, scale: 1, y: [0, -8, 0] }}
-      transition={{
-        opacity: { delay, duration: 0.5 },
-        scale: { delay, duration: 0.5, ease: EASE },
-        y: { delay: delay + 0.5, duration: 3.5, repeat: Infinity, ease: "easeInOut" },
-      }}
-    >
-      <div className={`size-6 sm:size-7 rounded-full bg-linear-to-br ${color} flex items-center justify-center text-[10px] sm:text-xs font-bold text-white shrink-0`}>{letter}</div>
-      <div className="min-w-0">
-        <p className="text-[11px] sm:text-xs font-semibold text-white leading-none truncate">{name}</p>
-        <p className="text-[9px] sm:text-[10px] text-white/50 mt-0.5 leading-none truncate">{sub}</p>
-      </div>
-    </motion.div>
+    <div className="pointer-events-none absolute inset-0 overflow-hidden" aria-hidden>
+      <div className="absolute inset-0 bg-[radial-gradient(ellipse_90%_70%_at_50%_-10%,oklch(22%_0.025_105/0.55),transparent_72%)]" />
+
+      {lite ? (
+        <>
+          <div className="absolute -top-28 -left-36 h-[400px] w-[400px] rounded-full bg-[oklch(88%_0.11_105/0.06)] blur-[96px]" />
+          <div className="absolute top-[16%] -right-20 h-[340px] w-[340px] rounded-full bg-[oklch(88%_0.11_105/0.09)] blur-[88px]" />
+          <div className="absolute bottom-[8%] left-[22%] h-[260px] w-[260px] rounded-full bg-[oklch(62%_0.14_285/0.05)] blur-[72px]" />
+        </>
+      ) : (
+        <>
+          <motion.div
+            className="absolute -top-28 -left-36 h-[400px] w-[400px] rounded-full bg-[oklch(88%_0.11_105/0.07)] blur-[96px]"
+            animate={{ opacity: [0.55, 0.85, 0.55], scale: [1, 1.06, 1] }}
+            transition={{ duration: 9, repeat: Infinity, ease: "easeInOut" }}
+          />
+          <motion.div
+            className="absolute top-[16%] -right-20 h-[340px] w-[340px] rounded-full bg-[oklch(88%_0.11_105/0.1)] blur-[88px]"
+            animate={{ opacity: [0.6, 0.95, 0.6], scale: [1, 1.08, 1] }}
+            transition={{ duration: 11, repeat: Infinity, ease: "easeInOut", delay: 1.5 }}
+          />
+          <motion.div
+            className="absolute bottom-[8%] left-[22%] h-[260px] w-[260px] rounded-full bg-[oklch(62%_0.14_285/0.06)] blur-[72px]"
+            animate={{ opacity: [0.45, 0.75, 0.45], scale: [1, 1.1, 1] }}
+            transition={{ duration: 13, repeat: Infinity, ease: "easeInOut", delay: 3 }}
+          />
+        </>
+      )}
+
+      <div
+        className="absolute inset-0 opacity-70 [mask-image:radial-gradient(ellipse_88%_82%_at_68%_50%,#000_28%,transparent_80%)]"
+        style={{
+          backgroundImage: "radial-gradient(circle at 1px 1px, oklch(100% 0 0 / 0.055) 1px, transparent 0)",
+          backgroundSize: "30px 30px",
+        }}
+      />
+
+      <div className="absolute inset-0 bg-[radial-gradient(ellipse_50%_58%_at_84%_44%,oklch(88%_0.11_105/0.11),transparent_72%)]" />
+      <div className="absolute inset-0 bg-[radial-gradient(ellipse_38%_42%_at_14%_32%,oklch(88%_0.11_105/0.045),transparent_70%)]" />
+      <div className="absolute inset-0 bg-[radial-gradient(ellipse_120%_100%_at_50%_50%,transparent_44%,#0A0A0A_94%)]" />
+      <div className="absolute inset-x-0 top-0 h-px bg-linear-to-r from-transparent via-white/8 to-transparent" />
+    </div>
   );
 }
 
-function HeroOrb() {
-  const { lite } = useLandingPerf();
+const HERO_SIGNALS = [
+  { icon: Users, label: "1:1 matching" },
+  { icon: Globe, label: "Nearby or global" },
+  { icon: MessageCircle, label: "Chat & video" },
+] as const;
 
-  if (lite) {
-    return (
-      <div className="relative w-full max-w-[280px] sm:max-w-sm mx-auto aspect-square select-none pointer-events-none">
-        <div className="absolute inset-0 rounded-full border border-[oklch(88%_0.11_105/0.15)]" />
-        <div className="absolute inset-[10%] rounded-full border border-dashed border-[oklch(88%_0.11_105/0.12)]" />
-        <div className="absolute inset-[22%] rounded-full border border-[oklch(88%_0.11_105/0.18)]" />
-        <div className="absolute inset-[30%] rounded-full bg-[oklch(88%_0.11_105/0.07)] blur-xl md:blur-2xl" />
-        <div className="absolute inset-[38%] rounded-full bg-[oklch(88%_0.11_105/0.13)] blur-md md:blur-lg" />
-        <div className="absolute inset-[36%] rounded-full bg-linear-to-br from-[oklch(90%_0.13_105)] to-[oklch(75%_0.1_105)] shadow-2xl shadow-[oklch(88%_0.11_105/0.5)]" />
-        <div className="absolute inset-[38%] rounded-full flex items-center justify-center z-10">
-          <Compass className="size-5 text-[oklch(15%_0.02_110)]" />
-        </div>
-        <svg className="absolute inset-0 w-full h-full opacity-40" viewBox="0 0 100 100" preserveAspectRatio="none">
-          {[{ x1: 18, y1: 20, x2: 50, y2: 50 }, { x1: 82, y1: 78, x2: 50, y2: 50 }, { x1: 14, y1: 56, x2: 50, y2: 50 }].map((l, i) => (
-            <line key={i} x1={l.x1} y1={l.y1} x2={l.x2} y2={l.y2} stroke="oklch(88% 0.11 105)" strokeWidth="0.4" strokeDasharray="3 2" opacity={0.35} />
-          ))}
-        </svg>
-        <FloatingChip name="Aarav" sub="Software Engineer · Backend" color="from-violet-500 to-purple-600" letter="A" x="14%" y="20%" delay={0.6} />
-        <FloatingChip name="Noah" sub="Software Engineer · Frontend" color="from-indigo-500 to-blue-600" letter="N" x="82%" y="22%" delay={0.75} />
-        <FloatingChip name="Sofia" sub="Product Designer · UX" color="from-amber-500 to-yellow-600" letter="S" x="86%" y="78%" delay={0.9} />
-        <FloatingChip name="Priya" sub="Music · Indie + Jazz" color="from-emerald-500 to-green-600" letter="P" x="14%" y="60%" delay={1.05} />
-      </div>
-    );
-  }
+function HeroVisual() {
+  const { reduceMotion, isMobile } = useLandingPerf();
 
   return (
-    <div className="relative w-full max-w-[280px] sm:max-w-sm mx-auto aspect-square select-none pointer-events-none">
-      <motion.div className="absolute inset-0 rounded-full border border-[oklch(88%_0.11_105/0.15)]" animate={{ rotate: 360 }} transition={{ duration: 20, repeat: Infinity, ease: "linear" }} />
-      <motion.div className="absolute inset-[10%] rounded-full border border-dashed border-[oklch(88%_0.11_105/0.12)]" animate={{ rotate: -360 }} transition={{ duration: 14, repeat: Infinity, ease: "linear" }} />
-      <motion.div className="absolute inset-[22%] rounded-full border border-[oklch(88%_0.11_105/0.18)]" animate={{ rotate: 360 }} transition={{ duration: 9, repeat: Infinity, ease: "linear" }} />
-      <div className="absolute inset-[30%] rounded-full bg-[oklch(88%_0.11_105/0.07)] blur-2xl" />
-      <div className="absolute inset-[38%] rounded-full bg-[oklch(88%_0.11_105/0.13)] blur-lg" />
-      <motion.div className="absolute inset-[36%] rounded-full bg-linear-to-br from-[oklch(90%_0.13_105)] to-[oklch(75%_0.1_105)] shadow-2xl shadow-[oklch(88%_0.11_105/0.5)]" animate={{ scale: [0.93, 1.07, 0.93] }} transition={{ duration: 3.2, repeat: Infinity, ease: "easeInOut" }} />
-      <div className="absolute inset-[38%] rounded-full flex items-center justify-center z-10">
-        <Compass className="size-5 text-[oklch(15%_0.02_110)]" />
+    <div className={cn(
+      "relative w-full mx-auto select-none pointer-events-none",
+      isMobile ? "max-w-full" : "max-w-[380px] sm:max-w-[420px] lg:max-w-[440px] lg:mx-0 lg:ml-auto",
+    )}>
+      <div
+        className="pointer-events-none absolute -inset-6 rounded-[2rem] bg-[radial-gradient(circle,oklch(88%_0.11_105/0.08)_0%,transparent_72%)] blur-2xl"
+        aria-hidden
+      />
+      <div className="relative rounded-[1.35rem] border border-white/6 bg-[oklch(13%_0.012_110/0.55)] p-2 sm:p-2.5 md:backdrop-blur-sm">
+        <HeroMatchDemo lite={reduceMotion} />
       </div>
-      {[0, 0.8, 1.6].map((delay, i) => (
-        <motion.div key={i} className="absolute inset-[36%] rounded-full border border-[oklch(88%_0.11_105/0.35)]" animate={{ scale: [1, 1.9], opacity: [0.4, 0] }} transition={{ duration: 2.4, repeat: Infinity, ease: "easeOut", delay }} />
-      ))}
-      <svg className="absolute inset-0 w-full h-full" viewBox="0 0 100 100" preserveAspectRatio="none">
-        {[{ x1: 18, y1: 20, x2: 50, y2: 50 }, { x1: 82, y1: 78, x2: 50, y2: 50 }, { x1: 14, y1: 56, x2: 50, y2: 50 }].map((l, i) => (
-          <motion.line key={i} x1={l.x1} y1={l.y1} x2={l.x2} y2={l.y2} stroke="oklch(88% 0.11 105)" strokeWidth="0.4" strokeDasharray="3 2" initial={{ pathLength: 0, opacity: 0 }} animate={{ pathLength: 1, opacity: 0.3 }} transition={{ duration: 1.2, delay: 0.4 + i * 0.2, ease: "easeOut" }} />
-        ))}
-      </svg>
-      <FloatingChip name="Aarav" sub="Software Engineer · Backend" color="from-violet-500 to-purple-600" letter="A" x="14%" y="20%" delay={0.6} />
-      <FloatingChip name="Noah" sub="Software Engineer · Frontend" color="from-indigo-500 to-blue-600" letter="N" x="82%" y="22%" delay={0.75} />
-      <FloatingChip name="Sofia" sub="Product Designer · UX" color="from-amber-500 to-yellow-600" letter="S" x="86%" y="78%" delay={0.9} />
-      <FloatingChip name="Priya" sub="Music · Indie + Jazz" color="from-emerald-500 to-green-600" letter="P" x="14%" y="60%" delay={1.05} />
     </div>
   );
 }
@@ -463,7 +462,9 @@ function ChatMockup() {
             <Lightbulb className="size-2.5 text-[oklch(88%_0.11_105)]" />
           </div>
           <div>
-            <p className="text-[10px] font-semibold text-[oklch(88%_0.11_105)] uppercase tracking-wide">Conversation cue</p>
+            <p className="text-[10px] font-semibold text-[oklch(88%_0.11_105)] uppercase tracking-wide">
+              Conversation cue · Coming soon
+            </p>
             <p className="text-[10px] text-white/70 leading-relaxed">
               Your new match likes chess and music. Use an icebreaker suggestion, then invite them to Watch Together.
             </p>
@@ -477,7 +478,7 @@ function ChatMockup() {
       </div>
       <div className="self-start max-w-[78%]">
         <div className="bg-white/6 border border-white/8 text-white/80 text-xs px-3.5 py-2.5 rounded-2xl rounded-bl-sm">
-          Hey! Saw you&apos;re into chess too — do you play blitz?
+          Hey! Saw you&apos;re into chess too. Do you play blitz?
         </div>
       </div>
       <div className="self-end max-w-[78%]">
@@ -636,7 +637,7 @@ function AmbientBackdrop() {
 
 /* ─── Page ───────────────────────────────────────────────────────────────────── */
 function LandingPageInner() {
-  const { lite } = useLandingPerf();
+  const { lite, reduceMotion } = useLandingPerf();
   const [activeTab, setActiveTab] = useState<CommTab>("chat");
   const { data: session } = useSession();
 
@@ -660,95 +661,88 @@ function LandingPageInner() {
       <Navbar isLoggedIn={isLoggedIn} firstName={firstName} />
 
       {/* ══════════════════ HERO ══════════════════ */}
-      <section className="relative pt-28 sm:pt-32 pb-20 sm:pb-24 px-4 sm:px-6">
-        <div className="mx-auto max-w-7xl grid lg:grid-cols-2 gap-16 items-center">
+      <section className="relative lg:min-h-[calc(100dvh-4rem)] flex flex-col justify-center pt-24 sm:pt-28 pb-8 sm:pb-16 lg:pb-24 px-5 sm:px-6">
+        <HeroBackdrop />
 
-          <motion.div variants={stagger} initial="hidden" animate="show">
-            {/* beta badge using shadcn Badge */}
-            <motion.div variants={fadeUp} className="mb-8">
+        <div className="relative mx-auto w-full max-w-7xl flex flex-col gap-5 sm:gap-8 lg:grid lg:grid-cols-2 lg:gap-12 xl:gap-20 lg:items-center">
+
+          <motion.div variants={stagger} initial="hidden" animate="show" className="mt-2 sm:mt-0 text-center lg:text-left lg:max-w-[34rem] order-1">
+
+            <motion.div variants={fadeUp} className="mb-5 sm:mb-6 flex justify-center lg:justify-start">
               <Badge
                 variant="outline"
-                className="border-white/12 bg-white/5 text-white/75 md:backdrop-blur-sm rounded-full px-4 py-1.5 text-xs gap-2"
+                className="border-white/10 bg-white/3 text-white/55 rounded-full px-3.5 py-1 text-xs font-normal"
               >
-                <span className="relative flex h-2 w-2 shrink-0">
-                  {lite ? (
-                    <span className="relative inline-flex rounded-full h-2 w-2 bg-[oklch(88%_0.11_105)]" />
-                  ) : (
-                    <>
-                      <motion.span className="absolute inline-flex h-full w-full rounded-full bg-[oklch(88%_0.11_105)]" animate={{ scale: [1, 2.2, 1], opacity: [0.7, 0, 0.7] }} transition={{ duration: 2, repeat: Infinity }} />
-                      <span className="relative inline-flex rounded-full h-2 w-2 bg-[oklch(88%_0.11_105)]" />
-                    </>
-                  )}
-                </span>
-                Now in Beta · Free to join
+                Beta · Free to join
               </Badge>
             </motion.div>
 
-            <motion.h1 variants={fadeUp} className="text-4xl sm:text-6xl lg:text-7xl font-black tracking-tight leading-[1.05] mb-6">
-              Match your interests.<br />
-              <span className="bg-linear-to-r from-[oklch(88%_0.11_105)] via-[oklch(95%_0.08_90)] to-[oklch(80%_0.14_110)] bg-clip-text text-transparent">
-                Build your circles.
+            <motion.h1 variants={fadeUp} className="text-[1.95rem] leading-[1.1] sm:text-[2.85rem] lg:text-[3.75rem] xl:text-[4.15rem] font-semibold tracking-[-0.025em] mb-4 sm:mb-6">
+              Match your interests.
+              <span className="mt-1 sm:mt-1.5 block text-white/92">
+                Build your <span className="text-[oklch(88%_0.11_105)]">circles</span>.
               </span>
-              <br />Connect live.
+              <span className="mt-1 sm:mt-1.5 block text-[0.78em] font-normal text-white/48 sm:text-[0.68em]">Connect live.</span>
             </motion.h1>
 
-            <motion.p variants={fadeUp} className="text-lg text-white/55 leading-relaxed max-w-md mb-10">
-              Greetup helps you connect with the exact kind of people you want by profession, interests, and location
-              (nearby, city, country, or global). Smart conversation cues help with what to say about your new match, so
-              every 1:1 chat or circle starts smoothly.
+            <motion.p variants={fadeUp} className="text-[13px] leading-[1.55] sm:text-[1.05rem] sm:leading-relaxed text-white/42 max-w-[18rem] sm:max-w-lg mx-auto lg:mx-0 mb-4 sm:mb-7">
+              By profession, interests, or location, nearby or anywhere in the world.
             </motion.p>
 
-            <motion.div variants={fadeUp} className="flex flex-wrap gap-3">
-              <motion.div whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.96 }}>
-                <Button
-                  size="lg"
-                  className="rounded-full bg-[oklch(88%_0.11_105)] text-[oklch(12%_0.012_110)] hover:brightness-110 shadow-xl shadow-[oklch(88%_0.11_105/0.3)] font-bold px-7"
-                  asChild
-                >
-                  <Link href={isLoggedIn ? "/home" : "/register"}>
-                    {isLoggedIn ? `Welcome${firstName ? `, ${firstName}` : ""}` : "Find your people"} <ArrowRight className="size-4" />
-                  </Link>
-                </Button>
-              </motion.div>
-              <motion.div whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.96 }}>
-                <Button
-                  size="lg"
-                  variant="outline"
-                  className="rounded-full border-white/12 bg-white/6 text-white/80 hover:bg-white/10 hover:text-white md:backdrop-blur-sm px-7"
-                  asChild
-                >
-                  <Link href="#how-it-works">See how it works</Link>
-                </Button>
-              </motion.div>
+            <motion.div variants={fadeUp} className="mb-7 sm:mb-9 flex flex-wrap justify-center lg:justify-start gap-x-5 sm:gap-x-6 gap-y-2">
+              {HERO_SIGNALS.map(({ icon: Icon, label }) => (
+                <span key={label} className="inline-flex items-center gap-1.5 text-[12px] sm:text-sm text-white/38">
+                  <Icon className="size-3 sm:size-3.5 text-[oklch(88%_0.11_105/0.65)]" strokeWidth={1.75} />
+                  {label}
+                </span>
+              ))}
             </motion.div>
 
-            {/* social proof */}
-            <motion.div variants={fadeUp} className="mt-10 flex items-center gap-3">
-              <div className="flex -space-x-2">
-                {(["#7c3aed","#d97706","#059669","#2563eb","#db2777"] as const).map((c, i) => (
-                  <motion.div key={i} className="size-8 rounded-full border-2 border-[oklch(12%_0.012_110)] flex items-center justify-center text-[10px] font-bold text-white" style={{ background: c }} initial={{ opacity: 0, x: -8 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.5 + i * 0.07, duration: 0.4 }}>
-                    {["N","M","L","S","D"][i]}
-                  </motion.div>
-                ))}
-              </div>
-              <p className="text-xs text-white/50">
-                <span className="text-white/80 font-semibold">2,400+</span> people joined this week
+            <motion.div variants={fadeUp} className="flex flex-row flex-wrap gap-2 sm:gap-3 justify-center lg:justify-start">
+              <Button
+                size="sm"
+                className="rounded-full bg-[oklch(88%_0.11_105)] text-[oklch(12%_0.012_110)] hover:brightness-110 font-medium sm:font-semibold px-5 sm:px-6 has-[>svg]:px-5 sm:has-[>svg]:px-6 h-8 sm:h-10 lg:h-11 text-xs sm:text-sm w-auto shadow-[0_4px_18px_-6px_oklch(88%_0.11_105/0.45)] sm:shadow-[0_8px_28px_-8px_oklch(88%_0.11_105/0.55)]"
+                asChild
+              >
+                <Link href={isLoggedIn ? "/home" : "/register"}>
+                  {isLoggedIn ? `Welcome${firstName ? `, ${firstName}` : ""}` : "Find your people"}{" "}
+                  <ArrowRight className="size-3 sm:size-4" />
+                </Link>
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                className="rounded-full border-white/10 bg-white/3 text-white/78 hover:bg-white/6 hover:text-white px-4 sm:px-6 h-8 sm:h-10 lg:h-11 text-xs sm:text-sm font-medium sm:font-semibold w-auto"
+                asChild
+              >
+                <Link href="#how-it-works">How it works</Link>
+              </Button>
+            </motion.div>
+
+            <motion.div variants={fadeUp} className="mt-5 sm:mt-9 pt-4 sm:pt-7 border-t border-white/6">
+              <p className="text-xs text-white/32 max-w-md mx-auto lg:mx-0 leading-relaxed">
+                {EARLY_RELEASE.noticeShort}
               </p>
             </motion.div>
           </motion.div>
 
-          <motion.div className="flex justify-center lg:justify-end" initial={{ opacity: 0, scale: 0.85 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.9, delay: 0.2, ease: EASE }}>
-            <HeroOrb />
+          <motion.div
+            className="flex justify-center lg:justify-end lg:py-4 order-2 w-full"
+            initial={reduceMotion ? false : { opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.75, delay: 0.15, ease: EASE }}
+          >
+            <HeroVisual />
           </motion.div>
         </div>
       </section>
 
-      {/* ══════════════════ STATS ══════════════════ */}
-      <RevealSection className="mx-4 sm:mx-6 lg:mx-auto max-w-7xl">
+      {/* ══════════════════ BETA HIGHLIGHTS ══════════════════ */}
+      <RevealSection className="mx-5 sm:mx-6 lg:mx-auto max-w-7xl pt-2 sm:pt-0">
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-px bg-white/5 rounded-3xl overflow-hidden border border-white/8">
-          {STATS.map((s) => (
-            <motion.div key={s.label} variants={cardIn} className="bg-[oklch(15%_0.015_110)] px-8 py-7 flex flex-col items-center gap-1">
-              <span className="text-3xl font-black bg-linear-to-r from-[oklch(88%_0.11_105)] to-[oklch(95%_0.08_90)] bg-clip-text text-transparent">{s.value}</span>
+          {BETA_HIGHLIGHTS.map((s) => (
+            <motion.div key={s.label} variants={cardIn} className="bg-[oklch(15%_0.015_110)] px-4 py-5 sm:px-8 sm:py-7 flex flex-col items-center gap-1">
+              <span className="text-2xl sm:text-3xl font-black bg-linear-to-r from-[oklch(88%_0.11_105)] to-[oklch(95%_0.08_90)] bg-clip-text text-transparent">{s.value}</span>
               <span className="text-xs text-white/45 font-medium tracking-wide uppercase">{s.label}</span>
             </motion.div>
           ))}
@@ -756,22 +750,22 @@ function LandingPageInner() {
       </RevealSection>
 
       {/* ══════════════════ FEATURES ══════════════════ */}
-      <section className="relative py-24 sm:py-32 px-4 sm:px-6" id="features">
+      <section className="relative py-12 sm:py-20 lg:py-32 px-5 sm:px-6" id="features">
         <RevealSection className="mx-auto max-w-7xl">
-          <motion.div variants={fadeUp} className="text-center mb-16">
-            <Badge variant="outline" className="border-[oklch(88%_0.11_105/0.3)] bg-[oklch(88%_0.11_105/0.08)] text-[oklch(88%_0.11_105/0.8)] rounded-full mb-5 tracking-widest uppercase text-[10px]">
+          <motion.div variants={fadeUp} className="text-center mb-8 sm:mb-12 lg:mb-16">
+            <Badge variant="outline" className="border-[oklch(88%_0.11_105/0.3)] bg-[oklch(88%_0.11_105/0.08)] text-[oklch(88%_0.11_105/0.8)] rounded-full mb-3 sm:mb-5 tracking-widest uppercase text-[10px]">
               Everything you need
             </Badge>
-            <h2 className="text-4xl sm:text-5xl font-black tracking-tight">Built for real connection</h2>
-            <p className="mt-4 text-white/50 max-w-lg mx-auto">Every feature exists for one reason — to help you meet people who feel like people, not profiles.</p>
+            <h2 className="text-[1.75rem] sm:text-4xl lg:text-5xl font-black tracking-tight leading-tight">Built for real connection</h2>
+            <p className="mt-3 sm:mt-4 text-sm sm:text-base text-white/50 max-w-lg mx-auto">Every feature exists for one reason: to help you meet people who feel like people, not profiles.</p>
           </motion.div>
 
-          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-5">
+          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-5">
             {FEATURES.map(({ icon: Icon, label, desc, tint, iconClass }) => (
               <motion.div key={label} variants={cardIn} whileHover={lite ? undefined : { y: -6, transition: { duration: 0.25 } }}>
                 <Card className="relative overflow-hidden border-white/8 bg-[oklch(16%_0.013_110)] h-full shadow-xl p-0 gap-0">
                   <div className={`absolute inset-0 bg-linear-to-br ${tint} opacity-60 pointer-events-none`} />
-                  <CardContent className="relative p-6 flex flex-col gap-4">
+                  <CardContent className="relative p-4 sm:p-6 flex flex-col gap-3 sm:gap-4">
                     <div className={cn("size-11 rounded-2xl border flex items-center justify-center", iconClass)}>
                       <Icon className="size-5" />
                     </div>
@@ -788,24 +782,24 @@ function LandingPageInner() {
       </section>
 
       {/* ══════════════════ MATCHING CONTROL ══════════════════ */}
-      <section className="relative py-24 px-6 bg-[oklch(13%_0.013_110)]">
+      <section className="relative py-12 sm:py-20 lg:py-24 px-5 sm:px-6 bg-[oklch(13%_0.013_110)]">
         <RevealSection className="mx-auto max-w-7xl">
-          <motion.div variants={fadeUp} className="text-center mb-14">
-            <Badge variant="outline" className="border-[oklch(88%_0.11_105/0.3)] bg-[oklch(88%_0.11_105/0.08)] text-[oklch(88%_0.11_105/0.8)] rounded-full mb-5 tracking-widest uppercase text-[10px]">
+          <motion.div variants={fadeUp} className="text-center mb-8 sm:mb-12 lg:mb-14">
+            <Badge variant="outline" className="border-[oklch(88%_0.11_105/0.3)] bg-[oklch(88%_0.11_105/0.08)] text-[oklch(88%_0.11_105/0.8)] rounded-full mb-3 sm:mb-5 tracking-widest uppercase text-[10px]">
               Match exactly how you want
             </Badge>
-            <h2 className="text-4xl sm:text-5xl font-black tracking-tight">Find your people with real control</h2>
-            <p className="mt-4 text-white/50 max-w-2xl mx-auto">
+            <h2 className="text-[1.75rem] sm:text-4xl lg:text-5xl font-black tracking-tight leading-tight">Find your people with real control</h2>
+            <p className="mt-3 sm:mt-4 text-sm sm:text-base text-white/50 max-w-2xl mx-auto">
               Filter your connections your way and discover people instantly, whether you want nearby friends,
               city-level networking, country-wide communities, or global circles.
             </p>
           </motion.div>
 
-          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-5">
+          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-5">
             {MATCHING_SIGNALS.map(({ icon: Icon, title, desc }) => (
               <motion.div key={title} variants={cardIn}>
                 <Card className="border-white/8 bg-[oklch(16%_0.013_110)] h-full shadow-xl p-0 gap-0">
-                  <CardContent className="p-6 flex flex-col gap-4">
+                  <CardContent className="p-4 sm:p-6 flex flex-col gap-3 sm:gap-4">
                     <div className="size-10 rounded-xl bg-[oklch(88%_0.11_105/0.1)] border border-[oklch(88%_0.11_105/0.2)] flex items-center justify-center">
                       <Icon className="size-4 text-[oklch(88%_0.11_105)]" />
                     </div>
@@ -822,10 +816,10 @@ function LandingPageInner() {
       </section>
 
       {/* ══════════════════ SAFETY BANNER ══════════════════ */}
-      <RevealSection className="mx-4 sm:mx-6 lg:mx-auto max-w-7xl py-6">
+      <RevealSection className="mx-5 sm:mx-6 lg:mx-auto max-w-7xl py-2 sm:py-4">
         <motion.div
           variants={fadeIn}
-          className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-5 sm:gap-6 rounded-2xl border border-white/8 bg-[oklch(16%_0.013_110)] px-4 sm:px-7 py-5"
+          className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 sm:gap-6 rounded-2xl border border-white/8 bg-[oklch(16%_0.013_110)] px-4 sm:px-7 py-4 sm:py-5"
         >
           <div className="flex items-start sm:items-center gap-3 sm:gap-4 w-full sm:w-auto">
             <div className="size-10 rounded-xl bg-[oklch(88%_0.11_105/0.1)] border border-[oklch(88%_0.11_105/0.2)] flex items-center justify-center shrink-0">
@@ -854,32 +848,32 @@ function LandingPageInner() {
       </RevealSection>
 
       {/* ══════════════════ CONNECT INSTANTLY (Chat / Video / Voice) ══════════════════ */}
-      <section className="relative py-20 sm:py-28 px-4 sm:px-6 bg-[oklch(13%_0.013_110)] overflow-hidden">
+      <section className="relative py-12 sm:py-20 lg:py-28 px-5 sm:px-6 bg-[oklch(13%_0.013_110)] overflow-hidden">
         <div className="pointer-events-none absolute inset-0 flex items-center justify-end pr-0">
           <div className="w-[400px] h-[400px] rounded-full bg-[oklch(88%_0.11_105/0.05)] blur-[48px] md:blur-[100px]" />
         </div>
 
-        <div className="mx-auto max-w-7xl grid lg:grid-cols-2 gap-16 items-center">
+        <div className="mx-auto max-w-7xl grid lg:grid-cols-2 gap-8 sm:gap-12 lg:gap-16 items-center">
           {/* copy */}
-          <RevealSection>
-            <motion.div variants={fadeUp} className="mb-5">
+          <RevealSection className="order-1 lg:order-none">
+            <motion.div variants={fadeUp} className="mb-3 sm:mb-5">
               <Badge variant="outline" className="border-[oklch(88%_0.11_105/0.3)] bg-[oklch(88%_0.11_105/0.08)] text-[oklch(88%_0.11_105/0.8)] rounded-full tracking-widest uppercase text-[10px]">
                 Real-time networking
               </Badge>
             </motion.div>
-            <motion.h2 variants={fadeUp} className="text-4xl sm:text-5xl font-black tracking-tight leading-tight mb-5">
+            <motion.h2 variants={fadeUp} className="text-[1.75rem] sm:text-4xl lg:text-5xl font-black tracking-tight leading-tight mb-4 sm:mb-5">
               Chat. Call. Video.<br />
               <span className="bg-linear-to-r from-[oklch(88%_0.11_105)] via-[oklch(95%_0.08_90)] to-[oklch(80%_0.14_110)] bg-clip-text text-transparent">
                 Right when you match.
               </span>
             </motion.h2>
-            <motion.p variants={fadeUp} className="text-white/55 leading-relaxed max-w-md mb-10">
+            <motion.p variants={fadeUp} className="text-sm sm:text-base text-white/55 leading-relaxed max-w-md mb-6 sm:mb-10">
               Once you match, move instantly between text, voice, and video. Start 1:1, bring in your friends,
               or continue inside a public or private circle without losing momentum.
             </motion.p>
-            <motion.div variants={stagger} className="flex flex-col gap-4">
+            <motion.div variants={stagger} className="flex flex-col gap-3 sm:gap-4">
               {[
-                { icon: MessageCircle, color: "text-sky-400 bg-sky-400/10 border-sky-400/20", title: "Instant chat", desc: "Real-time messaging with conversation cues tailored to your new match." },
+                { icon: MessageCircle, color: "text-sky-400 bg-sky-400/10 border-sky-400/20", title: "Instant chat", desc: "Real-time messaging with conversation cues tailored to your new match. Cues coming soon." },
                 { icon: Phone, color: "text-emerald-400 bg-emerald-400/10 border-emerald-400/20", title: "Voice calls", desc: "Jump into audio to network quickly with people who share your niche." },
                 { icon: Video, color: "text-violet-400 bg-violet-400/10 border-violet-400/20", title: "Video calls", desc: "Use face-to-face calls for stronger chemistry and deeper conversations." },
               ].map(({ icon: Icon, color, title, desc }) => (
@@ -897,7 +891,7 @@ function LandingPageInner() {
           </RevealSection>
 
           {/* interactive tab mockup */}
-          <RevealSection className="flex justify-center lg:justify-end">
+          <RevealSection className="order-2 lg:order-none flex justify-center lg:justify-end">
             <motion.div variants={fadeUp} className="relative w-full max-w-xs sm:max-w-sm">
               <Card className="border-white/10 bg-[oklch(17%_0.015_110)] overflow-hidden shadow-2xl shadow-black/50 p-0 gap-0">
                 {/* header */}
@@ -945,21 +939,54 @@ function LandingPageInner() {
                 </AnimatePresence>
               </Card>
 
-              <div className="absolute -bottom-6 left-1/2 -translate-x-1/2 w-3/4 h-10 bg-[oklch(88%_0.11_105/0.1)] blur-lg md:blur-2xl rounded-full" />
+              <div className="absolute -bottom-2 sm:-bottom-6 left-1/2 -translate-x-1/2 w-3/4 h-10 bg-[oklch(88%_0.11_105/0.1)] blur-lg md:blur-2xl rounded-full" />
             </motion.div>
           </RevealSection>
         </div>
       </section>
 
       {/* ══════════════════ CIRCLES IN ACTION ══════════════════ */}
-      <section className="relative py-20 sm:py-28 px-4 sm:px-6 overflow-hidden">
+      <section className="relative py-12 sm:py-20 lg:py-28 px-5 sm:px-6 overflow-hidden">
         <div className="pointer-events-none absolute inset-0 flex items-center justify-start pl-0">
           <div className="w-[400px] h-[400px] rounded-full bg-[oklch(65%_0.15_280/0.05)] blur-[48px] md:blur-[100px]" />
         </div>
 
-        <div className="mx-auto max-w-7xl grid lg:grid-cols-2 gap-16 items-center">
-          {/* visual first on mobile, second on desktop */}
-          <RevealSection className="flex justify-center lg:order-2">
+        <div className="mx-auto max-w-7xl grid lg:grid-cols-2 gap-8 sm:gap-12 lg:gap-16 items-center">
+          {/* copy first on mobile */}
+          <RevealSection className="order-1 lg:order-1">
+            <motion.div variants={fadeUp} className="mb-3 sm:mb-5">
+              <Badge variant="outline" className="border-[oklch(88%_0.11_105/0.3)] bg-[oklch(88%_0.11_105/0.08)] text-[oklch(88%_0.11_105/0.8)] rounded-full tracking-widest uppercase text-[10px]">
+                Circles that feel alive
+              </Badge>
+            </motion.div>
+            <motion.h2 variants={fadeUp} className="text-[1.75rem] sm:text-4xl lg:text-5xl font-black tracking-tight leading-tight mb-4 sm:mb-6">
+              Discuss your niche.<br />
+              <span className="bg-linear-to-r from-[oklch(88%_0.11_105)] via-[oklch(95%_0.08_90)] to-[oklch(80%_0.14_110)] bg-clip-text text-transparent">Build your network in circles.</span>
+            </motion.h2>
+            <motion.p variants={fadeUp} className="text-sm sm:text-base text-white/55 leading-relaxed max-w-md mb-5 sm:mb-8">
+              Circles are group rooms built around shared interests. Join rooms like Startup Founder Night Talk,
+              Jam Session for Musicians, chess rooms, Watch Together, draw together, study together, debate rooms,
+              truth or dare, music rooms, and live polls, then move to 1:1 when you click.
+            </motion.p>
+            <motion.div variants={stagger} className="flex flex-col gap-3 sm:gap-4">
+              {[
+                { icon: Users, text: "Public and private circles for open communities or close trusted groups" },
+                { icon: MessageCircle, text: "Move from circle chat to 1:1 when you find someone you click with" },
+                { icon: Lightbulb, text: "Get conversation cues about that person so starting a conversation feels effortless. Coming soon." },
+                { icon: Wind, text: "Invite your friend into the conversation and grow your network naturally" },
+              ].map(({ icon: Icon, text }) => (
+                <motion.div key={text} variants={cardIn} className="flex items-start gap-3">
+                  <div className="size-7 rounded-lg bg-white/5 border border-white/8 flex items-center justify-center shrink-0 mt-0.5">
+                    <Icon className="size-3.5 text-[oklch(88%_0.11_105/0.8)]" />
+                  </div>
+                  <p className="text-sm text-white/55 leading-relaxed">{text}</p>
+                </motion.div>
+              ))}
+            </motion.div>
+          </RevealSection>
+
+          {/* visual below copy on mobile */}
+          <RevealSection className="order-2 lg:order-2 flex justify-center">
             <motion.div variants={fadeUp} className="relative w-full max-w-xs sm:max-w-sm">
               <Card className="border-white/10 bg-[oklch(17%_0.015_110)] overflow-hidden shadow-2xl shadow-black/40 p-0 gap-0">
                 <div className="flex items-center gap-3 px-4 py-3.5 border-b border-white/6">
@@ -983,39 +1010,30 @@ function LandingPageInner() {
                     <p className="text-[10px] text-[oklch(88%_0.11_105/0.7)] font-semibold tracking-wide uppercase">Group room examples</p>
                   </div>
                   <div className="flex flex-wrap gap-1.5">
-                    {[
-                      "Startup Founder Night Talk",
-                      "Jam Session for Musicians",
-                      "Chess Blitz Room",
-                      "Watch Together (YouTube)",
-                      "Icebreaker Suggestions",
-                      "Draw Together",
-                      "Study Together",
-                      "Debate Room",
-                      "Truth or Dare",
-                      "Music Room",
-                      "Live Polls",
-                    ].map((chip, i) =>
-                      lite ? (
-                        <button
-                          key={chip}
-                          type="button"
-                          className="text-[10px] font-medium px-2.5 py-1 rounded-full border border-[oklch(88%_0.11_105/0.25)] bg-[oklch(88%_0.11_105/0.07)] text-white/70 hover:border-[oklch(88%_0.11_105/0.5)] hover:text-white transition-all cursor-default"
-                        >
-                          {chip}
+                    {CIRCLE_ACTIVITY_CHIPS.map((chip, i) => {
+                      const chipLabel = chip.comingSoon ? `${chip.label} · Soon` : chip.label;
+                      const chipClass = cn(
+                        "text-[10px] font-medium px-2.5 py-1 rounded-full border transition-all cursor-default",
+                        chip.comingSoon
+                          ? "border-white/10 bg-white/4 text-white/40"
+                          : "border-[oklch(88%_0.11_105/0.25)] bg-[oklch(88%_0.11_105/0.07)] text-white/70 hover:border-[oklch(88%_0.11_105/0.5)] hover:text-white",
+                      );
+                      return lite ? (
+                        <button key={chip.label} type="button" className={chipClass}>
+                          {chipLabel}
                         </button>
                       ) : (
                         <motion.button
-                          key={chip}
+                          key={chip.label}
                           initial={{ opacity: 0, y: 6 }}
                           animate={{ opacity: 1, y: 0 }}
                           transition={{ delay: 0.5 + i * 0.12, duration: 0.35, ease: EASE }}
-                          className="text-[10px] font-medium px-2.5 py-1 rounded-full border border-[oklch(88%_0.11_105/0.25)] bg-[oklch(88%_0.11_105/0.07)] text-white/70 hover:border-[oklch(88%_0.11_105/0.5)] hover:text-white transition-all cursor-default"
+                          className={chipClass}
                         >
-                          {chip}
+                          {chipLabel}
                         </motion.button>
-                      ),
-                    )}
+                      );
+                    })}
                   </div>
                 </div>
                 <div className="mx-4 mb-4 flex items-center gap-2 rounded-xl bg-white/5 border border-white/8 px-3 py-2.5">
@@ -1023,67 +1041,33 @@ function LandingPageInner() {
                   <div className="size-6 rounded-lg bg-[oklch(88%_0.11_105/0.15)] flex items-center justify-center"><Send className="size-3 text-[oklch(88%_0.11_105/0.6)]" /></div>
                 </div>
               </Card>
-              <div className="absolute -bottom-6 left-1/2 -translate-x-1/2 w-3/4 h-10 bg-[oklch(88%_0.11_105/0.1)] blur-lg md:blur-2xl rounded-full" />
-            </motion.div>
-          </RevealSection>
-
-          {/* copy */}
-          <RevealSection className="lg:order-1">
-            <motion.div variants={fadeUp} className="mb-5">
-              <Badge variant="outline" className="border-[oklch(88%_0.11_105/0.3)] bg-[oklch(88%_0.11_105/0.08)] text-[oklch(88%_0.11_105/0.8)] rounded-full tracking-widest uppercase text-[10px]">
-                Circles that feel alive
-              </Badge>
-            </motion.div>
-            <motion.h2 variants={fadeUp} className="text-4xl sm:text-5xl font-black tracking-tight leading-tight mb-6">
-              Discuss your niche.<br />
-              <span className="bg-linear-to-r from-[oklch(88%_0.11_105)] via-[oklch(95%_0.08_90)] to-[oklch(80%_0.14_110)] bg-clip-text text-transparent">Build your network in circles.</span>
-            </motion.h2>
-            <motion.p variants={fadeUp} className="text-white/55 leading-relaxed max-w-md mb-8">
-              Circles are group rooms built around shared interests. Join rooms like Startup Founder Night Talk,
-              Jam Session for Musicians, chess rooms, Watch Together, draw together, study together, debate rooms,
-              truth or dare, music rooms, and live polls, then move to 1:1 when you click.
-            </motion.p>
-            <motion.div variants={stagger} className="flex flex-col gap-4">
-              {[
-                { icon: Users, text: "Public and private circles for open communities or close trusted groups" },
-                { icon: MessageCircle, text: "Move from circle chat to 1:1 when you find someone you click with" },
-                { icon: Lightbulb, text: "Get conversation cues about that person so starting a conversation feels effortless" },
-                { icon: Wind, text: "Invite your friend into the conversation and grow your network naturally" },
-              ].map(({ icon: Icon, text }) => (
-                <motion.div key={text} variants={cardIn} className="flex items-start gap-3">
-                  <div className="size-7 rounded-lg bg-white/5 border border-white/8 flex items-center justify-center shrink-0 mt-0.5">
-                    <Icon className="size-3.5 text-[oklch(88%_0.11_105/0.8)]" />
-                  </div>
-                  <p className="text-sm text-white/55 leading-relaxed">{text}</p>
-                </motion.div>
-              ))}
+              <div className="absolute -bottom-2 sm:-bottom-6 left-1/2 -translate-x-1/2 w-3/4 h-10 bg-[oklch(88%_0.11_105/0.1)] blur-lg md:blur-2xl rounded-full" />
             </motion.div>
           </RevealSection>
         </div>
       </section>
 
       {/* ══════════════════ LIVE STREAMS ══════════════════ */}
-      <section className="relative py-20 sm:py-24 px-4 sm:px-6 bg-[oklch(13%_0.013_110)]">
+      <section className="relative py-12 sm:py-20 lg:py-24 px-5 sm:px-6 bg-[oklch(13%_0.013_110)]">
         <RevealSection className="mx-auto max-w-7xl">
-          <motion.div variants={fadeUp} className="text-center mb-12">
-            <Badge variant="outline" className="border-[oklch(88%_0.11_105/0.3)] bg-[oklch(88%_0.11_105/0.08)] text-[oklch(88%_0.11_105/0.85)] rounded-full mb-5 tracking-widest uppercase text-[10px]">
+          <motion.div variants={fadeUp} className="text-center mb-8 sm:mb-12">
+            <Badge variant="outline" className="border-[oklch(88%_0.11_105/0.3)] bg-[oklch(88%_0.11_105/0.08)] text-[oklch(88%_0.11_105/0.85)] rounded-full mb-3 sm:mb-5 tracking-widest uppercase text-[10px]">
               Live with your connections
             </Badge>
-            <h2 className="text-4xl sm:text-5xl font-black tracking-tight">Go live from your matches and circles</h2>
-            <p className="mt-4 text-white/50 max-w-2xl mx-auto">
-              Turn any active match or circle conversation into a live session in one tap, then stream out to platforms like YouTube from the same flow.
+            <h2 className="text-[1.75rem] sm:text-4xl lg:text-5xl font-black tracking-tight leading-tight">Go live from your matches and circles</h2>
+            <p className="mt-3 sm:mt-4 text-sm sm:text-base text-white/50 max-w-2xl mx-auto">
+              Turn any active match or circle conversation into a live session in one tap, then stream out to platforms like YouTube from the same flow. Coming soon.
             </p>
           </motion.div>
 
-          <motion.div variants={fadeUp} className="flex flex-wrap justify-center gap-3 mb-8">
+          <motion.div variants={fadeUp} className="flex flex-wrap justify-center gap-3 mb-5 sm:mb-8">
             <Button
               size="sm"
-              className="rounded-full bg-[oklch(88%_0.11_105)] text-[oklch(15%_0.02_110)] hover:brightness-110 font-semibold px-5"
-              asChild
+              variant="outline"
+              className="rounded-full border-white/12 bg-white/6 text-white/60 px-5 cursor-default"
+              disabled
             >
-              <Link href={isLoggedIn ? "/home" : "/login"}>
-                Start live session <Video className="size-3.5" />
-              </Link>
+              Start live session · Coming soon
             </Button>
             <Button
               size="sm"
@@ -1094,58 +1078,43 @@ function LandingPageInner() {
               <Link href={isLoggedIn ? "/home" : "/login"}>Open your connections</Link>
             </Button>
           </motion.div>
-          <motion.p variants={fadeUp} className="text-center text-xs text-white/45 mb-6">
+          <motion.p variants={fadeUp} className="text-center text-xs text-white/45 mb-4 sm:mb-6">
             Live room size stays intimate: up to 15 people per room, with multi-platform streaming to YouTube and more.
           </motion.p>
 
-          <div className="grid md:grid-cols-2 xl:grid-cols-4 gap-5">
-            {LIVE_STREAMS.map((stream) => (
+          <div className="grid md:grid-cols-2 xl:grid-cols-4 gap-3 sm:gap-5">
+            {LIVE_STREAM_EXAMPLES.map((stream) => (
               <motion.div key={stream.title} variants={cardIn}>
                 <Card className="border-white/8 bg-[oklch(16%_0.013_110)] shadow-xl p-0 gap-0">
-                  <CardContent className="p-6 flex flex-col gap-5">
+                  <CardContent className="p-4 sm:p-6 flex flex-col gap-4 sm:gap-5">
                     <div className="flex items-start justify-between gap-2">
                       <div>
                         <p className="text-base font-bold text-white leading-tight">{stream.title}</p>
                         <p className="text-xs text-white/55 mt-1">{stream.topic}</p>
                       </div>
-                      <div className="inline-flex items-center gap-1 rounded-full border border-red-500/25 bg-red-500/12 px-2 py-1 text-[10px] font-semibold text-red-300">
-                        {lite ? (
-                          <span className="size-1.5 rounded-full bg-red-400" />
-                        ) : (
-                          <motion.span
-                            className="size-1.5 rounded-full bg-red-400"
-                            animate={{ opacity: [1, 0.35, 1] }}
-                            transition={{ duration: 1.3, repeat: Infinity }}
-                          />
-                        )}
-                        LIVE
+                      <div className="inline-flex items-center gap-1 rounded-full border border-white/10 bg-white/6 px-2 py-1 text-[10px] font-semibold text-white/55">
+                        Example
                       </div>
                     </div>
 
-                    <div className="flex items-center justify-between gap-3">
-                      <div className="flex items-center gap-2.5 min-w-0">
-                        <div className="size-8 rounded-full bg-[oklch(88%_0.11_105/0.18)] border border-[oklch(88%_0.11_105/0.26)] flex items-center justify-center text-xs font-bold text-[oklch(88%_0.11_105)] shrink-0">
-                          {stream.host.slice(0, 1)}
-                        </div>
-                        <div className="min-w-0">
-                          <p className="text-xs text-white/80 truncate">{stream.host}</p>
-                          <p className="text-[11px] text-white/45 truncate">{stream.category}</p>
-                        </div>
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <div className="size-8 rounded-full bg-[oklch(88%_0.11_105/0.18)] border border-[oklch(88%_0.11_105/0.26)] flex items-center justify-center text-xs font-bold text-[oklch(88%_0.11_105)] shrink-0">
+                        {stream.category.slice(0, 1)}
                       </div>
-                      <p className="text-[11px] text-white/45 shrink-0">{stream.viewers} in room</p>
+                      <p className="text-[11px] text-white/45 truncate">{stream.category}</p>
                     </div>
 
                     <div className="flex items-center justify-between">
                       <div className="inline-flex items-center gap-1.5 rounded-full border border-white/8 bg-white/4 px-2.5 py-1 text-[10px] text-white/55">
                         <Users className="size-3" />
-                        Connected room
+                        Room idea
                       </div>
-                      <Button size="sm" className="rounded-full bg-[oklch(88%_0.11_105)] text-[oklch(15%_0.02_110)] hover:brightness-110 font-semibold px-4" asChild>
-                        <Link href={isLoggedIn ? "/home" : "/login"}>Go live</Link>
+                      <Button size="sm" variant="outline" className="rounded-full border-white/12 bg-white/6 text-white/50 px-4 cursor-default" disabled>
+                        Go live · Soon
                       </Button>
                     </div>
                     <p className="text-[10px] text-white/45">
-                      Stream to: {stream.platforms.join(" · ")}
+                      Planned streaming: {stream.platforms.join(" · ")}
                     </p>
                   </CardContent>
                 </Card>
@@ -1156,27 +1125,24 @@ function LandingPageInner() {
       </section>
 
       {/* ══════════════════ HOW IT WORKS ══════════════════ */}
-      <section className="relative py-20 sm:py-24 px-4 sm:px-6 bg-[oklch(14%_0.013_110)]" id="how-it-works">
+      <section className="relative py-12 sm:py-20 lg:py-24 px-5 sm:px-6 bg-[oklch(14%_0.013_110)]" id="how-it-works">
         <RevealSection className="mx-auto max-w-5xl">
-          <motion.div variants={fadeUp} className="text-center mb-16">
-            <Badge variant="outline" className="border-[oklch(88%_0.11_105/0.3)] bg-[oklch(88%_0.11_105/0.08)] text-[oklch(88%_0.11_105/0.8)] rounded-full mb-5 tracking-widest uppercase text-[10px]">
+          <motion.div variants={fadeUp} className="text-center mb-8 sm:mb-12 lg:mb-16">
+            <Badge variant="outline" className="border-[oklch(88%_0.11_105/0.3)] bg-[oklch(88%_0.11_105/0.08)] text-[oklch(88%_0.11_105/0.8)] rounded-full mb-3 sm:mb-5 tracking-widest uppercase text-[10px]">
               The process
             </Badge>
-            <h2 className="text-4xl sm:text-5xl font-black tracking-tight">Three steps to<br />finding your tribe</h2>
+            <h2 className="text-[1.75rem] sm:text-4xl lg:text-5xl font-black tracking-tight leading-tight">Three steps to<br />finding your tribe</h2>
           </motion.div>
 
-          <div className="relative grid md:grid-cols-3 gap-8">
+          <div className="relative grid md:grid-cols-3 gap-6 sm:gap-8">
             <div className="hidden md:block absolute top-10 left-[20%] right-[20%] h-px bg-linear-to-r from-transparent via-[oklch(88%_0.11_105/0.3)] to-transparent" />
             {STEPS.map((step, i) => (
-              <motion.div key={step.n} variants={cardIn} className="relative flex flex-col items-center text-center gap-5">
+              <motion.div key={step.n} variants={cardIn} className="relative flex flex-col items-center text-center gap-4 sm:gap-5">
                 <div className="relative">
-                  <div className="size-20 rounded-full border border-[oklch(88%_0.11_105/0.2)] bg-[oklch(17%_0.015_110)] flex items-center justify-center">
-                    <span className="text-2xl font-black text-[oklch(88%_0.11_105)]">{step.n}</span>
+                  <div className="size-16 sm:size-20 rounded-full border border-[oklch(88%_0.11_105/0.2)] bg-[oklch(17%_0.015_110)] flex items-center justify-center">
+                    <span className="text-xl sm:text-2xl font-black text-[oklch(88%_0.11_105)]">{step.n}</span>
                   </div>
-                  {!lite &&
-                    [0, 0.7, 1.4].map((d, ri) => (
-                      <motion.div key={ri} className="absolute inset-0 rounded-full border border-[oklch(88%_0.11_105/0.3)]" animate={{ scale: [1, 1.8], opacity: [0.4, 0] }} transition={{ duration: 2.2, repeat: Infinity, ease: "easeOut", delay: i * 0.4 + d }} />
-                    ))}
+                  {!lite && <StepRippleRings stepIndex={i} />}
                 </div>
                 <div>
                   <h3 className="text-lg font-bold text-white mb-2">{step.title}</h3>
@@ -1188,45 +1154,9 @@ function LandingPageInner() {
         </RevealSection>
       </section>
 
-      {/* ══════════════════ TESTIMONIALS ══════════════════ */}
-      <section className="py-24 sm:py-32 px-4 sm:px-6" id="community">
-        <RevealSection className="mx-auto max-w-7xl">
-          <motion.div variants={fadeUp} className="text-center mb-16">
-            <Badge variant="outline" className="border-[oklch(88%_0.11_105/0.3)] bg-[oklch(88%_0.11_105/0.08)] text-[oklch(88%_0.11_105/0.8)] rounded-full mb-5 tracking-widest uppercase text-[10px]">
-              From the community
-            </Badge>
-            <h2 className="text-4xl sm:text-5xl font-black tracking-tight">Real people. Real stories.</h2>
-          </motion.div>
-
-          <div className="grid md:grid-cols-3 gap-6">
-            {TESTIMONIALS.map((t) => (
-              <motion.div key={t.name} variants={cardIn} whileHover={lite ? undefined : { y: -5, transition: { duration: 0.22 } }}>
-                <Card className="border-white/8 bg-[oklch(16%_0.013_110)] h-full shadow-xl p-0 gap-0">
-                  <CardContent className="p-7 flex flex-col gap-5 h-full">
-                    <div className="flex gap-1">
-                      {Array.from({ length: 5 }).map((_, si) => (
-                        <Star key={si} className="size-3.5 fill-[oklch(88%_0.11_105)] text-[oklch(88%_0.11_105)]" />
-                      ))}
-                    </div>
-                    <p className="text-sm text-white/65 leading-relaxed flex-1">&ldquo;{t.quote}&rdquo;</p>
-                    <div className="flex items-center gap-3 pt-2 border-t border-white/6">
-                      <div className={`size-9 rounded-full bg-linear-to-br ${t.color} flex items-center justify-center text-sm font-bold text-white`}>{t.avatar}</div>
-                      <div>
-                        <p className="text-sm font-semibold text-white">{t.name}</p>
-                        <p className="text-xs text-white/40">{t.tag}</p>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              </motion.div>
-            ))}
-          </div>
-        </RevealSection>
-      </section>
-
       {/* ══════════════════ TRUST ══════════════════ */}
-      <div className="py-12 px-4 sm:px-6 border-y border-white/5 bg-[oklch(14%_0.013_110)]">
-        <RevealSection className="mx-auto max-w-4xl flex flex-wrap items-center justify-center gap-x-12 gap-y-5">
+      <div className="py-8 sm:py-12 px-5 sm:px-6 border-y border-white/5 bg-[oklch(14%_0.013_110)]">
+        <RevealSection className="mx-auto max-w-4xl flex flex-wrap items-center justify-center gap-x-8 sm:gap-x-12 gap-y-4 sm:gap-y-5">
           {TRUST.map(({ icon: Icon, label }) => (
             <motion.div key={label} variants={fadeIn} className="flex items-center gap-2 text-sm font-medium text-white/30">
               <Icon className="size-4 text-[oklch(88%_0.11_105/0.5)]" />
@@ -1237,7 +1167,7 @@ function LandingPageInner() {
       </div>
 
       {/* ══════════════════ FINAL CTA ══════════════════ */}
-      <section className="relative py-24 sm:py-36 px-4 sm:px-6 overflow-hidden" id="join">
+      <section className="relative py-14 sm:py-24 lg:py-36 px-5 sm:px-6 overflow-hidden" id="join">
         {lite ? (
           <div className="absolute inset-0 flex items-center justify-center pointer-events-none" aria-hidden>
             <div className="w-[min(100vw,700px)] h-[min(100vw,700px)] rounded-full bg-[oklch(88%_0.11_105/0.07)] blur-[64px] md:blur-[130px]" />
@@ -1249,21 +1179,20 @@ function LandingPageInner() {
         )}
 
         <RevealSection className="relative mx-auto max-w-3xl text-center">
-          <motion.div variants={fadeUp} className="mb-8">
+          <motion.div variants={fadeUp} className="mb-5 sm:mb-8">
             <Badge variant="outline" className="border-white/12 bg-white/5 text-white/70 md:backdrop-blur-sm rounded-full px-4 py-1.5 text-xs gap-2">
-              <MapPin className="size-3 text-[oklch(88%_0.11_105)]" />
-              Your people are already here
+              {EARLY_RELEASE.badge}
             </Badge>
           </motion.div>
 
-          <motion.h2 variants={fadeUp} className="text-4xl sm:text-6xl lg:text-7xl font-black tracking-tight leading-tight mb-6">
+          <motion.h2 variants={fadeUp} className="text-[1.85rem] sm:text-5xl lg:text-7xl font-black tracking-tight leading-tight mb-4 sm:mb-6">
             Your people.<br />
             <span className="bg-linear-to-r from-[oklch(88%_0.11_105)] via-[oklch(95%_0.08_90)] to-[oklch(80%_0.14_110)] bg-clip-text text-transparent">
               Your circles.
             </span>
           </motion.h2>
 
-          <motion.p variants={fadeUp} className="text-lg text-white/50 mb-12 max-w-xl mx-auto">
+          <motion.p variants={fadeUp} className="text-sm sm:text-lg text-white/50 mb-8 sm:mb-12 max-w-xl mx-auto">
             Join circles around what you care about, match with people who truly align, and connect in real time from
             nearby to global communities.
           </motion.p>
@@ -1276,7 +1205,7 @@ function LandingPageInner() {
                 asChild
               >
                 <Link href={isLoggedIn ? "/home" : "/register"}>
-                  {isLoggedIn ? `Continue${firstName ? `, ${firstName}` : ""}` : "Join Greetup — it's free"} <ArrowRight className="size-5" />
+                  {isLoggedIn ? `Continue${firstName ? `, ${firstName}` : ""}` : "Join Greetup. It's free"} <ArrowRight className="size-5" />
                 </Link>
               </Button>
             </motion.div>
@@ -1289,14 +1218,14 @@ function LandingPageInner() {
       </section>
 
       {/* ══════════════════ FOOTER ══════════════════ */}
-      <footer className="border-t border-white/5 bg-[oklch(12%_0.01_110)] px-4 sm:px-6 py-12">
+      <footer className="border-t border-white/5 bg-[oklch(12%_0.01_110)] px-5 sm:px-6 py-8 sm:py-12">
         <RevealSection className="mx-auto max-w-7xl flex flex-col sm:flex-row items-center justify-between gap-6">
           <motion.div variants={fadeIn}><Logo /></motion.div>
           <motion.div variants={stagger} className="flex flex-wrap justify-center gap-x-1 gap-y-1">
-            {["About","Privacy","Terms","Community Guidelines","Contact"].map((link) => (
-              <motion.div key={link} variants={fadeIn}>
+            {FOOTER_LINKS.map(({ label, href }) => (
+              <motion.div key={href} variants={fadeIn}>
                 <Button variant="ghost" size="sm" className="text-white/35 hover:text-white/60 hover:bg-white/5 text-xs rounded-full" asChild>
-                  <a href="#">{link}</a>
+                  <Link href={href}>{label}</Link>
                 </Button>
               </motion.div>
             ))}

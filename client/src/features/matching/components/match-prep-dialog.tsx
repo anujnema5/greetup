@@ -13,10 +13,10 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import {
-  useGetMatchPrepCurrentQuery,
-  useGetMatchPrepOptionsQuery,
-  useSaveMatchPrepMutation,
-} from "@/features/profile-setup/components/profile-setup-api";
+  useMatchPrepCurrent,
+  useMatchPrepOptions,
+  useSaveMatchPrep,
+} from "@/features/profile-setup/api";
 import type {
   MatchPrepDialogProps,
   ConnectionPreferenceValue,
@@ -48,18 +48,18 @@ export function MatchPrepDialog({
 }: MatchPrepDialogProps) {
   const isEdit = mode === "edit";
 
-  const { data, isLoading, isError, refetch } = useGetMatchPrepOptionsQuery(undefined, {
-    skip: !open,
+  const { data, isLoading, isError, refetch } = useMatchPrepOptions({
+    enabled: open,
   });
   const {
     data: saved,
     isSuccess: savedReady,
     isError: savedError,
-  } = useGetMatchPrepCurrentQuery(undefined, {
-    skip: !open,
+  } = useMatchPrepCurrent({
+    enabled: open,
   });
 
-  const [saveMatchPrep, { isLoading: isSaving }] = useSaveMatchPrepMutation();
+  const { mutateAsync: saveMatchPrep, isPending: isSaving } = useSaveMatchPrep();
 
   const [moods, setMoods] = useState<Set<string>>(new Set());
   const [lookingFor, setLookingFor] = useState<Set<string>>(new Set());
@@ -183,7 +183,7 @@ export function MatchPrepDialog({
           : undefined,
         sessionGoal: sessionGoal.trim() || null,
         clientSessionId: clientSessionId ?? undefined,
-      }).unwrap();
+      });
       handleDialogOpenChange(false);
       if (!isEdit) onStartSearch();
     } catch {

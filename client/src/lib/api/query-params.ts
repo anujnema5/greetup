@@ -8,7 +8,7 @@ function isPresentQueryValue(value: unknown): boolean {
 
 /**
  * Drops undefined / null / whitespace-only strings; trims other strings.
- * Use with RTK Query `query: () => ({ url, params: buildQueryParamsObject(...) })`.
+ * Use when building URL search params for `apiFetch` / query functions.
  */
 export function buildQueryParamsObject(paramsObj: Record<string, unknown>): Record<string, string> {
   const out: Record<string, string> = {};

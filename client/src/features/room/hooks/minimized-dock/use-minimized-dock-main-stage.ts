@@ -5,7 +5,7 @@
  * room compositor 1:1. Screen-share stages still use {@link remoteMediaStream} from RTC context
  * so focus ordering matches the big stage.
  *
- * Policy: pin (Redux) → debounced live speaker → last speaker (while still in roster) → first remote.
+ * Policy: pin (room store) → debounced live speaker → last speaker (while still in roster) → first remote.
  *
  * Direct (1:1) uses the same stack as circle (live speaker when not pinned).
  *

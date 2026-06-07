@@ -1,9 +1,9 @@
 import { useCallback, useEffect, useState } from "react";
 import {
-  useGeocodeLocationMutation,
-  useLazyGetLocationSuggestionsQuery,
-  useReverseGeocodeLocationMutation,
-} from "@/features/profile-setup/components/profile-setup-api";
+  useFetchLocationSuggestions,
+  useGeocodeLocation,
+  useReverseGeocodeLocation,
+} from "@/features/profile-setup/api";
 import type {
   ResolvedLocationData,
   ResolvedLocationSuggestionData,
@@ -67,10 +67,10 @@ function getGeoPositionErrorMessage(error: GeolocationPositionError): string {
 }
 
 export function useMatchPrepLocation() {
-  const [geocodeLocation] = useGeocodeLocationMutation();
-  const [reverseGeocodeLocation] = useReverseGeocodeLocationMutation();
-  const [fetchSuggestions, { isFetching: isFetchingSuggestions }] =
-    useLazyGetLocationSuggestionsQuery();
+  const { mutateAsync: geocodeLocation } = useGeocodeLocation();
+  const { mutateAsync: reverseGeocodeLocation } = useReverseGeocodeLocation();
+  const fetchSuggestions = useFetchLocationSuggestions();
+  const [isFetchingSuggestions, setIsFetchingSuggestions] = useState(false);
   const [selectedLocation, setSelectedLocation] = useState<MatchPrepLocation | null>(null);
   const [manualLocationText, setManualLocationText] = useState("");
   const [locationSuggestions, setLocationSuggestions] = useState<
@@ -90,11 +90,14 @@ export function useMatchPrepLocation() {
     }
 
     const timer = window.setTimeout(async () => {
+      setIsFetchingSuggestions(true);
       try {
-        const suggestions = await fetchSuggestions({ query, limit: 5 }, true).unwrap();
+        const suggestions = await fetchSuggestions({ query, limit: 5 });
         setLocationSuggestions(suggestions);
       } catch {
         setLocationSuggestions([]);
+      } finally {
+        setIsFetchingSuggestions(false);
       }
     }, 250);
 
@@ -129,7 +132,7 @@ export function useMatchPrepLocation() {
       const resolved = await reverseGeocodeLocation({
         latitude: position.coords.latitude,
         longitude: position.coords.longitude,
-      }).unwrap();
+      });
       setSelectedLocation(normalizeResolvedLocation(resolved, "current"));
       setLocationSuggestions([]);
       setManualLocationText("");
@@ -158,7 +161,7 @@ export function useMatchPrepLocation() {
     setLocationError(null);
     setIsResolvingManualLocation(true);
     try {
-      const resolved = await geocodeLocation({ query }).unwrap();
+      const resolved = await geocodeLocation({ query });
       setSelectedLocation(normalizeResolvedLocation(resolved, "manual"));
       setLocationSuggestions([]);
       setSuggestionsOpen(false);

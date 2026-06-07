@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import { useReportCircleNsfwViolationMutation } from "@/features/room/api/room-api";
+import { useReportCircleNsfwViolation } from "@/features/room/api/room.mutations";
 import { NSFW_HITS_BEFORE_REPORT, NSFW_SCAN_INTERVAL_MS } from "@/features/moderation/lib/nsfw-config";
 import { isNsfwLogEnabled, logNsfwLoopStarted, logNsfwReported, logNsfwScan, logNsfwSkipped } from "@/features/moderation/lib/nsfw-log";
 import { classifyStreamFrame } from "@/features/moderation/lib/nsfw-scanner";
@@ -9,7 +9,7 @@ import { isNsfwPrediction } from "@/features/moderation/lib/nsfw-thresholds";
 
 export type UseCircleNsfwModerationArgs = {
   roomId: string;
-  enabled: boolean;
+  enabled?: boolean | null;
   localStream: MediaStream | null;
   mediasoupReady: boolean;
   cameraEnabled: boolean;
@@ -24,14 +24,15 @@ export function useCircleNsfwModeration({
   cameraEnabled,
   screenSharing,
 }: UseCircleNsfwModerationArgs): void {
-  const [reportViolation] = useReportCircleNsfwViolationMutation();
+  const enforceReport = Boolean(enabled);
+  const { mutateAsync: reportViolation } = useReportCircleNsfwViolation();
   const reportRef = useRef(reportViolation);
   const streamRef = useRef(localStream);
 
   useEffect(() => {
     reportRef.current = reportViolation;
   });
-  const scanActive = enabled || isNsfwLogEnabled();
+  const scanActive = enforceReport || isNsfwLogEnabled();
   const hasVideo = cameraEnabled || screenSharing;
 
   useEffect(() => {
@@ -46,7 +47,7 @@ export function useCircleNsfwModeration({
     let scanNumber = 0;
     let reporting = false;
 
-    logNsfwLoopStarted(roomId, enabled, scanActive && !enabled);
+    logNsfwLoopStarted(roomId, enforceReport, scanActive && !enforceReport);
 
     const tick = async () => {
       const stream = streamRef.current;
@@ -62,7 +63,9 @@ export function useCircleNsfwModeration({
 
       const flagged = isNsfwPrediction(predictions);
       consecutiveHits = flagged ? consecutiveHits + 1 : 0;
-      const willReport = enabled && flagged && consecutiveHits >= NSFW_HITS_BEFORE_REPORT;
+      const willReport = Boolean(
+        enforceReport && flagged && consecutiveHits >= NSFW_HITS_BEFORE_REPORT,
+      );
 
       logNsfwScan({
         roomId,
@@ -77,7 +80,7 @@ export function useCircleNsfwModeration({
 
       reporting = true;
       try {
-        await reportRef.current({ roomId, clientScores: predictions }).unwrap();
+        await reportRef.current({ roomId, clientScores: predictions });
         logNsfwReported(roomId, predictions);
       } catch {
         logNsfwSkipped("report failed");
@@ -93,5 +96,5 @@ export function useCircleNsfwModeration({
       cancelled = true;
       window.clearInterval(intervalId);
     };
-  }, [enabled, hasVideo, mediasoupReady, roomId, scanActive]);
+  }, [enforceReport, hasVideo, mediasoupReady, roomId, scanActive]);
 }

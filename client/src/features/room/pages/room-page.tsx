@@ -1,11 +1,12 @@
 "use client";
 
-import { useAppDispatch, useAppSelector } from "@/lib/redux/hooks";
 import {
   selectIsRoomMinimized,
   selectIsVideoSessionActive,
+  selectLocalLeavePending,
   selectRoomPhase,
-} from "@/lib/redux/selectors/room-selectors";
+  useRoomStore,
+} from "@/features/room/state/room.store";
 import { useSession } from "@/lib/auth-client";
 import { useRoom } from "@/features/matching";
 import {
@@ -16,13 +17,15 @@ import {
   resolveCircleHostUserId,
 } from "@/features/matching/types/room.types";
 import { InCallContainer } from "@/features/room/call/shell/in-call-container";
+import { CircleRouteLoadingShell } from "@/features/room/components/search/circle-route-loading-shell";
 import { useRoomJoinAndStartVideo } from "@/features/room/hooks/session/use-room-join-and-start-video";
+import { isConnectionCallSession } from "@/features/room/lib/session/room-session-kind";
 
 export function RoomPage() {
-  const dispatch = useAppDispatch();
-  const sessionActive = useAppSelector(selectIsVideoSessionActive);
-  const roomPhase = useAppSelector(selectRoomPhase);
-  const isMinimized = useAppSelector(selectIsRoomMinimized);
+  const sessionActive = useRoomStore(selectIsVideoSessionActive);
+  const roomPhase = useRoomStore(selectRoomPhase);
+  const isMinimized = useRoomStore(selectIsRoomMinimized);
+  const localLeavePending = useRoomStore(selectLocalLeavePending);
   const isSearchingNext = roomPhase === "searching";
   const { data: session } = useSession();
 
@@ -48,11 +51,12 @@ export function RoomPage() {
   const isPersistedCircleCall = isPersistedCircleSession(room, rtcRoomType);
   const circleLobbyGateActive =
     room && isCircleRoomData(room) ? (room.lobbyGateActive ?? null) : null;
+  const isConnectionCall = isConnectionCallSession(room);
   const rematchLanding = isSearchingNext && Boolean(peerId);
   const shouldStartVideo =
     !duplicateTabRedirect &&
     (rematchLanding || (!loading && Boolean(room))) &&
-    (isCircleRoom || Boolean(peerId)) &&
+    (isCircleRoom || isConnectionCall || Boolean(peerId)) &&
     (!isSearchingNext || rematchLanding);
 
   const { joinRoomError, joinRoomLoading } = useRoomJoinAndStartVideo({
@@ -61,10 +65,25 @@ export function RoomPage() {
     sessionActive,
     joinWhileSessionActive: rematchLanding,
     peerId,
-    dispatch,
   });
 
   const showCallSurface = (sessionActive || isSearchingNext) && !isMinimized;
+  const transientMatchRoomLoss =
+    sessionActive &&
+    roomPhase === "in_call" &&
+    !isSearchingNext &&
+    !localLeavePending &&
+    Boolean(error) &&
+    !room &&
+    !isCircleRoom;
+
+  if (localLeavePending) {
+    return <CircleRouteLoadingShell message="Leaving call…" />;
+  }
+
+  if (transientMatchRoomLoss) {
+    return <CircleRouteLoadingShell message="Partner left — finding next match…" />;
+  }
 
   if (
     !isSearchingNext &&
@@ -133,6 +152,7 @@ export function RoomPage() {
           room && isCircleRoomData(room) && room.status ? room.status : null
         }
         isDbCircleCall={isPersistedCircleCall}
+        room={room}
       />
     );
   }

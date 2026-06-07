@@ -1,227 +1,108 @@
-# Greetup Deployment Guide
+# Greetup production deployment
 
-## Architecture Overview
+## Architecture
 
 | Service | Platform | Notes |
 |---|---|---|
-| client | Cloud Run | Next.js frontend |
-| server | Cloud Run | Main API server |
-| matching-service | Cloud Run | Private, authenticated only |
-| rtc-service | GCE VM | WebRTC/mediasoup — cannot use Cloud Run (needs UDP) |
-| postgres | GCE VM (Docker + PostGIS) | Same VM as rtc-service |
-| redis | GCE VM (Docker) | Same VM as rtc-service |
+| client | Cloud Run (`asia-south1`) | Next.js — `greetup.co` |
+| server | Cloud Run (`asia-south1`) | API — `api.greetup.co` |
+| matching-service | Cloud Run (`asia-south1`) | Private, server-only |
+| rtc-service | GCE VM (`asia-south1-a`) | WebRTC — needs UDP |
+| Postgres | **Neon** | `DATABASE_URL` |
+| Redis | **Upstash** | `REDIS_URL` |
 
-## GCP Project
+Local development uses Docker Postgres/Redis (`docker-compose.dev.yml`). Production uses Neon + Upstash only.
 
-- **Project:** `greetup-development`
-- **Region:** `us-central1`
-- **Artifact Registry repo:** `greetup`
+## GCP project
 
-## Service Accounts
+- **Project ID:** `greetup-production-498717`
+- **Project number:** `923071310461`
+- **Region:** `asia-south1`
+- **Artifact Registry:** `greetup`
+- **Deploy branch:** `main`
 
-- **cloud-build-sa@greetup-development.iam.gserviceaccount.com**
-  - Used by all Cloud Build triggers
-  - Roles: Artifact Registry Writer, Cloud Run Admin, Storage Object Creator, Logging Log Writer
-  - Also has `iam.serviceAccountUser` on the default compute service account
+## Cloud Build triggers
 
-## Cloud Build Triggers
-
-| Trigger | Config File | Branch |
+| Trigger | Config | Path filter |
 |---|---|---|
-| greetup-client (dev) | `deploy/gcp/cloudbuild.client.yaml` | development |
-| greetup-client (prod) | `deploy/gcp/cloudbuild.client.production.yaml` | add when going live (e.g. `main`) |
-| greetup-server | `deploy/gcp/cloudbuild.server.yaml` | development |
-| greetup-matching-service | `deploy/gcp/cloudbuild.matching.yaml` | development |
-| greetup-rtc-service | `deploy/gcp/cloudbuild.rtc.yaml` | development |
+| greetup-client | `deploy/gcp/cloudbuild.client.yaml` | `client/**` |
+| greetup-server | `deploy/gcp/cloudbuild.server.yaml` | `server/**` |
+| greetup-matching-service | `deploy/gcp/cloudbuild.matching.yaml` | `matching-service/**` |
+| greetup-rtc-service | `deploy/gcp/cloudbuild.rtc.yaml` | `rtc-service/**` |
 
-See `deploy/gcp/environments/README.md` for why the client has two configs (public URLs are baked at build time).
+Push to `main` → matching trigger runs → build → Artifact Registry → Cloud Run (or VM pull for rtc).
 
-## GCE VM Setup
+## Secrets (Secret Manager)
 
-- **Name:** `greetup-vm`
-- **Machine type:** `e2-medium`
-- **OS:** Ubuntu 22.04 LTS
-- **Region:** `us-central1`
+| Secret | Source |
+|---|---|
+| `DATABASE_URL` | Neon connection string |
+| `REDIS_URL` | Upstash connection string (`rediss://...`) |
+| `INTERNAL_API_KEY` | Shared by server, matching, rtc |
+| `BETTER_AUTH_SECRET` | Random 32+ chars |
+| `RTC_JWT_SECRET` | Shared by server and rtc |
+| OAuth, Mailjet, Gemini, storage | Prod credentials |
 
-### Firewall Rules
-- `allow-rtc`: TCP port `5370` (rtc-service HTTP/WebSocket)
-- `allow-webrtc-udp`: UDP ports `40000-49999` (mediasoup media)
-- `allow-redis`: TCP port `6379` (Redis — required for Cloud Run server access)
-- `allow-postgres`: TCP port `5432` (PostgreSQL — required for Cloud Run server access)
+## VM (rtc only)
 
-### VM Services (docker compose)
-Files located at `~/greetup/` on the VM.
+Files at `~/greetup/` on `greetup-vm` (`asia-south1-a`).
 
 ```bash
-# Start all services
 docker compose --env-file ~/greetup/.env up -d
-
-# Update rtc-service after new build
-docker compose --env-file ~/greetup/.env pull
-docker compose --env-file ~/greetup/.env up -d
-
-# Check logs
+docker compose --env-file ~/greetup/.env pull && docker compose --env-file ~/greetup/.env up -d
 docker logs greetup-rtc-service-1 --tail 50
-docker logs greetup-postgres-1 --tail 50
-docker logs greetup-redis-1 --tail 50
 ```
 
-### VM .env Variables
-```
-POSTGRES_USER=greetup
-POSTGRES_PASSWORD=<strong password>
-POSTGRES_DB=greetup
-REDIS_PASSWORD=<strong password>
-VM_PUBLIC_IP=<vm external ip>
-RTC_IMAGE=us-central1-docker.pkg.dev/greetup-development/greetup/rtc-service:latest
-INTERNAL_API_KEY=<random 32 char hex>
-RTC_JWT_SECRET=<random 32 char hex>
-```
+See `deploy/gcp/vm/.env.example`.
 
-## Connection Strings (for Cloud Run env vars)
+### Firewall
 
-```
-DATABASE_URL=postgresql://greetup:<POSTGRES_PASSWORD>@<VM_PUBLIC_IP>:5432/greetup
-REDIS_URL=redis://:<REDIS_PASSWORD>@<VM_PUBLIC_IP>:6379
-RTC_SERVICE_URL=http://<VM_PUBLIC_IP>:5370
-```
+- TCP `5370` — rtc
+- UDP `40000-49999` — WebRTC
 
-## Cloud Run Environment Variables
+No Postgres/Redis ports on the VM.
+
+## Cloud Run environment
 
 ### server
+
 ```
 PORT=5300
-DATABASE_URL=
-BETTER_AUTH_SECRET=
-BETTER_AUTH_URL=https://<server-cloud-run-url>
-SERVER_URL=https://<server-cloud-run-url>
-WEB_CLIENT_HOST=https://<client-cloud-run-url>
-# For client at dev.greetup.club + API at dev-api.greetup.club, set greetup.club
-AUTH_COOKIE_DOMAIN=
-REDIS_URL=
-INTERNAL_API_KEY=
+BETTER_AUTH_URL=https://api.greetup.co
+SERVER_URL=https://api.greetup.co
+WEB_CLIENT_HOST=https://greetup.co
+AUTH_COOKIE_DOMAIN=greetup.co
 MATCH_ENGINE_URL=https://<matching-service-url>
-RTC_JWT_SECRET=
-MAILJET_API_KEY=
-MAILJET_API_SECRET=
-MAIL_FROM_EMAIL=
-# MAIL_FROM_NAME=
-GOOGLE_CLIENT_ID=
-GOOGLE_CLIENT_SECRET=
-RTC_SERVICE_URL=http://<VM_PUBLIC_IP>:5370
-MESSAGE_ENCRYPTION_KEY=
-GEMINI_API_KEY=
-DO_SPACES_KEY=
-DO_SPACES_SECRET=
-DO_SPACES_BUCKET=
-DO_SPACES_REGION=
-DO_SPACES_ENDPOINT=
+RTC_SERVICE_URL=http://<VM_IP>:5370
 ```
 
+Plus secrets: `DATABASE_URL`, `REDIS_URL`, `BETTER_AUTH_SECRET`, `INTERNAL_API_KEY`, `RTC_JWT_SECRET`, OAuth, email, storage, etc.
+
 ### matching-service
+
 ```
-REDIS_URL=
-INTERNAL_API_KEY=
-MATCH_WEBHOOK_URL=https://<server-url>/api/match/webhook
+MATCH_WEBHOOK_URL=https://api.greetup.co/api/match/webhook
+REDIS_URL=<upstash>
+INTERNAL_API_KEY=<secret>
 ```
 
 ### client
-```
-NEXT_PUBLIC_API_BASE_URL=https://<server-cloud-run-url>/api
-NEXT_PUBLIC_SOCKET_SERVER_URL=https://<server-cloud-run-url>
-NEXT_PUBLIC_RTC_SOCKET_URL=https://<VM_PUBLIC_IP>:5370
-NEXT_PUBLIC_APP_URL=https://<client-cloud-run-url>
-```
 
-## Deployment Flow
+Public URLs are set at **build time** via Cloud Build trigger substitutions (`_NEXT_PUBLIC_*`), not Cloud Run env vars.
 
-### Cloud Run services (client, server, matching-service)
-1. Push code to `development` branch
-2. Manually run the Cloud Build trigger
-3. Cloud Build builds Docker image, pushes to Artifact Registry, deploys to Cloud Run
+## Deployment flow
 
-### rtc-service (VM)
-1. Push code to `development` branch
-2. Run `greetup-rtc-service` Cloud Build trigger — builds and pushes image to Artifact Registry
-3. The same trigger syncs `deploy/gcp/vm/docker-compose.yml` to `~/greetup/docker-compose.yml` on the VM, updates `RTC_IMAGE` in `~/greetup/.env` to `:latest`, and runs `docker compose up -d`
-4. Trigger verification step fails the build if:
-   - postgres is not running
-   - postgres image is not `postgis/postgis:16-3.4`
-   - `POSTGRES_USER` / `POSTGRES_DB` are missing in VM `.env`
-   - PostGIS extension cannot be created
+1. Push to `main`
+2. Cloud Build builds image → Artifact Registry → deploys to Cloud Run
+3. rtc trigger pushes `:latest` → SSH to VM → `docker compose pull && up -d`
+4. Run DB migrations against Neon before or after first server deploy
 
-### Cloud Build substitutions for VM sync (rtc trigger)
-- `_VM_NAME`: VM instance name (default `greetup-vm`)
-- `_VM_ZONE`: VM zone (default `us-central1-a`)
-- `_VM_USER`: SSH username on VM (default `greetup_club`)
-- `_VM_APP_DIR`: App directory under user home (default `greetup`)
-- `_POSTGIS_IMAGE`: expected postgres image for verification (default `postgis/postgis:16-3.4`)
+## Custom domains
 
-### One-time IAM setup for rtc trigger VM sync
-Grant these roles to your Cloud Build service account (for example `cloud-build-sa@<project-id>.iam.gserviceaccount.com`):
-- `roles/compute.instanceAdmin.v1`
-- `roles/iam.serviceAccountUser`
-- `roles/compute.osAdminLogin` (if OS Login is enabled)
+| Domain | Service |
+|---|---|
+| `greetup.co` | client |
+| `api.greetup.co` | server |
+| `rtc.greetup.co` | VM (DNS A record) |
 
-## Errors Encountered & Fixes
-
-### 1. Cloud Build logging error
-**Error:** `if 'build.service_account' is specified, the build must specify logs_bucket or use CLOUD_LOGGING_ONLY`
-**Fix:** Added `options: logging: CLOUD_LOGGING_ONLY` to all cloudbuild yaml files.
-
-### 2. Substitution variables in wrong block
-**Error:** `unknown field "_PORT" in google.devtools.cloudbuild.v1.BuildOptions`
-**Fix:** Moved `_SERVICE`, `_PORT`, `_CPU`, etc. from `options` block back to `substitutions` block.
-
-### 3. mediasoup build fails — python not found
-**Error:** `executeCmd() failed: "python" -m pip install ... invoke — /bin/sh: python: not found`
-**Fix:** Changed rtc-service Dockerfile from `oven/bun:1.3.11-alpine` to `oven/bun:1.3.11-slim` (Debian-based) and added `python3`, `python3-pip`, `build-essential`.
-
-### 4. mediasoup invoke module not found
-**Error:** `/usr/bin/python3: No module named invoke`
-**Fix:** Pre-install invoke system-wide in Dockerfile: `RUN pip3 install invoke --break-system-packages`
-
-### 5. rtc-service using tsx instead of bun
-**Error:** `Cannot find module './cjs/index.cjs'`
-**Fix:** Changed `package.json` start script from `tsx src/app.ts` to `bun src/app.ts`.
-
-### 6. rtc-service can't connect to Redis
-**Error:** `[ioredis] Unhandled error event: Connection is closed`
-**Fix:** rtc-service uses `network_mode: host` so it can't resolve container hostnames. Changed `REDIS_URL` from `redis:6379` to `localhost:6379` in docker-compose.yml.
-
-### 7. Postgres user not created
-**Error:** `FATAL: role "greetup" does not exist`
-**Fix:** The `.env` file had variables on the same line (missing newline). Fixed formatting, then ran `docker compose down -v` to wipe stale volumes and reinitialize postgres.
-
-### 9. Server logging crash on Cloud Run
-**Error:** `ENOENT: no such file or directory, open '/logs/combined.log'`
-**Fix:** Changed production logger in `server/src/core/logging/index.ts` to use stdout (`pino(baseOptions)`) instead of writing to a file — Cloud Run has no persistent filesystem.
-
-### 10. Redis/Postgres connection timeout from Cloud Run
-**Error:** `connect ETIMEDOUT` on Redis and DB connections
-**Fix:** Added VM firewall rules to open TCP ports `6379` (Redis) and `5432` (Postgres) so Cloud Run can reach the VM.
-
-### 11. BETTER_AUTH_URL invalid
-**Error:** `ERR_INVALID_URL` at startup
-**Fix:** Ensure `BETTER_AUTH_URL` is a valid full URL like `https://server-xxxxxxxx-uc.a.run.app`
-
-### 8. Cloud Build permission denied on Cloud Run deploy
-**Error:** `Permission 'iam.serviceaccounts.actAs' denied on service account 215428488804-compute@developer.gserviceaccount.com`
-**Fix:** Granted `iam.serviceAccountUser` role to `cloud-build-sa` on the default compute service account:
-```bash
-gcloud iam service-accounts add-iam-policy-binding \
-  215428488804-compute@developer.gserviceaccount.com \
-  --member="serviceAccount:cloud-build-sa@greetup-development.iam.gserviceaccount.com" \
-  --role="roles/iam.serviceAccountUser" \
-  --project=greetup-development
-```
-
-## Next Steps
-
-- [ ] Set environment variables in Cloud Run for server, client, matching-service
-- [ ] Run server and matching-service triggers and verify deployments
-- [ ] Run client trigger and verify deployment
-- [ ] Set up DB migrations (run `drizzle-kit migrate` against the VM postgres)
-- [ ] Configure custom domain (optional for staging)
-- [ ] Add `latest` tag to rtc-service Cloud Build so VM update doesn't need manual SHA update
-- [ ] Set up automatic CI/CD trigger on push to `development` branch
+Full setup details: `deploy/gcp/README.md`.

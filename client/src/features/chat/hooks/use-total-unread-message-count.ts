@@ -1,17 +1,13 @@
 'use client';
 
 import { useMemo } from 'react';
-import { useSelector } from 'react-redux';
-import type { RootState } from '@/lib/redux/store';
-import { useListConversationsQuery } from '../api/chat-api';
+import { useListConversations } from '../api/chat.queries';
+import { useChatUiStore } from '../state/chat-ui.store';
 
 /** Total unread DMs/threads — merges live socket counts with the conversations list API. */
 export function useTotalUnreadMessageCount(): number {
-  const unreadByConversation = useSelector((s: RootState) => s.chat.unreadCounts);
-  const { data: conversations = [] } = useListConversationsQuery(undefined, {
-    refetchOnFocus: true,
-    refetchOnReconnect: true,
-  });
+  const unreadByConversation = useChatUiStore((s) => s.unreadCounts);
+  const { data: conversations = [] } = useListConversations();
 
   return useMemo(() => {
     const seen = new Set<string>();

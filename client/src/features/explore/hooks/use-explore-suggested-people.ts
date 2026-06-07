@@ -4,7 +4,7 @@ import { useMemo } from "react";
 
 import { EXPLORE } from "@/lib/copy/user-messages";
 
-import { useGetSuggestedPeopleQuery } from "../api/suggested-people-api";
+import { useSuggestedPeople } from "../api/suggested-people.queries";
 import type { SuggestedPersonItem } from "../types/suggested-people.types";
 
 import { useExploreSuggestedPeopleScroll } from "./use-explore-suggested-people-scroll";
@@ -23,9 +23,9 @@ function dedupePeople(items: SuggestedPersonItem[]): SuggestedPersonItem[] {
 }
 
 export function useExploreSuggestedPeople() {
-  const { data, isLoading, isError, isFetching } = useGetSuggestedPeopleQuery(undefined, {
-    refetchOnMountOrArgChange: false,
-    refetchOnFocus: false,
+  const { data, isLoading, isError, isFetching } = useSuggestedPeople({
+    refetchOnMount: false,
+    refetchOnWindowFocus: false,
     refetchOnReconnect: true,
   });
 

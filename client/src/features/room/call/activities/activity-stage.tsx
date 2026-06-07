@@ -5,7 +5,7 @@ import {
   GenericWrappedStage,
 } from "@/features/room/call/activities/registry";
 import type { RoomActivityMeta } from "@/features/room/types/call/room-activity.types";
-import type { RoomActiveActivity } from "@/lib/redux/types/room-slice.types";
+import type { RoomActiveActivity } from "@/features/room/types/room-state.types";
 
 export type ActivityStageProps = {
   activity: RoomActivityMeta;

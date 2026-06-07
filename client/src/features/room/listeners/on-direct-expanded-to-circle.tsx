@@ -11,8 +11,8 @@
 import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-
 import { UsersRound } from "lucide-react";
+import { useQueryClient } from "@tanstack/react-query";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -23,25 +23,17 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import {
-  useRoomInviteRespondMutation,
-  useJoinRoomMutation,
-  roomApi,
-} from "@/features/room/api/room-api";
-import { rtcApi } from "@/features/rtc/api/rtc-api";
+import { useJoinRoom, useRoomInviteRespond } from "@/features/room/api/room.mutations";
+import { invalidateRoomAndPeersCallStatus } from "@/features/room/lib/invalidate-room-cache";
+import { patchRoomBecameCircleInCache } from "@/features/room/lib/room-cache-sync";
+import { patchRtcTokenRoomTypeInCache } from "@/features/rtc/lib/rtc-token-cache";
 import {
   DIRECT_EXPAND_SOCKET_EVENTS,
   parseBecameCircleRoomId,
   parseDirectExpandInvitePayload,
   type DirectExpandInvitePayload,
 } from "@/features/room/types/socket/direct-expand-socket.types";
-import type { RoomData } from "@/features/matching/types/room.types";
-import {
-  invalidateRoomAndPeersCallStatusTags,
-  patchCachedRtcRoomType,
-} from "@/features/room/lib/session/room-rtk-cache";
-import { getRtkMutationErrorMessage } from "@/lib/api/rtk-mutation-error";
-import { useAppDispatch } from "@/lib/redux/hooks";
+import { getApiErrorMessage } from "@/lib/api/fetch-client";
 import { useSocket } from "@/lib/socket";
 
 /**
@@ -51,10 +43,10 @@ import { useSocket } from "@/lib/socket";
 export function OnDirectExpandedToCircle() {
   const { socket } = useSocket();
   const router = useRouter();
-  const dispatch = useAppDispatch();
+  const queryClient = useQueryClient();
   const [invite, setInvite] = useState<DirectExpandInvitePayload | null>(null);
-  const [respond, { isLoading: responding }] = useRoomInviteRespondMutation();
-  const [joinRoom] = useJoinRoomMutation();
+  const { mutateAsync: respond, isPending: responding } = useRoomInviteRespond();
+  const { mutateAsync: joinRoom } = useJoinRoom();
 
   /**
    * Refresh room metadata + peer presence. Do **not** invalidate `RtcToken` — that recreates the rtc
@@ -62,25 +54,11 @@ export function OnDirectExpandedToCircle() {
    */
   const onRoomBecameCircle = useCallback(
     (roomId: string) => {
-      dispatch(
-        rtcApi.util.updateQueryData("getRtcToken", roomId, patchCachedRtcRoomType("circle")),
-      );
-      dispatch(
-        roomApi.util.updateQueryData("getRoom", roomId, (draft) => {
-          if (!draft) return;
-          if ("sessionKind" in draft && draft.sessionKind === "db_room") {
-            draft.roomType = "circle";
-            return;
-          }
-          if ("userA" in draft) {
-            const match = draft as Extract<RoomData, { userA: string }>;
-            match.roomType = "circle";
-          }
-        }),
-      );
-      dispatch(roomApi.util.invalidateTags([...invalidateRoomAndPeersCallStatusTags(roomId)]));
+      patchRtcTokenRoomTypeInCache(roomId, "circle", queryClient);
+      patchRoomBecameCircleInCache(queryClient, roomId);
+      invalidateRoomAndPeersCallStatus(queryClient, roomId);
     },
-    [dispatch],
+    [queryClient],
   );
 
   useEffect(() => {
@@ -120,16 +98,16 @@ export function OnDirectExpandedToCircle() {
         roomId: invite.roomId,
         inviteId: invite.inviteId,
         accept: true,
-      }).unwrap();
+      });
       if (result.expanded) {
-        await joinRoom(invite.roomId).unwrap();
+        await joinRoom(invite.roomId);
         onRoomBecameCircle(invite.roomId);
         closeInvite();
         router.push(`/circle/${invite.roomId}`);
         toast.success("You joined the circle");
       }
     } catch (e: unknown) {
-      toast.error(getRtkMutationErrorMessage(e, "Could not join"));
+      toast.error(getApiErrorMessage(e, "Could not join"));
     }
   };
 
@@ -140,7 +118,7 @@ export function OnDirectExpandedToCircle() {
         roomId: invite.roomId,
         inviteId: invite.inviteId,
         accept: false,
-      }).unwrap();
+      });
       closeInvite();
     } catch {
       toast.error("Could not decline invite");

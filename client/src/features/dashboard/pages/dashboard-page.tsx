@@ -12,7 +12,7 @@ import { TOUR_TARGETS } from "@/features/tour-guide";
 import { DashboardHeader } from "../components/dashboard-header";
 import { HeroSection } from "../components/hero-section";
 // import { DashboardMatchQualityCard } from "../components/dashboard-match-quality-card";
-import { useGetMatchPrepPromptStatusQuery } from "@/features/profile-setup/components/profile-setup-api";
+import { useMatchPrepPromptStatus } from "@/features/profile-setup/api";
 import { MatchPrepDialog, useMatchmaking } from "@/features/matching";
 import { useMatchPrepClientSessionId } from "@/features/matching/hooks/use-match-prep-client-session-id";
 
@@ -29,8 +29,8 @@ export function DashboardPage() {
     data: promptStatus,
     isLoading: promptLoading,
     isFetching: promptFetching,
-  } = useGetMatchPrepPromptStatusQuery(clientSessionId ?? "", {
-    skip: !clientSessionId,
+  } = useMatchPrepPromptStatus(clientSessionId ?? "", {
+    enabled: Boolean(clientSessionId),
   });
 
   const shouldShowPrepFromServer = promptStatus?.shouldShow === true;

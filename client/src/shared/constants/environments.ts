@@ -1,5 +1,7 @@
 const DEFAULT_APP_ORIGIN = "http://localhost:3000";
 const DEFAULT_SOCKET_ORIGIN = "http://localhost:5300";
+export const SITE_DOMAIN = "greetup.co";
+export const PRODUCTION_ORIGIN = `https://${SITE_DOMAIN}`;
 
 function trim(url: string): string {
   return url.replace(/\/+$/, "");
@@ -8,7 +10,7 @@ function trim(url: string): string {
 export const CURRENT_HOST = trim(
   process.env.NEXT_PUBLIC_APP_URL?.trim() ||
     process.env.CURRENT_HOST?.trim() ||
-    DEFAULT_APP_ORIGIN,
+    (process.env.NODE_ENV === "production" ? PRODUCTION_ORIGIN : DEFAULT_APP_ORIGIN),
 );
 
 export const SOCKET_SERVER_URL = trim(
@@ -26,3 +28,7 @@ export const API_BASE_URL = apiRoot
 
 export const RTC_SOCKET_URL =
   process.env.NEXT_PUBLIC_RTC_SOCKET_URL ?? "http://localhost:5370";
+
+export const NSFW_LOG_ENABLED = process.env.NEXT_PUBLIC_NSFW_LOG_ENABLED === "true";
+export const NSFW_SCAN_INTERVAL_MS = process.env.NEXT_PUBLIC_NSFW_SCAN_INTERVAL_MS ? parseInt(process.env.NEXT_PUBLIC_NSFW_SCAN_INTERVAL_MS) : 1000;
+export const NSFWJS_IS_ENABLED = process.env.NEXT_PUBLIC_NSFWJS_IS_ENABLED === "true";

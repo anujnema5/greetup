@@ -9,11 +9,8 @@
 export { TourGuideProvider, useTourGuide } from "./context/tour-guide-provider";
 export { WelcomeTourLauncher } from "./components/welcome-tour-launcher";
 export { ReplayTourSettingsCard } from "./components/replay-tour-settings-card";
-export {
-  tourGuideApi,
-  useGetWelcomeTourStatusQuery,
-  useMarkWelcomeTourSeenMutation,
-} from "./api/tour-guide-api";
+export { useWelcomeTourStatus } from "./api/tour-guide.queries";
+export { useMarkWelcomeTourSeen } from "./api/tour-guide.mutations";
 export { TOUR_TARGETS } from "./constants/tour-targets";
 export type { TourId, TourTargetId } from "./types/tour.types";
-export type { WelcomeTourStatusData } from "./api/tour-guide-api";
+export type { WelcomeTourStatusData } from "./api/tour-guide.queries";

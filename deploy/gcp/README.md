@@ -1,156 +1,152 @@
-# GCP deployment setup (GitHub -> GCP)
+# GCP production deployment
 
-This folder contains Docker and Cloud Build configs for all 4 services.
+**Project:** `greetup-production-498717`  
+**Region:** `asia-south1` (Mumbai)  
+**Domain:** `greetup.co`  
+**Branch:** `main`
 
-**Development vs production (client):** the Next.js client bakes public URLs at build time. Use `cloudbuild.client.yaml` for **development** only; for **production** use `cloudbuild.client.production.yaml` and separate triggers—see `environments/README.md`.
+## Architecture
 
-- `client` -> Cloud Run
-- `server` -> Cloud Run
-- `matching-service` -> Cloud Run (private)
-- `rtc-service` -> Compute Engine VM (image built by Cloud Build)
+| Service | Platform | Data store |
+|---|---|---|
+| client | Cloud Run | — |
+| server | Cloud Run | Neon Postgres |
+| matching-service | Cloud Run (private) | Upstash Redis |
+| rtc-service | GCE VM | Upstash Redis |
 
-## 1) One-time project setup
+Postgres and Redis run on **Neon** and **Upstash** — not on the VM. The VM only runs `rtc-service` (WebRTC needs UDP).
 
-Run once after creating your GCP project:
+## One-time GCP setup
 
 ```bash
-gcloud config set project YOUR_PROJECT_ID
+gcloud config set project greetup-production-498717
+
 gcloud services enable \
   run.googleapis.com \
   cloudbuild.googleapis.com \
   artifactregistry.googleapis.com \
   secretmanager.googleapis.com \
-  sqladmin.googleapis.com \
-  redis.googleapis.com \
   compute.googleapis.com
-```
 
-Create artifact registry (Docker):
-
-```bash
 gcloud artifacts repositories create greetup \
   --repository-format=docker \
-  --location=us-central1 \
-  --description="Greetup service images"
+  --location=asia-south1 \
+  --description="Greetup production images"
 ```
 
-## 2) Provision managed dependencies
+Create a `cloud-build-sa` service account with: Cloud Run Admin, Artifact Registry Writer, Storage Object Creator, Logging Log Writer, Compute Instance Admin, Service Account User.
 
-- Cloud SQL Postgres (for `server`)
-- Memorystore Redis (for `server`, `matching-service`, `rtc-service`)
-- Secret Manager secrets for app configuration
+## Managed services (outside GCP)
 
-At minimum, define and wire these secrets:
+- **Neon** — production Postgres → `DATABASE_URL` in Secret Manager
+- **Upstash** — production Redis → `REDIS_URL` in Secret Manager (used by server, matching-service, rtc-service)
 
-- `DATABASE_URL`
-- `REDIS_URL`
-- `INTERNAL_API_KEY`
-- `BETTER_AUTH_SECRET`
-- `BETTER_AUTH_URL`
-- `WEB_CLIENT_HOST`
-- `RTC_JWT_SECRET`
-- `MATCH_ENGINE_URL`
-- `RTC_SERVICE_URL`
-
-Then add remaining feature secrets your app requires (Google OAuth, email provider, object storage, etc).
-
-## 3) Deploy Cloud Run services
-
-From repo root, you can deploy each service with:
+Run migrations once against Neon:
 
 ```bash
-gcloud builds submit --config deploy/gcp/cloudbuild.client.yaml .
-# Production client (after filling substitutions in the YAML or trigger):
-# gcloud builds submit --config deploy/gcp/cloudbuild.client.production.yaml .
+cd server
+DATABASE_URL="<neon-connection-string>" bun run db:migrate
+```
+
+## GCE VM (rtc-service only)
+
+```bash
+gcloud compute instances create greetup-vm \
+  --zone=asia-south1-a \
+  --machine-type=e2-medium \
+  --image-family=ubuntu-2204-lts \
+  --image-project=ubuntu-os-cloud
+```
+
+Firewall rules (ingress):
+
+- TCP `5370` — rtc HTTP/WebSocket
+- UDP `40000-49999` — WebRTC media
+
+On the VM, copy `deploy/gcp/vm/docker-compose.yml` and `deploy/gcp/vm/.env.example` → `~/greetup/.env`, fill values, then:
+
+```bash
+cd ~/greetup
+docker compose --env-file .env up -d
+```
+
+After each rtc image build:
+
+```bash
+docker compose --env-file .env pull
+docker compose --env-file .env up -d
+```
+
+## Cloud Build configs
+
+| Service | Config |
+|---|---|
+| client | `deploy/gcp/cloudbuild.client.yaml` |
+| server | `deploy/gcp/cloudbuild.server.yaml` |
+| matching-service | `deploy/gcp/cloudbuild.matching.yaml` |
+| rtc-service | `deploy/gcp/cloudbuild.rtc.yaml` |
+
+Manual deploy from repo root:
+
+```bash
 gcloud builds submit --config deploy/gcp/cloudbuild.server.yaml .
-gcloud builds submit --config deploy/gcp/cloudbuild.matching.yaml .
 ```
 
-After first deploy, attach runtime config (examples):
+## Cloud Build triggers (CI/CD)
 
-```bash
-gcloud run services update server \
-  --region us-central1 \
-  --set-secrets DATABASE_URL=DATABASE_URL:latest,REDIS_URL=REDIS_URL:latest,INTERNAL_API_KEY=INTERNAL_API_KEY:latest,BETTER_AUTH_SECRET=BETTER_AUTH_SECRET:latest
+Connect GitHub repo to project `greetup-production-498717`. Create one trigger per service on branch `main`:
 
-gcloud run services update matching-service \
-  --region us-central1 \
-  --set-secrets REDIS_URL=REDIS_URL:latest,INTERNAL_API_KEY=INTERNAL_API_KEY:latest
+| Trigger | Config | Path filter |
+|---|---|---|
+| greetup-client | `deploy/gcp/cloudbuild.client.yaml` | `client/**` |
+| greetup-server | `deploy/gcp/cloudbuild.server.yaml` | `server/**` |
+| greetup-matching-service | `deploy/gcp/cloudbuild.matching.yaml` | `matching-service/**` |
+| greetup-rtc-service | `deploy/gcp/cloudbuild.rtc.yaml` | `rtc-service/**` |
+
+### Client trigger substitutions
+
+`NEXT_PUBLIC_*` URLs are baked at build time. Set on the trigger (names must include leading `_`):
+
+- `_NEXT_PUBLIC_API_BASE_URL` = `https://api.greetup.co/api`
+- `_NEXT_PUBLIC_SOCKET_SERVER_URL` = `https://api.greetup.co`
+- `_NEXT_PUBLIC_RTC_SOCKET_URL` = `https://rtc.greetup.co`
+- `_NEXT_PUBLIC_APP_URL` = `https://greetup.co`
+- `_NEXT_PUBLIC_FIREBASE_*` = Firebase Web app config
+
+## Cloud Run runtime config
+
+Attach secrets from Secret Manager after first deploy. Key values:
+
+**server**
+
+```
+BETTER_AUTH_URL=https://api.greetup.co
+SERVER_URL=https://api.greetup.co
+WEB_CLIENT_HOST=https://greetup.co
+AUTH_COOKIE_DOMAIN=greetup.co
+RTC_SERVICE_URL=http://<VM_IP>:5370
+MATCH_ENGINE_URL=https://<matching-service-url>
 ```
 
-Grant server access to call private matching-service:
+**matching-service**
+
+```
+MATCH_WEBHOOK_URL=https://api.greetup.co/api/match/webhook
+```
+
+Grant server access to invoke private matching-service:
 
 ```bash
 gcloud run services add-iam-policy-binding matching-service \
-  --region us-central1 \
-  --member="serviceAccount:PROJECT_NUMBER-compute@developer.gserviceaccount.com" \
+  --region=asia-south1 \
+  --member="serviceAccount:923071310461-compute@developer.gserviceaccount.com" \
   --role="roles/run.invoker"
 ```
 
-## 4) Build RTC image
+## DNS
 
-`rtc-service` is not deployed to Cloud Run in this setup. Build and push image with:
-
-```bash
-gcloud builds submit --config deploy/gcp/cloudbuild.rtc.yaml .
-```
-
-The rtc Cloud Build config also supports automatic VM sync during the trigger:
-- copies `deploy/gcp/vm/docker-compose.yml` to `~/${_VM_APP_DIR}/docker-compose.yml` on the VM
-- updates `RTC_IMAGE` in `~/${_VM_APP_DIR}/.env` to the new `:latest` image
-- runs `docker compose --env-file .env pull && docker compose --env-file .env up -d --remove-orphans`
-- verifies VM state after deploy (`postgres` container running, PostGIS image/version available)
-
-Default substitutions in `deploy/gcp/cloudbuild.rtc.yaml`:
-- `_VM_NAME=greetup-vm`
-- `_VM_ZONE=us-central1-a`
-- `_VM_USER=greetup_club`
-- `_VM_APP_DIR=greetup`
-- `_POSTGIS_IMAGE=postgis/postgis:16-3.4`
-
-Required IAM for the Cloud Build service account used by the rtc trigger:
-- `roles/compute.instanceAdmin.v1`
-- `roles/iam.serviceAccountUser`
-- `roles/compute.osAdminLogin` (if OS Login is enabled)
-
-Use the pushed image manually on a Compute Engine VM (fallback):
-
-```bash
-docker run -d --name rtc-service \
-  --restart unless-stopped \
-  -p 5370:5370 \
-  -e NODE_ENV=production \
-  -e HOST=0.0.0.0 \
-  -e PORT=5370 \
-  -e REDIS_URL=YOUR_REDIS_URL \
-  -e INTERNAL_API_KEY=YOUR_INTERNAL_KEY \
-  -e RTC_JWT_SECRET=YOUR_RTC_JWT_SECRET \
-  us-central1-docker.pkg.dev/YOUR_PROJECT_ID/greetup/rtc-service:TAG
-```
-
-Open firewall rules for your mediasoup UDP/TCP ranges from `rtc-service` env config.
-
-## 5) Connect GitHub to auto-deploy
-
-Create Cloud Build triggers (dev vs prod configs live in `*.yaml` vs `*.production.yaml`; see `environments/README.md`):
-
-- `deploy/gcp/cloudbuild.client.yaml` / `cloudbuild.client.production.yaml`
-- `deploy/gcp/cloudbuild.server.yaml` / `cloudbuild.server.production.yaml`
-- `deploy/gcp/cloudbuild.matching.yaml` / `cloudbuild.matching.production.yaml`
-- `deploy/gcp/cloudbuild.rtc.yaml` / `cloudbuild.rtc.production.yaml`
-
-Suggested trigger paths:
-
-- `client/**`
-- `server/**`
-- `matching-service/**`
-- `rtc-service/**`
-
-Use branch `development` for current dev deploys; add a **second** client trigger on `main` (or `production`) pointing at `cloudbuild.client.production.yaml` when you launch prod. Details: `environments/README.md`.
-
-## 6) Recommended production defaults
-
-- `server` Cloud Run min instances: `1`
-- `matching-service` Cloud Run min instances: `0`
-- `client` Cloud Run min instances: `0` (or `1` if needed)
-- Keep `rtc-service` on VM for stable realtime media handling
+| Host | Target |
+|---|---|
+| `greetup.co` | Cloud Run `client` |
+| `api.greetup.co` | Cloud Run `server` |
+| `rtc.greetup.co` | VM external IP |

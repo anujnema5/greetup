@@ -5,7 +5,7 @@ import {
   useFindMatchMutation,
   useCancelMatchMutation,
   useRespondMatchProposalMutation,
-} from '../api/matching-api';
+} from '../api/matching.mutations';
 import { useSocket } from '@/lib/socket';
 import {
   messageForFailedStart,
@@ -44,9 +44,9 @@ export function useFindMatch() {
   /** True after our Connect succeeded until `match:completed` or proposal ends. */
   const [waitingForPeerConnect, setWaitingForPeerConnect] = useState(false);
 
-  const [findMatch, { isLoading: isStarting }] = useFindMatchMutation();
-  const [cancelMatch] = useCancelMatchMutation();
-  const [respondMatch] = useRespondMatchProposalMutation();
+  const { mutateAsync: findMatch, isPending: isStarting } = useFindMatchMutation();
+  const { mutateAsync: cancelMatch } = useCancelMatchMutation();
+  const { mutateAsync: respondMatch } = useRespondMatchProposalMutation();
   const { socket } = useSocket();
 
   const requestIdRef = useRef<string | null>(null);
@@ -90,15 +90,15 @@ export function useFindMatch() {
         setError(null);
         setWaitingForPeerConnect(false);
 
-        const res = await findMatch().unwrap();
+        const res = await findMatch();
         const {
           requestId,
           status: engineStatus,
           reason,
           peerUserId,
           matchScore,
-          isFallbackMatch
-        } = res.data;
+          isFallbackMatch,
+        } = res;
 
         if (engineStatus === 'no_match') {
           setStatus('error');
@@ -236,7 +236,7 @@ export function useFindMatch() {
 
   const cancelSearch = async () => {
     try {
-      await cancelMatch().unwrap();
+      await cancelMatch();
     } catch {
       // best-effort — clear local state regardless
     }
@@ -259,7 +259,7 @@ export function useFindMatch() {
       }
       try {
         setRespondBusy(true);
-        await respondMatch({ attemptId, decision }).unwrap();
+        await respondMatch({ attemptId, decision });
         if (decision === 'connect') {
           setWaitingForPeerConnect(true);
         }

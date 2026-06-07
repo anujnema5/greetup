@@ -1,7 +1,7 @@
-# DEVELOPMENT — Cloud Run service + scaling below. Production: cloudbuild.server.production.yaml
+# API server (Hono + Better Auth). Runtime config from Cloud Run env / Secret Manager.
 
 substitutions:
-  _REGION: us-central1
+  _REGION: asia-south1
   _ARTIFACT_REPO: greetup
   _IMAGE: server
   _SERVICE: server
@@ -9,7 +9,7 @@ substitutions:
   _CPU: "1"
   _MEMORY: 1Gi
   _MIN_INSTANCES: "1"
-  _MAX_INSTANCES: "5"
+  _MAX_INSTANCES: "10"
 
 options:
   logging: CLOUD_LOGGING_ONLY

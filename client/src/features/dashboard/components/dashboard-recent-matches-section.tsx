@@ -8,7 +8,7 @@ import { PeerContactActionIcons } from "@/features/connections/components/peer-c
 import type { PeerContactTarget } from "@/features/connections/hooks/use-peer-contact-actions";
 import { usePeerContactActions } from "@/features/connections/hooks/use-peer-contact-actions";
 import { RecentMatchesDialog } from "@/features/profile/components/recent-matches-dialog";
-import { profileAvatarGradientClass, recentMatchSecondaryLabel } from "@/features/profile/lib/profile-insights-display";
+import { profileAvatarGradientClass, recentMatchHistoryLabel } from "@/features/profile/lib/profile-insights-display";
 import type { ProfileRecentMatch } from "@/features/profile/types/profile-insights.types";
 import { OnlinePresenceDot, usePeersOnlineStatus } from "@/features/presence";
 import { getProfileImageUrl } from "@/lib/ui/profile-image";
@@ -25,6 +25,7 @@ function matchToPeer(match: ProfileRecentMatch): PeerContactTarget {
     peerUserId: match.peerUserId,
     displayName: match.displayName,
     image: match.image,
+    isConnected: match.isConnected,
   };
 }
 
@@ -64,7 +65,7 @@ function RecentMatchRow({
 }: RecentMatchRowProps) {
   const profileHref = match.username ? `/u/${encodeURIComponent(match.username)}` : null;
   const avatarSrc = getProfileImageUrl(match.image);
-  const subtitle = recentMatchSecondaryLabel(match);
+  const subtitle = recentMatchHistoryLabel(match);
   const peer = matchToPeer(match);
 
   const profileBlock = (
@@ -115,7 +116,7 @@ function RecentMatchRow({
         <div className="flex min-w-0 flex-1 items-center gap-3">{profileBlock}</div>
       )}
       <PeerContactActionIcons
-        disabled={!match.isConnected}
+        callsDisabled={!match.isConnected}
         isCalling={isCalling}
         isMessaging={isMessaging}
         onMessage={() => onMessage(peer)}
@@ -137,15 +138,13 @@ export function DashboardRecentMatchesSection() {
     isOpeningMessage,
   } = usePeerContactActions();
 
-  const connectedMatches = useMemo(() => {
-    return (insights?.recentMatches ?? [])
-      .filter((match) => match.isConnected)
-      .slice(0, RECENT_MATCHES_PREVIEW_LIMIT);
+  const previewMatches = useMemo(() => {
+    return (insights?.recentMatches ?? []).slice(0, RECENT_MATCHES_PREVIEW_LIMIT);
   }, [insights?.recentMatches]);
 
   const peerIds = useMemo(
-    () => connectedMatches.map((match) => match.peerUserId),
-    [connectedMatches],
+    () => previewMatches.map((match) => match.peerUserId),
+    [previewMatches],
   );
 
   const { isOnline } = usePeersOnlineStatus(peerIds);
@@ -176,13 +175,13 @@ export function DashboardRecentMatchesSection() {
               <MatchRowSkeleton key={index} />
             ))}
           </div>
-        ) : connectedMatches.length === 0 ? (
+        ) : previewMatches.length === 0 ? (
           <p className="px-2 py-3 text-xs text-muted-foreground">
             {DASHBOARD_SECTIONS.recentMatches.empty}
           </p>
         ) : (
           <div className="flex flex-col gap-1">
-            {connectedMatches.map((match) => (
+            {previewMatches.map((match) => (
               <RecentMatchRow
                 key={`${match.peerUserId}-${match.matchedAt}`}
                 match={match}

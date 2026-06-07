@@ -1,17 +1,14 @@
 'use client';
 
 import { useCallback, useMemo } from 'react';
-import { connectionsApi } from '@/features/connections/api/connections-api';
-import { peersCallStatusCacheKey } from '../lib/peers-call-status-cache-key';
+
+import { usePeersCallStatus } from '@/features/connections/api/connections.queries';
 import { PRESENCE_POLL_INTERVAL_MS } from '../constants';
 
 export function usePeersOnlineStatus(userIds: readonly string[]) {
-  const cacheKey = useMemo(() => peersCallStatusCacheKey(userIds), [userIds]);
-
-  const { data, isFetching } = connectionsApi.usePeersCallStatusQuery(cacheKey, {
-    skip: cacheKey.length === 0,
-    pollingInterval: PRESENCE_POLL_INTERVAL_MS,
-    refetchOnFocus: true,
+  const { data, isFetching } = usePeersCallStatus(userIds, {
+    enabled: userIds.length > 0,
+    refetchInterval: PRESENCE_POLL_INTERVAL_MS,
   });
 
   const isOnline = useCallback(

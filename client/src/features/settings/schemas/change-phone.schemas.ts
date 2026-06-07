@@ -10,7 +10,7 @@ export {
   type PhoneOtpVerificationInput,
 } from "@/features/auth/schemas/auth.schemas";
 
-/** RTK mutation body — verified on the client before dispatch. */
+/** Mutation body — verified on the client before submit. */
 export const updateAccountPhoneBodySchema = z.object({
   idToken: z.string().min(1, "Missing ID token"),
 });

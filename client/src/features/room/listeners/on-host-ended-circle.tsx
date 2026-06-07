@@ -3,10 +3,10 @@
 import { useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { shallowEqual } from "react-redux";
+import { useShallow } from "zustand/react/shallow";
 
 import { useMatchmaking } from "@/features/matching";
-import { useLeaveCircleRtcMutation } from "@/features/room/api/room-api";
+import { useLeaveCircleRtc } from "@/features/room/api/room.mutations";
 import { CIRCLE_HOST_END_FOR_EVERYONE_REDIRECT_PATH } from "@/features/room/constants/call/call-flow";
 import { cancelMatchmakingThenNavigate } from "@/features/room/lib/navigation/after-call-navigation";
 import { clearRoomStorage } from "@/features/room/lib/session/room-sync";
@@ -18,8 +18,7 @@ import {
   selectCircleRoomListenerSnapshot,
   userIsInThisCircleSession,
 } from "@/features/room/lib/session/circle-room-listener";
-import { useAppDispatch, useAppSelector } from "@/lib/redux/hooks";
-import { endVideoSession } from "@/lib/redux/slices/room-slice";
+import { useRoomStore } from "@/features/room/state/room.store";
 import { useSocket } from "@/lib/socket";
 
 /**
@@ -29,11 +28,13 @@ import { useSocket } from "@/lib/socket";
 export function OnHostEndedCircle() {
   const { socket } = useSocket();
   const router = useRouter();
-  const dispatch = useAppDispatch();
+  const endVideoSession = useRoomStore((s) => s.endVideoSession);
   const matchmaking = useMatchmaking();
-  const [leaveCircleRtc] = useLeaveCircleRtcMutation();
+  const { mutateAsync: leaveCircleRtc } = useLeaveCircleRtc();
 
-  const roomSnapshot = useAppSelector(selectCircleRoomListenerSnapshot, shallowEqual);
+  const roomSnapshot = useRoomStore(
+    useShallow((s) => selectCircleRoomListenerSnapshot(s)),
+  );
   const snapshotRef = useRef(roomSnapshot);
 
   useEffect(() => {
@@ -51,10 +52,9 @@ export function OnHostEndedCircle() {
 
       toast.info("The host ended this circle.");
       clearRoomStorage();
-      dispatch(endVideoSession());
+      endVideoSession();
 
       void leaveCircleRtc(parsed.roomId)
-        .unwrap()
         .catch(() => {})
         .finally(() => {
           cancelMatchmakingThenNavigate(
@@ -69,7 +69,7 @@ export function OnHostEndedCircle() {
     return () => {
       socket.off(event, onHostEndedCircle);
     };
-  }, [dispatch, leaveCircleRtc, matchmaking, router, socket]);
+  }, [endVideoSession, leaveCircleRtc, matchmaking, router, socket]);
 
   return null;
 }

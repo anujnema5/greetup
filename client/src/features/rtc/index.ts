@@ -4,6 +4,7 @@
  * Layout:
  * - Token HTTP: `api/rtc-api.ts`, `types/rtc-api.types.ts`
  * - Socket: `hooks/use-rtc-socket.ts`, `providers/rtc-socket-provider.tsx`
+ *   (mediasoup loads lazily via `providers/rtc-live-session-provider.tsx`)
  * - Room orchestration: `hooks/use-mediasoup-room.ts` composes:
  *   - `hooks/use-mediasoup-room-session.ts` — join, transports, consumers
  *   - `hooks/use-mediasoup-local-media.ts` — mic / camera / screen produce
@@ -15,7 +16,8 @@
  * - Hook wiring types: `types/mediasoup-hooks.types.ts` (refs/setters passed between hooks)
  */
 
-export { rtcApi, useGetRtcTokenQuery } from "./api/rtc-api";
+export { useRtcToken } from "./api/rtc.queries";
+export { invalidateRtcTokenCache, patchRtcTokenRoomTypeInCache } from "./lib/rtc-token-cache";
 export type { RoomRtcState, RtcTokenApiResponse, RtcTokenPayload } from "./types/rtc-api.types";
 export { useRtcSocket } from "./hooks/use-rtc-socket";
 export type { RtcSocketState, UseRtcSocketReturn } from "./hooks/use-rtc-socket";

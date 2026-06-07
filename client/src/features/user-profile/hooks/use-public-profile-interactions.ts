@@ -4,69 +4,69 @@ import { useRouter } from "next/navigation";
 import { useCallback, useState } from "react";
 import { toast } from "sonner";
 
-import { useCreateConnectionConversationMutation } from "@/features/chat/api/chat-api";
+import { useCreateConnectionConversation } from "@/features/chat/api/chat.mutations";
+import { getApiErrorMessage } from "@/lib/api/fetch-client";
 import { messagesConversationPath } from "@/features/chat/lib/messages-routes";
 import { useConnectionCallActions } from "@/features/connection-call/hooks/use-connection-call-actions";
 import type { ConnectionCallMode } from "@/features/connection-call/types/connection-call.types";
-import { getRtkMutationErrorMessage } from "@/lib/api/rtk-mutation-error";
 
 import { publicProfileShareUrl } from "../lib/public-profile-share-url";
 import type { PublicProfilePeer } from "../types/public-profile-actions.types";
 
 type Options = {
   peer: PublicProfilePeer;
-  /** Message / call require an accepted connection. */
-  messagingEnabled: boolean;
+  /** Voice/video require an accepted connection. */
+  callsEnabled: boolean;
 };
 
-export function usePublicProfileInteractions({ peer, messagingEnabled }: Options) {
+export function usePublicProfileInteractions({ peer, callsEnabled }: Options) {
   const router = useRouter();
-  const [createConversation, { isLoading: isOpeningChat }] =
-    useCreateConnectionConversationMutation();
+  const { mutateAsync: createConversation, isPending: isOpeningChat } =
+    useCreateConnectionConversation();
   const { startCall, isStarting: isStartingCall } = useConnectionCallActions();
   const [isBusy, setIsBusy] = useState(false);
 
-  const guardMessaging = useCallback((): boolean => {
-    if (!messagingEnabled) {
-      toast.message("Connect first to message or call");
+  const guardCalls = useCallback((): boolean => {
+    if (!callsEnabled) {
+      toast.message("Connect first to call");
       return false;
     }
     if (isBusy || isOpeningChat || isStartingCall) return false;
     return true;
-  }, [isBusy, isOpeningChat, isStartingCall, messagingEnabled]);
+  }, [callsEnabled, isBusy, isOpeningChat, isStartingCall]);
 
   const openConversation = useCallback(async () => {
-    if (!guardMessaging()) return;
+    if (isBusy || isOpeningChat || isStartingCall) return;
     setIsBusy(true);
     try {
-      const conv = await createConversation({ targetUserId: peer.userId }).unwrap();
+      const conv = await createConversation({ targetUserId: peer.userId });
       router.push(messagesConversationPath(conv.id, conv.type));
     } catch (error: unknown) {
-      toast.error(getRtkMutationErrorMessage(error, "Could not open messages"));
+      toast.error(getApiErrorMessage(error, "Could not open messages"));
     } finally {
       setIsBusy(false);
     }
-  }, [createConversation, guardMessaging, peer.userId, router]);
+  }, [createConversation, isBusy, isOpeningChat, isStartingCall, peer.userId, router]);
 
   const startProfileCall = useCallback(
     async (mode: ConnectionCallMode) => {
-      if (!guardMessaging()) return;
+      if (!guardCalls()) return;
       setIsBusy(true);
       try {
-        const conv = await createConversation({ targetUserId: peer.userId }).unwrap();
+        const conv = await createConversation({ targetUserId: peer.userId });
         await startCall(conv.id, peer.userId, mode, {
           displayName: peer.displayTitle,
           image: peer.primaryImage,
         });
       } catch (error: unknown) {
-        toast.error(getRtkMutationErrorMessage(error, "Could not start call"));
+        toast.error(getApiErrorMessage(error, "Could not start call"));
       } finally {
         setIsBusy(false);
       }
     },
     [
       createConversation,
-      guardMessaging,
+      guardCalls,
       peer.displayTitle,
       peer.primaryImage,
       peer.userId,

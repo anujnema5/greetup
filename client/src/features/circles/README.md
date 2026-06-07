@@ -6,7 +6,7 @@ API, start-circle modal, dashboard preview grid, and full browse page.
 
 | Folder | Purpose |
 |--------|---------|
-| `api/` | RTK Query — categories, active list, browse infinite query, create/update |
+| `api/` | React Query — categories, active list, browse infinite query, create/update |
 | `components/` | Shared UI (cards, grid, start-circle modal) |
 | `components/browse/` | `/circles` page only — header, tabs, sections |
 | `constants/` | Copy — `start-circle-copy.ts`, `circles-browse-copy.ts` |

@@ -5,14 +5,12 @@ import { StartCircleModalProvider } from "@/features/circles";
 import { useDebouncedValue } from "@/lib/hooks/use-debounced-value";
 import { EXPLORE } from "@/lib/copy/user-messages";
 
-import { useSearchUsersQuery } from "../api/user-search-api";
-import "../api/suggested-people-api";
+import { useSearchUsers } from "../api/user-search.queries";
 import { ExploreSearchField } from "../components/explore-search-field";
 import { ExplorePeopleLikeYouSection } from "../components/explore-people-like-you-section";
 import { ExploreUserSearchResults } from "../components/explore-user-search-results";
 import { ExploreBrowseNichesSection } from "../components/explore-browse-niches-section";
 import { ExploreNicheRoomsModal } from "../components/explore-niche-rooms-modal";
-import "../api/browse-niches-api";
 import { useExploreBrowseNiches } from "../hooks/use-explore-browse-niches";
 import { useExploreSearch } from "../hooks/use-explore-search";
 import { useExploreNicheRoomsModal } from "../hooks/use-explore-niche-rooms-modal";
@@ -51,9 +49,9 @@ export function ExplorePage() {
     !query.trim();
 
   const canSearch = debouncedQuery.length >= SEARCH_MIN_LENGTH;
-  const { data: searchData, isFetching: isSearchLoading } = useSearchUsersQuery(
+  const { data: searchData, isFetching: isSearchLoading } = useSearchUsers(
     { q: debouncedQuery, limit: SEARCH_LIMIT },
-    { skip: !canSearch },
+    { enabled: canSearch },
   );
 
   const liveResults = searchData?.items ?? [];

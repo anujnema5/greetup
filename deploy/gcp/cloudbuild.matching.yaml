@@ -1,7 +1,7 @@
-# DEVELOPMENT — Production: cloudbuild.matching.production.yaml
+# Matching service (private Cloud Run). Runtime config from env / Secret Manager.
 
 substitutions:
-  _REGION: us-central1
+  _REGION: asia-south1
   _ARTIFACT_REPO: greetup
   _IMAGE: matching-service
   _SERVICE: matching-service
@@ -9,7 +9,7 @@ substitutions:
   _CPU: "1"
   _MEMORY: 512Mi
   _MIN_INSTANCES: "0"
-  _MAX_INSTANCES: "3"
+  _MAX_INSTANCES: "5"
 
 options:
   logging: CLOUD_LOGGING_ONLY

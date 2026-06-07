@@ -22,7 +22,7 @@ import { CircleGalleryGrid } from "@/features/room/call/layouts/grid/circle-grid
 import type { RoomActivityId } from "@/features/room/types/call/room-activity.types";
 import type { RoomActivityMeta } from "@/features/room/types/call/room-activity.types";
 import { ActivityStage } from "@/features/room/call/activities/activity-stage";
-import type { RoomActiveActivity } from "@/lib/redux/types/room-slice.types";
+import type { RoomActiveActivity } from "@/features/room/types/room-state.types";
 import {
   CALL_TILE_AVATAR_SIZE_COMPACT,
   CALL_TILE_MEDIA_BACKDROP_CLASS,
