@@ -7,7 +7,7 @@ export const siteConfig = {
   url: "https://greetup.co",
   tagline: "Directly connect with the people you want.",
   description:
-    "Connect directly with the people you want. Match by job, location, or what you're looking for. Chat, voice, or video, it's up to you.",
+    "Connect directly with the people you want. Match by job, location, or what you're looking for. Chat, voice, or video. It's up to you.",
   contactEmail: "hello@greetup.co",
   supportEmail: "support@greetup.co",
   locale: "en_US",
