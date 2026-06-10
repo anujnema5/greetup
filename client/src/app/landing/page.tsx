@@ -682,7 +682,12 @@ function LandingPageInner() {
               <span className="mt-1 sm:mt-1.5 block text-white/92">
                 with the people you want.
               </span>
-              <span className="mt-1 sm:mt-1.5 block text-[0.78em] font-normal text-white/48 sm:text-[0.68em]">Chat, voice, or video. It&apos;s up to you.</span>
+              <span className="mt-4 sm:mt-6 block text-[0.82em] sm:text-[0.78em] font-medium text-white/58">
+                Chat, voice, or video.
+              </span>
+              <span className="mt-1 sm:mt-1.5 block text-[0.72em] sm:text-[0.65em] font-normal text-white/40">
+                It&apos;s up to you.
+              </span>
             </motion.h1>
 
             <motion.p variants={fadeUp} className="text-[13px] leading-[1.55] sm:text-[1.05rem] sm:leading-relaxed text-white/42 max-w-[18rem] sm:max-w-lg mx-auto lg:mx-0 mb-4 sm:mb-7">
