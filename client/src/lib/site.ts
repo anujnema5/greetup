@@ -5,9 +5,9 @@ export const siteConfig = {
   name: "Greetup",
   domain: "greetup.co",
   url: "https://greetup.co",
-  tagline: "Match your interests. Build your circles.",
+  tagline: "Directly connect with the people you want.",
   description:
-    "Match by profession, interests, or location, nearby or anywhere in the world. Chat, call, video, and join live circles with people who align with you.",
+    "Connect directly with the people you want. Match by job, location, or what you're looking for. Chat, voice, or video, it's up to you.",
   contactEmail: "hello@greetup.co",
   supportEmail: "support@greetup.co",
   locale: "en_US",
