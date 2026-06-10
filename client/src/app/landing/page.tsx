@@ -678,15 +678,15 @@ function LandingPageInner() {
             </motion.div>
 
             <motion.h1 variants={fadeUp} className="text-[1.95rem] leading-[1.1] sm:text-[2.85rem] lg:text-[3.75rem] xl:text-[4.15rem] font-semibold tracking-[-0.025em] mb-4 sm:mb-6">
-              Match your interests.
+              Directly <span className="text-[oklch(88%_0.11_105)]">connect</span>
               <span className="mt-1 sm:mt-1.5 block text-white/92">
-                Build your <span className="text-[oklch(88%_0.11_105)]">circles</span>.
+                with the people you want.
               </span>
-              <span className="mt-1 sm:mt-1.5 block text-[0.78em] font-normal text-white/48 sm:text-[0.68em]">Connect live.</span>
+              <span className="mt-1 sm:mt-1.5 block text-[0.78em] font-normal text-white/48 sm:text-[0.68em]">Chat, voice, or video. It&apos;s up to you.</span>
             </motion.h1>
 
             <motion.p variants={fadeUp} className="text-[13px] leading-[1.55] sm:text-[1.05rem] sm:leading-relaxed text-white/42 max-w-[18rem] sm:max-w-lg mx-auto lg:mx-0 mb-4 sm:mb-7">
-              By profession, interests, or location, nearby or anywhere in the world.
+              Match by job, location, or what you&apos;re looking for, then start talking instantly.
             </motion.p>
 
             <motion.div variants={fadeUp} className="mb-7 sm:mb-9 flex flex-wrap justify-center lg:justify-start gap-x-5 sm:gap-x-6 gap-y-2">
