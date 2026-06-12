@@ -42,8 +42,25 @@ function rejectJoinRoom(
   throw new JoinRoomError(message, code, statusCode);
 }
 
+type RoomRow = NonNullable<Awaited<ReturnType<typeof roomsRepository.findRoomById>>>;
+
+export type JoinRoomServiceResult = {
+  roomId: string;
+  /** When true, caller may issue an RTC JWT (live room — not lobby-only join). */
+  rtcEligible: boolean;
+  room: RoomRow;
+};
+
+function joinRoomSuccess(
+  roomId: string,
+  room: RoomRow,
+  rtcEligible: boolean,
+): JoinRoomServiceResult {
+  return { roomId, rtcEligible, room };
+}
+
 /** Ensures `room_participants` row for RTC (direct + circle). */
-export async function joinRoomService(userId: string, roomId: string): Promise<void> {
+export async function joinRoomService(userId: string, roomId: string): Promise<JoinRoomServiceResult> {
   let room = await roomsRepository.findRoomById(roomId);
 
   if (!room) {
@@ -97,11 +114,11 @@ export async function joinRoomService(userId: string, roomId: string): Promise<v
     const activeLobby = await roomParticipantsRepository.isUserRoomParticipant(roomId, userId);
     if (activeLobby) {
       logger.debug("room_join_skipped_already_participant", { userId, roomId, lobby: true });
-      return;
+      return joinRoomSuccess(roomId, room, false);
     }
     await ensureCircleRoomParticipation(userId, roomId, room);
     logger.info("room_join_succeeded", { userId, roomId, roomType: room.roomType, lobby: true });
-    return;
+    return joinRoomSuccess(roomId, room, false);
   }
 
   if (room.status !== "live") {
@@ -112,18 +129,19 @@ export async function joinRoomService(userId: string, roomId: string): Promise<v
 
   if (active) {
     logger.debug("room_join_skipped_already_participant", { userId, roomId });
-    return;
+    return joinRoomSuccess(roomId, room, true);
   }
 
   if (room.roomType === "direct") {
     await ensureDirectRoomParticipation(userId, roomId, room);
     logger.info("room_join_succeeded", { userId, roomId, roomType: "direct" });
-    return;
+    return joinRoomSuccess(roomId, room, true);
   }
 
   await ensureCircleRoomParticipation(userId, roomId, room);
   await roomSessionsRepository.refreshLiveCircleExpiryAfterParticipantJoin(roomId);
   logger.info("room_join_succeeded", { userId, roomId, roomType: "circle" });
+  return joinRoomSuccess(roomId, room, true);
 }
 
 async function ensureDirectRoomParticipation(

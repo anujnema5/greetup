@@ -16,7 +16,7 @@ import {
 import { roomRestrictedUsersRepository } from "@/modules/rooms/repositories/room-restricted-users.repository";
 import { setUserActiveRtcRoom } from "@/modules/rooms/services/rtc/user-active-rtc-room-redis.service";
 import { syncGuestMatchRoomSessionCap } from "@/modules/rooms/services/session/sync-guest-match-room-session-cap.service";
-import { isRoomSessionType } from "@/shared/types/room-session";
+import { isRoomSessionType, type RoomSessionType } from "@/shared/types/room-session";
 import { assertGuestMayAccessRoom, consumeGuestCallTrial } from "@/modules/guest";
 
 export type IssueRtcTokenErrorCode =
@@ -40,6 +40,23 @@ export class IssueRtcTokenError extends Error {
   }
 }
 
+export type RtcTokenPayload = {
+  token: string;
+  expiresInSec: number;
+  roomId: string;
+  roomType: RoomSessionType;
+  conversationId: string;
+};
+
+type RoomRow = NonNullable<Awaited<ReturnType<typeof roomsRepository.findRoomById>>>;
+
+export type IssueRtcTokenOptions = {
+  /** Room row already loaded (e.g. by joinRoomService). */
+  room?: RoomRow;
+  /** Skips guest/reconcile/participant checks already performed by joinRoomService. */
+  afterJoin?: boolean;
+};
+
 function rejectIssueRtcToken(
   userId: string,
   roomId: string,
@@ -51,33 +68,72 @@ function rejectIssueRtcToken(
   throw new IssueRtcTokenError(message, code, statusCode);
 }
 
+async function finalizeRtcTokenIssue(
+  userId: string,
+  roomId: string,
+  room: RoomRow,
+  roomType: RoomSessionType,
+): Promise<RtcTokenPayload> {
+  const [{ token, expiresInSec }, conversationId] = await Promise.all([
+    signRtcJwtForRoom({ userId, roomId, roomType }),
+    (async () => {
+      const id = await getOrCreateRoomConversation(roomId, roomType, room.hostUserId);
+      await ensureRoomConversationParticipant(roomId, userId);
+      return id;
+    })(),
+  ]);
+
+  await Promise.all([
+    consumeGuestCallTrial(userId, { roomId }),
+    syncGuestMatchRoomSessionCap(roomId),
+    setUserActiveRtcRoom(userId, roomId),
+  ]);
+
+  logger.info("rtc_token_issued", { userId, roomId, roomType, conversationId, expiresInSec });
+
+  return {
+    token,
+    expiresInSec,
+    roomId,
+    roomType,
+    conversationId,
+  };
+}
+
 /** RTC JWT for direct or circle; caller must be host or participant; room must be live. */
-export async function issueRtcTokenService(userId: string, roomId: string) {
-  let room = await roomsRepository.findRoomById(roomId);
+export async function issueRtcTokenService(
+  userId: string,
+  roomId: string,
+  options?: IssueRtcTokenOptions,
+): Promise<RtcTokenPayload> {
+  const afterJoin = options?.afterJoin === true;
+  let room = options?.room ?? (await roomsRepository.findRoomById(roomId));
 
   if (!room) {
     rejectIssueRtcToken(userId, roomId, "Room not found", "ROOM_NOT_FOUND", 404);
   }
 
-  await assertGuestMayAccessRoom(userId, {
-    roomType: room.roomType,
-    sessionKind: room.sessionKind,
-  });
+  if (!afterJoin) {
+    await assertGuestMayAccessRoom(userId, {
+      roomType: room.roomType,
+      sessionKind: room.sessionKind,
+    });
 
-  if (room.roomType === "circle" && room.status === "scheduled") {
-    await maybeAutoStartScheduledCircleFromDb(roomId);
-    room = await roomsRepository.findRoomById(roomId);
-    if (!room) {
-      rejectIssueRtcToken(userId, roomId, "Room not found", "ROOM_NOT_FOUND", 404);
+    if (room.roomType === "circle" && room.status === "scheduled") {
+      await maybeAutoStartScheduledCircleFromDb(roomId);
+      room = (await roomsRepository.findRoomById(roomId)) ?? room;
+      if (!room) {
+        rejectIssueRtcToken(userId, roomId, "Room not found", "ROOM_NOT_FOUND", 404);
+      }
     }
-  }
 
-  if (room.roomType === "direct" || room.roomType === "circle") {
-    const access = await assertRoomSessionOpenOnAccess(roomId);
-    if (!access.ok) {
-      rejectIssueRtcToken(userId, roomId, access.message, "ROOM_EXPIRED", 410);
+    if (room.roomType === "direct" || room.roomType === "circle") {
+      const access = await assertRoomSessionOpenOnAccess(roomId);
+      if (!access.ok) {
+        rejectIssueRtcToken(userId, roomId, access.message, "ROOM_EXPIRED", 410);
+      }
+      room = (await roomsRepository.findRoomById(roomId)) ?? room;
     }
-    room = (await roomsRepository.findRoomById(roomId)) ?? room;
   }
 
   const { roomType } = room;
@@ -123,19 +179,18 @@ export async function issueRtcTokenService(userId: string, roomId: string) {
     );
   }
 
-  const isParticipant =
-    isHost ||
-    (await roomParticipantsRepository.isUserRoomParticipant(roomId, userId)) ||
-    (await roomParticipantsRepository.wasUserRoomParticipant(roomId, userId));
-
-  if (!isParticipant) {
-    rejectIssueRtcToken(
-      userId,
-      roomId,
-      "You are not allowed to join this room",
-      "NOT_ALLOWED",
-      403,
-    );
+  if (!afterJoin) {
+    const participantRow = await roomParticipantsRepository.findRoomParticipant(roomId, userId);
+    const isParticipant = isHost || participantRow != null;
+    if (!isParticipant) {
+      rejectIssueRtcToken(
+        userId,
+        roomId,
+        "You are not allowed to join this room",
+        "NOT_ALLOWED",
+        403,
+      );
+    }
   }
 
   if (room.roomType === "circle") {
@@ -158,28 +213,5 @@ export async function issueRtcTokenService(userId: string, roomId: string) {
     }
   }
 
-  await consumeGuestCallTrial(userId, { roomId });
-  await syncGuestMatchRoomSessionCap(roomId);
-
-  const { token, expiresInSec } = await signRtcJwtForRoom({
-    userId,
-    roomId,
-    roomType,
-  });
-
-  // Auto-create room conversation and ensure this user is a participant
-  const conversationId = await getOrCreateRoomConversation(roomId, roomType, room.hostUserId);
-  await ensureRoomConversationParticipant(roomId, userId);
-
-  await setUserActiveRtcRoom(userId, roomId);
-
-  logger.info("rtc_token_issued", { userId, roomId, roomType, conversationId, expiresInSec });
-
-  return {
-    token,
-    expiresInSec,
-    roomId,
-    roomType,
-    conversationId,
-  };
+  return finalizeRtcTokenIssue(userId, roomId, room, roomType);
 }

@@ -2,6 +2,8 @@
  * Room API — argument/result types for room routes.
  */
 
+import type { RtcTokenPayload } from '@/features/rtc/types/rtc-api.types';
+
 /** Common JSON envelope for room POST responses. */
 export type RoomApiEnvelope<T> = {
   success: boolean;
@@ -21,3 +23,9 @@ export type RoomInviteRespondMutationResult = { roomId: string; expanded: boolea
 
 export type UpdateRoomTitleMutationArg = { roomId: string; title: string };
 export type UpdateRoomTitleMutationResult = { title: string };
+
+/** POST `/room/:roomId/join` — includes RTC JWT when the room is live. */
+export type JoinRoomResponse = {
+  roomId: string;
+  rtc: RtcTokenPayload | null;
+};

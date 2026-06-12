@@ -1,6 +1,6 @@
 import type { RoomSessionType } from "@/shared/types/room-session";
 
-/** Successful RTC JWT payload from `GET /room/:id/rtc-token` (after unwrap). */
+/** Successful RTC JWT payload from `GET /room/:id/rtc-token` or `POST /room/:id/join` (live rooms). */
 export type RtcTokenPayload = {
   token: string;
   expiresInSec: number;
