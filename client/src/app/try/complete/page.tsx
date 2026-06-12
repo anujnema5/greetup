@@ -7,6 +7,7 @@ export const metadata: Metadata = buildPageMetadata({
   title: "Create your account",
   description: "Sign up or log in to keep matching and save your preferences.",
   path: "/try/complete",
+  noIndex: true,
 });
 
 export default function TryCompletePage() {
