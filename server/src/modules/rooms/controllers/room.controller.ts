@@ -94,7 +94,9 @@ export const handleIssueRtcToken = async (c: Context) => {
   }
 
   try {
+    logger.info("rtc_token_http", { step: "start", userId, roomId });
     const data = await issueRtcTokenService(userId, roomId);
+    logger.info("rtc_token_http", { step: "complete", userId, roomId, roomType: data.roomType });
     return c.json(ApiResponse.success(data, "RTC token issued", 200), 200);
   } catch (error: unknown) {
     if (error instanceof AppError) {
@@ -433,14 +435,26 @@ export const handleJoinRoom = async (c: Context) => {
   }
 
   try {
+    logger.info("room_join_http", { step: "start", userId, roomId });
     const joinResult = await joinRoomService(userId, roomId);
+    logger.info("room_join_http", {
+      step: "join_service_done",
+      userId,
+      roomId,
+      rtcEligible: joinResult.rtcEligible,
+    });
+
     let rtc: RtcTokenPayload | null = null;
     if (joinResult.rtcEligible) {
+      logger.info("room_join_http", { step: "rtc_token_start", userId, roomId });
       rtc = await issueRtcTokenService(userId, roomId, {
         room: joinResult.room,
         afterJoin: true,
       });
+      logger.info("room_join_http", { step: "rtc_token_done", userId, roomId });
     }
+
+    logger.info("room_join_http", { step: "complete", userId, roomId, rtcIssued: Boolean(rtc?.token) });
     return c.json(ApiResponse.success({ roomId, rtc }, "Joined room", 200), 200);
   } catch (error: unknown) {
     if (error instanceof AppError) {

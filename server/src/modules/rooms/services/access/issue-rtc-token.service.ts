@@ -74,15 +74,19 @@ async function finalizeRtcTokenIssue(
   room: RoomRow,
   roomType: RoomSessionType,
 ): Promise<RtcTokenPayload> {
+  logger.info("rtc_token", { step: "sign_jwt", userId, roomId });
+
   const [{ token, expiresInSec }, conversationId] = await Promise.all([
     signRtcJwtForRoom({ userId, roomId, roomType }),
     (async () => {
+      logger.info("rtc_token", { step: "room_conversation", userId, roomId });
       const id = await getOrCreateRoomConversation(roomId, roomType, room.hostUserId);
       await ensureRoomConversationParticipant(roomId, userId);
       return id;
     })(),
   ]);
 
+  logger.info("rtc_token", { step: "side_effects", userId, roomId });
   await Promise.all([
     consumeGuestCallTrial(userId, { roomId }),
     syncGuestMatchRoomSessionCap(roomId),
@@ -107,7 +111,10 @@ export async function issueRtcTokenService(
   options?: IssueRtcTokenOptions,
 ): Promise<RtcTokenPayload> {
   const afterJoin = options?.afterJoin === true;
+  logger.info("rtc_token", { step: "start", userId, roomId, afterJoin });
+
   let room = options?.room ?? (await roomsRepository.findRoomById(roomId));
+  logger.info("rtc_token", { step: "find_room", userId, roomId, found: Boolean(room) });
 
   if (!room) {
     rejectIssueRtcToken(userId, roomId, "Room not found", "ROOM_NOT_FOUND", 404);
@@ -118,10 +125,12 @@ export async function issueRtcTokenService(
       roomType: room.roomType,
       sessionKind: room.sessionKind,
     });
+    logger.info("rtc_token", { step: "guest_access", userId, roomId });
 
     if (room.roomType === "circle" && room.status === "scheduled") {
       await maybeAutoStartScheduledCircleFromDb(roomId);
       room = (await roomsRepository.findRoomById(roomId)) ?? room;
+      logger.info("rtc_token", { step: "auto_start_scheduled_circle", userId, roomId });
       if (!room) {
         rejectIssueRtcToken(userId, roomId, "Room not found", "ROOM_NOT_FOUND", 404);
       }
@@ -129,6 +138,7 @@ export async function issueRtcTokenService(
 
     if (room.roomType === "direct" || room.roomType === "circle") {
       const access = await assertRoomSessionOpenOnAccess(roomId);
+      logger.info("rtc_token", { step: "reconcile_session", userId, roomId, ok: access.ok });
       if (!access.ok) {
         rejectIssueRtcToken(userId, roomId, access.message, "ROOM_EXPIRED", 410);
       }
@@ -162,6 +172,7 @@ export async function issueRtcTokenService(
   }
 
   await roomSessionsRepository.restartLiveSessionClockIfNoActiveParticipants(roomId);
+  logger.info("rtc_token", { step: "restart_live_session_clock", userId, roomId });
 
   const isHost = room.hostUserId === userId;
 
@@ -182,6 +193,7 @@ export async function issueRtcTokenService(
   if (!afterJoin) {
     const participantRow = await roomParticipantsRepository.findRoomParticipant(roomId, userId);
     const isParticipant = isHost || participantRow != null;
+    logger.info("rtc_token", { step: "participant_check", userId, roomId, isParticipant });
     if (!isParticipant) {
       rejectIssueRtcToken(
         userId,
@@ -200,6 +212,7 @@ export async function issueRtcTokenService(
       const key = `${ROOM_KEYS.ROOM}${roomId}`;
       if (await redis.exists(key)) {
         const gate = await redis.hget(key, "lobbyGateActive");
+        logger.info("rtc_token", { step: "lobby_gate_check", userId, roomId, gate });
         if (gate === "1") {
           rejectIssueRtcToken(
             userId,
