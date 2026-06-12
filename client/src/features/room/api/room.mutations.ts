@@ -4,6 +4,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 
 import { API_ENDPOINTS } from '@/lib/api';
 import { API_BASE_URL } from '@/shared/constants/environments';
+import { setRtcTokenInCache } from '@/features/rtc/lib/rtc-token-cache';
 
 import { invalidateCirclesCaches } from '@/features/circles/lib/invalidate-circles-cache';
 import {
@@ -14,6 +15,7 @@ import {
 } from '../lib/invalidate-room-cache';
 import { roomApiFetch, roomApiVoid } from '../lib/room-api-fetch';
 import type {
+  JoinRoomResponse,
   RoomInviteMutationArg,
   RoomInviteMutationResult,
   RoomInviteRespondMutationArg,
@@ -64,12 +66,23 @@ export function useLeaveRoom() {
 }
 
 /**
- * POST `/room/:roomId/join` — does **not** invalidate RTC token (see room-api comment).
+ * POST `/room/:roomId/join` — for live rooms the response includes the RTC JWT (no separate rtc-token fetch).
  */
 export function useJoinRoom() {
+  const qc = useQueryClient();
+
   return useMutation({
     mutationFn: (roomId: string) =>
-      roomApiVoid(ROOM.join(roomId), { method: 'POST' }, 'Could not join room'),
+      roomApiFetch<JoinRoomResponse>(
+        ROOM.join(roomId),
+        { method: 'POST' },
+        'Could not join room',
+      ),
+    onSuccess: (data, roomId) => {
+      if (data.rtc?.token) {
+        setRtcTokenInCache(roomId, data.rtc, qc);
+      }
+    },
   });
 }
 

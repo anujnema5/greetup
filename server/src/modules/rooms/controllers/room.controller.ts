@@ -41,7 +41,11 @@ import {
   reconcileRoomSessionOnAccess,
   roomSessionClosedMessage,
 } from "@/modules/rooms/services/session/reconcile-room-session-on-access.service";
-import { issueRtcTokenService, IssueRtcTokenError } from "../services/access/issue-rtc-token.service";
+import {
+  issueRtcTokenService,
+  IssueRtcTokenError,
+  type RtcTokenPayload,
+} from "../services/access/issue-rtc-token.service";
 import { joinRoomService, JoinRoomError } from "../services/access/join-room.service";
 import {
   openCircleMeetingService,
@@ -415,7 +419,7 @@ export const handleStartRoomSession = async (c: Context) => {
 
 /**
  * POST /api/room/:roomId/join
- * Ensures the user is in `room_participants` so they can obtain an RTC token (direct match + circles).
+ * Ensures the user is in `room_participants`. For live rooms, also returns the RTC JWT (same payload as GET rtc-token).
  */
 export const handleJoinRoom = async (c: Context) => {
   const roomId = c.req.param("roomId");
@@ -429,8 +433,15 @@ export const handleJoinRoom = async (c: Context) => {
   }
 
   try {
-    await joinRoomService(userId, roomId);
-    return c.json(ApiResponse.success({ roomId }, "Joined room", 200), 200);
+    const joinResult = await joinRoomService(userId, roomId);
+    let rtc: RtcTokenPayload | null = null;
+    if (joinResult.rtcEligible) {
+      rtc = await issueRtcTokenService(userId, roomId, {
+        room: joinResult.room,
+        afterJoin: true,
+      });
+    }
+    return c.json(ApiResponse.success({ roomId, rtc }, "Joined room", 200), 200);
   } catch (error: unknown) {
     if (error instanceof AppError) {
       throw error;
@@ -443,6 +454,17 @@ export const handleJoinRoom = async (c: Context) => {
           code: error.code,
         }),
         error.statusCode as 400 | 403 | 404 | 410,
+      );
+    }
+    if (error instanceof IssueRtcTokenError) {
+      const status = error.statusCode as 400 | 403 | 404 | 410;
+      return c.json(
+        ApiResponse.error({
+          message: error.message,
+          statusCode: status,
+          code: error.code,
+        }),
+        status,
       );
     }
     logger.error("Join room error", { error });

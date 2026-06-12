@@ -36,11 +36,15 @@ export function useRoomJoinAndStartVideo({
     let cancelled = false;
     resetRtcConnectTiming();
     rtcMark("join-start");
+    rtcMark("token-start");
     prefetchRtcLiveSessionChunk();
     void joinRoom(roomId)
-      .then(() => {
+      .then((joinResult) => {
         if (cancelled) return;
         rtcMark("join-done");
+        if (joinResult.rtc?.token) {
+          rtcMark("token-ready");
+        }
         markRoomActive();
         startVideoSession({ roomId, primaryRemoteUserId: peerId ?? null });
       })
