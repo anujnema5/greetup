@@ -265,7 +265,7 @@ function NavbarInner({
       className="rounded-full bg-[oklch(88%_0.11_105)] text-[oklch(15%_0.02_110)] hover:brightness-110 shadow-lg shadow-[oklch(88%_0.11_105/0.3)] font-semibold"
       asChild
     >
-      <Link href={isLoggedIn ? "/home" : "/register"}>
+      <Link href={isLoggedIn ? "/home" : TRY_ROUTE}>
         {isLoggedIn ? "Go to home" : "Get started"} <ChevronRight className="size-3.5" />
       </Link>
     </Button>
