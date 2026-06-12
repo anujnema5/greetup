@@ -7,6 +7,7 @@ import { useJoinRoom } from "@/features/room/api/room.mutations";
 import { getApiErrorMessage } from "@/lib/api/fetch-client";
 import { resetRtcConnectTiming, rtcMark } from "@/features/rtc/lib/rtc-connect-timing";
 import { prefetchRtcLiveSessionChunk } from "@/features/rtc/lib/prefetch-rtc-live-session-chunk";
+import { joinRoomOnce } from "@/features/room/lib/session/join-room-once";
 import { markRoomActive } from "@/features/room/lib/session/room-sync";
 
 export function useRoomJoinAndStartVideo({
@@ -38,7 +39,7 @@ export function useRoomJoinAndStartVideo({
     rtcMark("join-start");
     rtcMark("token-start");
     prefetchRtcLiveSessionChunk();
-    void joinRoom(roomId)
+    void joinRoomOnce(roomId, () => joinRoom(roomId))
       .then((joinResult) => {
         if (cancelled) return;
         rtcMark("join-done");

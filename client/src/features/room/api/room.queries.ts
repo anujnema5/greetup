@@ -1,6 +1,6 @@
 'use client';
 
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, type QueryClient } from '@tanstack/react-query';
 
 import { API_ENDPOINTS } from '@/lib/api';
 import { queryKeys } from '@/lib/query/keys';
@@ -39,6 +39,14 @@ export function useGetRoom(roomId: string, options?: UseGetRoomOptions) {
     enabled: (options?.enabled ?? true) && Boolean(roomId),
     refetchOnWindowFocus: options?.refetchOnWindowFocus,
     refetchOnReconnect: options?.refetchOnReconnect,
+  });
+}
+
+/** Warm the room cache as soon as a match completes (runs in parallel with navigation). */
+export function prefetchRoomDetail(queryClient: QueryClient, roomId: string) {
+  return queryClient.prefetchQuery({
+    queryKey: queryKeys.room.detail(roomId),
+    queryFn: () => fetchRoom(roomId),
   });
 }
 
