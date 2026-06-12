@@ -8,6 +8,7 @@ import { roomInvitesRepository } from "@/modules/rooms/repositories/room-invites
 import { maybeAutoStartScheduledCircleFromDb } from "@/modules/rooms/services/session/maybe-auto-start-scheduled-circle.service";
 import { assertRoomSessionOpenOnAccess } from "@/modules/rooms/services/session/reconcile-room-session-on-access.service";
 import { roomRestrictedUsersRepository } from "@/modules/rooms/repositories/room-restricted-users.repository";
+import { assertGuestMayAccessRoom } from "@/modules/guest";
 
 export type JoinRoomErrorCode =
   | "ROOM_NOT_FOUND"
@@ -48,6 +49,11 @@ export async function joinRoomService(userId: string, roomId: string): Promise<v
   if (!room) {
     rejectJoinRoom(userId, roomId, "Room not found", "ROOM_NOT_FOUND", 404);
   }
+
+  await assertGuestMayAccessRoom(userId, {
+    roomType: room.roomType,
+    sessionKind: room.sessionKind,
+  });
 
   if (room.roomType === "circle" && room.status === "scheduled") {
     await maybeAutoStartScheduledCircleFromDb(roomId);

@@ -1,5 +1,9 @@
 import { Hono } from "hono";
 import {
+  requireGuestCallTrialAvailable,
+  requireGuestCallTrialForMatchConnect,
+} from "@/modules/guest";
+import {
   handleFindMatch,
   handleCancelMatch,
   handleLeaveRoom,
@@ -9,8 +13,12 @@ import {
 
 export const matchmakingRoute = new Hono();
 
-matchmakingRoute.post("/find", handleFindMatch);
+matchmakingRoute.post("/find", requireGuestCallTrialAvailable, handleFindMatch);
 matchmakingRoute.get("/peer-preview/:peerUserId", handleGetMatchPeerPreview);
 matchmakingRoute.post("/cancel", handleCancelMatch);
-matchmakingRoute.post("/respond", handleRespondMatchProposal);
+matchmakingRoute.post(
+  "/respond",
+  requireGuestCallTrialForMatchConnect,
+  handleRespondMatchProposal,
+);
 matchmakingRoute.post("/leave-room", handleLeaveRoom);

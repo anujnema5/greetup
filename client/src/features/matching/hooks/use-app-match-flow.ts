@@ -32,6 +32,7 @@ export function useAppMatchFlow() {
     status,
     result,
     error,
+    errorCode,
     respondBusy,
     waitingForPeerConnect,
   } = useFindMatch();
@@ -88,6 +89,7 @@ export function useAppMatchFlow() {
     status,
     result,
     error,
+    errorCode,
     handleFindMatch,
     handleCancel,
     restartSearch,

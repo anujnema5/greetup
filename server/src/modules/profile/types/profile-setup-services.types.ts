@@ -21,10 +21,17 @@ export interface FetchProfileStepsParams {
   forceRecalculate?: boolean;
 }
 
+export interface ProfileSetupShortenedOnboardingMeta {
+  active: boolean;
+  matchPrepComplete: boolean;
+  skippedInterestsStep: boolean;
+}
+
 export interface FetchProfileStepsResult {
   steps: FormStep[];
   profileCompletion: number;
   isProfileComplete: boolean;
+  shortenedOnboarding?: ProfileSetupShortenedOnboardingMeta;
   meta: {
     page: number;
     limit: number;

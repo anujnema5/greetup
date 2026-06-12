@@ -139,3 +139,125 @@ export const EXPLORE = {
     error: "Could not load suggestions. Try again in a moment.",
   },
 } as const;
+
+/** Client messages for guest-session API error codes. */
+export const GUEST_TRIAL_API_ERRORS = {
+  GUEST_TRIAL_EXHAUSTED:
+    "You've already had your try. Sign up or log in to keep matching.",
+  GUEST_TRIAL_ALREADY_USED:
+    "This device already had a try. Sign up or log in to continue.",
+  GUEST_RATE_LIMITED:
+    "Too many attempts from this network. Try again later or sign up.",
+  GUEST_PROFILE_INCOMPLETE:
+    "Complete your name and matching preferences before searching.",
+  GUEST_NOT_ALLOWED: "Sign up or log in to use that feature.",
+  GUEST_SESSION_REQUIRED: "Your session expired. Go back and start again.",
+  GUEST_SEARCH_RETRY_EXHAUSTED:
+    "You've reached the search limit for now. Sign up or log in to keep matching.",
+} as const;
+
+export const GUEST_TRIAL_NAV = {
+  goBack: "Go back",
+  logIn: "Log in",
+  continue: "Continue",
+  tryAgain: "Try again",
+} as const;
+
+export const GUEST_TRIAL_FLOW = {
+  tagline: "Meet someone new — jump in without creating an account.",
+  completeHeadline: "Want more matches?",
+  completeSubheadline: "Create your account and continue.",
+  loading: {
+    boot: "Getting everything ready…",
+    status: "Just a moment…",
+    redirect: "One sec…",
+  },
+  errors: {
+    bootTitle: "Something went wrong",
+    sessionTitle: "You've been away a while",
+    sessionBody: "No worries — you can start fresh below.",
+    loadTitle: "Couldn't load that",
+    loadBody: "Check your connection and try again.",
+  },
+} as const;
+
+export const GUEST_TRIAL_NAME = {
+  title: "What should we call you?",
+  description: "First name or nickname — this is what your match will see.",
+  fieldPlaceholder: "e.g. Alex",
+  saving: "Saving…",
+} as const;
+
+export const GUEST_TRIAL_PREFS = {
+  title: "What's your vibe?",
+  description: "Pick how you're feeling, what you're open to, and a few interests.",
+  mood: "How are you feeling?",
+  lookingFor: "What kind of chat?",
+  interests: "Things you enjoy talking about",
+  interestsHint: (count: number, min: number, max: number) =>
+    count > 0
+      ? `${count} picked — choose ${min} to ${max} things you enjoy.`
+      : `Choose ${min} to ${max} things you enjoy talking about.`,
+  loading: "Loading ideas…",
+  loadError: "Couldn't load options.",
+  saveError: "Couldn't save that. Try again?",
+  validationMood: "Pick how you're feeling and what kind of chat you want.",
+  validationInterests: (min: number) => `Pick at least ${min} things you're into.`,
+  saving: "Saving…",
+} as const;
+
+export const GUEST_TRIAL_REGISTER = {
+  title: "Create account & continue",
+  subtitle: "Want more matches? Sign up and we'll keep your name and picks from today.",
+  mergeBanner: (displayName: string | null) =>
+    displayName
+      ? `We'll carry over ${displayName}'s profile and preferences when you finish signing up.`
+      : "We'll carry over your profile and match preferences when you finish signing up.",
+  noSessionOnDevice:
+    "No try session found on this device. You can still sign up, but your progress may not carry over.",
+  wrongEntryWarning:
+    "You have a try session on this device. Use the link below so your progress carries over.",
+  useGuestSignupLink: "Sign up and keep your progress",
+} as const;
+
+export const GUEST_TRIAL_SIGNUP_GATE = {
+  title: "Want more matches?",
+  subtitle: (displayName: string | null) =>
+    displayName
+      ? `Hey ${displayName} — create your account and continue.`
+      : "Create your account and continue with more matches.",
+  mergeHint: "We'll keep your name and picks from today when you sign up on this device.",
+  benefits: [
+    "Keep matching with people who fit your vibe",
+    "Message and call people you connect with",
+    "Join live circles and grow your profile",
+  ],
+  primaryCta: "Create account & continue",
+  limitTitle: "Want more matches?",
+} as const;
+
+export const GUEST_TRIAL_MATCH = {
+  matchLabel: "Tap when you're ready",
+  cancelSearch: "Stop looking",
+  signupCta: "Create account & continue",
+  retriesExhausted: "Create your account and continue with more matches.",
+  lastTryHint: "One more try if this match doesn't work out.",
+  idle: {
+    heading: (displayName: string | null) =>
+      displayName ? `Hey ${displayName}, ready to meet someone?` : "Ready to meet someone?",
+    subtitle: "Tap the circle below and we'll find someone live to talk with.",
+  },
+  searching: {
+    heading: "Looking for someone…",
+    subtitle: "Hang tight — this usually takes just a few seconds.",
+  },
+  proposed: {
+    heading: "Someone's here!",
+    subtitle: "Say yes to start your video chat, or skip to meet someone else.",
+  },
+  matched: {
+    heading: "Almost there…",
+    subtitle: "Getting your video call ready.",
+  },
+  connecting: "Connecting you now…",
+} as const;

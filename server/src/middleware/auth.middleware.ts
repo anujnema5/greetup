@@ -1,5 +1,6 @@
 import { auth } from "@/core/auth/auth";
 import logger from "@/core/logging";
+import { resolveGuestAuthContext } from "@/modules/guest";
 import { userProfilesRepository } from "@/modules/profile/repositories/user-profiles.repository";
 import { EmailNotVerifiedError, PremiumSubscriptionExpiredError, PremiumSubscriptionRequiredError, UnauthorizedError } from "@/shared/errors";
 import type { Context, Next } from "hono";
@@ -19,7 +20,11 @@ declare module "hono" {
             token: string;
         };
 
-        userId: string
+        userId: string;
+        /** True for ephemeral try-before-signup accounts. */
+        isGuest: boolean;
+        /** True after the guest used their one free direct call. */
+        guestTrialConsumed: boolean;
     }
 }
 
@@ -59,7 +64,12 @@ export const authMiddleware = async (c: Context, next: Next) => {
             token: session.session.token,
         });
 
-        c.set("userId", session.user.id)
+        c.set("userId", session.user.id);
+
+        const guestAuth = await resolveGuestAuthContext(session.user.id);
+        c.set("isGuest", guestAuth.isGuest);
+        c.set("guestTrialConsumed", guestAuth.guestTrialConsumed);
+
         await next();
     }
 

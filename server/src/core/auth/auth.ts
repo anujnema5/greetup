@@ -3,6 +3,8 @@ import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { openAPI } from "better-auth/plugins";
 import { db } from "../database";
 import { firebasePhonePlugin } from "@/core/auth/plugins/firebase-phone.plugin";
+import { guestSessionPlugin } from "@/core/auth/plugins/guest-session.plugin";
+import { guestSignupMergePlugin } from "@/core/auth/plugins/guest-signup-merge.plugin";
 import { sendEmail } from "@/services/email";
 import logger from "../logging";
 import config from "@/shared/config/config";
@@ -71,7 +73,7 @@ const auth = betterAuth({
     useSecureCookies: config.env === "production",
     crossSubDomainCookies,
   },
-  plugins: [openAPI(), firebasePhonePlugin()],
+  plugins: [openAPI(), firebasePhonePlugin(), guestSessionPlugin(), guestSignupMergePlugin()],
 
   emailAndPassword: {
     enabled: true,

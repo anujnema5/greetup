@@ -1,4 +1,11 @@
 export const API_ENDPOINTS = {
+  GUEST: {
+    STATUS: "/guest/status",
+    SIGNUP_CONTEXT: "/guest/signup-context",
+    CREATE_SESSION: "/auth/guest",
+    PROFILE: "/guest/profile",
+    MATCH_PREP: "/guest/match-prep",
+  },
   ACCOUNT: {
     /** Better Auth plugin: update signed-in user phone after Firebase SMS verification. */
     FIREBASE_PHONE_UPDATE: "/auth/firebase-phone-update",

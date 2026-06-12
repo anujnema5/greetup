@@ -8,6 +8,7 @@ import { useRoomStore } from "@/features/room/state/room.store";
 import {
   CIRCLE_HOST_END_FOR_EVERYONE_REDIRECT_PATH,
 } from "@/features/room/constants/call/call-flow";
+import { shouldGuestSkipRematch } from "@/features/guest-try/lib/try-navigation";
 import {
   cancelMatchmakingThenNavigate,
   navigateAfterCallEnd,
@@ -121,6 +122,10 @@ export function useRoomVideo(roomId: string, options?: UseRoomVideoOptions) {
 
   const beginSearchAfterSkip = useCallback(() => {
     if (!canSkipAndRematch) return;
+    if (shouldGuestSkipRematch()) {
+      returnAfterCallEnd();
+      return;
+    }
     if (skipHandledRef.current) return;
     skipHandledRef.current = true;
     const apiRoomId = resolveApiRoomId(roomId);
@@ -148,6 +153,7 @@ export function useRoomVideo(roomId: string, options?: UseRoomVideoOptions) {
     leaveCircleRtcOnly,
     leaveRoom,
     matchmaking,
+    returnAfterCallEnd,
     roomId,
     router,
   ]);

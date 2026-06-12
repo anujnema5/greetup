@@ -48,6 +48,7 @@ import {
 import { cn } from "@/lib/utils";
 import { useSession } from "@/lib/auth-client";
 import { EARLY_RELEASE } from "@/lib/copy/user-messages";
+import { TRY_ROUTE } from "@/features/guest-try/constants/try-routes";
 import { FOOTER_LINKS } from "@/lib/copy/marketing-pages";
 import { HeroMatchDemo } from "./hero-match-demo";
 
@@ -709,7 +710,7 @@ function LandingPageInner() {
                 className="rounded-full bg-[oklch(88%_0.11_105)] text-[oklch(12%_0.012_110)] hover:brightness-110 font-medium sm:font-semibold px-5 sm:px-6 has-[>svg]:px-5 sm:has-[>svg]:px-6 h-8 sm:h-10 lg:h-11 text-xs sm:text-sm w-auto shadow-[0_4px_18px_-6px_oklch(88%_0.11_105/0.45)] sm:shadow-[0_8px_28px_-8px_oklch(88%_0.11_105/0.55)]"
                 asChild
               >
-                <Link href={isLoggedIn ? "/home" : "/register"}>
+                <Link href={isLoggedIn ? "/home" : TRY_ROUTE}>
                   {isLoggedIn ? `Welcome${firstName ? `, ${firstName}` : ""}` : "Find your people"}{" "}
                   <ArrowRight className="size-3 sm:size-4" />
                 </Link>
@@ -1202,15 +1203,16 @@ function LandingPageInner() {
             nearby to global communities.
           </motion.p>
 
-          <motion.div variants={fadeUp}>
+          <motion.div variants={fadeUp} className="flex flex-col items-center gap-3 sm:gap-4">
             <motion.div whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.96 }} className="inline-block">
               <Button
                 size="lg"
                 className="rounded-full bg-[oklch(88%_0.11_105)] text-[oklch(12%_0.012_110)] hover:brightness-110 shadow-2xl shadow-[oklch(88%_0.11_105/0.35)] font-black text-base px-10 py-6"
                 asChild
               >
-                <Link href={isLoggedIn ? "/home" : "/register"}>
-                  {isLoggedIn ? `Continue${firstName ? `, ${firstName}` : ""}` : "Join Greetup. It's free"} <ArrowRight className="size-5" />
+                <Link href={isLoggedIn ? "/home" : TRY_ROUTE}>
+                  {isLoggedIn ? `Continue${firstName ? `, ${firstName}` : ""}` : "Find your people"}{" "}
+                  <ArrowRight className="size-5" />
                 </Link>
               </Button>
             </motion.div>

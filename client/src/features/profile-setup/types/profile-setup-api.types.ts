@@ -113,10 +113,17 @@ export interface ProfileSetupStep {
   fields: ProfileSetupField[]
 }
 
+export interface ProfileSetupShortenedOnboardingMeta {
+  active: boolean
+  matchPrepComplete: boolean
+  skippedInterestsStep: boolean
+}
+
 export interface ProfileSetupData {
   steps: ProfileSetupStep[]
   profileCompletion: number
   isProfileComplete: boolean
+  shortenedOnboarding?: ProfileSetupShortenedOnboardingMeta
 }
 
 export type ProfileSetupApiResponse = ApiResponse<ProfileSetupData>

@@ -33,6 +33,10 @@ import {
 } from "@/modules/simple-matching/strategy";
 import { getRedis } from "@/core/redis/client";
 import { redisKeys } from "@/core/redis/keys";
+import {
+  areGuestPoolCompatible,
+  resolveGuestMatchPoolPolicy,
+} from "@/modules/simple-matching/guest/guest-match-pool";
 
 export class MatchOrchestratorService {
   constructor(
@@ -295,6 +299,7 @@ export class MatchOrchestratorService {
   ): Promise<ScoredMatchCandidate[]> {
     const logSkips = mode === "eligible_only";
     const skippedPeerIds = await this.skipPeers.getSkippedPeerSet(requesterSnapshot.userId);
+    const guestMatchPoolPolicy = resolveGuestMatchPoolPolicy();
     const scoredMaybe = await Promise.all(
       poolCandidates.map(async (candidate): Promise<ScoredMatchCandidate | null> => {
         if (await isBlockedWithPeer(requesterSnapshot.userId, candidate.userId)) {
@@ -310,6 +315,16 @@ export class MatchOrchestratorService {
         if (!candidateSnapshot) {
           if (logSkips) {
             logger.debug("[processMatchRequest] skipping candidate — no snapshot", { candidateId: candidate.userId });
+          }
+          return null;
+        }
+
+        if (!areGuestPoolCompatible(requesterSnapshot, candidateSnapshot, guestMatchPoolPolicy)) {
+          if (logSkips) {
+            logger.debug("[processMatchRequest] skipping candidate — guest pool policy", {
+              candidateId: candidate.userId,
+              policy: guestMatchPoolPolicy,
+            });
           }
           return null;
         }

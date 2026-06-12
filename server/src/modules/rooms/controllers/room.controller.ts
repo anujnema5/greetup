@@ -68,9 +68,11 @@ import {
   StartRoomSessionError,
 } from "../services/session/start-room-session.service";
 import { syncCircleRoomExpiryFromClockIfDue } from "../services/session/circle-room-expiry-sync.service";
+import { syncGuestMatchRoomSessionCap } from "../services/session/sync-guest-match-room-session-cap.service";
 import { deleteSessionRoomRedis } from "../services/rtc/session-room-redis.service";
 import { resolveConnectionCallConversationId } from "@/modules/rooms/lib/session/resolve-connection-call-conversation-id";
 import { isSessionKind } from "@/shared/types/session-kind";
+import { AppError } from "@/shared/errors";
 
 /**
  * GET /api/room/:roomId/rtc-token
@@ -91,6 +93,9 @@ export const handleIssueRtcToken = async (c: Context) => {
     const data = await issueRtcTokenService(userId, roomId);
     return c.json(ApiResponse.success(data, "RTC token issued", 200), 200);
   } catch (error: unknown) {
+    if (error instanceof AppError) {
+      throw error;
+    }
     if (error instanceof IssueRtcTokenError) {
       const status = error.statusCode as 400 | 403 | 404 | 410;
       return c.json(
@@ -143,6 +148,7 @@ export const handleCreateRoom = async (c: Context) => {
       peerUserId: users[1],
       categoryId: category.id,
     });
+    await syncGuestMatchRoomSessionCap(roomId);
 
     const redis = getRedis();
     const key = `${ROOM_KEYS.ROOM}${roomId}`;
@@ -426,6 +432,9 @@ export const handleJoinRoom = async (c: Context) => {
     await joinRoomService(userId, roomId);
     return c.json(ApiResponse.success({ roomId }, "Joined room", 200), 200);
   } catch (error: unknown) {
+    if (error instanceof AppError) {
+      throw error;
+    }
     if (error instanceof JoinRoomError) {
       return c.json(
         ApiResponse.error({

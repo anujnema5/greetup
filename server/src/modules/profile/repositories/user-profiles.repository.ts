@@ -18,6 +18,12 @@ export const userProfilesRepository = {
   async findProfileSnapshotForCache(userId: string) {
     return db.query.userProfiles.findFirst({
       where: (profile, { eq: e }) => e(profile.userId, userId),
+      columns: {
+        userId: true,
+        isGuest: true,
+        age: true,
+        gender: true,
+      },
       with: {
         user: {
           columns: {

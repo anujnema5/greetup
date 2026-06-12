@@ -182,6 +182,32 @@ export const roomSessionsRepository = {
       .where(eq(rooms.id, roomId));
   },
 
+  /**
+   * Tightens `expires_at` when a sooner deadline applies (e.g. guest trial 10m cap).
+   * No-op when the room already expires at or before the cap.
+   */
+  async applyExpiresAtCapIfSooner(roomId: string, capExpiresAt: Date): Promise<void> {
+    const row = await db.query.rooms.findFirst({
+      where: eq(rooms.id, roomId),
+      columns: { expiresAt: true },
+    });
+    if (!row) return;
+
+    const current = row.expiresAt;
+    if (current != null && current.getTime() <= capExpiresAt.getTime()) {
+      return;
+    }
+
+    await db
+      .update(rooms)
+      .set({
+        expiresAt: capExpiresAt,
+        isExpired: false,
+        updatedAt: new Date(),
+      })
+      .where(eq(rooms.id, roomId));
+  },
+
   async refreshLiveCircleExpiryAfterParticipantJoin(roomId: string): Promise<void> {
     const row = await db.query.rooms.findFirst({
       where: and(eq(rooms.id, roomId), eq(rooms.roomType, "circle"), eq(rooms.status, "live")),

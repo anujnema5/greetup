@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
@@ -29,18 +30,29 @@ type PhoneFormValues = z.infer<typeof phoneRegisterSchema>;
 
 interface PhoneRegisterFormProps {
   onOTPSent: (phoneE164: string, name: string) => void;
+  defaultName?: string;
 }
 
-export default function PhoneRegisterForm({ onOTPSent }: PhoneRegisterFormProps) {
+export default function PhoneRegisterForm({ onOTPSent, defaultName }: PhoneRegisterFormProps) {
   const { sendOtp, isSending } = useFirebasePhoneAuth();
 
   const form = useForm<PhoneFormValues>({
     resolver: zodResolver(phoneRegisterSchema),
     defaultValues: {
-      name: "",
+      name: defaultName?.trim() ?? "",
       phone: "",
     },
   });
+
+  useEffect(() => {
+    if (!defaultName?.trim()) {
+      return;
+    }
+    const current = form.getValues("name").trim();
+    if (!current) {
+      form.setValue("name", defaultName.trim());
+    }
+  }, [defaultName, form]);
 
   const onSubmit = async (data: PhoneFormValues) => {
     const raw = data.phone.trim();

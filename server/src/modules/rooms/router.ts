@@ -1,4 +1,5 @@
 import { Hono } from "hono";
+import { requireGuestCallTrialAvailable } from "@/modules/guest";
 import { handleListRoomEmbeddedActivities } from "./controllers/room-embedded-activities.controller";
 import {
   handlePatchRoomTitle,
@@ -22,8 +23,8 @@ export { internalRoomsRoute };
 // Public authenticated route (registered under /api)
 export const roomRoute = new Hono();
 roomRoute.get("/embedded-activities", handleListRoomEmbeddedActivities);
-roomRoute.get("/:roomId/rtc-token", handleIssueRtcToken);
-roomRoute.post("/:roomId/join", handleJoinRoom);
+roomRoute.get("/:roomId/rtc-token", requireGuestCallTrialAvailable, handleIssueRtcToken);
+roomRoute.post("/:roomId/join", requireGuestCallTrialAvailable, handleJoinRoom);
 roomRoute.post("/:roomId/open-meeting", handleOpenCircleMeeting);
 roomRoute.post("/:roomId/leave-circle-rtc", handleLeaveCircleRtc);
 roomRoute.post("/:roomId/host-end-circle", handleHostEndCircleForEveryone);

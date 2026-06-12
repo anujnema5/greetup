@@ -10,6 +10,8 @@ import * as z from "zod";
 import { getFirebaseAdmin } from "@/core/firebase/admin";
 import { readFirebaseErrorCode } from "@/core/firebase/parse-firebase-error";
 import logger from "@/core/logging";
+import { detectGuestSignupOnRegister } from "@/modules/guest";
+import type { GuestSignupAuthPluginContext } from "@/modules/guest/lib/guest-signup-auth-context";
 import config from "@/shared/config/config";
 
 const signInBodySchema = z.object({
@@ -160,6 +162,13 @@ export function firebasePhonePlugin() {
           })) as User | null;
 
           if (!user) {
+            await detectGuestSignupOnRegister({
+              headers: ctx.request?.headers,
+              provider: "phone",
+              authPluginContext: ctx.context as GuestSignupAuthPluginContext,
+              metadata: { hook: "firebase-phone.signup" },
+            });
+
             const handle = `u_${generateRandomString(12)}`;
             const display = ctx.body.name?.trim() || phone;
             const created = await ctx.context.internalAdapter.createUser({

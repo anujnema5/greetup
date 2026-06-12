@@ -10,7 +10,9 @@ import {
 } from "../services/matchmaking.service";
 import { getMatchPeerPreview } from "../services/match-peer-preview.service";
 import { ensureUserBlocksSyncedForMatching } from "@/modules/blocks/services/block-user.service";
+import { assertGuestReadyForMatchSearch } from "@/modules/guest";
 import logger from "@/core/logging";
+import { AppError } from "@/shared/errors";
 
 export const handleFindMatch = async (c: Context) => {
   try {
@@ -65,6 +67,7 @@ export const handleFindMatch = async (c: Context) => {
     const requestId = randomUUID();
     logger.info("[handleFindMatch] calling match engine", { userId, requestId });
 
+    await assertGuestReadyForMatchSearch(userId);
     await ensureUserBlocksSyncedForMatching(userId);
 
     const engineResponse = await findMatchService(userId, requestId);
@@ -83,6 +86,9 @@ export const handleFindMatch = async (c: Context) => {
       200
     );
   } catch (error) {
+    if (error instanceof AppError) {
+      throw error;
+    }
     logger.error("[handleFindMatch] failed", { error });
     return internalError(c, error, "MATCHMAKING_FAILED");
   }

@@ -1,5 +1,7 @@
 import { API_BASE_URL } from '@/shared/constants/environments';
 
+import { resolveGuestTryApiErrorMessage } from './guest-try-errors';
+
 export class ApiError extends Error {
   constructor(
     public status: number,
@@ -53,6 +55,11 @@ export function getApiErrorCode(error: unknown): string | null {
 
 /** Human-readable message from `ApiError` or other thrown error shapes. */
 export function getApiErrorMessage(error: unknown, fallback: string): string {
+  const guestMessage = resolveGuestTryApiErrorMessage(error);
+  if (guestMessage) {
+    return guestMessage;
+  }
+
   if (error instanceof ApiError) {
     return messageFromApiBody(error.body) ?? fallback;
   }

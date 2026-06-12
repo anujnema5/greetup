@@ -38,6 +38,23 @@ const ONBOARDING_REQUIRED_ROUTES = [
 ];
 const ONBOARDING_ROUTE = "/profile-setup";
 
+/** Guest trial shell — anonymous may visit; session created client-side. */
+const GUEST_TRIAL_ROUTE = "/try";
+const GUEST_TRIAL_COMPLETE_ROUTE = "/try/complete";
+
+/** Full-app routes guests must not access (server also enforces). */
+const GUEST_BLOCKED_ROUTES = [
+  "/home",
+  "/profile",
+  "/settings",
+  "/profile-setup",
+  "/explore",
+  "/connections",
+  "/u",
+  "/chat",
+  "/circle/search",
+];
+
 const COMMON_ROUTES = [
   "/about",
   "/contact",
@@ -52,11 +69,18 @@ const COMMON_ROUTES = [
 ];
 
 // ==================== CACHE CONFIGURATION ====================
+interface GuestStatusSnapshot {
+  isGuest: boolean;
+  trialConsumed: boolean;
+}
+
 interface CacheEntry {
   isLoggedIn: boolean;
   isOnboarded?: boolean;
+  guestStatus?: GuestStatusSnapshot;
   timestamp: number;
   inProgress?: Promise<boolean>;
+  guestStatusInProgress?: Promise<GuestStatusSnapshot | null>;
 }
 
 const sessionCache = new Map<string, CacheEntry>();
@@ -99,15 +123,44 @@ export async function proxy(req: NextRequest) {
     return response;
   }
 
-  // Redirect authenticated users away from root
-  if (isLoggedIn && pathname === "/") {
+  const guestStatus = isLoggedIn ? await checkGuestStatusWithCache(req) : null;
+
+  // Anonymous: allow /try; deep-link to match room → start guest flow
+  if (!isLoggedIn) {
+    if (isGuestTrialRoute(pathname)) {
+      const response = NextResponse.next();
+      setSecurityHeaders(response);
+      return response;
+    }
+    if (isGuestCircleMatchRoom(pathname)) {
+      return NextResponse.redirect(new URL(GUEST_TRIAL_ROUTE, req.url));
+    }
+  }
+
+  // Guest trial routing (logged-in guest or full user on guest-only paths)
+  const guestRedirect = await resolveGuestRouteRedirect(req, pathname, isLoggedIn, guestStatus);
+  if (guestRedirect) {
+    return guestRedirect;
+  }
+
+  // Redirect full accounts away from marketing home (guests may browse landing)
+  if (isLoggedIn && pathname === "/" && !guestStatus?.isGuest) {
     const isOnboarded = await checkOnboardingWithCache(req, pathname);
     const redirectUrl = isOnboarded ? "/home" : ONBOARDING_ROUTE;
     return NextResponse.redirect(new URL(redirectUrl, req.url));
   }
 
-  // Redirect logged-in users away from public routes
+  // Redirect logged-in users away from public routes (keep /register?from=guest for guests)
   if (isLoggedIn && PUBLIC_ROUTES.includes(pathname)) {
+    if (
+      guestStatus?.isGuest &&
+      isGuestSignupAuthRoute(pathname, req.nextUrl.searchParams)
+    ) {
+      const response = NextResponse.next();
+      setSecurityHeaders(response);
+      return response;
+    }
+
     const isOnboarded = await checkOnboardingWithCache(req, pathname);
     const redirectUrl = isOnboarded ? "/home" : ONBOARDING_ROUTE;
     return NextResponse.redirect(new URL(redirectUrl, req.url));
@@ -184,6 +237,110 @@ function isCommonRoute(pathname: string): boolean {
     if (route === "/") return pathname === "/";
     return pathname.startsWith(route + "/");
   });
+}
+
+function isGuestTrialRoute(pathname: string): boolean {
+  return pathname === GUEST_TRIAL_ROUTE || pathname.startsWith(`${GUEST_TRIAL_ROUTE}/`);
+}
+
+function isGuestTrialCompleteRoute(pathname: string): boolean {
+  return (
+    pathname === GUEST_TRIAL_COMPLETE_ROUTE ||
+    pathname.startsWith(`${GUEST_TRIAL_COMPLETE_ROUTE}/`)
+  );
+}
+
+/** Direct match room `/circle/[roomId]` — not browse/search. */
+function isGuestCircleMatchRoom(pathname: string): boolean {
+  if (!pathname.startsWith("/circle/")) {
+    return false;
+  }
+  if (pathname === "/circle/search" || pathname.startsWith("/circle/search/")) {
+    return false;
+  }
+  return /^\/circle\/[^/]+$/.test(pathname);
+}
+
+function isGuestSignupAuthRoute(pathname: string, searchParams: URLSearchParams): boolean {
+  if (searchParams.get("from") !== "guest") {
+    return false;
+  }
+  return pathname === "/register" || pathname === "/login";
+}
+
+function isGuestBlockedRoute(pathname: string): boolean {
+  return GUEST_BLOCKED_ROUTES.some((route) =>
+    route === "/" ? pathname === "/" : pathname === route || pathname.startsWith(`${route}/`),
+  );
+}
+
+function guestTrialLandingPath(trialConsumed: boolean): string {
+  return trialConsumed ? GUEST_TRIAL_COMPLETE_ROUTE : GUEST_TRIAL_ROUTE;
+}
+
+/** Marketing home — guests may leave /try and browse the landing page. */
+function isGuestPublicMarketingRoute(pathname: string): boolean {
+  return pathname === "/";
+}
+
+async function resolveGuestRouteRedirect(
+  req: NextRequest,
+  pathname: string,
+  isLoggedIn: boolean,
+  guestStatus: GuestStatusSnapshot | null,
+): Promise<NextResponse | null> {
+  if (!isLoggedIn) {
+    return null;
+  }
+
+  // Full account: no guest trial shell
+  if (guestStatus && !guestStatus.isGuest) {
+    if (isGuestTrialRoute(pathname)) {
+      return NextResponse.redirect(new URL("/home", req.url));
+    }
+    return null;
+  }
+
+  if (!guestStatus?.isGuest) {
+    return null;
+  }
+
+  const trialLanding = guestTrialLandingPath(guestStatus.trialConsumed);
+
+  if (isGuestPublicMarketingRoute(pathname)) {
+    return null;
+  }
+
+  if (isGuestSignupAuthRoute(pathname, req.nextUrl.searchParams)) {
+    return null;
+  }
+
+  if (PUBLIC_ROUTES.includes(pathname)) {
+    if (pathname === "/login") {
+      return NextResponse.redirect(new URL(trialLanding, req.url));
+    }
+    return NextResponse.redirect(new URL(trialLanding, req.url));
+  }
+
+  if (isGuestTrialRoute(pathname)) {
+    if (guestStatus.trialConsumed && !isGuestTrialCompleteRoute(pathname)) {
+      return NextResponse.redirect(new URL(GUEST_TRIAL_COMPLETE_ROUTE, req.url));
+    }
+    if (!guestStatus.trialConsumed && isGuestTrialCompleteRoute(pathname)) {
+      return NextResponse.redirect(new URL(GUEST_TRIAL_ROUTE, req.url));
+    }
+    return null;
+  }
+
+  if (isGuestCircleMatchRoom(pathname)) {
+    return null;
+  }
+
+  if (isGuestBlockedRoute(pathname) || isProtectedRoute(pathname)) {
+    return NextResponse.redirect(new URL(trialLanding, req.url));
+  }
+
+  return null;
 }
 
 // ==================== SECURITY HEADERS ====================
@@ -361,6 +518,104 @@ async function performAuthCheck(req: NextRequest): Promise<boolean> {
       }
     }
 
+    throw error;
+  }
+}
+
+// ==================== GUEST STATUS CHECK ====================
+
+async function checkGuestStatusWithCache(
+  req: NextRequest,
+): Promise<GuestStatusSnapshot | null> {
+  const sessionToken = getSessionToken(req);
+  if (!sessionToken) {
+    return null;
+  }
+
+  const cached = sessionCache.get(sessionToken);
+  const now = Date.now();
+
+  if (
+    cached?.guestStatus &&
+    now - cached.timestamp < CACHE_TTL
+  ) {
+    if (cached.guestStatusInProgress) {
+      try {
+        return await cached.guestStatusInProgress;
+      } catch {
+        // fall through to refetch
+      }
+    } else {
+      return cached.guestStatus;
+    }
+  }
+
+  const fetchPromise = performGuestStatusCheck(req);
+
+  if (cached) {
+    cached.guestStatusInProgress = fetchPromise;
+  } else {
+    sessionCache.set(sessionToken, {
+      isLoggedIn: true,
+      timestamp: now,
+      guestStatusInProgress: fetchPromise,
+    });
+  }
+
+  try {
+    const guestStatus = await fetchPromise;
+    const entry = sessionCache.get(sessionToken) ?? { isLoggedIn: true, timestamp: now };
+    if (guestStatus) {
+      entry.guestStatus = guestStatus;
+    }
+    entry.timestamp = now;
+    delete entry.guestStatusInProgress;
+    sessionCache.set(sessionToken, entry);
+    return guestStatus;
+  } catch (error) {
+    console.error("[Guest] Status check failed:", error);
+    const entry = sessionCache.get(sessionToken);
+    if (entry) {
+      delete entry.guestStatusInProgress;
+    }
+    return null;
+  }
+}
+
+async function performGuestStatusCheck(
+  req: NextRequest,
+): Promise<GuestStatusSnapshot | null> {
+  const apiBaseUrl = middlewareApiBase(req);
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), AUTH_REQUEST_TIMEOUT_MS);
+
+  try {
+    const res = await fetch(`${apiBaseUrl}/guest/status`, {
+      method: "GET",
+      headers: {
+        cookie: req.headers.get("cookie") ?? "",
+        "Content-Type": "application/json",
+      },
+      credentials: "include",
+      signal: controller.signal,
+    });
+
+    clearTimeout(timeoutId);
+
+    if (!res.ok) {
+      if (res.status === 401 || res.status === 403) {
+        return { isGuest: false, trialConsumed: false };
+      }
+      throw new Error(`Guest status failed with status ${res.status}`);
+    }
+
+    const data = await res.json();
+    return {
+      isGuest: !!data?.data?.isGuest,
+      trialConsumed: !!data?.data?.trialConsumed,
+    };
+  } catch (error) {
+    clearTimeout(timeoutId);
     throw error;
   }
 }

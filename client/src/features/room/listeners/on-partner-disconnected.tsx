@@ -25,6 +25,8 @@ import {
   resolveApiRoomId,
   resolveCircleRouteRoomId,
 } from "@/features/room/lib/navigation/circle-routes";
+import { TRY_SIGNUP_ROUTE } from "@/features/guest-try/constants/try-routes";
+import { shouldGuestSkipRematch } from "@/features/guest-try/lib/try-navigation";
 import { consumeRoomReturnPath } from "@/features/room/lib/session/room-return-path";
 import { clearRoomStorage } from "@/features/room/lib/session/room-sync";
 import {
@@ -109,6 +111,23 @@ export function OnPartnerDisconnected() {
     if (isLocalCallEndInProgress()) return;
     if (roomPhase === "searching") return;
     if (handledRef.current) return;
+    if (shouldGuestSkipRematch()) {
+      handledRef.current = true;
+      clearPartnerLeftTimer();
+      clearNetworkRecoveryTimer();
+      clearSearchRetryTimer();
+      clearRoomStorage();
+      endVideoSession();
+      const roomIdToLeave = activeRoomId ?? resolveApiRoomId(routeRoomId);
+      void matchmaking.handleCancel().catch(() => {});
+      const leavePromise = roomIdToLeave
+        ? leaveRoom({ roomId: roomIdToLeave })
+        : Promise.resolve();
+      void leavePromise.catch(() => {}).finally(() => {
+        router.replace(TRY_SIGNUP_ROUTE);
+      });
+      return;
+    }
     handledRef.current = true;
     clearPartnerLeftTimer();
     clearNetworkRecoveryTimer();
@@ -128,6 +147,7 @@ export function OnPartnerDisconnected() {
     clearPartnerLeftTimer,
     clearSearchRetryTimer,
     beginSearchingNextCall,
+    endVideoSession,
     leaveRoom,
     matchmaking,
     roomPhase,

@@ -15,7 +15,9 @@ import {
 } from "@/modules/chat/services/room-conversation.service";
 import { roomRestrictedUsersRepository } from "@/modules/rooms/repositories/room-restricted-users.repository";
 import { setUserActiveRtcRoom } from "@/modules/rooms/services/rtc/user-active-rtc-room-redis.service";
+import { syncGuestMatchRoomSessionCap } from "@/modules/rooms/services/session/sync-guest-match-room-session-cap.service";
 import { isRoomSessionType } from "@/shared/types/room-session";
+import { assertGuestMayAccessRoom, consumeGuestCallTrial } from "@/modules/guest";
 
 export type IssueRtcTokenErrorCode =
   | "ROOM_NOT_FOUND"
@@ -56,6 +58,11 @@ export async function issueRtcTokenService(userId: string, roomId: string) {
   if (!room) {
     rejectIssueRtcToken(userId, roomId, "Room not found", "ROOM_NOT_FOUND", 404);
   }
+
+  await assertGuestMayAccessRoom(userId, {
+    roomType: room.roomType,
+    sessionKind: room.sessionKind,
+  });
 
   if (room.roomType === "circle" && room.status === "scheduled") {
     await maybeAutoStartScheduledCircleFromDb(roomId);
@@ -150,6 +157,9 @@ export async function issueRtcTokenService(userId: string, roomId: string) {
       }
     }
   }
+
+  await consumeGuestCallTrial(userId, { roomId });
+  await syncGuestMatchRoomSessionCap(roomId);
 
   const { token, expiresInSec } = await signRtcJwtForRoom({
     userId,
