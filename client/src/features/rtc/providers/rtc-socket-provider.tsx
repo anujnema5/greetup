@@ -14,16 +14,14 @@ import {
   createConnectingRtcSocketContextValue,
   createIdleRtcSocketContextValue,
 } from "@/features/rtc/lib/rtc-idle-mediasoup-state";
+import { loadRtcLiveSessionProviderLazy } from "@/features/rtc/lib/prefetch-rtc-live-session-chunk";
 import { RtcSocketContext, useRtcSocketContext } from "@/features/rtc/providers/rtc-socket-context";
 import type { RtcLiveSessionProviderProps } from "@/features/rtc/providers/rtc-live-session-provider";
 
 export type { RtcSocketContextValue } from "@/features/rtc/types/rtc-socket-context.types";
 export { useRtcSocketContext };
 
-const RtcLiveSessionProvider = lazy(async () => {
-  const mod = await import("@/features/rtc/providers/rtc-live-session-provider");
-  return { default: mod.RtcLiveSessionProvider };
-});
+const RtcLiveSessionProvider = lazy(loadRtcLiveSessionProviderLazy);
 
 type RtcLiveSessionSuspenseFallbackProps = {
   activeRoomId: string;

@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { io, Socket } from "socket.io-client";
+import { rtcMark } from "@/features/rtc/lib/rtc-connect-timing";
 import { RTC_SOCKET_URL } from "@/shared/constants/environments";
 
 export type RtcSocketState =
@@ -30,6 +31,7 @@ export function useRtcSocket(token: string | null): UseRtcSocketReturn {
       return;
     }
 
+    rtcMark("socket-connecting");
     const socket = io(RTC_SOCKET_URL, {
       auth: { token },
       transports: ["websocket"],
@@ -41,6 +43,7 @@ export function useRtcSocket(token: string | null): UseRtcSocketReturn {
     });
 
     socket.on("connect", () => {
+      rtcMark("socket-connected");
       console.log("[RTC] Connected to rtc-service:", socket.id);
       setRtcSocket(socket);
       setRtcSocketState("connected");

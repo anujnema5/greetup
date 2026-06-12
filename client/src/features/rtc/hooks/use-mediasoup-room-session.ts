@@ -18,6 +18,7 @@ import {
   wireSendTransportProduce,
   wireTransportConnect,
 } from "@/features/rtc/lib/mediasoup-transport-wiring";
+import { logRtcConnectTiming, rtcMark } from "@/features/rtc/lib/rtc-connect-timing";
 import { emitRtcAck, isAckErr, isAckOk } from "@/features/rtc/lib/rtc-signaling";
 import type {
   ConsumeAck,
@@ -508,6 +509,8 @@ export function useMediasoupRoomSession(options: MediasoupRoomSessionOptions): v
           return;
         }
 
+        rtcMark("join-ack");
+
         const selfId = refs.localUserIdRef.current;
         const others = selfId ? joinRes.peerIds.filter((id) => id !== selfId) : [...joinRes.peerIds];
         const initialPeers: Record<string, RemotePeer> = Object.fromEntries(
@@ -533,18 +536,14 @@ export function useMediasoupRoomSession(options: MediasoupRoomSessionOptions): v
 
         set.setStatus("negotiating");
 
-        const recvParams = await emitRtcAck<TransportCreateAck>(socket, "createWebRtcTransport", {
-          direction: "recv",
-        });
+        const [recvParams, sendParams] = await Promise.all([
+          emitRtcAck<TransportCreateAck>(socket, "createWebRtcTransport", { direction: "recv" }),
+          emitRtcAck<TransportCreateAck>(socket, "createWebRtcTransport", { direction: "send" }),
+        ]);
         if (cancelled) return;
         if (!recvParams || typeof recvParams !== "object" || !("ok" in recvParams) || !recvParams.ok) {
           throw new Error(isAckErr(recvParams) ? (recvParams.error?.code ?? "create_recv") : "create_recv");
         }
-
-        const sendParams = await emitRtcAck<TransportCreateAck>(socket, "createWebRtcTransport", {
-          direction: "send",
-        });
-        if (cancelled) return;
         if (!sendParams || typeof sendParams !== "object" || !("ok" in sendParams) || !sendParams.ok) {
           throw new Error(isAckErr(sendParams) ? (sendParams.error?.code ?? "create_send") : "create_send");
         }
@@ -570,23 +569,28 @@ export function useMediasoupRoomSession(options: MediasoupRoomSessionOptions): v
         wireSendTransportProduce(socket, sendTransport);
         attachIceRecovery(sendTransport, "send");
         refs.sendTransportRef.current = sendTransport;
+        rtcMark("transports-ready");
 
         socket.on("newProducer", onNewProducer);
         socket.on("producerClosed", onProducerClosed);
 
-        for (const p of joinRes.existingProducers) {
-          if (p.kind !== "audio" && p.kind !== "video") continue;
-          const src = producerMediaSourceFromSocket(p.kind, p.mediaSource);
-          try {
-            await consumeRemoteProducer(p.producerId, p.kind, p.peerId, src);
-          } catch (err) {
-            // Stale ids after reconnect / reorder — `newProducer` will attach live tracks.
-            console.warn("[RTC] existingProducer consume skipped", p.producerId, err);
-          }
-          if (cancelled) return;
+        const existingProducerJobs = joinRes.existingProducers
+          .filter((p) => p.kind === "audio" || p.kind === "video")
+          .map((p) => {
+            const src = producerMediaSourceFromSocket(p.kind, p.mediaSource);
+            return consumeRemoteProducer(p.producerId, p.kind, p.peerId, src).catch((err) => {
+              // Stale ids after reconnect / reorder — `newProducer` will attach live tracks.
+              console.warn("[RTC] existingProducer consume skipped", p.producerId, err);
+            });
+          });
+        if (existingProducerJobs.length > 0) {
+          await Promise.all(existingProducerJobs);
         }
+        if (cancelled) return;
 
         if (!cancelled) {
+          rtcMark("mediasoup-ready");
+          logRtcConnectTiming(rtcRoomId ?? "unknown");
           set.setStatus("ready");
         }
       } catch (e) {

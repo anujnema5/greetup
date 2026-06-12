@@ -10,6 +10,7 @@ import { clearRoomStorage } from "@/features/room/lib/session/room-sync";
 import { useGetRoom } from "@/features/room/api/room.queries";
 import { useLeaveCircleRtc, useLeaveRoom } from "@/features/room/api/room.mutations";
 import { useRtcSocketContext } from "@/features/rtc";
+import { prefetchRtcLiveSessionChunk } from "@/features/rtc/lib/prefetch-rtc-live-session-chunk";
 import {
   clearCircleRoomBootstrap,
   migrateLegacyCircleRoomQuery,
@@ -41,6 +42,10 @@ export function useRoom() {
 
   const roomId = params.roomId as string;
   const legacyPeer = searchParams.get("peer");
+
+  useEffect(() => {
+    if (roomId) prefetchRtcLiveSessionChunk();
+  }, [roomId]);
   const legacyScore = searchParams.get("score");
   const { seedPeerId, seedScore } = readCircleRoomSeeds(roomId, legacyPeer, legacyScore);
 
