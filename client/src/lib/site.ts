@@ -5,9 +5,9 @@ export const siteConfig = {
   name: "Greetup",
   domain: "greetup.co",
   url: "https://greetup.co",
-  tagline: "Directly connect with the people you want.",
+  tagline: "Meet People by Job, Interests & Location",
   description:
-    "Connect directly with the people you want. Match by job, location, or what you're looking for. Chat, voice, or video. It's up to you.",
+    "Match 1:1 in real time by profession, city, or what you're into — then chat, voice, or video. Join live circles around shared topics. Free beta.",
   contactEmail: "hello@greetup.co",
   supportEmail: "support@greetup.co",
   locale: "en_US",
@@ -36,6 +36,13 @@ export function buildPageMetadata({
   const url = absoluteUrl(path);
   const fullTitle = path === "/" ? `${siteConfig.name} | ${title}` : `${title} · ${siteConfig.name}`;
 
+  const ogImage = {
+    url: "/opengraph-image",
+    width: 1200,
+    height: 630,
+    alt: `${siteConfig.name} — ${siteConfig.tagline}`,
+  };
+
   return {
     title: fullTitle,
     description,
@@ -48,22 +55,32 @@ export function buildPageMetadata({
       siteName: siteConfig.name,
       title: fullTitle,
       description,
+      images: [ogImage],
     },
     twitter: {
       card: "summary_large_image",
+      site: siteConfig.twitterHandle,
       title: fullTitle,
       description,
+      images: [ogImage],
     },
-    robots: noIndex ? { index: false, follow: false } : { index: true, follow: true },
+    robots: noIndex
+      ? { index: false, follow: false }
+      : {
+          index: true,
+          follow: true,
+          googleBot: { index: true, follow: true, "max-image-preview": "large" },
+        },
     keywords: [
       "Greetup",
-      "social matching",
+      "meet people online",
+      "make friends online",
       "interest matching",
-      "live circles",
       "video chat",
-      "networking",
-      "community",
+      "live circles",
+      "networking by profession",
       "1:1 matching",
+      "group video chat",
     ],
   };
 }
@@ -78,9 +95,15 @@ export const rootMetadata: Metadata = {
   authors: [{ name: siteConfig.name, url: absoluteUrl("/") }],
   creator: siteConfig.name,
   publisher: siteConfig.name,
+  category: "social",
   formatDetection: {
     email: false,
     address: false,
     telephone: false,
   },
+  icons: {
+    icon: [{ url: "/icon", type: "image/png", sizes: "32x32" }],
+    apple: [{ url: "/apple-icon", type: "image/png", sizes: "180x180" }],
+  },
+  manifest: "/manifest.webmanifest",
 };
