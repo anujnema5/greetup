@@ -3,6 +3,7 @@ import { ArrowLeft, ArrowRight } from "lucide-react";
 import { Logo } from "@/components/logo";
 import { Button } from "@/components/ui/button";
 import { FOOTER_LINKS } from "@/lib/copy/marketing-pages";
+import { TRY_ROUTE } from "@/features/guest-try/constants/try-routes";
 import { cn } from "@/lib/utils";
 
 type MarketingPageShellProps = {
@@ -54,7 +55,7 @@ export function MarketingPageShell({
               className="rounded-full bg-[oklch(88%_0.11_105)] text-[oklch(12%_0.012_110)] hover:brightness-110 font-semibold shadow-[0_0_24px_oklch(88%_0.11_105/0.22)]"
               asChild
             >
-              <Link href="/register">
+              <Link href={TRY_ROUTE}>
                 Get started <ArrowRight className="size-3.5" />
               </Link>
             </Button>
