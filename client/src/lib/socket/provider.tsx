@@ -1,9 +1,7 @@
 'use client';
 import { createContext, useContext, useEffect, useMemo, useState } from "react";
 import { TSocketContext } from "./provider.types";
-import { io } from "socket.io-client";
-import { SOCKET_SERVER_URL } from "@/shared/constants/environments";
-import { authClient, useSession } from "@/lib/auth-client";
+import { getAppSocketPair } from "./socket-instances";
 
 // One deviceId per browser tab, persists across page refreshes within the same tab.
 // sessionStorage is scoped per-tab so two tabs always get different IDs.
@@ -22,34 +20,20 @@ function getOrCreateDeviceId(): string {
 const SocketContext = createContext<TSocketContext | null>(null);
 
 export const SocketProvider = ({ children }: { children: React.ReactNode }) => {
-    const { data } = useSession();
-
     const [connectionState, setConnectionState] = useState({
         pending: false,
         connected: false,
         status: 'disconnected'
     });
 
-    const socketOptions = useMemo(() => ({
-        autoConnect: true,
-        reconnectionDelay: 2000,
-        timeout: 10000,
-        reconnectionDelayMax: 5000,
-        transports: ["websocket", "polling"] as string[],
-        query: {
-            timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
-            userId: data?.user.id,
-            deviceId: getOrCreateDeviceId(),
-        },
-        withCredentials: true,
-        forceNew: false,
-    }), [data?.user.id]);
-
-    // Global namespace — presence, match events, notifications
-    const socket = useMemo(() => io(SOCKET_SERVER_URL, socketOptions), [socketOptions]);
-
-    // Chat namespace — all chat:* events are isolated here
-    const chatSocket = useMemo(() => io(`${SOCKET_SERVER_URL}/chat`, socketOptions), [socketOptions]);
+    // Auth is cookie-based — sockets are created once per tab, not on every session re-render.
+    const { socket, chatSocket } = useMemo(() => {
+    const { main, chat } = getAppSocketPair(
+            getOrCreateDeviceId(),
+            Intl.DateTimeFormat().resolvedOptions().timeZone,
+        );
+        return { socket: main, chatSocket: chat };
+    }, []);
 
     useEffect(() => {
         socket.on('connect', () => {

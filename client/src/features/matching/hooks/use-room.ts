@@ -100,8 +100,9 @@ export function useRoom() {
     clearLocalMediaDeviceError,
   } = useRtcSocketContext();
 
-  const fallbackRoom: MatchRoomData | null =
-    roomQuery.isError && seedPeerId && session?.user?.id
+  /** Match seeds from `match:completed` — lets join start before GET `/room/:id` returns. */
+  const bootstrapMatchRoom: MatchRoomData | null =
+    seedPeerId && session?.user?.id
       ? {
           sessionKind: "match",
           roomId,
@@ -111,10 +112,16 @@ export function useRoom() {
         }
       : null;
 
-  const room = roomQuery.data ?? fallbackRoom;
+  const fallbackRoom: MatchRoomData | null =
+    roomQuery.isError && bootstrapMatchRoom ? bootstrapMatchRoom : null;
+
+  const room = roomQuery.data ?? bootstrapMatchRoom ?? fallbackRoom;
 
   const loading =
-    sessionPending || (!skipRoomQuery && (roomQuery.isPending || roomQuery.isFetching));
+    sessionPending ||
+    (!skipRoomQuery &&
+      !bootstrapMatchRoom &&
+      (roomQuery.isPending || roomQuery.isFetching));
 
   const error = useMemo(() => {
     if (room) return null;

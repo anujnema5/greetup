@@ -61,7 +61,10 @@ function joinRoomSuccess(
 
 /** Ensures `room_participants` row for RTC (direct + circle). */
 export async function joinRoomService(userId: string, roomId: string): Promise<JoinRoomServiceResult> {
+  logger.info("room_join", { step: "start", userId, roomId });
+
   let room = await roomsRepository.findRoomById(roomId);
+  logger.info("room_join", { step: "find_room", userId, roomId, found: Boolean(room) });
 
   if (!room) {
     rejectJoinRoom(userId, roomId, "Room not found", "ROOM_NOT_FOUND", 404);
@@ -71,10 +74,12 @@ export async function joinRoomService(userId: string, roomId: string): Promise<J
     roomType: room.roomType,
     sessionKind: room.sessionKind,
   });
+  logger.info("room_join", { step: "guest_access", userId, roomId });
 
   if (room.roomType === "circle" && room.status === "scheduled") {
     await maybeAutoStartScheduledCircleFromDb(roomId);
     room = await roomsRepository.findRoomById(roomId);
+    logger.info("room_join", { step: "auto_start_scheduled_circle", userId, roomId });
     if (!room) {
       rejectJoinRoom(userId, roomId, "Room not found", "ROOM_NOT_FOUND", 404);
     }
@@ -82,6 +87,7 @@ export async function joinRoomService(userId: string, roomId: string): Promise<J
 
   if (room.roomType === "direct" || room.roomType === "circle") {
     const access = await assertRoomSessionOpenOnAccess(roomId);
+    logger.info("room_join", { step: "reconcile_session", userId, roomId, ok: access.ok });
     if (!access.ok) {
       rejectJoinRoom(userId, roomId, access.message, "ROOM_EXPIRED", 410);
     }
@@ -92,11 +98,6 @@ export async function joinRoomService(userId: string, roomId: string): Promise<J
     rejectJoinRoom(userId, roomId, "Unsupported room type", "UNSUPPORTED_ROOM_TYPE", 400);
   }
 
-  /**
-   * Circle not `live` yet (scheduled / waiting to go live): still create or refresh the
-   * participant row so the client can enter the in-app lobby. RTC stays gated in
-   * `issue-rtc-token` until the circle room is ready.
-   */
   if (room.roomType === "circle" && room.status !== "live") {
     if (
       userId !== room.hostUserId &&
@@ -113,11 +114,11 @@ export async function joinRoomService(userId: string, roomId: string): Promise<J
 
     const activeLobby = await roomParticipantsRepository.isUserRoomParticipant(roomId, userId);
     if (activeLobby) {
-      logger.debug("room_join_skipped_already_participant", { userId, roomId, lobby: true });
+      logger.info("room_join_succeeded", { userId, roomId, rtcEligible: false, skipped: true, lobby: true });
       return joinRoomSuccess(roomId, room, false);
     }
     await ensureCircleRoomParticipation(userId, roomId, room);
-    logger.info("room_join_succeeded", { userId, roomId, roomType: room.roomType, lobby: true });
+    logger.info("room_join_succeeded", { userId, roomId, rtcEligible: false, lobby: true, roomType: room.roomType });
     return joinRoomSuccess(roomId, room, false);
   }
 
@@ -128,19 +129,19 @@ export async function joinRoomService(userId: string, roomId: string): Promise<J
   const active = await roomParticipantsRepository.isUserRoomParticipant(roomId, userId);
 
   if (active) {
-    logger.debug("room_join_skipped_already_participant", { userId, roomId });
+    logger.info("room_join_succeeded", { userId, roomId, rtcEligible: true, skipped: true, roomType: room.roomType });
     return joinRoomSuccess(roomId, room, true);
   }
 
   if (room.roomType === "direct") {
     await ensureDirectRoomParticipation(userId, roomId, room);
-    logger.info("room_join_succeeded", { userId, roomId, roomType: "direct" });
+    logger.info("room_join_succeeded", { userId, roomId, rtcEligible: true, roomType: "direct" });
     return joinRoomSuccess(roomId, room, true);
   }
 
   await ensureCircleRoomParticipation(userId, roomId, room);
   await roomSessionsRepository.refreshLiveCircleExpiryAfterParticipantJoin(roomId);
-  logger.info("room_join_succeeded", { userId, roomId, roomType: "circle" });
+  logger.info("room_join_succeeded", { userId, roomId, rtcEligible: true, roomType: "circle" });
   return joinRoomSuccess(roomId, room, true);
 }
 
@@ -168,7 +169,7 @@ async function ensureDirectRoomParticipation(
   }
 
   const pair = await readMatchPairFromRedis(roomId);
-    if (pair && (pair.userA === userId || pair.userB === userId)) {
+  if (pair && (pair.userA === userId || pair.userB === userId)) {
     if (pair.userA === userId) {
       await roomParticipantsRepository.addOrReactivateHostRow(roomId, userId);
     } else {
@@ -254,5 +255,3 @@ async function readMatchPairFromRedis(
   }
   return { userA, userB };
 }
-
-

@@ -22,6 +22,10 @@ export class UserEventListeners {
     // is an acceptable edge case (user stays in pool slightly longer, matching engine handles it).
     private gracePeriodTimers: Map<string, ReturnType<typeof setTimeout>> = new Map();
 
+    /** Skip redundant match-state restore when many sockets connect in a burst (reconnect / duplicate clients). */
+    private matchStateOnConnectLastAt: Map<string, number> = new Map();
+    private static readonly MATCH_STATE_ON_CONNECT_DEBOUNCE_MS = 5_000;
+
     // LUA SCRIPT THAT RUNS ATOMICALLY IN REDIS — CHECKS IF THE STORED SOCKET ID MATCHES THE DISCONNECTING SOCKET
     // BEFORE DELETING. PREVENTS A RACE CONDITION WHERE A NEW CONNECTION FROM THE SAME IP GETS WRONGLY EVICTED
     // WHEN AN OLD CONNECTION CLOSES. RETURNS 1 IF DELETED, 0 IF SKIPPED.
@@ -101,8 +105,33 @@ export class UserEventListeners {
         logger.info(`[${this.jobName}] Marked user ${userId} online with socket ${socketId} for ip ${ipField}`);
     }
 
+    /** Avoid redundant DB work when multiple sockets connect in a short window. */
+    private shouldSkipMatchStateRestore(userId: string): boolean {
+        const io = getSocket();
+        const socketsForUser = io.sockets.adapter.rooms.get(`user:${userId}`)?.size ?? 0;
+        if (socketsForUser > 1) {
+            logger.debug(`[${this.jobName}] skip match state on connect — user already has sockets`, {
+                userId,
+                socketsForUser,
+            });
+            return true;
+        }
+
+        const now = Date.now();
+        const lastAt = this.matchStateOnConnectLastAt.get(userId) ?? 0;
+        if (now - lastAt < UserEventListeners.MATCH_STATE_ON_CONNECT_DEBOUNCE_MS) {
+            logger.debug(`[${this.jobName}] skip match state on connect — debounced`, { userId });
+            return true;
+        }
+
+        this.matchStateOnConnectLastAt.set(userId, now);
+        return false;
+    }
+
     private async emitMatchStateOnConnect(userId: string): Promise<void> {
         try {
+            if (this.shouldSkipMatchStateRestore(userId)) return;
+
             logger.info(`[${this.jobName}] checking match state on connect`, { userId });
             const state = await getUserMatchStateService(userId);
             logger.info(`[${this.jobName}] match state fetched`, { userId, status: state.status, requestId: state.requestId, roomId: state.roomId });

@@ -1,11 +1,12 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useRef } from 'react';
+import { useCallback, useEffect, useMemo } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useSession } from '@/lib/auth-client';
 import { useSocket } from '@/lib/socket/provider';
 import { useMessages } from '../api/chat.queries';
 import { markOwnMessagesReadInCache } from '../lib/message-cache-sync';
+import { bindChatConversationSocket } from '../lib/chat-conversation-socket-membership';
 import { useChatUiStore } from '../state/chat-ui.store';
 import type {
   ConversationType,
@@ -25,8 +26,6 @@ export function useConversation(
   const { data: session } = useSession();
   const currentUserId = session?.user?.id ?? '';
   const conversationType = opts?.conversationType;
-
-  const hasJoined = useRef(false);
 
   const {
     data,
@@ -65,31 +64,7 @@ export function useConversation(
 
   useEffect(() => {
     if (!socket) return;
-
-    const joinRoom = () => {
-      if (hasJoined.current) return;
-      socket.emit('chat:room:join', conversationId);
-      hasJoined.current = true;
-    };
-
-    const markLeft = () => {
-      hasJoined.current = false;
-    };
-
-    if (socket.connected) {
-      joinRoom();
-    }
-    socket.on('connect', joinRoom);
-    socket.on('disconnect', markLeft);
-
-    return () => {
-      socket.off('connect', joinRoom);
-      socket.off('disconnect', markLeft);
-      if (hasJoined.current) {
-        socket.emit('chat:room:leave', conversationId);
-      }
-      hasJoined.current = false;
-    };
+    return bindChatConversationSocket(socket, conversationId);
   }, [socket, conversationId]);
 
   useEffect(() => {
