@@ -1,3 +1,5 @@
+import { resolveTryPostCallPath } from "@/features/guest-try/lib/try-navigation";
+
 import { consumeRoomReturnPath } from "../session/room-return-path";
 
 type MatchmakingCancel = { handleCancel: () => Promise<unknown> };
@@ -22,6 +24,6 @@ export function navigateAfterCallEnd(
   router: AppRouter,
   fallback = "/home",
 ): void {
-  const path = consumeRoomReturnPath(fallback);
+  const path = resolveTryPostCallPath(consumeRoomReturnPath(fallback), fallback);
   cancelMatchmakingThenNavigate(matchmaking, router, path);
 }

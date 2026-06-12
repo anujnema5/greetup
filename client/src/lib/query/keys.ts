@@ -89,4 +89,9 @@ export const queryKeys = {
     detail: (roomId: string) => ['room', 'detail', roomId] as const,
     embeddedActivities: ['room', 'embedded-activities'] as const,
   },
+  guestTry: {
+    all: ['guest-try'] as const,
+    status: ['guest-try', 'status'] as const,
+    signupContext: ['guest-try', 'signup-context'] as const,
+  },
 } as const;

@@ -5,6 +5,12 @@ export type ErrorCode =
   | "EMAIL_NOT_VERIFIED"
   | "PREMIUM_REQUIRED"
   | "PREMIUM_EXPIRED"
+  | "GUEST_TRIAL_EXHAUSTED"
+  | "GUEST_TRIAL_ALREADY_USED"
+  | "GUEST_RATE_LIMITED"
+  | "GUEST_NOT_ALLOWED"
+  | "GUEST_PROFILE_INCOMPLETE"
+  | "GUEST_SEARCH_RETRY_EXHAUSTED"
   | "CONFLICT"
   | "INTERNAL_ERROR"
   | "SERVICE_UNAVAILABLE";
@@ -77,5 +83,45 @@ export class ConflictError extends AppError {
 export class ServiceUnavailableError extends AppError {
   constructor(message: string = "Service temporarily unavailable") {
     super(message, 503, "SERVICE_UNAVAILABLE");
+  }
+}
+
+export class GuestTrialExhaustedError extends AppError {
+  constructor(message: string = "You've already had your try. Sign up or log in to keep matching.") {
+    super(message, 403, "GUEST_TRIAL_EXHAUSTED");
+  }
+}
+
+export class GuestTrialAlreadyUsedError extends AppError {
+  constructor(message: string = "This device already had a try. Sign up or log in to continue.") {
+    super(message, 403, "GUEST_TRIAL_ALREADY_USED");
+  }
+}
+
+export class GuestRateLimitedError extends AppError {
+  constructor(message: string = "Too many attempts from this network. Try again later or sign up.") {
+    super(message, 429, "GUEST_RATE_LIMITED");
+  }
+}
+
+export class GuestNotAllowedError extends AppError {
+  constructor(message: string = "Sign up or log in to use that feature.") {
+    super(message, 403, "GUEST_NOT_ALLOWED");
+  }
+}
+
+export class GuestProfileIncompleteError extends AppError {
+  constructor(
+    message: string = "Complete your name and matching preferences before searching.",
+  ) {
+    super(message, 400, "GUEST_PROFILE_INCOMPLETE");
+  }
+}
+
+export class GuestSearchRetryExhaustedError extends AppError {
+  constructor(
+    message: string = "You've reached the search limit for now. Sign up or log in to keep matching.",
+  ) {
+    super(message, 403, "GUEST_SEARCH_RETRY_EXHAUSTED");
   }
 }

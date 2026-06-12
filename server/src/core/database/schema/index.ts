@@ -40,3 +40,4 @@ export * from "./notifications";
 export * from "./chat";
 export * from "./prompts";
 export * from "./moderation";
+export * from "./guest-trial";

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
     Form,
@@ -14,11 +14,35 @@ import { Input } from "@/components/ui/input";
 import { Loader2, Eye, EyeOff } from "lucide-react";
 import { useEmailRegister } from "../hooks/use-email-register";
 
-export default function EmailRegisterForm() {
+type EmailRegisterFormProps = {
+    defaultName?: string;
+    emailVerificationCallbackURL?: string;
+    verifyEmailFrom?: string;
+};
+
+export default function EmailRegisterForm({
+    defaultName,
+    emailVerificationCallbackURL,
+    verifyEmailFrom,
+}: EmailRegisterFormProps) {
     const [showPassword, setShowPassword] = useState(false);
     const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
-    const { handleRegisterSubmit, isLoading, registerForm } = useEmailRegister();
+    const { handleRegisterSubmit, isLoading, registerForm } = useEmailRegister({
+        defaultName,
+        emailVerificationCallbackURL,
+        verifyEmailFrom,
+    });
+
+    useEffect(() => {
+        if (!defaultName?.trim()) {
+            return;
+        }
+        const current = registerForm.getValues("name").trim();
+        if (!current) {
+            registerForm.setValue("name", defaultName.trim());
+        }
+    }, [defaultName, registerForm]);
 
     return (
         <Form {...registerForm}>

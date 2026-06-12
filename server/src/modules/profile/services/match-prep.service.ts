@@ -3,6 +3,7 @@ import { eq } from "drizzle-orm";
 import { db } from "@/core/database";
 import { currentStatus, profileInterests, profilePreferences, userLocations } from "@/core/database/schema";
 import logger from "@/core/logging";
+import { getConvertedGuestOnboardingHints } from "@/modules/guest";
 import { refreshProfileSnapshotFromDatabase } from "@/modules/user/services/profile-snapshot-cache.service";
 import { matchPrepSessionRepository } from "../repositories/match-prep-session.repository";
 import { matchPrepStatusRepository } from "../repositories/match-prep-status.repository";
@@ -160,6 +161,11 @@ export async function getMatchPrepPromptStatusService(
   userId: string,
   clientSessionId: string,
 ): Promise<{ shouldShow: boolean }> {
+  const convertedGuestHints = await getConvertedGuestOnboardingHints(userId);
+  if (convertedGuestHints.skipMatchPrepPrompt) {
+    return { shouldShow: false };
+  }
+
   const profileId = await profileSetupRepository.getOrCreateProfile(userId);
   const savedThisTabSession = await matchPrepSessionRepository.hasSavedMatchPrepForClientSession(
     profileId,

@@ -79,3 +79,19 @@ export const CACHE_TTL = {
   LONG: 3600,        // 1 HOUR
   VERY_LONG: 86400,  // 24 HOURS
 } as const;
+
+/** One-time guest call trial — device/IP abuse tracking (see guest-trial.service). */
+export const GUEST_TRIAL_KEYS = {
+  deviceCallTrialConsumed: (deviceHash: string) =>
+    `guest:device:${deviceHash}:consumed`,
+  ipGuestCreateCount: (ipHash: string, utcDate: string) =>
+    `guest:ip:${ipHash}:count:${utcDate}`,
+  guestMatchSearchCount: (guestUserId: string) =>
+    `guest:${guestUserId}:match_search_count`,
+} as const;
+
+/** Device cannot start a new guest session after call trial consumed. */
+export const GUEST_TRIAL_DEVICE_CONSUMED_TTL_SEC = 90 * 24 * 60 * 60;
+
+/** Max new guest sessions per IP per UTC day. */
+export const GUEST_TRIAL_IP_DAILY_CREATE_LIMIT = 3;

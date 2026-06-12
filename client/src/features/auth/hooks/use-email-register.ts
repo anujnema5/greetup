@@ -9,14 +9,20 @@ import { toast } from "sonner";
 import { EmailRegisterInput, emailRegisterSchema } from "../schemas/auth.schemas";
 import { useRouter } from "next/navigation";
 
-export function useEmailRegister() {
+type UseEmailRegisterOptions = {
+    defaultName?: string;
+    emailVerificationCallbackURL?: string;
+    verifyEmailFrom?: string;
+};
+
+export function useEmailRegister(options?: UseEmailRegisterOptions) {
     const [isLoading, setIsLoading] = useState(false);
     const router = useRouter();
 
     const registerForm = useForm<EmailRegisterInput>({
         resolver: zodResolver(emailRegisterSchema),
         defaultValues: {
-            name: "",
+            name: options?.defaultName ?? "",
             email: "",
             password: "",
             confirmPassword: "",
@@ -31,11 +37,14 @@ export function useEmailRegister() {
                 email: userData.email,
                 password: userData.password,
                 name: userData.name,
-                callbackURL: CURRENT_HOST,
+                callbackURL: options?.emailVerificationCallbackURL ?? CURRENT_HOST,
             });
 
             // if (error?.code === 'EMAIL_NOT_VERIFIED') {
-            router.push(`/verify-email?email=${encodeURIComponent(userData?.email)}&from=register`);
+            const verifyFrom = options?.verifyEmailFrom ?? "register";
+            router.push(
+                `/verify-email?email=${encodeURIComponent(userData?.email)}&from=${encodeURIComponent(verifyFrom)}`,
+            );
             // return;
             // }
 
@@ -51,7 +60,7 @@ export function useEmailRegister() {
         } finally {
             setIsLoading(false);
         }
-    }, [router]);
+    }, [options?.emailVerificationCallbackURL, options?.verifyEmailFrom, router]);
 
     return {
         registerForm,

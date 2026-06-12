@@ -80,6 +80,15 @@ export const userProfiles = pgTable("user_profiles", {
   isPremium: boolean("is_premium").default(false),
   premiumExpiresAt: timestamp("premium_expires_at"),
 
+  /** True for ephemeral try-before-signup accounts (one free direct call). */
+  isGuest: boolean("is_guest").default(false).notNull(),
+  /** Set when the guest receives their one RTC token for a direct match call. */
+  guestTrialConsumedAt: timestamp("guest_trial_consumed_at"),
+  /** Set when a guest account is upgraded to a full registered user. */
+  guestConvertedAt: timestamp("guest_converted_at"),
+  guestDeviceHash: text("guest_device_hash"),
+  guestCreatedIpHash: text("guest_created_ip_hash"),
+
   roomInvitePolicy: roomInvitePolicyEnum("room_invite_policy")
     .default("all_connections")
     .notNull(),

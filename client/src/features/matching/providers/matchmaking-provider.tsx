@@ -16,6 +16,7 @@ export type MatchmakingContextValue = Pick<
   | "status"
   | "result"
   | "error"
+  | "errorCode"
   | "handleFindMatch"
   | "handleCancel"
   | "restartSearch"
@@ -46,6 +47,7 @@ export function MatchmakingProvider({ children }: { children: ReactNode }) {
       status: matchFlow.status,
       result: matchFlow.result,
       error: matchFlow.error,
+      errorCode: matchFlow.errorCode,
       handleFindMatch: matchFlow.handleFindMatch,
       handleCancel: matchFlow.handleCancel,
       restartSearch: matchFlow.restartSearch,
@@ -57,6 +59,7 @@ export function MatchmakingProvider({ children }: { children: ReactNode }) {
       matchFlow.status,
       matchFlow.result,
       matchFlow.error,
+      matchFlow.errorCode,
       matchFlow.handleFindMatch,
       matchFlow.handleCancel,
       matchFlow.restartSearch,

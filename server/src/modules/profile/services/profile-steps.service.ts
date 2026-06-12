@@ -3,6 +3,7 @@
  */
 
 import logger from "@/core/logging";
+import { getConvertedGuestOnboardingHints } from "@/modules/guest";
 import type {
   FormStep,
   FormField,
@@ -11,6 +12,9 @@ import type {
 } from "../types";
 import type { ProfileForSteps, StepOptions } from "../repositories/profile-steps.repository";
 import { profileStepsRepository } from "../repositories/profile-steps.repository";
+
+const GUEST_PLACEHOLDER_USERNAME_PREFIX = "guest_";
+const PROFILE_INTERESTS_STEP_TITLE = "Your interests";
 
 /** Default and max step page size */
 export const STEP_PAGE_SIZE_DEFAULT = 6;
@@ -249,6 +253,39 @@ function buildSteps(profile: ProfileForSteps | undefined, options: StepOptions):
 }
 
 /**
+ * Shortened onboarding for converted guests: drop interests step and clear placeholder username.
+ */
+function applyConvertedGuestOnboardingSteps(
+  steps: FormStep[],
+  profile: ProfileForSteps | undefined,
+  skipProfileInterestsStep: boolean,
+  isConvertedGuest: boolean,
+): FormStep[] {
+  let next = steps;
+
+  if (skipProfileInterestsStep) {
+    next = next
+      .filter((step) => step.title !== PROFILE_INTERESTS_STEP_TITLE)
+      .map((step, index) => ({ ...step, step: index + 1 }));
+  }
+
+  const username = profile?.user?.username?.trim();
+  if (
+    isConvertedGuest &&
+    username?.toLowerCase().startsWith(GUEST_PLACEHOLDER_USERNAME_PREFIX)
+  ) {
+    next = next.map((step) => ({
+      ...step,
+      fields: step.fields.map((field) =>
+        field.key === "username" ? { ...field, value: null } : field,
+      ),
+    }));
+  }
+
+  return next;
+}
+
+/**
  * Calculate profile completion from all fields in all steps (0–100).
  * Counts every question, not just required ones.
  * Optional steps (e.g. prompt Q&A) are excluded so new questions cannot push users below the onboarded threshold.
@@ -289,12 +326,18 @@ export async function fetchProfileStepsService(
     STEP_PAGE_SIZE_MAX
   );
 
-  const [profile, options] = await Promise.all([
+  const [profile, options, onboardingHints] = await Promise.all([
     profileStepsRepository.getProfileForSteps(userId),
     profileStepsRepository.fetchStepOptions(),
+    getConvertedGuestOnboardingHints(userId),
   ]);
 
-  const allSteps = buildSteps(profile, options);
+  const allSteps = applyConvertedGuestOnboardingSteps(
+    buildSteps(profile, options),
+    profile,
+    onboardingHints.skipProfileInterestsStep,
+    onboardingHints.isConvertedGuest,
+  );
   const totalSteps = allSteps.length;
   const totalPages = Math.ceil(totalSteps / safeLimit);
   const start = (safePage - 1) * safeLimit;
@@ -317,10 +360,19 @@ export async function fetchProfileStepsService(
     stepsReturned: steps.length,
   });
 
+  const shortenedOnboarding = onboardingHints.isConvertedGuest
+    ? {
+        active: true,
+        matchPrepComplete: onboardingHints.matchPrepComplete,
+        skippedInterestsStep: onboardingHints.skipProfileInterestsStep,
+      }
+    : undefined;
+
   return {
     steps,
     profileCompletion,
     isProfileComplete,
+    shortenedOnboarding,
     meta: {
       page: safePage,
       limit: safeLimit,

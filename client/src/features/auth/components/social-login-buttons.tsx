@@ -2,11 +2,16 @@ import { Button } from "@/components/ui/button";
 import { authClient } from "@/lib/auth-client";
 import { CURRENT_HOST } from "@/shared/constants";
 
-export default function SocialLoginButtons() {
+type SocialLoginButtonsProps = {
+  callbackURL?: string;
+};
+
+export default function SocialLoginButtons({ callbackURL }: SocialLoginButtonsProps) {
   const handleGoogleAuth = () => {
+    const fallback = typeof window !== "undefined" ? window.location.origin : CURRENT_HOST;
     authClient.signIn.social({
       provider: "google",
-      callbackURL: typeof window !== "undefined" ? window.location.origin : CURRENT_HOST,
+      callbackURL: callbackURL ?? fallback,
     });
   };
 

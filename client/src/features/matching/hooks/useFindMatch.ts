@@ -6,6 +6,7 @@ import {
   useCancelMatchMutation,
   useRespondMatchProposalMutation,
 } from '../api/matching.mutations';
+import { getApiErrorCode, getApiErrorMessage } from '@/lib/api';
 import { useSocket } from '@/lib/socket';
 import {
   messageForFailedStart,
@@ -40,6 +41,7 @@ export function useFindMatch() {
   const [status, setStatus] = useState<MatchStatus>('idle');
   const [result, setResult] = useState<MatchResult | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [errorCode, setErrorCode] = useState<string | null>(null);
   const [respondBusy, setRespondBusy] = useState(false);
   /** True after our Connect succeeded until `match:completed` or proposal ends. */
   const [waitingForPeerConnect, setWaitingForPeerConnect] = useState(false);
@@ -88,6 +90,7 @@ export function useFindMatch() {
         setStatus('searching');
         setResult(null);
         setError(null);
+        setErrorCode(null);
         setWaitingForPeerConnect(false);
 
         const res = await findMatch();
@@ -118,9 +121,10 @@ export function useFindMatch() {
             isFallbackMatch,
           });
         }
-      } catch {
+      } catch (err) {
         setStatus('error');
-        setError('Failed to start matchmaking');
+        setErrorCode(getApiErrorCode(err));
+        setError(getApiErrorMessage(err, 'Failed to start matchmaking'));
       }
     });
   }, [findMatch]);
@@ -204,6 +208,7 @@ export function useFindMatch() {
       setWaitingForPeerConnect(false);
       setResult(null);
       setError(null);
+      setErrorCode(null);
 
       if (data.reason === 'you_skipped' || data.reason === 'peer_skipped') {
         void findAMatchRef.current();
@@ -245,6 +250,7 @@ export function useFindMatch() {
     setStatus('idle');
     setResult(null);
     setError(null);
+    setErrorCode(null);
   };
 
   const respondToProposal = useCallback(
@@ -263,8 +269,14 @@ export function useFindMatch() {
         if (decision === 'connect') {
           setWaitingForPeerConnect(true);
         }
-      } catch {
-        setError(decision === 'connect' ? 'Could not connect. Try again.' : 'Could not skip. Try again.');
+      } catch (err) {
+        setErrorCode(getApiErrorCode(err));
+        setError(
+          getApiErrorMessage(
+            err,
+            decision === 'connect' ? 'Could not connect. Try again.' : 'Could not skip. Try again.',
+          ),
+        );
         if (decision === 'connect') {
           setWaitingForPeerConnect(false);
         }
@@ -282,6 +294,7 @@ export function useFindMatch() {
     status,
     result,
     error,
+    errorCode,
     isSearching: status === 'searching',
     isProposed: status === 'proposed',
     isLoading: isStarting || status === 'searching' || respondBusy,

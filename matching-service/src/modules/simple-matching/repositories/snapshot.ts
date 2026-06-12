@@ -90,6 +90,7 @@ const parseSnapshot = (raw: JsonRecord, fallbackUserId: string): SnapshotUserPro
     parseDateToMs(raw.createdAt) ??
     Date.now();
   const version = toNumberOrNull(raw.version) ?? 1;
+  const isGuest = raw.isGuest === true;
 
   return {
     userId,
@@ -122,6 +123,7 @@ const parseSnapshot = (raw: JsonRecord, fallbackUserId: string): SnapshotUserPro
       sessionMoodIds: prep.moodIds,
       sessionLookingForIds: prep.lookingForIds,
       connectionPreference: prep.connectionPreference,
+      isGuest,
     },
   };
 };

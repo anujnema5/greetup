@@ -163,6 +163,9 @@ export const handleFetchProfileSteps = async (c: Context) => {
           steps: result.steps,
           profileCompletion: result.profileCompletion,
           isProfileComplete: result.isProfileComplete,
+          ...(result.shortenedOnboarding
+            ? { shortenedOnboarding: result.shortenedOnboarding }
+            : {}),
         },
         "Steps retrieved successfully",
         200,

@@ -39,6 +39,14 @@ export const roomParticipantsRepository = {
     });
   },
 
+  async listParticipantUserIds(roomId: string): Promise<string[]> {
+    const rows = await db
+      .select({ userId: roomParticipants.userId })
+      .from(roomParticipants)
+      .where(eq(roomParticipants.roomId, roomId));
+    return rows.map((row) => row.userId);
+  },
+
   /** Count of active (non-left) participants in a room. */
   async countActiveParticipants(roomId: string): Promise<number> {
     const [row] = await db

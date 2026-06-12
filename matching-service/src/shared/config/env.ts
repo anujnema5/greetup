@@ -33,4 +33,11 @@ export const env = {
   internalApiKey: process.env.INTERNAL_API_KEY ?? "",
   stressBaseUrl: process.env.STRESS_BASE_URL ?? "http://localhost:8000",
   stressTestDurationSeconds: getNumberEnv(process.env.STRESS_TEST_DURATION_SECONDS, 60),
+  /**
+   * `guest_and_registered` (launch): guests match anyone searching.
+   * `guest_only`: guests match guests only; registered never see guests.
+   */
+  guestMatchPool: (process.env.GUEST_MATCH_POOL?.trim() === "guest_only"
+    ? "guest_only"
+    : "guest_and_registered") as "guest_only" | "guest_and_registered",
 };
