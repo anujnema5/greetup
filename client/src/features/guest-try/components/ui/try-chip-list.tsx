@@ -11,7 +11,7 @@ type TryChipListProps = {
 
 export function TryChipList({ rows, selected, onToggle }: TryChipListProps) {
   return (
-    <div className="flex flex-wrap gap-2.5 sm:gap-3">
+    <div className="flex flex-wrap gap-2">
       {rows.map((row) => {
         const isSelected = selected.has(row.id);
 
@@ -22,9 +22,9 @@ export function TryChipList({ rows, selected, onToggle }: TryChipListProps) {
             onClick={() => onToggle(row.id)}
             title={row.description ?? undefined}
             className={cn(
-              "rounded-full border px-4 py-2.5 text-sm font-medium transition-all sm:px-5 sm:py-3 sm:text-[0.95rem]",
+              "rounded-full border px-3 py-1.5 text-xs font-medium transition-all sm:text-[13px]",
               isSelected
-                ? "border-primary bg-primary text-primary-foreground shadow-md shadow-primary/25"
+                ? "border-primary bg-primary text-primary-foreground shadow-sm shadow-primary/20"
                 : "border-white/10 bg-white/4 text-foreground hover:border-white/20 hover:bg-white/8",
             )}
           >

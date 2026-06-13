@@ -15,11 +15,11 @@ export function TrySection({ label, children, className, hint }: TrySectionProps
   return (
     <section
       className={cn(
-        "rounded-xl border border-white/5 bg-white/[0.02] p-4 sm:p-5",
+        "rounded-xl border border-white/5 bg-white/[0.02] p-3.5 sm:p-4",
         className,
       )}
     >
-      <p className="mb-3 text-xs font-medium uppercase tracking-wider text-muted-foreground">
+      <p className="mb-2.5 text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
         {label}
       </p>
       {children}

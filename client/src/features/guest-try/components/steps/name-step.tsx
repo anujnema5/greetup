@@ -9,12 +9,11 @@ import { Input } from "@/components/ui/input";
 import { ApiError, getApiErrorMessage } from "@/lib/api";
 import { GUEST_TRIAL_NAME, GUEST_TRIAL_NAV } from "@/lib/copy/user-messages";
 
-import { TryBackButton, type TryBackTarget } from "./try-back-button";
-import { TryContinueButton } from "./try-continue-button";
-import { TryStepActions } from "./try-step-actions";
-import { TryStepFrame } from "./try-step-frame";
-import { useSaveTryName } from "../hooks/use-save-try-name";
-import { tryNameSchema, type TryNameInput } from "../schemas/try-name.schema";
+import type { TryBackTarget } from "../../types/guest-try.types";
+import { TryContinueButton } from "../ui/try-continue-button";
+import { TryStepFrame } from "../layout/try-step-frame";
+import { useSaveTryName } from "../../hooks/use-save-try-name";
+import { tryNameSchema, type TryNameInput } from "../../schemas/try-name.schema";
 
 type NameStepProps = {
   initialDisplayName?: string | null;
@@ -78,21 +77,16 @@ export function NameStep({ initialDisplayName, back, onForward }: NameStepProps)
       : undefined;
 
   const footer = (
-    <TryStepActions
-      primary={
-        <TryContinueButton type="submit" form="guest-name-form" disabled={isPending}>
-          {isPending ? (
-            <>
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              {GUEST_TRIAL_NAME.saving}
-            </>
-          ) : (
-            GUEST_TRIAL_NAV.continue
-          )}
-        </TryContinueButton>
-      }
-      secondary={back ? <TryBackButton back={back} /> : undefined}
-    />
+    <TryContinueButton type="submit" form="guest-name-form" fullWidth disabled={isPending}>
+      {isPending ? (
+        <>
+          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+          {GUEST_TRIAL_NAME.saving}
+        </>
+      ) : (
+        GUEST_TRIAL_NAV.continue
+      )}
+    </TryContinueButton>
   );
 
   return (
@@ -100,6 +94,7 @@ export function NameStep({ initialDisplayName, back, onForward }: NameStepProps)
       title={GUEST_TRIAL_NAME.title}
       description={GUEST_TRIAL_NAME.description}
       footer={footer}
+      back={back}
       width="narrow"
     >
       <Form {...form}>
@@ -116,7 +111,7 @@ export function NameStep({ initialDisplayName, back, onForward }: NameStepProps)
                     placeholder={GUEST_TRIAL_NAME.fieldPlaceholder}
                     maxLength={30}
                     disabled={isPending}
-                    className="h-10 rounded-lg bg-white/[0.03]"
+                    className="h-11 rounded-xl border-white/10 bg-white/[0.03] text-base"
                   />
                 </FormControl>
                 <FormMessage />
