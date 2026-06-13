@@ -10,6 +10,7 @@ import RegisterToggleButtons from "@/features/auth/components/register-toggle-bu
 import OTPVerification from "@/features/auth/components/otp-verification-form";
 import EmailRegisterForm from "@/features/auth/components/email-register-form";
 import AuthPageLayout from "@/features/auth/components/auth-page-layout";
+import { AuthGuestContinueButton } from "@/features/auth/components/auth-guest-continue-button";
 import PhoneRegisterForm from "@/features/auth/components/phone-register-form";
 import { GuestRegisterMergeBanner } from "@/features/auth/components/guest-register-merge-banner";
 import {
@@ -132,6 +133,8 @@ function RegisterPageContent() {
         </div>
 
         {renderForm()}
+
+        {view !== "otp" ? <AuthGuestContinueButton /> : null}
       </AuthPageLayout>
     </FirebasePhoneAuthProvider>
   );

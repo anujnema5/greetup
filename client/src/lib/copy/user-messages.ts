@@ -156,6 +156,10 @@ export const GUEST_TRIAL_API_ERRORS = {
     "You've reached the search limit for now. Sign up or log in to keep matching.",
 } as const;
 
+export const AUTH_PAGES = {
+  continueAsGuest: "Continue as guest",
+} as const;
+
 export const GUEST_TRIAL_NAV = {
   goBack: "Go back",
   goBackHome: "Back to home",

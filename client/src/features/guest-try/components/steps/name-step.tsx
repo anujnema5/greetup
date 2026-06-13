@@ -80,7 +80,7 @@ export function NameStep({ initialDisplayName, back, onForward }: NameStepProps)
     <TryContinueButton type="submit" form="guest-name-form" fullWidth disabled={isPending}>
       {isPending ? (
         <>
-          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+          <Loader2 className="size-4 shrink-0 animate-spin" aria-hidden />
           {GUEST_TRIAL_NAME.saving}
         </>
       ) : (
