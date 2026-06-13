@@ -1,5 +1,6 @@
-import { io, type Socket } from 'socket.io-client';
+import { io } from 'socket.io-client';
 import { SOCKET_SERVER_URL } from '@/shared/constants/environments';
+import type { AppSocketPair } from './socket-instances.types';
 
 /** Shared Socket.IO client options for the main and /chat namespaces. */
 const SOCKET_CLIENT_OPTIONS = {
@@ -11,11 +12,6 @@ const SOCKET_CLIENT_OPTIONS = {
   withCredentials: true,
   forceNew: false,
 } as const;
-
-type AppSocketPair = {
-  main: Socket;
-  chat: Socket;
-};
 
 let pair: AppSocketPair | null = null;
 

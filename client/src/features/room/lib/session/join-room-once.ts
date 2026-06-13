@@ -1,4 +1,5 @@
 import type { JoinRoomResponse } from '@/features/room/types/api/room-api.types';
+import type { JoinRoomOnceFn } from '@/features/room/types/session/join-room-once.types';
 
 /**
  * Collapses duplicate POST `/room/:id/join` calls for the same roomId
@@ -7,10 +8,7 @@ import type { JoinRoomResponse } from '@/features/room/types/api/room-api.types'
 
 const inflightByRoomId = new Map<string, Promise<JoinRoomResponse>>();
 
-export function joinRoomOnce(
-  roomId: string,
-  run: () => Promise<JoinRoomResponse>,
-): Promise<JoinRoomResponse> {
+export const joinRoomOnce: JoinRoomOnceFn = (roomId, run) => {
   const existing = inflightByRoomId.get(roomId);
   if (existing) return existing;
 
@@ -21,4 +19,4 @@ export function joinRoomOnce(
   });
   inflightByRoomId.set(roomId, promise);
   return promise;
-}
+};

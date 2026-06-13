@@ -28,7 +28,7 @@ export const SocketProvider = ({ children }: { children: React.ReactNode }) => {
 
     // Auth is cookie-based — sockets are created once per tab, not on every session re-render.
     const { socket, chatSocket } = useMemo(() => {
-    const { main, chat } = getAppSocketPair(
+        const { main, chat } = getAppSocketPair(
             getOrCreateDeviceId(),
             Intl.DateTimeFormat().resolvedOptions().timeZone,
         );

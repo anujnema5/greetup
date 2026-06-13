@@ -112,6 +112,7 @@ Connect GitHub repo to project `greetup-production-498717`. Create one trigger p
 - `_NEXT_PUBLIC_RTC_SOCKET_URL` = `https://rtc.greetup.co`
 - `_NEXT_PUBLIC_APP_URL` = `https://greetup.co`
 - `_NEXT_PUBLIC_FIREBASE_*` = Firebase Web app config
+- `_NEXT_PUBLIC_GA_MEASUREMENT_ID` = Google Analytics 4 measurement ID (e.g. `G-CK6WRFYXTS`)
 
 ## Cloud Run runtime config
 

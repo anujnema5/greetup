@@ -1,7 +1,5 @@
 import type { Metadata } from "next";
-import { MarketingPageShell } from "@/components/marketing/marketing-page-shell";
-import { MarketingSections } from "@/components/marketing/marketing-sections";
-import { COMMUNITY_GUIDELINES_CONTENT } from "@/lib/copy/marketing-pages";
+import { MarketingPageShell, MarketingSections } from "@/features/marketing";import { COMMUNITY_GUIDELINES_CONTENT } from "@/lib/copy/marketing-pages";
 import { buildPageMetadata } from "@/lib/site";
 
 export const metadata: Metadata = buildPageMetadata({

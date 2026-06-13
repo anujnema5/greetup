@@ -1,4 +1,7 @@
-import type { Socket } from 'socket.io-client';
+import type {
+  BindChatConversationSocket,
+  ChatConversationLeaveTimer,
+} from '../types/chat-conversation-socket.types';
 
 /**
  * One `chat:room:join` per conversation per browser tab.
@@ -6,14 +9,14 @@ import type { Socket } from 'socket.io-client';
  */
 
 const joinedInTab = new Set<string>();
-const pendingLeaveTimers = new Map<string, ReturnType<typeof setTimeout>>();
+const pendingLeaveTimers = new Map<string, ChatConversationLeaveTimer>();
 
 const LEAVE_DEFER_MS = 100;
 
-export function bindChatConversationSocket(
-  socket: Socket,
-  conversationId: string,
-): () => void {
+export const bindChatConversationSocket: BindChatConversationSocket = (
+  socket,
+  conversationId,
+) => {
   const pendingLeave = pendingLeaveTimers.get(conversationId);
   if (pendingLeave) {
     clearTimeout(pendingLeave);
@@ -48,4 +51,4 @@ export function bindChatConversationSocket(
     }, LEAVE_DEFER_MS);
     pendingLeaveTimers.set(conversationId, timer);
   };
-}
+};

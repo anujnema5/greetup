@@ -28,7 +28,6 @@ import { Separator } from "@/components/ui/separator";
 import {
   Zap,
   Users,
-  Gamepad2,
   MessageCircle,
   ArrowRight,
   ChevronRight,
@@ -123,9 +122,9 @@ const FEATURES = [
     iconClass: "text-violet-400 bg-violet-400/10 border-violet-400/20",
   },
   {
-    icon: Gamepad2,
-    label: "Activities Together (Coming soon)",
-    desc: "Do activities together like chess, Watch Together (YouTube), draw together, study together, debate, truth or dare, music rooms, and live polls.",
+    icon: ShieldCheck,
+    label: "Safe & Secure",
+    desc: "AI checks video for NSFW content, we moderate actively, and the community is full of people who actually want to connect.",
     tint: "from-emerald-400/15 to-transparent",
     iconClass: "text-emerald-400 bg-emerald-400/10 border-emerald-400/20",
   },
@@ -176,17 +175,17 @@ const STEPS = [
 
 const BETA_HIGHLIGHTS = [
   { value: "Beta", label: "Early access" },
-  { value: "Free", label: "To join" },
+  { value: "Safe", label: "NSFW protected" },
   { value: "1:1", label: "Match & video" },
   { value: "Live", label: "Circles & chat" },
 ];
 
 const TRUST = [
-  { icon: Shield,      label: "Privacy first"       },
-  { icon: Globe,       label: "Nearby or global"     },
+  { icon: ShieldCheck, label: "NSFW protected"      },
+  { icon: Shield,      label: "Secure by design"    },
+  { icon: Users,       label: "Real people"         },
   { icon: Zap,         label: "Real-time matching"  },
-  { icon: Users,       label: "Early community"     },
-  { icon: ShieldCheck, label: "Safe & inclusive"    },
+  { icon: Globe,       label: "Nearby or global"    },
 ];
 
 const CIRCLE_ACTIVITY_CHIPS: ReadonlyArray<{ label: string; comingSoon?: boolean }> = [
@@ -412,8 +411,9 @@ function HeroBackdrop() {
 }
 
 const HERO_SIGNALS = [
-  { icon: Users, label: "1:1 matching" },
-  { icon: Globe, label: "Nearby or global" },
+  { icon: ShieldCheck, label: "NSFW protected" },
+  { icon: Shield, label: "Secure calls" },
+  { icon: Users, label: "Real people" },
   { icon: MessageCircle, label: "Chat & video" },
 ] as const;
 
@@ -679,7 +679,7 @@ function LandingPageInner() {
             </motion.div>
 
             <motion.h1 variants={fadeUp} className="text-[1.95rem] leading-[1.1] sm:text-[2.85rem] lg:text-[3.75rem] xl:text-[4.15rem] font-semibold tracking-[-0.025em] mb-4 sm:mb-6">
-              Directly <span className="text-[oklch(88%_0.11_105)]">connect</span>
+              Instantly <span className="text-[oklch(88%_0.11_105)]">connect</span>
               <span className="mt-1 sm:mt-1.5 block text-white/92">
                 with the people you want.
               </span>
@@ -692,7 +692,7 @@ function LandingPageInner() {
             </motion.h1>
 
             <motion.p variants={fadeUp} className="text-[13px] leading-[1.55] sm:text-[1.05rem] sm:leading-relaxed text-white/42 max-w-[18rem] sm:max-w-lg mx-auto lg:mx-0 mb-4 sm:mb-7">
-              Match by job, location, or what you&apos;re looking for, then start talking instantly.
+              Find people by job, city, or what you&apos;re into — then start talking. Safe, moderated, and NSFW-free.
             </motion.p>
 
             <motion.div variants={fadeUp} className="mb-7 sm:mb-9 flex flex-wrap justify-center lg:justify-start gap-x-5 sm:gap-x-6 gap-y-2">
@@ -834,15 +834,16 @@ function LandingPageInner() {
             <div className="min-w-0">
               <p className="text-sm font-semibold text-white">A space you can actually feel comfortable in</p>
               <p className="text-xs text-white/45 mt-0.5 max-w-lg">
-                Greetup is moderated, NSFW-free, and built for genuine connection. Every interaction is covered by community guidelines that keep things respectful.
+                We scan video for NSFW content, keep calls secure, and enforce community guidelines — so you can focus on
+                the conversation, not worrying about who&apos;s on the other side.
               </p>
             </div>
           </div>
           <div className="flex flex-wrap items-center gap-x-4 gap-y-2 w-full sm:w-auto">
             {[
-              { icon: ShieldCheck, label: "Content moderated" },
-              { icon: Users,       label: "No anonymous abuse" },
-              { icon: Shield,      label: "Strict guidelines"  },
+              { icon: ShieldCheck, label: "NSFW detection" },
+              { icon: Shield,      label: "Secure calls" },
+              { icon: Users,       label: "Real community"  },
             ].map(({ icon: Icon, label }) => (
               <div key={label} className="flex items-center gap-1.5 text-xs text-white/40">
                 <Icon className="size-3.5 text-[oklch(88%_0.11_105/0.6)]" />
