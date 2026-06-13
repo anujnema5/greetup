@@ -1,7 +1,12 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import dynamic from "next/dynamic";
+import { useReducedMotion } from "framer-motion";
 import { cn } from "@/lib/utils";
+
+/** Hold the matched "Live" snapshot before the story loop begins. */
+const MATCH_DEMO_PREVIEW_MS = 2600;
 
 const HeroMatchDemo = dynamic(
   () => import("./hero-match-demo").then((m) => m.HeroMatchDemo),
@@ -17,6 +22,17 @@ const HeroMatchDemo = dynamic(
 );
 
 export function LandingHeroVisual() {
+  const reduceMotion = Boolean(useReducedMotion());
+  const [loopActive, setLoopActive] = useState(false);
+
+  useEffect(() => {
+    if (reduceMotion) return;
+    const id = window.setTimeout(() => setLoopActive(true), MATCH_DEMO_PREVIEW_MS);
+    return () => window.clearTimeout(id);
+  }, [reduceMotion]);
+
+  const lite = reduceMotion || !loopActive;
+
   return (
     <div
       className={cn(
@@ -29,7 +45,7 @@ export function LandingHeroVisual() {
         aria-hidden
       />
       <div className="relative rounded-[1.35rem] border border-white/6 bg-[oklch(13%_0.012_110/0.55)] p-2 sm:p-2.5 md:backdrop-blur-sm">
-        <HeroMatchDemo lite />
+        <HeroMatchDemo lite={lite} />
       </div>
     </div>
   );

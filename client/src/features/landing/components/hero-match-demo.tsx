@@ -168,7 +168,28 @@ function EmptySlot({ scanning, lite }: { scanning: boolean; lite: boolean }) {
   );
 }
 
-function Connector({ active, lite }: { active: boolean; lite: boolean }) {
+function Connector({
+  active,
+  lite,
+  scanning,
+}: {
+  active: boolean;
+  lite: boolean;
+  scanning?: boolean;
+}) {
+  if (scanning && !lite) {
+    return (
+      <div className="relative flex w-7 shrink-0 items-center self-center">
+        <div className="h-px w-full bg-white/8" />
+        <motion.div
+          className="absolute left-1/2 size-1.5 -translate-x-1/2 rounded-full bg-[oklch(88%_0.11_105)] shadow-[0_0_8px_oklch(88%_0.11_105/0.55)]"
+          animate={{ x: [-9, 9, -9] }}
+          transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }}
+        />
+      </div>
+    );
+  }
+
   return (
     <div className="flex w-7 shrink-0 items-center self-center">
       <div className="h-px flex-1 bg-white/8" />
@@ -248,7 +269,7 @@ export function HeroMatchDemo({ lite }: { lite: boolean }) {
               </motion.div>
             </AnimatePresence>
 
-            <Connector active={connectorActive} lite={lite} />
+            <Connector active={connectorActive} lite={lite} scanning={scanning} />
 
             <AnimatePresence mode="wait">
               {peerVisible ? (
