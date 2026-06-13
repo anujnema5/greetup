@@ -54,7 +54,10 @@ export function TryStepper({
 
   if (variant === "badge") {
     return (
-      <p className={cn("shrink-0 text-sm text-muted-foreground", className)}>
+      <p
+        className={cn("shrink-0 text-sm text-muted-foreground", className)}
+        aria-label={`Step ${activeIndex + 1} of ${STEPS.length}`}
+      >
         Step {activeIndex + 1} of {STEPS.length}
       </p>
     );
@@ -72,6 +75,7 @@ export function TryStepper({
               className="h-full rounded-full bg-primary transition-all duration-300 ease-out"
               style={{ width: `${progress}%` }}
               role="progressbar"
+              aria-label="Setup progress"
               aria-valuenow={activeIndex + 1}
               aria-valuemin={1}
               aria-valuemax={STEPS.length}
@@ -119,6 +123,7 @@ export function TryStepper({
                   <button
                     type="button"
                     onClick={() => handleSelect(step.key)}
+                    aria-label={`Go to ${step.label}`}
                     className={cn(
                       "flex w-full items-center gap-2.5 rounded-lg border px-3 py-2 text-left transition-colors",
                       "border-white/6 bg-white/[0.02] hover:border-primary/25 hover:bg-primary/5",
@@ -160,6 +165,7 @@ export function TryStepper({
           className="h-full rounded-full bg-primary transition-all duration-300 ease-out"
           style={{ width: `${progress}%` }}
           role="progressbar"
+          aria-label="Setup progress"
           aria-valuenow={activeIndex + 1}
           aria-valuemin={1}
           aria-valuemax={STEPS.length}
@@ -178,6 +184,7 @@ export function TryStepper({
                 <button
                   type="button"
                   onClick={() => handleSelect(step.key)}
+                  aria-label={`Go to ${step.label}`}
                   className={cn(
                     "w-full truncate rounded-md px-1 py-1 text-center text-xs font-medium transition-colors sm:text-sm",
                     "text-muted-foreground hover:bg-white/6 hover:text-foreground",

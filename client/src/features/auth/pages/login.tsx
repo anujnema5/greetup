@@ -3,7 +3,6 @@
 import { Suspense, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Loader2 } from "lucide-react";
-import { Separator } from "@/components/ui/separator";
 
 import PhoneLoginForm from "@/features/auth/components/phone-login-form";
 import SocialLoginButtons from "@/features/auth/components/social-login-buttons";
@@ -11,6 +10,7 @@ import LoginToggleButtons from "@/features/auth/components/login-toggle-buttons"
 import OTPVerification from "@/features/auth/components/otp-verification-form";
 import EmailLoginForm from "@/features/auth/components/email-login-form";
 import AuthPageLayout from "@/features/auth/components/auth-page-layout";
+import { AuthFormDivider } from "@/features/auth/components/auth-form-divider";
 import { AuthGuestContinueButton } from "@/features/auth/components/auth-guest-continue-button";
 import { FirebasePhoneAuthProvider } from "@/features/auth/context/firebase-phone-auth-context";
 
@@ -78,14 +78,7 @@ function LoginPageContent() {
           />
         )}
 
-        <div className="relative">
-          <div className="absolute inset-0 flex items-center">
-            <Separator />
-          </div>
-          <div className="relative flex justify-center text-xs uppercase">
-            <span className="bg-background px-2 text-muted-foreground">Or continue with</span>
-          </div>
-        </div>
+        <AuthFormDivider label="Or continue with" />
 
         {renderForm()}
 

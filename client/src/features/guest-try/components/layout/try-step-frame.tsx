@@ -45,9 +45,9 @@ export function TryStepFrame({
       )}
     >
       {back ? (
-        <div className="mb-4 sm:mb-5">
+        <nav aria-label="Step navigation" className="mb-4 sm:mb-5">
           <TryBackButton back={back} appearance="link" label={backLabel} className="-ml-1 w-fit px-1" />
-        </div>
+        </nav>
       ) : null}
 
       {title || description || Icon ? (

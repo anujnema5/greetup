@@ -3,13 +3,13 @@
 import { Suspense, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Loader2 } from "lucide-react";
-import { Separator } from "@/components/ui/separator";
 
 import SocialLoginButtons from "@/features/auth/components/social-login-buttons";
 import RegisterToggleButtons from "@/features/auth/components/register-toggle-buttons";
 import OTPVerification from "@/features/auth/components/otp-verification-form";
 import EmailRegisterForm from "@/features/auth/components/email-register-form";
 import AuthPageLayout from "@/features/auth/components/auth-page-layout";
+import { AuthFormDivider } from "@/features/auth/components/auth-form-divider";
 import { AuthGuestContinueButton } from "@/features/auth/components/auth-guest-continue-button";
 import PhoneRegisterForm from "@/features/auth/components/phone-register-form";
 import { GuestRegisterMergeBanner } from "@/features/auth/components/guest-register-merge-banner";
@@ -123,14 +123,7 @@ function RegisterPageContent() {
           />
         )}
 
-        <div className="relative">
-          <div className="absolute inset-0 flex items-center">
-            <Separator />
-          </div>
-          <div className="relative flex justify-center text-xs uppercase">
-            <span className="bg-background px-2 text-muted-foreground">Or continue with</span>
-          </div>
-        </div>
+        <AuthFormDivider label="Or continue with" />
 
         {renderForm()}
 

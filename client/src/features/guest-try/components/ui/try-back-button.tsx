@@ -45,6 +45,7 @@ export function TryBackButton({
   if (appearance === "link") {
     const linkClass = cn(
       "inline-flex items-center justify-center gap-1.5 rounded-xl px-3 py-2.5 text-sm font-medium text-white/42",
+      "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2 focus-visible:ring-offset-background",
       fullWidth && "w-full",
       className,
     );
