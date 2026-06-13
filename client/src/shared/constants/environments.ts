@@ -26,6 +26,22 @@ export const API_BASE_URL = apiRoot
     : `${apiRoot}/api`
   : `${CURRENT_HOST}/api`;
 
+/** Origin for API preconnect (subdomain in production). */
+export const API_ORIGIN = (() => {
+  if (apiRoot) {
+    try {
+      const normalized = apiRoot.replace(/\/api\/?$/, "");
+      return trim(new URL(normalized).origin);
+    } catch {
+      /* fall through */
+    }
+  }
+  if (process.env.NODE_ENV === "production") {
+    return `https://api.${SITE_DOMAIN}`;
+  }
+  return CURRENT_HOST;
+})();
+
 export const RTC_SOCKET_URL =
   process.env.NEXT_PUBLIC_RTC_SOCKET_URL ?? "http://localhost:5370";
 
