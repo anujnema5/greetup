@@ -5,21 +5,21 @@ import { ThemeToggle } from "@/components/theme-toggle";
 import { Separator } from "@/components/ui/separator";
 
 interface AuthPageLayoutProps {
-    children: ReactNode;
-    title: string;
-    subtitle: string;
-    footerText: string;
-    footerLinkText: string;
-    onFooterLinkClick: () => void;
+  children: ReactNode;
+  title: string;
+  subtitle: string;
+  footerText: string;
+  footerLinkText: string;
+  onFooterLinkClick: () => void;
 }
 
 export default function AuthPageLayout({
-    children,
-    title,
-    subtitle,
-    footerText,
-    footerLinkText,
-    onFooterLinkClick,
+  children,
+  title,
+  subtitle,
+  footerText,
+  footerLinkText,
+  onFooterLinkClick,
 }: AuthPageLayoutProps) {
     return (
         <div className="min-h-screen flex w-full items-center justify-center bg-linear-to-br from-background via-background to-muted/20 relative">

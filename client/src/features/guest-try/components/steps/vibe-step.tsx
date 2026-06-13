@@ -97,7 +97,7 @@ export function VibeStep({ draft, onDraftChange, back, onForward }: VibeStepProp
       >
         {isSaving ? (
           <>
-            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            <Loader2 className="size-4 shrink-0 animate-spin" aria-hidden />
             {GUEST_TRIAL_PREFS.saving}
           </>
         ) : (
@@ -118,7 +118,7 @@ export function VibeStep({ draft, onDraftChange, back, onForward }: VibeStepProp
     >
       <div className="space-y-6 lg:space-y-8">
         {isLoadingPrefs && (
-          <div className="flex items-center justify-center gap-2 py-16 text-sm text-muted-foreground sm:py-24">
+          <div className="flex items-center justify-center gap-1.5 py-16 text-sm text-muted-foreground sm:py-24">
             <Loader2 className="size-4 shrink-0 animate-spin" aria-hidden />
             {GUEST_TRIAL_PREFS.loading}
           </div>

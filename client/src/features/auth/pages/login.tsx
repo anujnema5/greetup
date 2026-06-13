@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { Suspense, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { Loader2 } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 
 import PhoneLoginForm from "@/features/auth/components/phone-login-form";
@@ -10,14 +11,17 @@ import LoginToggleButtons from "@/features/auth/components/login-toggle-buttons"
 import OTPVerification from "@/features/auth/components/otp-verification-form";
 import EmailLoginForm from "@/features/auth/components/email-login-form";
 import AuthPageLayout from "@/features/auth/components/auth-page-layout";
+import { AuthGuestContinueButton } from "@/features/auth/components/auth-guest-continue-button";
 import { FirebasePhoneAuthProvider } from "@/features/auth/context/firebase-phone-auth-context";
 
 type View = "phone" | "email" | "otp";
 
-export default function LoginPage() {
+function LoginPageContent() {
   const [view, setView] = useState<View>("email");
   const [phoneNumber, setPhoneNumber] = useState("");
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const fromGuestIntent = searchParams.get("from") === "guest";
 
   const handleOTPSent = (phone: string) => {
     setPhoneNumber(phone);
@@ -34,7 +38,7 @@ export default function LoginPage() {
   };
 
   const handleCreateAccount = () => {
-    router.push("/register");
+    router.push(fromGuestIntent ? "/register?from=guest" : "/register");
   };
 
   const renderForm = () => {
@@ -84,7 +88,23 @@ export default function LoginPage() {
         </div>
 
         {renderForm()}
+
+        {view !== "otp" ? <AuthGuestContinueButton /> : null}
       </AuthPageLayout>
     </FirebasePhoneAuthProvider>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="flex min-h-screen items-center justify-center">
+          <Loader2 className="size-8 animate-spin text-muted-foreground" aria-hidden />
+        </div>
+      }
+    >
+      <LoginPageContent />
+    </Suspense>
   );
 }
