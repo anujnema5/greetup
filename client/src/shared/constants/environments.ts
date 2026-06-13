@@ -32,3 +32,5 @@ export const RTC_SOCKET_URL =
 export const NSFW_LOG_ENABLED = process.env.NEXT_PUBLIC_NSFW_LOG_ENABLED === "true";
 export const NSFW_SCAN_INTERVAL_MS = process.env.NEXT_PUBLIC_NSFW_SCAN_INTERVAL_MS ? parseInt(process.env.NEXT_PUBLIC_NSFW_SCAN_INTERVAL_MS) : 1000;
 export const NSFWJS_IS_ENABLED = process.env.NEXT_PUBLIC_NSFWJS_IS_ENABLED === "true";
+
+export const GA_MEASUREMENT_ID = process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID?.trim() ?? "";

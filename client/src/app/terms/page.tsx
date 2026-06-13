@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
-import { MarketingPageShell } from "@/components/marketing/marketing-page-shell";
-import { MarketingSections } from "@/components/marketing/marketing-sections";
+import { MarketingPageShell, MarketingSections } from "@/features/marketing";
 import { TERMS_CONTENT } from "@/lib/copy/marketing-pages";
 import { buildPageMetadata } from "@/lib/site";
 

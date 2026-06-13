@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
-import { ContactForm } from "@/components/marketing/contact-form";
-import { MarketingPageShell } from "@/components/marketing/marketing-page-shell";
+import { ContactForm, MarketingPageShell } from "@/features/marketing";
 import { CONTACT_CONTENT } from "@/lib/copy/marketing-pages";
 import { buildPageMetadata } from "@/lib/site";
 

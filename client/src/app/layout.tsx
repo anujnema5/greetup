@@ -32,6 +32,7 @@ const plusJakartaSans = Plus_Jakarta_Sans({
 
 
 import { SiteJsonLd } from "@/components/seo/site-json-ld";
+import { SiteGoogleAnalytics } from "@/components/analytics/google-analytics";
 import { rootMetadata } from "@/lib/site";
 
 export const metadata: Metadata = rootMetadata;
@@ -72,6 +73,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         </ThemeProvider>
         <Toaster position="bottom-right" closeButton />
       </body>
+      <SiteGoogleAnalytics />
     </html>
   );
 }
