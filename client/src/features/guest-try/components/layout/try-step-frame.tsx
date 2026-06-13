@@ -5,6 +5,9 @@ import type { ReactNode } from "react";
 
 import { cn } from "@/lib/utils";
 
+import { TryBackButton } from "../ui/try-back-button";
+import type { TryBackTarget } from "../../types/guest-try.types";
+
 type TryStepFrameProps = {
   children: ReactNode;
   footer?: ReactNode;
@@ -13,7 +16,9 @@ type TryStepFrameProps = {
   title?: string;
   description?: string;
   align?: "start" | "center";
-  width?: "full" | "narrow";
+  width?: "full" | "narrow" | "wide";
+  back?: TryBackTarget;
+  backLabel?: string;
 };
 
 export function TryStepFrame({
@@ -25,6 +30,8 @@ export function TryStepFrame({
   description,
   align = "start",
   width = "full",
+  back,
+  backLabel,
 }: TryStepFrameProps) {
   const centered = align === "center";
 
@@ -32,12 +39,19 @@ export function TryStepFrame({
     <div
       className={cn(
         "flex w-full flex-col",
-        width === "narrow" && "mx-auto max-w-lg",
+        width === "narrow" && "max-w-xl",
+        width === "wide" && "w-full",
         className,
       )}
     >
+      {back ? (
+        <div className="mb-4 sm:mb-5">
+          <TryBackButton back={back} appearance="link" label={backLabel} className="-ml-1 w-fit px-1" />
+        </div>
+      ) : null}
+
       {title || description || Icon ? (
-        <header className={cn("mb-6 sm:mb-7", centered && "mx-auto max-w-md text-center")}>
+        <header className={cn("mb-5 sm:mb-6", centered && "mx-auto max-w-md text-center")}>
           {Icon ? (
             <div
               className={cn(
@@ -49,15 +63,16 @@ export function TryStepFrame({
             </div>
           ) : null}
           {title ? (
-            <h1 className="text-xl font-semibold tracking-tight text-foreground sm:text-2xl">
-              {title}
-            </h1>
+            <h1 className="text-xl font-semibold tracking-tight text-foreground sm:text-2xl">{title}</h1>
           ) : null}
           {description ? (
             <p
               className={cn(
                 "mt-2 text-sm leading-relaxed text-muted-foreground sm:text-[0.9375rem]",
                 centered && "mx-auto max-w-sm",
+                !centered && width === "narrow" && "max-w-lg",
+                !centered && width === "wide" && "max-w-2xl",
+                !centered && width === "full" && "max-w-2xl",
               )}
             >
               {description}
@@ -68,11 +83,7 @@ export function TryStepFrame({
 
       <div className="min-w-0 flex-1">{children}</div>
 
-      {footer ? (
-        <footer className="mt-6 border-t border-white/5 pt-5 sm:mt-7">
-          {footer}
-        </footer>
-      ) : null}
+      {footer ? <footer className="mt-6 sm:mt-7">{footer}</footer> : null}
     </div>
   );
 }

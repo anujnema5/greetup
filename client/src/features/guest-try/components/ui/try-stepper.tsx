@@ -9,8 +9,8 @@ import {
   isTryStepReachable,
   isTryWizardStep,
   type TryWizardStep,
-} from "../lib/try-flow-steps";
-import type { TryFlowStep } from "../types/guest-try.types";
+} from "../../lib/try-flow-steps";
+import type { TryFlowStep } from "../../types/guest-try.types";
 
 const STEPS = [
   { key: "name" as const, label: "Your name", shortLabel: "Name" },
@@ -62,7 +62,7 @@ export function TryStepper({
 
   if (variant === "sidebar") {
     return (
-      <nav aria-label="Your progress" className={cn("space-y-8", className)}>
+      <nav aria-label="Your progress" className={cn("space-y-6", className)}>
         <div className="space-y-3">
           <p className="text-sm font-medium text-muted-foreground">
             Step {activeIndex + 1} of {STEPS.length}
@@ -79,7 +79,7 @@ export function TryStepper({
           </div>
         </div>
 
-        <ol className="space-y-3">
+        <ol className="space-y-2">
           {STEPS.map((step, index) => {
             const isComplete = isTryStepComplete(step.key, furthestStep);
             const isCurrent = step.key === activeStep;
@@ -90,7 +90,7 @@ export function TryStepper({
               <>
                 <span
                   className={cn(
-                    "flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-xs font-semibold",
+                    "flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-[11px] font-semibold",
                     isCurrent && "bg-primary text-primary-foreground",
                     isComplete && !isCurrent && "bg-primary/15 text-primary",
                     !isCurrent && !isComplete && "bg-white/6 text-muted-foreground",
@@ -120,7 +120,7 @@ export function TryStepper({
                     type="button"
                     onClick={() => handleSelect(step.key)}
                     className={cn(
-                      "flex w-full items-center gap-3 rounded-xl border px-4 py-3 text-left transition-colors",
+                      "flex w-full items-center gap-2.5 rounded-lg border px-3 py-2 text-left transition-colors",
                       "border-white/6 bg-white/[0.02] hover:border-primary/25 hover:bg-primary/5",
                       "cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
                     )}
@@ -130,7 +130,7 @@ export function TryStepper({
                 ) : (
                   <div
                     className={cn(
-                      "flex items-center gap-3 rounded-xl border px-4 py-3 transition-colors",
+                      "flex items-center gap-2.5 rounded-lg border px-3 py-2 transition-colors",
                       isCurrent && "border-primary/30 bg-primary/8",
                       isComplete && !isCurrent && "border-white/6 bg-white/[0.02]",
                       !isCurrent && !isComplete && "border-transparent bg-transparent",

@@ -5,9 +5,9 @@ import { useRouter } from "next/navigation";
 
 import { GUEST_TRIAL_FLOW } from "@/lib/copy/user-messages";
 
-import { TRY_SIGNUP_ROUTE } from "../constants/try-routes";
-import { markTryConsumedLocally } from "../lib/try-navigation";
-import { TryLayout } from "./try-layout";
+import { TRY_SIGNUP_ROUTE } from "../../constants/try-routes";
+import { markTryConsumedLocally } from "../../lib/try-navigation";
+import { TryLayout } from "../layout/try-layout";
 
 export function RedirectToGuestRegister() {
   const router = useRouter();

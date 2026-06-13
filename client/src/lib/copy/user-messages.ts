@@ -143,9 +143,9 @@ export const EXPLORE = {
 /** Client messages for guest-session API error codes. */
 export const GUEST_TRIAL_API_ERRORS = {
   GUEST_TRIAL_EXHAUSTED:
-    "You've already had your try. Sign up or log in to keep matching.",
+    "Your guest try is complete. Create an account or log in to keep matching.",
   GUEST_TRIAL_ALREADY_USED:
-    "This device already had a try. Sign up or log in to continue.",
+    "This device has already been used for a guest try. Create an account or log in to continue.",
   GUEST_RATE_LIMITED:
     "Too many attempts from this network. Try again later or sign up.",
   GUEST_PROFILE_INCOMPLETE:
@@ -158,6 +158,7 @@ export const GUEST_TRIAL_API_ERRORS = {
 
 export const GUEST_TRIAL_NAV = {
   goBack: "Go back",
+  goBackHome: "Back to home",
   logIn: "Log in",
   continue: "Continue",
   tryAgain: "Try again",
@@ -173,9 +174,10 @@ export const GUEST_TRIAL_FLOW = {
     redirect: "One sec…",
   },
   errors: {
-    bootTitle: "Something went wrong",
+    bootTitle: "Couldn't get started",
+    bootBody: "Something interrupted your session. You can try again in a moment.",
     sessionTitle: "You've been away a while",
-    sessionBody: "No worries — you can start fresh below.",
+    sessionBody: "No worries — pick up where you left off or start fresh below.",
     loadTitle: "Couldn't load that",
     loadBody: "Check your connection and try again.",
   },
@@ -207,7 +209,7 @@ export const GUEST_TRIAL_PREFS = {
 } as const;
 
 export const GUEST_TRIAL_REGISTER = {
-  title: "Create account & continue",
+  title: "Create free account",
   subtitle: "Want more matches? Sign up and we'll keep your name and picks from today.",
   mergeBanner: (displayName: string | null) =>
     displayName
@@ -226,20 +228,24 @@ export const GUEST_TRIAL_SIGNUP_GATE = {
     displayName
       ? `Hey ${displayName} — create your account and continue.`
       : "Create your account and continue with more matches.",
+  deviceUsedTitle: "Your free try is complete",
+  deviceUsedSubtitle:
+    "This device has already been used for a guest try. Create an account to keep matching — or log in if you're back.",
   mergeHint: "We'll keep your name and picks from today when you sign up on this device.",
   benefits: [
     "Keep matching with people who fit your vibe",
     "Message and call people you connect with",
-    "Join live circles and grow your profile",
+    "Join live group circles matched to your preferences",
   ],
-  primaryCta: "Create account & continue",
+  primaryCta: "Create free account",
+  secondaryCta: "Log in",
   limitTitle: "Want more matches?",
 } as const;
 
 export const GUEST_TRIAL_MATCH = {
   matchLabel: "Tap when you're ready",
   cancelSearch: "Stop looking",
-  signupCta: "Create account & continue",
+  signupCta: "Create free account",
   retriesExhausted: "Create your account and continue with more matches.",
   lastTryHint: "One more try if this match doesn't work out.",
   idle: {

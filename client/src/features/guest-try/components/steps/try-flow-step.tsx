@@ -1,11 +1,10 @@
 "use client";
 
-import type { TryBackTarget } from "../types/guest-try.types";
+import type { TryBackTarget, TryFlowStep, VibePrefsDraft } from "../../types/guest-try.types";
+import type { TryWizardStep } from "../../lib/try-flow-steps";
 import { MatchStep } from "./match-step";
 import { NameStep } from "./name-step";
 import { VibeStep } from "./vibe-step";
-import type { TryWizardStep } from "../lib/try-flow-steps";
-import type { TryFlowStep, VibePrefsDraft } from "../types/guest-try.types";
 
 type TryFlowStepProps = {
   activeStep: TryFlowStep;

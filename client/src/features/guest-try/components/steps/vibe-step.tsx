@@ -7,23 +7,20 @@ import { useMatchPrepCurrent, useMatchPrepOptions } from "@/features/profile-set
 import { getApiErrorMessage } from "@/lib/api";
 import { GUEST_TRIAL_NAV, GUEST_TRIAL_PREFS } from "@/lib/copy/user-messages";
 
-import { VIBE_PREFS_MAX_INTERESTS, VIBE_PREFS_MIN_INTERESTS } from "../constants/vibe-prefs.constants";
-import { useHydrateVibeDraft } from "../hooks/use-hydrate-vibe-draft";
-import { useSaveVibePrefs } from "../hooks/use-save-vibe-prefs";
+import { VIBE_PREFS_MAX_INTERESTS, VIBE_PREFS_MIN_INTERESTS } from "../../constants/vibe-prefs.constants";
+import { useHydrateVibeDraft } from "../../hooks/use-hydrate-vibe-draft";
+import { useSaveVibePrefs } from "../../hooks/use-save-vibe-prefs";
 import {
   toggleVibeDraft,
   validateVibeDraft,
   vibeDraftFromSaved,
   vibeDraftsEqual,
-} from "../lib/vibe-prefs-draft";
-import type { VibePrefsDraft } from "../types/guest-try.types";
-import { TryBackButton } from "./try-back-button";
-import { TryContinueButton } from "./try-continue-button";
-import type { TryBackTarget } from "../types/guest-try.types";
-import { TryChipList } from "./try-chip-list";
-import { TrySection } from "./try-section";
-import { TryStepActions } from "./try-step-actions";
-import { TryStepFrame } from "./try-step-frame";
+} from "../../lib/vibe-prefs-draft";
+import type { TryBackTarget, VibePrefsDraft } from "../../types/guest-try.types";
+import { TryContinueButton } from "../ui/try-continue-button";
+import { TryChipList } from "../ui/try-chip-list";
+import { TrySection } from "../ui/try-section";
+import { TryStepFrame } from "../layout/try-step-frame";
 
 type VibeStepProps = {
   draft: VibePrefsDraft | null;
@@ -89,25 +86,25 @@ export function VibeStep({ draft, onDraftChange, back, onForward }: VibeStepProp
   }, [draft, onForward, saveVibePrefs, saved]);
 
   const footer = (
-    <TryStepActions
-      primary={
-        <TryContinueButton
-          type="button"
-          disabled={isLoadingPrefs || isSaving || !options}
-          onClick={() => void handleContinue()}
-        >
-          {isSaving ? (
-            <>
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              {GUEST_TRIAL_PREFS.saving}
-            </>
-          ) : (
-            GUEST_TRIAL_NAV.continue
-          )}
-        </TryContinueButton>
-      }
-      secondary={back ? <TryBackButton back={back} /> : undefined}
-    />
+    <div className="max-w-md">
+      <TryContinueButton
+        type="button"
+        size="default"
+        fullWidth
+        className="h-9 text-sm"
+        disabled={isLoadingPrefs || isSaving || !options}
+        onClick={() => void handleContinue()}
+      >
+        {isSaving ? (
+          <>
+            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            {GUEST_TRIAL_PREFS.saving}
+          </>
+        ) : (
+          GUEST_TRIAL_NAV.continue
+        )}
+      </TryContinueButton>
+    </div>
   );
 
   return (
@@ -115,6 +112,9 @@ export function VibeStep({ draft, onDraftChange, back, onForward }: VibeStepProp
       title={GUEST_TRIAL_PREFS.title}
       description={GUEST_TRIAL_PREFS.description}
       footer={footer}
+      back={back}
+      backLabel="Your name"
+      width="wide"
     >
       <div className="space-y-6 lg:space-y-8">
         {isLoadingPrefs && (
@@ -139,7 +139,7 @@ export function VibeStep({ draft, onDraftChange, back, onForward }: VibeStepProp
 
         {options && draft && !isLoadingPrefs && (
           <>
-            <div className="grid gap-6 lg:grid-cols-2 lg:gap-8">
+            <div className="grid gap-4 sm:grid-cols-2 sm:gap-5 lg:gap-6">
               <TrySection label={GUEST_TRIAL_PREFS.mood}>
                 <TryChipList
                   rows={options.moods}
