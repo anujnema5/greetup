@@ -3,9 +3,8 @@ import { LandingPageView } from "./landing/page";
 import { buildPageMetadata } from "@/lib/site";
 
 export const metadata: Metadata = buildPageMetadata({
-  title: "Meet People by Job, Interests & Location",
-  description:
-    "Match 1:1 in real time by profession, city, or what you're into — then chat, voice, or video. Join live circles around shared topics. Free beta.",
+  title: "Find people by job, city, interests, or what you're into then start talking.",
+  description: "Meet people one-on-one in real time — matched by job, city, mood, or interests. Chat, voice call, or video. Join group circles around shared topics.",
   path: "/",
 });
 
