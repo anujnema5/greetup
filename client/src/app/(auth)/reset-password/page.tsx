@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { Suspense } from "react";
 
 import ResetPasswordPage from "@/features/auth/pages/reset-password";
 import { buildPageMetadata } from "@/lib/site";
@@ -11,11 +12,11 @@ export const metadata: Metadata = buildPageMetadata({
 });
 
 const page = () => {
-    return (
-        <div>
-            <ResetPasswordPage />
-        </div>
-    )
-}
+  return (
+    <Suspense fallback={null}>
+      <ResetPasswordPage />
+    </Suspense>
+  );
+};
 
-export default page
+export default page;
