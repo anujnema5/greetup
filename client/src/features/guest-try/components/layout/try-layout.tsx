@@ -63,7 +63,8 @@ export function TryLayout({
         >
           <Link
             href="/"
-            className="inline-flex rounded-lg outline-offset-4 transition-opacity hover:opacity-80"
+            aria-label="Greetup home"
+            className="inline-flex rounded-lg outline-offset-4 transition-opacity hover:opacity-80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
           >
             <Logo />
           </Link>
@@ -101,7 +102,10 @@ export function TryLayout({
           )}
         >
           {showStepper && activeStep && stepperFurthest ? (
-            <aside className="hidden lg:sticky lg:top-8 lg:block lg:self-start">
+            <aside
+              aria-label="Setup steps"
+              className="hidden lg:sticky lg:top-8 lg:block lg:self-start"
+            >
               <TryStepper
                 activeStep={activeStep}
                 furthestStep={stepperFurthest}

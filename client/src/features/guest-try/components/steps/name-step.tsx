@@ -4,7 +4,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Loader2 } from "lucide-react";
 
-import { Form, FormControl, FormField, FormItem, FormMessage } from "@/components/ui/form";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { ApiError, getApiErrorMessage } from "@/lib/api";
 import { GUEST_TRIAL_NAME, GUEST_TRIAL_NAV } from "@/lib/copy/user-messages";
@@ -77,7 +77,13 @@ export function NameStep({ initialDisplayName, back, onForward }: NameStepProps)
       : undefined;
 
   const footer = (
-    <TryContinueButton type="submit" form="guest-name-form" fullWidth disabled={isPending}>
+    <TryContinueButton
+      type="submit"
+      form="guest-name-form"
+      fullWidth
+      disabled={isPending}
+      aria-busy={isPending}
+    >
       {isPending ? (
         <>
           <Loader2 className="size-4 shrink-0 animate-spin" aria-hidden />
@@ -104,6 +110,7 @@ export function NameStep({ initialDisplayName, back, onForward }: NameStepProps)
             name="displayName"
             render={({ field }) => (
               <FormItem>
+                <FormLabel className="sr-only">{GUEST_TRIAL_NAME.title}</FormLabel>
                 <FormControl>
                   <Input
                     {...field}

@@ -2,6 +2,7 @@
 
 import { CheckCircle2, Star } from "lucide-react";
 
+import { ProgressBar } from "@/components/ui/progress-bar";
 import { cn } from "@/lib/utils";
 
 const COMPLETE_AT_PERCENT = 80;
@@ -113,12 +114,16 @@ export function ProfileCompletionCard({
           <p className="mt-1.5 text-[13px] text-muted-foreground leading-relaxed">{copy.supporting}</p>
 
           <div className="mt-4 h-2 w-full overflow-hidden rounded-full bg-muted">
-            <div
+            <ProgressBar
+              value={rounded}
+              max={100}
+              aria-label="Profile completion"
               className={cn(
-                "h-full rounded-full transition-[width] duration-500 ease-out",
-                isDone ? "bg-success" : "bg-primary"
+                "h-2 [&::-webkit-progress-bar]:bg-muted",
+                isDone
+                  ? "[&::-webkit-progress-value]:bg-success [&::-moz-progress-bar]:bg-success"
+                  : "[&::-webkit-progress-value]:bg-primary",
               )}
-              style={{ width: `${rounded}%` }}
             />
           </div>
 

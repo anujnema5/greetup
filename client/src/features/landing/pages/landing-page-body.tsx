@@ -45,10 +45,20 @@ import { LandingPerfProvider, useLandingPerf } from "../hooks/use-landing-perf";
 const EASE: [number, number, number, number] = [0.22, 1, 0.36, 1];
 
 /* precomputed so VoiceMockup stays a pure render function */
-const WAVE_BARS = Array.from({ length: 12 }, () => ({
-  height: Math.random() * 20 + 8,
-  duration: 0.5 + Math.random() * 0.4,
-}));
+const WAVE_BARS = [
+  { heightClass: "h-[14px]", peak: 14, duration: 0.62 },
+  { heightClass: "h-[22px]", peak: 22, duration: 0.71 },
+  { heightClass: "h-[18px]", peak: 18, duration: 0.58 },
+  { heightClass: "h-[26px]", peak: 26, duration: 0.83 },
+  { heightClass: "h-[16px]", peak: 16, duration: 0.65 },
+  { heightClass: "h-[24px]", peak: 24, duration: 0.74 },
+  { heightClass: "h-[20px]", peak: 20, duration: 0.69 },
+  { heightClass: "h-[28px]", peak: 28, duration: 0.88 },
+  { heightClass: "h-[15px]", peak: 15, duration: 0.61 },
+  { heightClass: "h-[23px]", peak: 23, duration: 0.76 },
+  { heightClass: "h-[19px]", peak: 19, duration: 0.67 },
+  { heightClass: "h-[25px]", peak: 25, duration: 0.8 },
+] as const;
 
 /* ─── variants ──────────────────────────────────────────────────────────────── */
 const fadeUp: Variants = {
@@ -166,18 +176,25 @@ const CIRCLE_ACTIVITY_CHIPS: ReadonlyArray<{ label: string; comingSoon?: boolean
 ];
 
 const STEP_RING_COUNT = 3;
-const STEP_RING_CYCLE_S = 3;
+
+const STEP_RING_DELAYS = [
+  ["delay-0", "delay-1000", "delay-[2s]"],
+  ["delay-200", "delay-[1200ms]", "delay-[2200ms]"],
+  ["delay-400", "delay-[1400ms]", "delay-[2400ms]"],
+] as const;
 
 function StepRippleRings({ stepIndex }: { stepIndex: number }) {
+  const delays = STEP_RING_DELAYS[stepIndex] ?? STEP_RING_DELAYS[0];
+
   return (
     <>
       {Array.from({ length: STEP_RING_COUNT }, (_, ri) => (
         <div
           key={ri}
-          className="landing-step-ring pointer-events-none absolute inset-0 rounded-full border border-[oklch(88%_0.11_105/0.28)]"
-          style={{
-            animationDelay: `${stepIndex * 0.2 + (ri * STEP_RING_CYCLE_S) / STEP_RING_COUNT}s`,
-          }}
+          className={cn(
+            "landing-step-ring pointer-events-none absolute inset-0 rounded-full border border-[oklch(88%_0.11_105/0.28)]",
+            delays[ri],
+          )}
         />
       ))}
     </>
@@ -358,9 +375,9 @@ function VoiceMockup() {
       <div className="flex items-center gap-1">
         {WAVE_BARS.map((bar, i) =>
           lite ? (
-            <div key={i} className="w-1 rounded-full bg-[oklch(88%_0.11_105/0.6)]" style={{ height: bar.height }} />
+            <div key={i} className={cn("w-1 rounded-full bg-[oklch(88%_0.11_105/0.6)]", bar.heightClass)} />
           ) : (
-            <motion.div key={i} className="w-1 rounded-full bg-[oklch(88%_0.11_105/0.6)]" animate={{ height: [4, bar.height, 4] }} transition={{ duration: bar.duration, repeat: Infinity, ease: "easeInOut", delay: i * 0.06 }} />
+            <motion.div key={i} className="w-1 rounded-full bg-[oklch(88%_0.11_105/0.6)]" animate={{ height: [4, bar.peak, 4] }} transition={{ duration: bar.duration, repeat: Infinity, ease: "easeInOut", delay: i * 0.06 }} />
           ),
         )}
       </div>

@@ -20,6 +20,7 @@
 import {
   useCallback,
   useEffect,
+  useLayoutEffect,
   useMemo,
   useRef,
   useState,
@@ -53,7 +54,6 @@ import { StageOverlays } from "@/features/room/call/stage/stage-overlays";
 import { RoomMobileChatSheetDragHandle } from "@/features/room/call/panels/mobile/mobile-chat-drag-handle";
 import { RightSidebar } from "@/features/room/call/panels/sidebar/right-sidebar";
 import {
-  roomMobileChatSheetLayoutCssVars,
   useRoomMobileChatSheetHeight,
 } from "@/features/room/hooks/call-ui/use-room-mobile-chat-sheet-height";
 import { useRoomRightPanelTab } from "@/features/room/hooks/call-ui/use-room-right-panel-tab";
@@ -427,6 +427,21 @@ export function InCallScreen({
   }, [xlUp]);
 
   const mobileChatSheetDrag = useRoomMobileChatSheetHeight(mobileChatSheetOpen && !xlUp);
+  const mobileChatSheetLayoutRef = useRef<HTMLDivElement>(null);
+
+  useLayoutEffect(() => {
+    const node = mobileChatSheetLayoutRef.current;
+    if (!node) {
+      return;
+    }
+
+    const shell = node.closest('[data-slot="dialog-content"]') as HTMLElement | null;
+    node.style.setProperty("--room-mobile-chat-sheet-h", `${mobileChatSheetDrag.heightPx}px`);
+    shell?.style.setProperty(
+      "--room-mobile-chat-sheet-max-h",
+      `${mobileChatSheetDrag.maxHeightPx}px`,
+    );
+  }, [mobileChatSheetDrag.heightPx, mobileChatSheetDrag.maxHeightPx, mobileChatSheetOpen]);
 
   const {
     tab: rightPanelTab,
@@ -742,13 +757,13 @@ export function InCallScreen({
                 "translate-x-0! translate-y-0! rounded-t-2xl rounded-b-none",
                 "max-h-(--room-mobile-chat-sheet-max-h)",
               )}
-              style={roomMobileChatSheetLayoutCssVars(mobileChatSheetDrag)}
               overlayClassName={IN_CALL_DIALOG_OVERLAY_Z}
             >
               <DialogTitle className="sr-only">
                 {showActivitiesTab ? "People, chat, and activities" : "People and chat"}
               </DialogTitle>
               <div
+                ref={mobileChatSheetLayoutRef}
                 className={cn(
                   "flex min-h-0 flex-col overflow-hidden pb-[env(safe-area-inset-bottom)]",
                   "h-(--room-mobile-chat-sheet-h)",

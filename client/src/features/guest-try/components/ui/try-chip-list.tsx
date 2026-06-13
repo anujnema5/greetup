@@ -20,6 +20,7 @@ export function TryChipList({ rows, selected, onToggle }: TryChipListProps) {
             key={row.id}
             type="button"
             onClick={() => onToggle(row.id)}
+            aria-pressed={isSelected}
             title={row.description ?? undefined}
             className={cn(
               "rounded-full border px-3 py-1.5 text-xs font-medium transition-all sm:text-[13px]",

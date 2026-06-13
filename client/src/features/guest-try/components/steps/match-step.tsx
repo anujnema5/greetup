@@ -91,7 +91,12 @@ export function MatchStep({
 
         <div className="relative mx-auto flex max-w-md flex-col items-center gap-5">
           {isMatched ? (
-            <div className="flex items-center gap-2 py-8 text-sm text-muted-foreground">
+            <div
+              className="flex items-center gap-2 py-8 text-sm text-muted-foreground"
+              role="status"
+              aria-live="polite"
+              aria-busy="true"
+            >
               <Loader2 className="size-4 animate-spin" aria-hidden />
               {GUEST_TRIAL_MATCH.connecting}
             </div>
@@ -119,7 +124,7 @@ export function MatchStep({
             <button
               type="button"
               onClick={() => void handleCancel()}
-              className="inline-flex cursor-pointer items-center justify-center gap-1.5 rounded-full border border-white/10 bg-white/4 px-4 py-2 text-xs font-medium text-foreground transition-colors hover:bg-white/8 sm:text-sm"
+              className="inline-flex cursor-pointer items-center justify-center gap-1.5 rounded-full border border-white/10 bg-white/4 px-4 py-2 text-xs font-medium text-foreground transition-colors hover:bg-white/8 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 sm:text-sm"
             >
               <X className="size-3.5 shrink-0 opacity-70" strokeWidth={2.5} aria-hidden />
               {GUEST_TRIAL_MATCH.cancelSearch}

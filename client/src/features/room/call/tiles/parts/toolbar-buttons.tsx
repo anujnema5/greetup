@@ -7,10 +7,8 @@ import { cn } from "@/lib/utils";
 // ─── Shared constants ─────────────────────────────────────────────────────────
 
 /** Frosted-glass appearance applied to every toolbar button. */
-const GLASS_BUTTON_STYLE = {
-  border:         "1px solid rgba(255,255,255,0.14)",
-  backdropFilter: "blur(10px)",
-};
+const GLASS_BUTTON_CLASS =
+  "border border-white/14 backdrop-blur-[10px]";
 
 /**
  * Caption text class used beneath every toolbar icon.
@@ -91,8 +89,8 @@ export function MediaControlButton({
         "h-11 w-11 shrink-0 rounded-full p-0 transition-all duration-150",
         "disabled:cursor-not-allowed disabled:opacity-50",
         active ? "bg-white/14 hover:bg-white/22" : "bg-white/8 hover:bg-white/16",
+        GLASS_BUTTON_CLASS,
       )}
-      style={GLASS_BUTTON_STYLE}
     >
       {active ? iconOn : iconOff}
     </Button>
@@ -145,9 +143,9 @@ export function CircleToolbarButton({
         isActive
           ? "bg-white/18 ring-1 ring-white/22 hover:bg-white/24"
           : "bg-white/10 hover:bg-white/18",
+        GLASS_BUTTON_CLASS,
         className,
       )}
-      style={GLASS_BUTTON_STYLE}
     >
       {children}
     </Button>

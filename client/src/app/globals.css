@@ -410,3 +410,148 @@ html {
   filter: drop-shadow(0 0 4px oklch(88% 0.11 105 / 0.6));
 }
 
+/* Shared dot-grid backdrop (Tailwind arbitrary bg is duplicated in several shells). */
+.bg-dot-grid-hero {
+  background-image: radial-gradient(circle at 1px 1px, var(--surface-dot-grid) 1px, transparent 0);
+  background-size: 28px 28px;
+}
+
+.bg-dot-grid-landing {
+  background-image: radial-gradient(circle at 1px 1px, oklch(100% 0 0 / 0.055) 1px, transparent 0);
+  background-size: 30px 30px;
+}
+
+.bg-dot-grid-marketing {
+  background-image: radial-gradient(circle at 1px 1px, oklch(100% 0 0 / 0.05) 1px, transparent 0);
+  background-size: 30px 30px;
+}
+
+/* Dashboard hero card surface */
+.bg-hero-card-surface {
+  background:
+    radial-gradient(ellipse 70% 50% at 50% 0%, var(--surface-hero-glow) 0%, transparent 72%),
+    radial-gradient(ellipse 50% 40% at 85% 85%, var(--surface-hero-glow-2) 0%, transparent 60%),
+    var(--surface-hero-base);
+}
+
+.bg-profile-hero-surface {
+  background:
+    radial-gradient(ellipse 70% 50% at 50% 0%, var(--surface-hero-glow) 0%, transparent 72%),
+    var(--surface-hero-base);
+}
+
+/* Match orb — rings + CTA (used on dashboard + guest try) */
+.match-orb-shell {
+  @apply relative flex size-[148px] items-center justify-center;
+}
+
+.match-orb-ring-outer {
+  @apply absolute inset-0 rounded-full border border-primary/5 transition-opacity duration-500;
+}
+
+.match-orb-ring-mid {
+  @apply absolute inset-4 rounded-full border border-primary/8 transition-opacity duration-500;
+}
+
+.match-orb-ring-inner {
+  @apply absolute inset-[29px] rounded-full border border-primary/12 transition-opacity duration-500;
+}
+
+.match-orb-glow {
+  @apply absolute inset-[29px] rounded-full bg-primary opacity-20 blur-xl transition-opacity duration-500;
+}
+
+.match-orb-glow-searching {
+  @apply opacity-35;
+}
+
+.match-orb-btn {
+  @apply relative z-10 flex size-[90px] flex-col items-center justify-center gap-2 rounded-full font-semibold text-primary-foreground will-change-transform transition-all duration-500 hover:scale-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:ring-offset-2 focus-visible:ring-offset-background;
+  background: radial-gradient(circle at 40% 35%, oklch(90% 0.11 105), oklch(78% 0.1 105));
+  box-shadow:
+    0 0 18px oklch(88% 0.11 105 / 0.2),
+    0 8px 20px oklch(88% 0.11 105 / 0.15),
+    inset 0 1px 0 oklch(96% 0.08 105 / 0.3);
+}
+
+.match-orb-btn-searching {
+  background: radial-gradient(circle at 40% 35%, oklch(92% 0.13 105), oklch(80% 0.12 105));
+  box-shadow:
+    0 0 28px oklch(88% 0.11 105 / 0.35),
+    0 0 55px oklch(88% 0.11 105 / 0.12),
+    inset 0 1px 0 oklch(96% 0.08 105 / 0.3);
+}
+
+/* Circle orb — dashboard */
+.circle-orb-shell {
+  @apply relative flex size-[148px] items-center justify-center;
+}
+
+.circle-orb-ring-outer {
+  @apply absolute inset-0 rounded-full border border-violet-500/10 transition-opacity duration-500;
+}
+
+.circle-orb-ring-mid {
+  @apply absolute inset-4 rounded-full border border-violet-400/15 transition-opacity duration-500;
+}
+
+.circle-orb-glow {
+  @apply absolute inset-[29px] rounded-full bg-[oklch(58%_0.18_290)] opacity-25 blur-xl transition-opacity duration-500;
+}
+
+.circle-orb-btn {
+  @apply relative z-10 flex size-[90px] cursor-pointer flex-col items-center justify-center gap-2 rounded-full font-semibold text-white transition-all duration-300 hover:brightness-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-400/80 focus-visible:ring-offset-2 focus-visible:ring-offset-card disabled:cursor-not-allowed disabled:opacity-60;
+  background: radial-gradient(circle at 40% 35%, oklch(72% 0.14 290), oklch(52% 0.16 285));
+  box-shadow:
+    0 0 22px oklch(65% 0.14 290 / 0.35),
+    0 8px 22px oklch(50% 0.12 285 / 0.25),
+    inset 0 1px 0 oklch(95% 0.02 290 / 0.25);
+}
+
+/* Match found dialog */
+.match-found-badge {
+  @apply mb-4 inline-flex items-center gap-1.5 rounded-full border border-[oklch(78%_0.1_105/0.55)] px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-[oklch(86%_0.11_105)];
+}
+
+.match-found-avatar-fallback {
+  @apply flex size-20 items-center justify-center overflow-hidden rounded-full text-lg font-bold text-white shadow-lg sm:size-21 sm:text-xl;
+  background: radial-gradient(circle at 35% 30%, oklch(58% 0.22 285), #6344e3);
+  box-shadow:
+    0 0 40px #6344e355,
+    inset 0 1px 0 oklch(100% 0 0 / 0.12);
+}
+
+.match-found-avatar-image {
+  box-shadow:
+    0 0 40px #6344e355,
+    inset 0 1px 0 oklch(100% 0 0 / 0.12);
+}
+
+.match-found-score-track {
+  @apply h-1.5 w-full overflow-hidden rounded-full bg-zinc-800;
+}
+
+.match-found-score-fill {
+  @apply h-full rounded-full bg-linear-to-r from-[oklch(86%_0.11_105)] to-[oklch(90%_0.14_95)] shadow-[0_0_12px_oklch(86%_0.11_105/0.4)] transition-all duration-700 ease-out;
+}
+
+.match-found-connect-btn {
+  @apply flex min-h-10 flex-1 cursor-pointer items-center justify-center rounded-lg bg-linear-to-b from-[oklch(92%_0.13_105)] to-[oklch(86%_0.11_105)] px-3 text-[11px] font-semibold text-zinc-950 shadow-[0_0_20px_oklch(86%_0.11_105/0.3),0_3px_10px_oklch(86%_0.11_105/0.18)] transition-opacity hover:opacity-95 disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-70;
+}
+
+.peer-profile-hover-panel-positioned {
+  left: var(--peer-hover-left, 0);
+  top: var(--peer-hover-top, 0);
+  transform: translateY(calc(-100% - 8px));
+}
+
+.room-mobile-chat-sheet-sized {
+  height: var(--room-mobile-chat-sheet-h);
+}
+
+.tile-speaking-ring {
+  transform: scale(var(--tile-speaking-ring-scale, 1));
+  opacity: var(--tile-speaking-ring-opacity, 0);
+  transition: transform 80ms ease, opacity 80ms ease;
+}
+

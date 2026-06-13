@@ -158,6 +158,7 @@ export const GUEST_TRIAL_API_ERRORS = {
 
 export const AUTH_PAGES = {
   continueAsGuest: "Continue as guest",
+  guestSectionLabel: "Continue without an account",
 } as const;
 
 export const GUEST_TRIAL_NAV = {
@@ -215,15 +216,8 @@ export const GUEST_TRIAL_PREFS = {
 export const GUEST_TRIAL_REGISTER = {
   title: "Create free account",
   subtitle: "Want more matches? Sign up and we'll keep your name and picks from today.",
-  mergeBanner: (displayName: string | null) =>
-    displayName
-      ? `We'll carry over ${displayName}'s profile and preferences when you finish signing up.`
-      : "We'll carry over your profile and match preferences when you finish signing up.",
   noSessionOnDevice:
     "No try session found on this device. You can still sign up, but your progress may not carry over.",
-  wrongEntryWarning:
-    "You have a try session on this device. Use the link below so your progress carries over.",
-  useGuestSignupLink: "Sign up and keep your progress",
 } as const;
 
 export const GUEST_TRIAL_SIGNUP_GATE = {

@@ -181,11 +181,12 @@ const PlayerBar = memo(function PlayerBar({
     >
       <div className="flex min-w-0 items-center gap-2.5 max-md:gap-2">
         <div
-          className="h-4 w-4 shrink-0 rounded-[3px] border shadow-[0_1px_2px_oklch(0%_0_0_/0.06)]"
-          style={{
-            backgroundColor: isWhite ? BOARD_COLORS.light : BOARD_COLORS.dark,
-            borderColor: isWhite ? "oklch(78% 0.02 100 / 0.55)" : "oklch(28% 0.02 100 / 0.45)",
-          }}
+          className={cn(
+            "h-4 w-4 shrink-0 rounded-[3px] border shadow-[0_1px_2px_oklch(0%_0_0_/0.06)]",
+            isWhite
+              ? "bg-[oklch(94%_0.02_100)] border-[oklch(78%_0.02_100/0.55)]"
+              : "bg-[oklch(42%_0.02_100)] border-[oklch(28%_0.02_100/0.45)]",
+          )}
         />
         <span
           className={cn(

@@ -1,6 +1,6 @@
 "use client";
 
-import type { CSSProperties, ReactNode } from "react";
+import { useLayoutEffect, useRef, type ReactNode } from "react";
 import { useAudioLevel } from "@/features/room/hooks/media/use-audio-level";
 import { TileMediaControlsBar } from "@/features/room/call/tiles/parts/tile-participant-controls-bar";
 import { cn } from "@/lib/utils";
@@ -61,9 +61,17 @@ export function TileMediaStatus({
 /** Audio level below this is treated as silence — rings stay hidden. */
 const SPEAKING_THRESHOLD = 0.04;
 
-const SPEAKING_RING_EASE: Pick<CSSProperties, "transition"> = {
-  transition: "transform 80ms ease-out, opacity 80ms ease-out",
-};
+function applySpeakingRingVars(
+  element: HTMLDivElement | null,
+  scale: number,
+  opacity: number,
+) {
+  if (!element) {
+    return;
+  }
+  element.style.setProperty("--tile-speaking-ring-scale", String(scale));
+  element.style.setProperty("--tile-speaking-ring-opacity", String(opacity));
+}
 
 /**
  * Google Meet-style speaking indicator.
@@ -83,6 +91,7 @@ export function TileSpeakingRings({
 }) {
   const level = useAudioLevel(stream);
   const speaking = level > SPEAKING_THRESHOLD;
+  const ringRefs = useRef<Array<HTMLDivElement | null>>([]);
 
   // Each ring is defined by how far it expands and how strongly it glows.
   // Listed inner → outer so they layer correctly.
@@ -108,17 +117,36 @@ export function TileSpeakingRings({
     },
   ];
 
+  useLayoutEffect(() => {
+    applySpeakingRingVars(
+      ringRefs.current[0] ?? null,
+      1 + level * 0.14,
+      speaking ? Math.min(level * 2.2, 0.9) : 0,
+    );
+    applySpeakingRingVars(
+      ringRefs.current[1] ?? null,
+      1 + level * 0.38,
+      speaking ? level * 0.68 : 0,
+    );
+    applySpeakingRingVars(
+      ringRefs.current[2] ?? null,
+      1 + level * 0.72,
+      speaking ? level * 0.38 : 0,
+    );
+  }, [level, speaking]);
+
   return (
     <div className="relative inline-flex items-center justify-center">
-      {rings.map((ring) => (
+      {rings.map((ring, index) => (
         <div
           key={ring.label}
-          className={cn("pointer-events-none absolute inset-0 rounded-full", ring.ringClass)}
-          style={{
-            transform: `scale(${ring.scale})`,
-            opacity: ring.opacity,
-            ...SPEAKING_RING_EASE,
+          ref={(element) => {
+            ringRefs.current[index] = element;
           }}
+          className={cn(
+            "tile-speaking-ring pointer-events-none absolute inset-0 rounded-full",
+            ring.ringClass,
+          )}
         />
       ))}
       {children}

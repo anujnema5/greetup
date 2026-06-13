@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Image from "next/image";
 import { Loader2, Video, Zap } from "lucide-react";
+import { ProgressBar } from "@/components/ui/progress-bar";
 import {
   Dialog,
   DialogContent,
@@ -10,10 +11,6 @@ import {
 } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
 import { useMatchPeerPreview } from "../api/matching.queries";
-
-const GOLD = "oklch(86% 0.11 105)";
-const GOLD_BORDER = "oklch(78% 0.1 105 / 0.55)";
-const PURPLE_AVATAR = "#6344E3";
 
 export type MatchFoundDialogProps = {
   open: boolean;
@@ -87,24 +84,14 @@ export function MatchFoundDialog({
         <DialogTitle className="sr-only">Match found with {displayName}</DialogTitle>
 
         <div className="flex flex-col items-center px-5 pt-5 pb-4">
-          <div
-            className="mb-4 inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.14em]"
-            style={{ borderColor: GOLD_BORDER, color: GOLD }}
-          >
-            Match Found
-          </div>
+          <div className="match-found-badge">Match Found</div>
 
           <div className="relative mb-2.5">
             <div
-              className="flex size-20 items-center justify-center overflow-hidden rounded-full text-lg font-bold text-white shadow-lg sm:size-21 sm:text-xl"
-              style={
-                image
-                  ? { boxShadow: `0 0 40px ${PURPLE_AVATAR}55, inset 0 1px 0 oklch(100% 0 0 / 0.12)` }
-                  : {
-                    background: `radial-gradient(circle at 35% 30%, oklch(58% 0.22 285), ${PURPLE_AVATAR})`,
-                    boxShadow: `0 0 40px ${PURPLE_AVATAR}55, inset 0 1px 0 oklch(100% 0 0 / 0.12)`,
-                  }
-              }
+              className={cn(
+                image ? "match-found-avatar-image" : "match-found-avatar-fallback",
+                "flex size-20 items-center justify-center overflow-hidden rounded-full text-lg font-bold text-white shadow-lg sm:size-21 sm:text-xl",
+              )}
             >
               {isFetching ? (
                 <span className="size-6 animate-pulse rounded-md bg-white/20" />
@@ -149,21 +136,19 @@ export function MatchFoundDialog({
           <div className="mx-5 mb-3 rounded-xl border border-zinc-800/80 bg-zinc-900/50 px-3 py-2.5">
             <div className="mb-1.5 flex items-center justify-between gap-2">
               <span className="flex items-center gap-1 text-[10px] font-medium uppercase tracking-wide text-zinc-500">
-                <Zap className="size-3 shrink-0" style={{ color: GOLD }} strokeWidth={2.2} />
+                <Zap className="size-3 shrink-0 text-[oklch(86%_0.11_105)]" strokeWidth={2.2} />
                 Shared interests
               </span>
-              <span className="text-xs font-bold tabular-nums" style={{ color: GOLD }}>
+              <span className="text-xs font-bold tabular-nums text-[oklch(86%_0.11_105)]">
                 {scorePct}%
               </span>
             </div>
-            <div className="h-1.5 w-full overflow-hidden rounded-full bg-zinc-800">
-              <div
-                className="h-full rounded-full transition-all duration-700 ease-out"
-                style={{
-                  width: `${scorePct}%`,
-                  background: `linear-gradient(90deg, ${GOLD}, oklch(90% 0.14 95))`,
-                  boxShadow: `0 0 12px ${GOLD}66`,
-                }}
+            <div className="match-found-score-track">
+              <ProgressBar
+                value={scorePct}
+                max={100}
+                aria-label="Shared interests score"
+                className="h-1.5 match-found-score-fill [&::-webkit-progress-bar]:bg-zinc-800 [&::-webkit-progress-value]:rounded-full [&::-webkit-progress-value]:bg-linear-to-r [&::-webkit-progress-value]:from-[oklch(86%_0.11_105)] [&::-webkit-progress-value]:to-[oklch(90%_0.14_95)] [&::-webkit-progress-value]:shadow-[0_0_12px_oklch(86%_0.11_105/0.4)] [&::-webkit-progress-value]:transition-all [&::-webkit-progress-value]:duration-700"
               />
             </div>
           </div>
@@ -218,11 +203,7 @@ export function MatchFoundDialog({
             onClick={onConnect}
             disabled={busy || waitingForPeerConnect}
             aria-busy={busy || waitingForPeerConnect}
-            className="flex min-h-10 flex-1 cursor-pointer items-center justify-center rounded-lg px-3 text-[11px] font-semibold text-zinc-950 transition-opacity hover:opacity-95 disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-70"
-            style={{
-              background: `linear-gradient(180deg, oklch(92% 0.13 105), ${GOLD})`,
-              boxShadow: `0 0 20px oklch(86% 0.11 105 / 0.3), 0 3px 10px oklch(86% 0.11 105 / 0.18)`,
-            }}
+            className="match-found-connect-btn"
           >
             {waitingForPeerConnect ? (
               <span className="inline-flex max-w-full items-center justify-center gap-1.5">

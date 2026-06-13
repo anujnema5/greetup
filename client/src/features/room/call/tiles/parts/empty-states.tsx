@@ -2,6 +2,7 @@
 
 import { Search, UserX } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 
 /** Full-stage overlay while matchmaking finds the next direct-call partner. */
 export function SearchingCandidateState() {
@@ -49,22 +50,30 @@ function PulsingOrb({ icon, animated }: { icon: React.ReactNode; animated: boole
 
   return (
     <div className="relative flex h-40 w-40 items-center justify-center">
-      <div className={`absolute inset-0 rounded-full border border-primary/12 ${ringClass}`} />
+      <div className={cn("absolute inset-0 rounded-full border border-primary/12", ringClass)} />
       <div
-        className={`absolute rounded-full border border-primary/14 ${ringClass}`}
-        style={{ inset: 14, animationDelay: animated ? "180ms" : undefined }}
+        className={cn(
+          "absolute inset-3.5 rounded-full border border-primary/14",
+          ringClass,
+          animated && "delay-200",
+        )}
       />
       <div
-        className={`absolute rounded-full border border-primary/18 ${ringClass}`}
-        style={{ inset: 28, animationDelay: animated ? "360ms" : undefined }}
+        className={cn(
+          "absolute inset-7 rounded-full border border-primary/18",
+          ringClass,
+          animated && "delay-[360ms]",
+        )}
       />
       <div className="absolute inset-[30px] rounded-full bg-primary/15 blur-2xl" />
       <div
-        className={`relative z-10 flex h-20 w-20 items-center justify-center rounded-full border border-primary/20 bg-background/85 ${centerClass}`}
+        className={cn(
+          "relative z-10 flex h-20 w-20 items-center justify-center rounded-full border border-primary/20 bg-background/85",
+          centerClass,
+        )}
       >
         {icon}
       </div>
     </div>
   );
 }
-

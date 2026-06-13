@@ -93,6 +93,7 @@ export function VibeStep({ draft, onDraftChange, back, onForward }: VibeStepProp
         fullWidth
         className="h-9 text-sm"
         disabled={isLoadingPrefs || isSaving || !options}
+        aria-busy={isSaving}
         onClick={() => void handleContinue()}
       >
         {isSaving ? (
@@ -118,7 +119,11 @@ export function VibeStep({ draft, onDraftChange, back, onForward }: VibeStepProp
     >
       <div className="space-y-6 lg:space-y-8">
         {isLoadingPrefs && (
-          <div className="flex items-center justify-center gap-1.5 py-16 text-sm text-muted-foreground sm:py-24">
+          <div
+            className="flex items-center justify-center gap-1.5 py-16 text-sm text-muted-foreground sm:py-24"
+            role="status"
+            aria-live="polite"
+          >
             <Loader2 className="size-4 shrink-0 animate-spin" aria-hidden />
             {GUEST_TRIAL_PREFS.loading}
           </div>

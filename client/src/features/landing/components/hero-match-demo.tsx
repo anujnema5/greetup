@@ -10,7 +10,7 @@ type Person = {
   name: string;
   tag: string;
   letter: string;
-  avatar: string;
+  avatarClass: string;
   note?: string;
 };
 
@@ -30,12 +30,12 @@ const STORY: StoryStep[] = [
     filter: "By profession",
     preference: "Backend engineers",
     scanLabel: "Finding backend engineers…",
-    you: { name: "You", tag: "Backend · Node", letter: "Y", avatar: "oklch(58% 0.14 285)" },
+    you: { name: "You", tag: "Backend · Node", letter: "Y", avatarClass: "bg-[oklch(58%_0.14_285)]" },
     peer: {
       name: "Aarav",
       tag: "Backend · Go",
       letter: "A",
-      avatar: "oklch(52% 0.12 295)",
+      avatarClass: "bg-[oklch(52%_0.12_295)]",
       note: "Hey, saw you're on Node too",
     },
   },
@@ -45,12 +45,12 @@ const STORY: StoryStep[] = [
     preference: "Artists",
     scanLabel: "Finding artists…",
     switchLabel: "Switched to interests",
-    you: { name: "You", tag: "Illustrator · SF", letter: "Y", avatar: "oklch(62% 0.16 15)" },
+    you: { name: "You", tag: "Illustrator · SF", letter: "Y", avatarClass: "bg-[oklch(62%_0.16_15)]" },
     peer: {
       name: "Mei",
       tag: "Visual artist · NYC",
       letter: "M",
-      avatar: "oklch(58% 0.14 10)",
+      avatarClass: "bg-[oklch(58%_0.14_10)]",
       note: "Love your sketch style!",
     },
   },
@@ -60,12 +60,12 @@ const STORY: StoryStep[] = [
     preference: "Anyone",
     scanLabel: "Finding someone new…",
     switchLabel: "Open to anyone",
-    you: { name: "You", tag: "Open to anyone", letter: "Y", avatar: "oklch(68% 0.12 75)" },
+    you: { name: "You", tag: "Open to anyone", letter: "Y", avatarClass: "bg-[oklch(68%_0.12_75)]" },
     peer: {
       name: "James",
       tag: "Jazz · Berlin",
       letter: "J",
-      avatar: "oklch(62% 0.11 65)",
+      avatarClass: "bg-[oklch(62%_0.11_65)]",
       note: "Want to jam sometime?",
     },
   },
@@ -130,8 +130,10 @@ function PersonCard({
       )}
     >
       <div
-        className="flex size-12 items-center justify-center rounded-full text-sm font-medium text-white/90 ring-2 ring-white/6"
-        style={{ backgroundColor: person.avatar }}
+        className={cn(
+          "flex size-12 items-center justify-center rounded-full text-sm font-medium text-white/90 ring-2 ring-white/6",
+          person.avatarClass,
+        )}
       >
         {person.letter}
       </div>
@@ -303,8 +305,10 @@ export function HeroMatchDemo({ lite }: { lite: boolean }) {
               className="mt-3.5 flex gap-2.5"
             >
               <div
-                className="mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-full text-[11px] font-medium text-white/90"
-                style={{ backgroundColor: beat.peer.avatar }}
+                className={cn(
+                  "mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-full text-[11px] font-medium text-white/90",
+                  beat.peer.avatarClass,
+                )}
               >
                 {beat.peer.letter}
               </div>

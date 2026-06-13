@@ -150,12 +150,9 @@ export async function proxy(req: NextRequest) {
     return NextResponse.redirect(new URL(redirectUrl, req.url));
   }
 
-  // Redirect logged-in users away from public routes (keep /register?from=guest for guests)
+  // Redirect logged-in users away from public routes (guests may finish signup / verify email)
   if (isLoggedIn && PUBLIC_ROUTES.includes(pathname)) {
-    if (
-      guestStatus?.isGuest &&
-      isGuestSignupAuthRoute(pathname, req.nextUrl.searchParams)
-    ) {
+    if (guestStatus?.isGuest && isGuestAccountConversionRoute(pathname)) {
       const response = NextResponse.next();
       setSecurityHeaders(response);
       return response;
@@ -261,11 +258,15 @@ function isGuestCircleMatchRoom(pathname: string): boolean {
   return /^\/circle\/[^/]+$/.test(pathname);
 }
 
-function isGuestSignupAuthRoute(pathname: string, searchParams: URLSearchParams): boolean {
-  if (searchParams.get("from") !== "guest") {
-    return false;
-  }
-  return pathname === "/register" || pathname === "/login";
+/** Routes guests use while upgrading to a full account — must not bounce to /try. */
+function isGuestAccountConversionRoute(pathname: string): boolean {
+  return (
+    pathname === "/register" ||
+    pathname === "/login" ||
+    pathname === "/verify-email" ||
+    pathname === ONBOARDING_ROUTE ||
+    pathname.startsWith(`${ONBOARDING_ROUTE}/`)
+  );
 }
 
 function isGuestBlockedRoute(pathname: string): boolean {
@@ -311,14 +312,11 @@ async function resolveGuestRouteRedirect(
     return null;
   }
 
-  if (isGuestSignupAuthRoute(pathname, req.nextUrl.searchParams)) {
+  if (isGuestAccountConversionRoute(pathname)) {
     return null;
   }
 
   if (PUBLIC_ROUTES.includes(pathname)) {
-    if (pathname === "/login") {
-      return NextResponse.redirect(new URL(trialLanding, req.url));
-    }
     return NextResponse.redirect(new URL(trialLanding, req.url));
   }
 

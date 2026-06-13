@@ -3,6 +3,7 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 
 import { getApiErrorCode, getApiErrorMessage, getGuestTryApiErrorAction } from "@/lib/api";
+import { authClient } from "@/lib/auth-client";
 import { queryKeys } from "@/lib/query/keys";
 
 import { createTrySession } from "../api/guest-try.api";
@@ -13,6 +14,7 @@ export function useCreateTrySession() {
   return useMutation({
     mutationFn: createTrySession,
     onSuccess: async () => {
+      await authClient.getSession();
       await queryClient.invalidateQueries({ queryKey: queryKeys.guestTry.status });
     },
   });
