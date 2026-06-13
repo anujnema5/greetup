@@ -35,10 +35,12 @@ function TypingDots({ paused }: { paused: boolean }) {
         <span
           key={delay}
           className={cn(
-            'size-1.5 rounded-full bg-muted-foreground/70',
-            !paused && 'animate-typing-dot',
+            "size-1.5 rounded-full bg-muted-foreground/70",
+            !paused && "animate-typing-dot",
+            !paused && delay === 0 && "delay-0",
+            !paused && delay === 180 && "delay-[180ms]",
+            !paused && delay === 360 && "delay-[360ms]",
           )}
-          style={paused ? undefined : { animationDelay: `${delay}ms` }}
         />
       ))}
     </span>

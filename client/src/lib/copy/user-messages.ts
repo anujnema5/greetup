@@ -216,10 +216,6 @@ export const GUEST_TRIAL_PREFS = {
 export const GUEST_TRIAL_REGISTER = {
   title: "Create free account",
   subtitle: "Want more matches? Sign up and we'll keep your name and picks from today.",
-  mergeBanner: (displayName: string | null) =>
-    displayName
-      ? `We'll carry over ${displayName}'s profile and preferences when you finish signing up.`
-      : "We'll carry over your profile and match preferences when you finish signing up.",
   noSessionOnDevice:
     "No try session found on this device. You can still sign up, but your progress may not carry over.",
 } as const;

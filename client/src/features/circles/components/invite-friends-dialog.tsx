@@ -171,19 +171,18 @@ export function InviteFriendsDialog({
                         checked={checked}
                         onCheckedChange={() => toggle(peer.userId)}
                       />
-                      <span
-                        className="flex size-11 shrink-0 items-center justify-center rounded-full bg-muted text-sm font-medium text-muted-foreground"
-                        style={
-                          peer.image
-                            ? {
-                                backgroundImage: `url(${peer.image})`,
-                                backgroundSize: "cover",
-                              }
-                            : undefined
-                        }
-                      >
-                        {!peer.image ? label.slice(0, 1).toUpperCase() : null}
-                      </span>
+                      {peer.image ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img
+                          src={peer.image}
+                          alt=""
+                          className="size-11 shrink-0 rounded-full object-cover"
+                        />
+                      ) : (
+                        <span className="flex size-11 shrink-0 items-center justify-center rounded-full bg-muted text-sm font-medium text-muted-foreground">
+                          {label.slice(0, 1).toUpperCase()}
+                        </span>
+                      )}
                       <span className={cn("min-w-0 flex-1 truncate font-medium", COMPACT_DIALOG_LABEL)}>
                         {label}
                       </span>

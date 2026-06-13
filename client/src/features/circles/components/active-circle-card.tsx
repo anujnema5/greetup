@@ -28,6 +28,17 @@ function hostLabel(host: ActiveCircleItem["host"]) {
   return host.displayName?.trim() || host.name?.trim() || "Host";
 }
 
+const SCROLL_GRID_COLS = {
+  1: "md:grid-cols-1",
+  2: "md:grid-cols-2",
+  3: "md:grid-cols-3",
+  4: "md:grid-cols-4",
+} as const;
+
+function scrollGridClass(count: number) {
+  return SCROLL_GRID_COLS[Math.min(Math.max(count, 1), 4) as keyof typeof SCROLL_GRID_COLS];
+}
+
 export const FriendInvitedBadge = (
   <span className="text-[10px] font-bold text-black/80 bg-primary/80 rounded-full px-1.5 py-0.5 backdrop-blur-sm">
     Invited
@@ -82,11 +93,10 @@ export function ActiveCircleCard({
         }
       }}
       className={cn(
-        "group relative h-44 w-full rounded-2xl overflow-hidden cursor-pointer transition-all duration-300 bg-linear-to-br text-left border-0 p-0 font-inherit outline-none focus-visible:ring-2 focus-visible:ring-white/40",
+        "group relative h-44 w-full rounded-2xl overflow-hidden cursor-pointer transition-all duration-300 bg-linear-to-br text-left border-0 p-0 font-inherit outline-none focus-visible:ring-2 focus-visible:ring-white/40 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.08),0_4px_20px_rgba(0,0,0,0.4)]",
         cover,
         className,
       )}
-      style={{ boxShadow: "0 1px 0 0 rgba(255,255,255,0.08) inset, 0 4px 20px rgba(0,0,0,0.4)" }}
     >
       <div className="absolute inset-x-0 top-0 h-16 bg-linear-to-b from-white/10 to-transparent pointer-events-none" />
       <div className="absolute inset-0 rounded-2xl ring-1 ring-white/10 group-hover:ring-white/25 transition-all duration-300 pointer-events-none" />
@@ -226,17 +236,12 @@ export function ActiveCircleCardGrid({
               "flex gap-3 overflow-x-auto pb-1 scrollbar-none",
               single
                 ? "md:grid md:grid-cols-1 md:max-w-xs md:overflow-visible"
-                : "md:grid md:overflow-visible md:gap-3",
+                : cn("md:grid md:overflow-visible md:gap-3", scrollGridClass(items.length)),
             )
           : responsiveGridClass,
         layout === "scroll" && !single && "md:grid",
         className,
       )}
-      style={
-        layout === "scroll" && !single
-          ? { gridTemplateColumns: `repeat(${Math.min(items.length, 4)}, minmax(0, 1fr))` }
-          : undefined
-      }
     >
       {items.map((c) => (
         <ActiveCircleCard
@@ -272,14 +277,9 @@ export function ActiveCircleCardSkeletonGrid({
     <div
       className={cn(
         layout === "scroll"
-          ? "flex gap-3 overflow-hidden md:grid md:gap-3"
+          ? cn("flex gap-3 overflow-hidden md:grid md:gap-3", scrollGridClass(count))
           : "grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3",
       )}
-      style={
-        layout === "scroll"
-          ? { gridTemplateColumns: `repeat(${count}, minmax(0, 1fr))` }
-          : undefined
-      }
     >
       {Array.from({ length: count }).map((_, i) => (
         <ActiveCircleCardSkeleton key={i} />

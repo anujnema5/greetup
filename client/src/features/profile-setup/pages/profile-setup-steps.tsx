@@ -16,6 +16,7 @@ import ReactCountryFlag from 'react-country-flag'
 
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
+import { ProgressBar } from '@/components/ui/progress-bar'
 import {
   Select,
   SelectContent,
@@ -601,9 +602,11 @@ const ProfileSetupStep = () => {
         <div className="rounded-2xl border border-border bg-card shadow-sm overflow-hidden">
           {/* Progress bar - top of card */}
           <div className="h-1 w-full bg-muted">
-            <div
-              className="h-full bg-primary transition-all duration-300 ease-out"
-              style={{ width: `${progressPercent}%` }}
+            <ProgressBar
+              value={progressPercent}
+              max={100}
+              aria-label="Profile setup progress"
+              className="h-1 [&::-webkit-progress-bar]:bg-muted"
             />
           </div>
 

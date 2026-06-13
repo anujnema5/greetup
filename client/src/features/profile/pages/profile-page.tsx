@@ -226,13 +226,7 @@ export function ProfilePage() {
           />
 
           <div
-            className="relative overflow-hidden rounded-3xl border border-border bg-card"
-            style={{
-              background: `
-                radial-gradient(ellipse 70% 50% at 50% 0%, var(--surface-hero-glow) 0%, transparent 72%),
-                var(--surface-hero-base)
-              `,
-            }}
+            className="relative overflow-hidden rounded-3xl border border-border bg-card bg-profile-hero-surface"
           >
             <div className="flex items-start gap-4 p-5">
               <div className="relative shrink-0">

@@ -2,6 +2,7 @@
 
 import { Check } from "lucide-react";
 
+import { ProgressBar } from "@/components/ui/progress-bar";
 import { cn } from "@/lib/utils";
 
 import {
@@ -26,6 +27,25 @@ type TryStepperProps = {
   className?: string;
 };
 
+function TryStepProgress({
+  activeIndex,
+  className,
+}: {
+  activeIndex: number;
+  className?: string;
+}) {
+  return (
+    <div className={cn("h-1.5 overflow-hidden rounded-full bg-white/8", className)}>
+      <ProgressBar
+        value={activeIndex + 1}
+        max={STEPS.length}
+        aria-label="Setup progress"
+        className="h-1.5 [&::-webkit-progress-bar]:bg-white/8"
+      />
+    </div>
+  );
+}
+
 export function TryStepper({
   activeStep,
   furthestStep,
@@ -42,8 +62,6 @@ export function TryStepper({
   if (activeIndex < 0) {
     return null;
   }
-
-  const progress = ((activeIndex + 1) / STEPS.length) * 100;
 
   const handleSelect = (step: TryWizardStep) => {
     if (!isTryStepReachable(step, furthestStep) || step === activeStep) {
@@ -70,17 +88,7 @@ export function TryStepper({
           <p className="text-sm font-medium text-muted-foreground">
             Step {activeIndex + 1} of {STEPS.length}
           </p>
-          <div className="h-1.5 overflow-hidden rounded-full bg-white/8">
-            <div
-              className="h-full rounded-full bg-primary transition-all duration-300 ease-out"
-              style={{ width: `${progress}%` }}
-              role="progressbar"
-              aria-label="Setup progress"
-              aria-valuenow={activeIndex + 1}
-              aria-valuemin={1}
-              aria-valuemax={STEPS.length}
-            />
-          </div>
+          <TryStepProgress activeIndex={activeIndex} />
         </div>
 
         <ol className="space-y-2">
@@ -160,17 +168,7 @@ export function TryStepper({
         </span>
         <span className="text-muted-foreground">{STEPS[activeIndex].label}</span>
       </div>
-      <div className="h-1.5 overflow-hidden rounded-full bg-white/8">
-        <div
-          className="h-full rounded-full bg-primary transition-all duration-300 ease-out"
-          style={{ width: `${progress}%` }}
-          role="progressbar"
-          aria-label="Setup progress"
-          aria-valuenow={activeIndex + 1}
-          aria-valuemin={1}
-          aria-valuemax={STEPS.length}
-        />
-      </div>
+      <TryStepProgress activeIndex={activeIndex} />
       <ol className="flex justify-between gap-2">
         {STEPS.map((step) => {
           const isComplete = isTryStepComplete(step.key, furthestStep);

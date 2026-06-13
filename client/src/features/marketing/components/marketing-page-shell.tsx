@@ -27,13 +27,7 @@ export function MarketingPageShell({
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_90%_70%_at_50%_-10%,oklch(22%_0.025_105/0.55),transparent_72%)]" />
         <div className="absolute -top-28 -left-36 h-[360px] w-[360px] rounded-full bg-[oklch(88%_0.11_105/0.06)] blur-[96px]" />
         <div className="absolute top-[20%] -right-24 h-[300px] w-[300px] rounded-full bg-[oklch(88%_0.11_105/0.05)] blur-[88px]" />
-        <div
-          className="absolute inset-0 opacity-60 [mask-image:radial-gradient(ellipse_88%_82%_at_50%_30%,#000_28%,transparent_80%)]"
-          style={{
-            backgroundImage: "radial-gradient(circle at 1px 1px, oklch(100% 0 0 / 0.05) 1px, transparent 0)",
-            backgroundSize: "30px 30px",
-          }}
-        />
+        <div className="absolute inset-0 opacity-60 [mask-image:radial-gradient(ellipse_88%_82%_at_50%_30%,#000_28%,transparent_80%)] bg-dot-grid-marketing" />
       </div>
 
       <header className="relative z-10 border-b border-white/6 bg-[#0A0A0A]/80 backdrop-blur-md">

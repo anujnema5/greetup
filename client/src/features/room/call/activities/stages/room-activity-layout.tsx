@@ -6,6 +6,7 @@
 
 import { memo, useEffect, useMemo, useRef, type ReactNode } from "react";
 import { Mic, MicOff, Video, VideoOff } from "lucide-react";
+import { cn } from "@/lib/utils";
 import {
   CameraOffAvatar,
   TileSpeakingRings,
@@ -131,8 +132,7 @@ export const RoomActivityStreamVideo = memo(function RoomActivityStreamVideo({
       playsInline
       autoPlay
       muted={muted}
-      className={className}
-      style={mirrored ? { transform: "scaleX(-1)" } : undefined}
+      className={cn(className, mirrored && "-scale-x-100")}
     />
   );
 });

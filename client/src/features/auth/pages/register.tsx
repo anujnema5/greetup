@@ -110,7 +110,6 @@ function RegisterPageContent() {
         <GuestRegisterMergeBanner
           fromGuestIntent={fromGuestIntent}
           signupContext={signupContext}
-          displayName={guestStatus?.displayName}
           isLoading={signupContextLoading}
         />
 

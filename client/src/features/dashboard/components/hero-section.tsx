@@ -1,7 +1,7 @@
 "use client";
 
 import { memo } from "react";
-import { Video, Zap, X } from "lucide-react";
+import { Video, X, Zap } from "lucide-react";
 
 import { DASHBOARD_HERO, EARLY_RELEASE } from "@/lib/copy/user-messages";
 import { TOUR_TARGETS } from "@/features/tour-guide";
@@ -33,31 +33,10 @@ function HeroSectionInner({
       : DASHBOARD_HERO.idle;
 
   return (
-    <div
-      className="relative overflow-hidden rounded-3xl border border-border flex flex-col items-center justify-center gap-4 py-6 px-4 md:gap-5 md:py-8 md:px-8 bg-card"
-      style={{
-        background: `
-          radial-gradient(ellipse 70% 50% at 50% 0%, var(--surface-hero-glow) 0%, transparent 72%),
-          radial-gradient(ellipse 50% 40% at 85% 85%, var(--surface-hero-glow-2) 0%, transparent 60%),
-          var(--surface-hero-base)
-        `,
-      }}
-    >
-      <div
-        className="pointer-events-none absolute inset-0 opacity-100"
-        style={{
-          backgroundImage: "radial-gradient(circle at 1px 1px, var(--surface-dot-grid) 1px, transparent 0)",
-          backgroundSize: "28px 28px",
-        }}
-      />
-      <div
-        className="pointer-events-none absolute -top-24 left-1/2 -translate-x-1/2 rounded-full blur-[100px] opacity-40"
-        style={{ width: 480, height: 280, background: "oklch(88% 0.11 105 / 0.15)" }}
-      />
-      <div
-        className="pointer-events-none absolute -bottom-16 -right-16 rounded-full blur-[80px] opacity-25"
-        style={{ width: 280, height: 280, background: "oklch(60% 0.2 280 / 0.1)" }}
-      />
+    <div className="relative overflow-hidden rounded-3xl border border-border flex flex-col items-center justify-center gap-4 bg-card py-6 px-4 md:gap-5 md:py-8 md:px-8 bg-hero-card-surface">
+      <div className="pointer-events-none absolute inset-0 bg-dot-grid-hero opacity-100" />
+      <div className="pointer-events-none absolute -top-24 left-1/2 h-[280px] w-[480px] -translate-x-1/2 rounded-full bg-[oklch(88%_0.11_105/0.15)] blur-[100px] opacity-40" />
+      <div className="pointer-events-none absolute -bottom-16 -right-16 h-[280px] w-[280px] rounded-full bg-[oklch(60%_0.2_280/0.1)] blur-[80px] opacity-25" />
 
       <HeroOnlinePeopleBadge />
 

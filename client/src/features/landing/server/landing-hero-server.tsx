@@ -24,12 +24,7 @@ function HeroBackdropStatic() {
       <div className="absolute top-[16%] -right-20 h-[340px] w-[340px] rounded-full bg-[oklch(88%_0.11_105/0.09)] blur-[88px]" />
       <div className="absolute bottom-[8%] left-[22%] h-[260px] w-[260px] rounded-full bg-[oklch(62%_0.14_285/0.05)] blur-[72px]" />
       <div
-        className="absolute inset-0 opacity-70 [mask-image:radial-gradient(ellipse_88%_82%_at_68%_50%,#000_28%,transparent_80%)]"
-        style={{
-          backgroundImage:
-            "radial-gradient(circle at 1px 1px, oklch(100% 0 0 / 0.055) 1px, transparent 0)",
-          backgroundSize: "30px 30px",
-        }}
+        className="absolute inset-0 opacity-70 [mask-image:radial-gradient(ellipse_88%_82%_at_68%_50%,#000_28%,transparent_80%)] bg-dot-grid-landing"
       />
       <div className="absolute inset-0 bg-[radial-gradient(ellipse_50%_58%_at_84%_44%,oklch(88%_0.11_105/0.11),transparent_72%)]" />
       <div className="absolute inset-0 bg-[radial-gradient(ellipse_38%_42%_at_14%_32%,oklch(88%_0.11_105/0.045),transparent_70%)]" />
