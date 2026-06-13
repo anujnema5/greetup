@@ -5,9 +5,9 @@ export const siteConfig = {
   name: "Greetup",
   domain: "greetup.co",
   url: "https://greetup.co",
-  tagline: "Meet People by Job, Interests & Location",
+  tagline: "Find people by job, city, or what you're into then start talking.",
   description:
-    "Match 1:1 in real time by profession, city, or what you're into — then chat, voice, or video. Join live circles around shared topics. Free beta.",
+    "Meet people one-on-one in real time — matched by job, city, mood, or interests. Chat, voice call, or video. Join group circles around shared topics.",
   contactEmail: "hello@greetup.co",
   supportEmail: "support@greetup.co",
   locale: "en_US",
