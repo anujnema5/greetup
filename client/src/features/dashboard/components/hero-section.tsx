@@ -114,9 +114,9 @@ function HeroSectionInner({
             </span>
           </span>
         </div>
-        <p className="text-[11px] text-muted-foreground/75 text-center max-w-md leading-relaxed">
+        {/* <p className="text-[11px] text-muted-foreground/75 text-center max-w-md leading-relaxed">
           {EARLY_RELEASE.noticeShort}
-        </p>
+        </p> */}
         <p className="text-[11px] text-muted-foreground/60">{DASHBOARD_HERO.aiCuesComingSoon}</p>
       </div>
     </div>
