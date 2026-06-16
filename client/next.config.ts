@@ -1,6 +1,6 @@
 import type { NextConfig } from "next";
 
-import { PRODUCTION_ORIGIN, SITE_DOMAIN } from "./src/shared/constants/environments";
+import { PRODUCTION_ORIGIN, SITE_DOMAIN } from "./site-domain";
 
 /** Hono + Better Auth. Browser calls `http://localhost:3000/api/...` so Set-Cookie is first-party (port 3000 → 5300 XHR drops cookies otherwise). */
 const API_BACKEND_ORIGIN =

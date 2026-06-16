@@ -50,6 +50,7 @@ COPY --from=build /app/.next ./.next
 COPY --from=build /app/public ./public
 COPY --from=build /app/package.json ./package.json
 COPY --from=build /app/next.config.ts ./next.config.ts
+COPY --from=build /app/site-domain.ts ./site-domain.ts
 
 EXPOSE 3000
 

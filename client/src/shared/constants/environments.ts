@@ -1,7 +1,9 @@
+import { PRODUCTION_ORIGIN, SITE_DOMAIN } from "../../../site-domain";
+
+export { PRODUCTION_ORIGIN, SITE_DOMAIN };
+
 const DEFAULT_APP_ORIGIN = "http://localhost:3000";
 const DEFAULT_SOCKET_ORIGIN = "http://localhost:5300";
-export const SITE_DOMAIN = "greetup.co";
-export const PRODUCTION_ORIGIN = `https://${SITE_DOMAIN}`;
 
 function trim(url: string): string {
   return url.replace(/\/+$/, "");
