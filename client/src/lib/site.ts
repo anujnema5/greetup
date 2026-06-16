@@ -5,9 +5,9 @@ export const siteConfig = {
   name: "Greetup",
   domain: "greetup.co",
   url: "https://greetup.co",
-  tagline: "Find people by job, city, or what you're into then start talking.",
+  tagline: "Meet people matched to you — chat, voice, or video.",
   description:
-    "Meet people one-on-one in real time — matched by job, city, mood, or interests. Chat, voice call, or video. Join group circles around shared topics.",
+    "Meet like-minded people online — matched by interests, job, or mood. Talk your way with chat, voice, or video. Join live circles around what you care about.",
   contactEmail: "hello@greetup.co",
   supportEmail: "support@greetup.co",
   locale: "en_US",
@@ -74,13 +74,14 @@ export function buildPageMetadata({
     keywords: [
       "Greetup",
       "meet people online",
-      "make friends online",
-      "interest matching",
+      "find people to talk to",
+      "meet like-minded people",
+      "interest based matching",
+      "real-time chat",
+      "voice chat online",
       "video chat",
+      "connect with new people",
       "live circles",
-      "networking by profession",
-      "1:1 matching",
-      "group video chat",
     ],
   };
 }
