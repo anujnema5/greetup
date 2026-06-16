@@ -1,10 +1,10 @@
 import type { Metadata } from "next";
-import { CURRENT_HOST } from "@/shared/constants/environments";
+import { CURRENT_HOST, PRODUCTION_ORIGIN, SITE_DOMAIN } from "@/shared/constants/environments";
 
 export const siteConfig = {
   name: "Greetup",
-  domain: "greetup.co",
-  url: "https://greetup.co",
+  domain: SITE_DOMAIN,
+  url: PRODUCTION_ORIGIN,
   tagline: "Meet people matched to you — chat, voice, or video.",
   description:
     "Meet like-minded people online — matched by interests, job, or mood. Talk your way with chat, voice, or video. Join live circles around what you care about.",
@@ -15,7 +15,10 @@ export const siteConfig = {
 } as const;
 
 export function absoluteUrl(path = "/"): string {
-  const base = (CURRENT_HOST || siteConfig.url).replace(/\/+$/, "");
+  const base =
+    process.env.NODE_ENV === "production"
+      ? siteConfig.url.replace(/\/+$/, "")
+      : (CURRENT_HOST || siteConfig.url).replace(/\/+$/, "");
   const normalized = path.startsWith("/") ? path : `/${path}`;
   return `${base}${normalized}`;
 }
@@ -46,7 +49,9 @@ export function buildPageMetadata({
   return {
     title: fullTitle,
     description,
-    metadataBase: new URL(CURRENT_HOST || siteConfig.url),
+    metadataBase: new URL(
+      process.env.NODE_ENV === "production" ? siteConfig.url : CURRENT_HOST || siteConfig.url,
+    ),
     alternates: { canonical: url },
     openGraph: {
       type: "website",

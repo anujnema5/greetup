@@ -1,6 +1,26 @@
 import { NextRequest, NextResponse } from "next/server";
 
-import { API_BASE_URL } from "@/shared/constants/environments";
+import { API_BASE_URL, PRODUCTION_ORIGIN, SITE_DOMAIN } from "@/shared/constants/environments";
+
+/** 301 www/http variants to https://greetup.co (fixes Search Console duplicate canonical). */
+function canonicalOriginRedirect(req: NextRequest): NextResponse | null {
+  if (process.env.NODE_ENV !== "production") {
+    return null;
+  }
+
+  const hostHeader = req.headers.get("host") ?? "";
+  const hostname = hostHeader.split(":")[0]?.toLowerCase() ?? "";
+  const forwardedProto = req.headers.get("x-forwarded-proto")?.split(",")[0]?.trim();
+  const isHttps = forwardedProto === "https" || req.nextUrl.protocol === "https:";
+  const isCanonicalHost = hostname === SITE_DOMAIN;
+
+  if (isCanonicalHost && isHttps) {
+    return null;
+  }
+
+  const destination = new URL(req.nextUrl.pathname + req.nextUrl.search, PRODUCTION_ORIGIN);
+  return NextResponse.redirect(destination, 308);
+}
 
 function middlewareApiBase(req: NextRequest): string {
   return process.env.NEXT_PUBLIC_API_BASE_URL?.trim()
@@ -95,6 +115,11 @@ const SESSION_COOKIE_KEYS = [
 // ==================== MAIN PROXY FUNCTION ====================
 // ⭐ Changed from 'middleware' to 'proxy'
 export async function proxy(req: NextRequest) {
+  const canonicalRedirect = canonicalOriginRedirect(req);
+  if (canonicalRedirect) {
+    return canonicalRedirect;
+  }
+
   const { pathname } = req.nextUrl;
 
   // Skip proxy for static files and API routes
