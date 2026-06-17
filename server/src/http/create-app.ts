@@ -18,6 +18,18 @@ const createApp = async () => {
 
   const app = new Hono();
 
+  // API host should not appear in search results (api.greetup.co).
+  app.use("*", async (c, next) => {
+    await next();
+    c.header("X-Robots-Tag", "noindex, nofollow, noarchive");
+  });
+
+  app.get("/robots.txt", (c) =>
+    c.text("User-agent: *\nDisallow: /\n", 200, {
+      "Content-Type": "text/plain; charset=utf-8",
+    }),
+  );
+
   app.use(cors(corsOptions));
 
   app.route(HTTP_PATHS.auth, authPublicRouter);

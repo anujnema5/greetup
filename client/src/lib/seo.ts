@@ -21,9 +21,13 @@ export const PUBLIC_SITEMAP_ROUTES: SitemapRoute[] = [
   { path: "/terms", changeFrequency: "yearly", priority: 0.4 },
 ];
 
-/** App, auth recovery, and user-specific paths blocked in robots.txt */
+/** App, assets, and user-specific paths blocked in robots.txt */
 export const ROBOTS_DISALLOW_PATHS = [
   "/api/",
+  "/opengraph-image",
+  "/manifest.webmanifest",
+  "/icon",
+  "/apple-icon",
   "/home",
   "/explore",
   "/circles",
