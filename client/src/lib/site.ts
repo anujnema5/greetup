@@ -42,7 +42,7 @@ export function buildPageMetadata({
       ? title.trim()
         ? `${siteConfig.name} | ${title}`
         : siteConfig.name
-      : `${title} · ${siteConfig.name}`;
+      : `${title} • ${siteConfig.name}`;
 
   const ogImage = {
     url: "/opengraph-image",
