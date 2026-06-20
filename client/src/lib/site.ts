@@ -37,7 +37,12 @@ export function buildPageMetadata({
   noIndex = false,
 }: PageMetadataInput): Metadata {
   const url = absoluteUrl(path);
-  const fullTitle = path === "/" ? `${siteConfig.name} | ${title}` : `${title} · ${siteConfig.name}`;
+  const fullTitle =
+    path === "/"
+      ? title.trim()
+        ? `${siteConfig.name} | ${title}`
+        : siteConfig.name
+      : `${title} · ${siteConfig.name}`;
 
   const ogImage = {
     url: "/opengraph-image",
@@ -93,7 +98,7 @@ export function buildPageMetadata({
 
 export const rootMetadata: Metadata = {
   ...buildPageMetadata({
-    title: siteConfig.tagline,
+    title: "",
     description: siteConfig.description,
     path: "/",
   }),
