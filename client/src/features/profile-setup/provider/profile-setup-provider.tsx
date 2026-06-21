@@ -21,6 +21,7 @@ import { useForm, FormProvider } from 'react-hook-form'
 import {
   generateStepSchema,
   getStepDefaultValues,
+  normalizeStoredFormData,
   parseProfileSetupSaveError,
   transformStepToApiPayload,
 } from '../utils'
@@ -184,7 +185,10 @@ export const ProfileSetupProvider: React.FC<ProfileSetupProviderProps> = ({
         if (validStep && storedData && typeof storedData === 'object') {
           // Keep users on the furthest valid step we've seen locally/server-side.
           setCurrentStep(Math.max(storedStep, preferredStep))
-          setAllFormData({ ...initialData, ...storedData })
+          setAllFormData({
+            ...initialData,
+            ...normalizeStoredFormData(storedData, fetchedSteps),
+          })
         } else {
           setCurrentStep(preferredStep)
           setAllFormData(initialData)

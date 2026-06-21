@@ -1,5 +1,4 @@
 import { getMatchPrepCurrentService } from "@/modules/profile/services/match-prep.service";
-import { NotFoundError } from "@/shared/errors";
 
 import { isGuestMatchPrepReady } from "../../lib/guest-match-prep-ready";
 import { resolveGuestDisplayName } from "../../lib/resolve-guest-display-name";
@@ -10,24 +9,29 @@ import {
   getGuestMatchSearchAttemptsUsed,
 } from "../matching/guest-match-search-retry.service";
 
+function nonGuestStatus(displayName: string | null = null): GuestCallTrialStatus {
+  return {
+    isGuest: false,
+    displayName,
+    hasMatchPrep: false,
+    callTrialConsumed: false,
+    canStartMatch: false,
+    nextStep: "signup",
+  };
+}
+
 export async function getGuestCallTrialStatus(userId: string): Promise<GuestCallTrialStatus> {
   const profile = await guestProfileRepository.findByUserId(userId);
   if (!profile) {
-    throw new NotFoundError("Profile not found");
+    // Registered users may not have a profile row until profile-setup step 1 saves.
+    return nonGuestStatus();
   }
 
   const displayName = resolveGuestDisplayName(profile.displayName, profile.name);
   const callTrialConsumed = profile.guestTrialConsumedAt != null;
 
   if (!profile.isGuest) {
-    return {
-      isGuest: false,
-      displayName,
-      hasMatchPrep: false,
-      callTrialConsumed: false,
-      canStartMatch: false,
-      nextStep: "signup",
-    };
+    return nonGuestStatus(displayName);
   }
 
   const prep = await getMatchPrepCurrentService(userId);

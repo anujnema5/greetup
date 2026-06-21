@@ -41,15 +41,16 @@ function plainTextSchema(field: ProfileSetupStepField): z.ZodTypeAny {
 }
 
 function numberSchema(field: ProfileSetupStepField): z.ZodTypeAny {
-  let n: z.ZodTypeAny = z.preprocess(
-    (val: unknown) =>
-      (val === "" || val === null || val === undefined) &&
-      field.required &&
-      field.min !== undefined
-        ? field.min
-        : val,
-    z.coerce.number(),
-  );
+  let n: z.ZodTypeAny = z.preprocess((val: unknown) => {
+    if (!field.required || field.min === undefined) return val;
+
+    if (val === "" || val === null || val === undefined) return field.min;
+
+    const num = typeof val === "number" ? val : Number(val);
+    if (!Number.isFinite(num) || num < field.min) return field.min;
+
+    return val;
+  }, z.coerce.number());
 
   if (field.required) {
     n = n.refine(

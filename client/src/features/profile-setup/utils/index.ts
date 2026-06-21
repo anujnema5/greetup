@@ -1,5 +1,5 @@
 export { generateKey } from "./step-schema-keys";
-export { generateStepSchema, getStepDefaultValues } from "./generate-step-schema";
+export { generateStepSchema, getStepDefaultValues, normalizeStoredFormData } from "./generate-step-schema";
 export * from "./transform-step-to-api";
 export {
   mapSaveErrorFieldToFormName,

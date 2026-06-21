@@ -626,7 +626,7 @@ async function performGuestStatusCheck(
     clearTimeout(timeoutId);
 
     if (!res.ok) {
-      if (res.status === 401 || res.status === 403) {
+      if (res.status === 401 || res.status === 403 || res.status === 404 || res.status === 500) {
         return { isGuest: false, trialConsumed: false };
       }
       throw new Error(`Guest status failed with status ${res.status}`);

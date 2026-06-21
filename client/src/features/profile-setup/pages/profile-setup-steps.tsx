@@ -148,13 +148,14 @@ const ProfileSetupStep = () => {
               control={form.control}
               name={field.key}
               render={({ field: formField }) => {
-                const num =
-                  typeof formField.value === 'number' && !Number.isNaN(formField.value)
-                    ? formField.value
-                    : typeof formField.value === 'string' && formField.value !== ''
-                      ? Number(formField.value)
-                      : field.min ?? 18
-                const v = Number.isFinite(num) ? num : (field.min ?? 18)
+                const minAge = field.min ?? 18
+                const raw = formField.value
+                const v =
+                  typeof raw === 'number' && Number.isFinite(raw)
+                    ? raw
+                    : typeof raw === 'string' && raw !== ''
+                      ? Number(raw)
+                      : minAge
                 return (
                   <FormItem>
                     <FormLabel className="text-sm font-semibold text-foreground">

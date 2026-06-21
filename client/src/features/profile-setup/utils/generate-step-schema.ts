@@ -27,9 +27,17 @@ export const getStepDefaultValues = (fields: any[]): Record<string, any> => {
         defaults[field.key] = field.value || "";
         break;
 
-      case "number":
-        defaults[field.key] = field.value || "";
+      case "number": {
+        const raw = field.value;
+        if (typeof raw === "number" && Number.isFinite(raw)) {
+          defaults[field.key] = raw;
+        } else if (field.required && field.min !== undefined) {
+          defaults[field.key] = field.min;
+        } else {
+          defaults[field.key] = "";
+        }
         break;
+      }
 
       case "select":
       case "radio": {
@@ -84,4 +92,28 @@ export const getStepDefaultValues = (fields: any[]): Record<string, any> => {
   });
 
   return defaults;
+};
+
+/** Drop invalid numeric values from restored localStorage so they don't override API defaults. */
+export function normalizeStoredFormData(
+  stored: Record<string, unknown>,
+  steps: readonly { fields?: readonly ProfileSetupStepField[] }[],
+): Record<string, unknown> {
+  const out = { ...stored };
+
+  for (const step of steps) {
+    for (const field of step.fields ?? []) {
+      if (field.type !== "number" || field.min === undefined) continue;
+
+      const val = out[field.key];
+      const num = typeof val === "number" ? val : val === "" ? Number.NaN : Number(val);
+
+      if (!Number.isFinite(num) || num < field.min) {
+        if (field.required) out[field.key] = field.min;
+        else delete out[field.key];
+      }
+    }
+  }
+
+  return out;
 };
