@@ -91,7 +91,7 @@
   --destructive-foreground: oklch(98% 0.01 25);
 
   /* INPUTS */
-  --border: oklch(86% 0.02 285);
+  --border: oklch(91% 0.01 285);
   --input: oklch(100% 0 0);
   --ring: oklch(50% 0.17 293);
 
