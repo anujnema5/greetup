@@ -122,68 +122,63 @@
 }
 
 .dark {
-  /* GreetUp — Dark Mode — rich charcoal with a soft violet undertone */
-  --background: oklch(15% 0.016 282);
-  --foreground: oklch(98% 0.008 285);
+  /* Dark mode — warm charcoal + glowing gold (main branch palette) */
+  --background: oklch(15% 0.015 110);
+  --foreground: oklch(96% 0.015 110);
 
-  --card: oklch(19% 0.02 282);
-  --card-foreground: oklch(98% 0.008 285);
+  --card: oklch(17% 0.015 110);
+  --card-foreground: oklch(96% 0.015 110);
 
-  --popover: oklch(21% 0.022 282);
-  --popover-foreground: oklch(98% 0.008 285);
+  --popover: oklch(18% 0.015 110);
+  --popover-foreground: oklch(96% 0.015 110);
 
-  /* PRIMARY — Balanced Lime (between neon #CCFF00 and muted sage) */
-  --primary: oklch(87% 0.17 125);
-  --primary-foreground: oklch(17% 0.015 285); /* dark text on lime */
+  /* primary glowing gold */
+  --primary: oklch(88% 0.11 105);
+  --primary-foreground: oklch(15% 0.02 110);
 
-  /* SECONDARY — Vivid Purple (#BF5AF2) */
-  --secondary: oklch(65% 0.23 310);
-  --secondary-foreground: oklch(98% 0.01 285); /* light text on purple */
+  /* secondary */
+  --secondary: oklch(70% 0.05 110);
+  --secondary-foreground: oklch(96% 0.015 110);
 
-  /* TERTIARY — Electric Cyan (#00F0FF) */
-  --tertiary: oklch(87% 0.15 196);
-  --tertiary-foreground: oklch(16% 0.015 285); /* dark text on cyan */
+  /* muted */
+  --muted: oklch(25% 0.01 110);
+  --muted-foreground: oklch(75% 0.02 110);
 
-  /* MUTED */
-  --muted: oklch(24% 0.022 280);
-  --muted-foreground: oklch(72% 0.03 280);
+  /* accent - light yellow/gold bg, needs dark text for contrast */
+  --accent: oklch(88% 0.11 105);
+  --accent-foreground: oklch(22% 0.03 110);
 
-  /* ACCENT — soft violet lift for hover/active */
-  --accent: oklch(26% 0.035 305);
-  --accent-foreground: oklch(92% 0.04 305);
+  /* destructive */
+  --destructive: oklch(55% 0.22 25);
+  --destructive-foreground: oklch(96% 0.015 110);
 
-  /* DESTRUCTIVE */
-  --destructive: oklch(60% 0.2 25);
-  --destructive-foreground: oklch(98% 0.01 25);
+  /* inputs */
+  --border: oklch(25% 0.01 110);
+  --input: oklch(27% 0.01 110);
+  --ring: oklch(88% 0.11 105);
 
-  /* INPUTS */
-  --border: oklch(27% 0.028 280);
-  --input: oklch(22% 0.02 280);
-  --ring: oklch(87% 0.17 125); /* lime focus ring */
+  /* sidebar */
+  --sidebar: oklch(17% 0.015 110);
+  --sidebar-foreground: oklch(96% 0.015 110);
 
-  /* SIDEBAR */
-  --sidebar: oklch(17% 0.018 282);
-  --sidebar-foreground: oklch(98% 0.008 285);
+  --sidebar-primary: oklch(88% 0.11 105);
+  --sidebar-primary-foreground: oklch(15% 0.02 110);
 
-  --sidebar-primary: oklch(87% 0.17 125);
-  --sidebar-primary-foreground: oklch(17% 0.015 285);
+  --sidebar-accent: oklch(25% 0.01 110);
+  --sidebar-accent-foreground: oklch(96% 0.015 110);
 
-  --sidebar-accent: oklch(26% 0.035 305);
-  --sidebar-accent-foreground: oklch(92% 0.04 305);
-
-  --sidebar-border: oklch(27% 0.028 280);
-  --sidebar-ring: oklch(87% 0.17 125);
+  --sidebar-border: oklch(25% 0.01 110);
+  --sidebar-ring: oklch(88% 0.11 105);
 
   --success: oklch(72% 0.14 155);
-  --success-muted: oklch(24% 0.04 155);
+  --success-muted: oklch(22% 0.04 155);
   --success-foreground: oklch(82% 0.12 155);
   --success-border: oklch(42% 0.08 155);
 
-  /* SURFACE GLOWS — visible but not heavy */
-  --surface-hero-base: oklch(18% 0.018 282);
-  --surface-hero-glow: oklch(87% 0.17 125 / 0.09);
-  --surface-hero-glow-2: oklch(65% 0.23 310 / 0.09);
-  --surface-dot-grid: oklch(100% 0 0 / 0.045);
+  --surface-hero-base: oklch(17% 0.015 110);
+  --surface-hero-glow: oklch(88% 0.11 105 / 0.14);
+  --surface-hero-glow-2: oklch(60% 0.2 280 / 0.1);
+  --surface-dot-grid: oklch(100% 0 0 / 0.04);
 }
 
 
@@ -507,19 +502,28 @@ html {
 
 /* Circle orb — dashboard */
 .circle-orb-shell {
+  --circle-orb-ring-outer: oklch(from var(--secondary) l c h / 0.15);
+  --circle-orb-ring-mid: oklch(from var(--secondary) l c h / 0.2);
+  --circle-orb-glow-color: var(--secondary);
+  --circle-orb-glow-opacity: 0.1;
+
   @apply relative flex size-[148px] items-center justify-center;
 }
 
 .circle-orb-ring-outer {
-  @apply absolute inset-0 rounded-full border border-secondary/15 transition-opacity duration-500;
+  @apply absolute inset-0 rounded-full border transition-opacity duration-500;
+  border-color: var(--circle-orb-ring-outer);
 }
 
 .circle-orb-ring-mid {
-  @apply absolute inset-4 rounded-full border border-secondary/20 transition-opacity duration-500;
+  @apply absolute inset-4 rounded-full border transition-opacity duration-500;
+  border-color: var(--circle-orb-ring-mid);
 }
 
 .circle-orb-glow {
-  @apply absolute inset-[29px] rounded-full bg-secondary opacity-10 blur-xl transition-opacity duration-500;
+  @apply absolute inset-[29px] rounded-full blur-xl transition-opacity duration-500;
+  background: var(--circle-orb-glow-color);
+  opacity: var(--circle-orb-glow-opacity);
 }
 
 .circle-orb-btn {
@@ -544,8 +548,8 @@ html {
     inset 0 1px 0 oklch(100% 0 0 / 0.14);
 }
 
-:root:not(.dark) .circle-orb-glow {
-  @apply opacity-6;
+:root:not(.dark) .circle-orb-shell {
+  --circle-orb-glow-opacity: 0.06;
 }
 
 :root:not(.dark) .circle-orb-btn {
@@ -556,7 +560,7 @@ html {
     inset 0 1px 0 oklch(100% 0 0 / 0.22);
 }
 
-/* Dark mode: balanced lime halos on the match orb. */
+/* Dark mode: gold primary halos on the match orb. */
 .dark .match-orb-glow {
   @apply opacity-10;
 }
@@ -573,6 +577,35 @@ html {
     0 0 20px oklch(from var(--primary) l c h / 0.22),
     0 0 42px oklch(from var(--primary) l c h / 0.1),
     inset 0 1px 0 oklch(100% 0 0 / 0.14);
+}
+
+/* Dark mode: muted purple circle orb with balanced orbit rings. */
+.dark .circle-orb-shell {
+  --circle-orb-purple: oklch(50% 0.14 310);
+  --circle-orb-purple-fg: oklch(96% 0.01 285);
+  --circle-orb-ring-outer: oklch(50% 0.14 310 / 0.14);
+  --circle-orb-ring-mid: oklch(50% 0.14 310 / 0.18);
+  --circle-orb-glow-color: oklch(50% 0.14 310);
+  --circle-orb-glow-opacity: 0.07;
+}
+
+.dark .circle-orb-shell:has(.circle-orb-ring-outer.animate-pulse) {
+  --circle-orb-ring-outer: oklch(50% 0.14 310 / 0.2);
+  --circle-orb-ring-mid: oklch(50% 0.14 310 / 0.26);
+  --circle-orb-glow-opacity: 0.1;
+}
+
+.dark .circle-orb-btn {
+  color: oklch(96% 0.01 285);
+  background: radial-gradient(
+    circle at 40% 35%,
+    oklch(54% 0.13 310),
+    oklch(44% 0.11 308)
+  );
+  box-shadow:
+    0 0 12px oklch(50% 0.14 310 / 0.12),
+    0 6px 14px oklch(50% 0.14 310 / 0.08),
+    inset 0 1px 0 oklch(100% 0 0 / 0.1);
 }
 
 /* Match found dialog */
