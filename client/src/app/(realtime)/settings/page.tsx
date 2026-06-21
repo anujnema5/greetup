@@ -8,6 +8,7 @@ import { BlockedUsersSettingsSection } from "@/features/blocks";
 import { FirebasePhoneAuthProvider } from "@/features/auth/context/firebase-phone-auth-context";
 import { PhoneNumberSettingsCard } from "@/features/settings/components/phone-number-settings-card";
 import { ReplayTourSettingsCard } from "@/features/tour-guide";
+import { ReportProblemSettingsCard } from "@/features/problem-reports";
 
 /** ~320px tile — matches a 3-column settings row, left-aligned. */
 const SETTINGS_TILE_CLASS = "min-w-0 w-full max-w-[20rem]";
@@ -64,7 +65,10 @@ export default function SettingsPage() {
             </SettingsSection>
 
             <SettingsSection icon={Compass} title="Help" className={SETTINGS_TILE_CLASS}>
-              <ReplayTourSettingsCard />
+              <div className="space-y-3">
+                <ReplayTourSettingsCard />
+                <ReportProblemSettingsCard />
+              </div>
             </SettingsSection>
           </div>
         </div>

@@ -9,6 +9,7 @@ import { notificationsRoute } from "./notifications/router";
 import { chatRoute } from "./chat/router";
 import { blocksRoute } from "./blocks/router";
 import { presenceRoute } from "./presence/router";
+import { problemReportsRoute } from "./problem-reports/router";
 import {
   blockGuestFromFullApp,
   blockGuestFromProfileRoutes,
@@ -39,6 +40,7 @@ router.route("/notifications", notificationsRoute);
 router.route("/chat", chatRoute);
 router.route("/blocks", blocksRoute);
 router.route("/presence", presenceRoute);
+router.route("/problem-reports", problemReportsRoute);
 router.route("/guest", guestRoute);
 
 export default router;

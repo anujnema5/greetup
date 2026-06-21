@@ -42,7 +42,6 @@ export function useRoomVideoToolbarSecondaries(
     if (input.showPeopleTab) items.push("participants");
     if (input.conversationId) items.push("chat");
     if (!input.isGroupRoom && input.showActivitiesTab) items.push("activities");
-    if (!input.isGroupRoom) items.push("live");
     if (input.showAddToCircle && input.onOpenAddToCircle) items.push("add");
     if (input.showCircleOptions && input.onOpenCircleOptions) items.push("circleOptions");
     if (input.showSkip) items.push("skip");
