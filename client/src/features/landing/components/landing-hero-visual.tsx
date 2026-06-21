@@ -14,7 +14,7 @@ const HeroMatchDemo = dynamic(
     ssr: false,
     loading: () => (
       <div
-        className="min-h-[280px] w-full rounded-[1.15rem] bg-[oklch(13%_0.012_110/0.55)] animate-pulse"
+        className="min-h-[280px] w-full rounded-[1.15rem] bg-card/55 animate-pulse"
         aria-hidden
       />
     ),
@@ -41,10 +41,10 @@ export function LandingHeroVisual() {
       )}
     >
       <div
-        className="pointer-events-none absolute -inset-6 rounded-[2rem] bg-[radial-gradient(circle,oklch(88%_0.11_105/0.08)_0%,transparent_72%)] blur-2xl"
+        className="pointer-events-none absolute -inset-6 rounded-[2rem] bg-[radial-gradient(circle,oklch(88%_0.18_105/0.08)_0%,transparent_72%)] blur-2xl"
         aria-hidden
       />
-      <div className="relative rounded-[1.35rem] border border-white/6 bg-[oklch(13%_0.012_110/0.55)] p-2 sm:p-2.5 md:backdrop-blur-sm">
+      <div className="relative rounded-[1.35rem] border border-white/6 bg-card/55 p-2 sm:p-2.5 md:backdrop-blur-sm">
         <HeroMatchDemo lite={lite} />
       </div>
     </div>

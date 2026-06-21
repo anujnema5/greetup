@@ -163,7 +163,7 @@ export function DashboardRecentConnectionsSection() {
           {DASHBOARD_SECTIONS.recentConnections.title}
         </h3>
         {hasMore ? (
-          <Link href="/connections" className="cursor-pointer text-xs text-primary hover:underline">
+          <Link href="/connections" className="cursor-pointer text-xs text-muted-foreground transition-colors hover:text-primary hover:underline">
             {DASHBOARD_SECTIONS.recentConnections.seeAll}
           </Link>
         ) : null}

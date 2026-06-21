@@ -11,7 +11,7 @@ export function LandingHeroNav() {
   const { isLoggedIn, firstName } = useLandingSession();
 
   return (
-    <nav className="fixed top-0 inset-x-0 z-50 border-b border-white/8 bg-[oklch(16%_0.012_110/0.94)] supports-[backdrop-filter]:bg-[oklch(16%_0.012_110/0.88)] md:supports-[backdrop-filter]:backdrop-blur-md">
+    <nav className="fixed top-0 inset-x-0 z-50 border-b border-white/8 bg-card/94 supports-[backdrop-filter]:bg-card/88 md:supports-[backdrop-filter]:backdrop-blur-md">
       <div className="mx-auto max-w-7xl px-5 sm:px-6 py-4 sm:py-5 flex items-center justify-between">
         <Logo />
         <div className="flex items-center gap-2">
@@ -31,7 +31,7 @@ export function LandingHeroNav() {
           )}
           <Button
             size="sm"
-            className="rounded-full bg-[oklch(88%_0.11_105)] text-[oklch(15%_0.02_110)] hover:brightness-110 shadow-lg shadow-[oklch(88%_0.11_105/0.3)] font-semibold"
+            className="rounded-full bg-primary text-primary-foreground hover:brightness-110 shadow-lg shadow-primary/30 font-semibold"
             asChild
           >
             <Link href={isLoggedIn ? "/home" : TRY_ROUTE}>
@@ -51,7 +51,7 @@ export function LandingHeroPrimaryCta() {
     <div className="flex flex-row flex-wrap gap-2 sm:gap-3 justify-center lg:justify-start">
       <Button
         size="sm"
-        className="rounded-full bg-[oklch(88%_0.11_105)] text-[oklch(12%_0.012_110)] hover:brightness-110 font-medium sm:font-semibold px-5 sm:px-6 has-[>svg]:px-5 sm:has-[>svg]:px-6 h-8 sm:h-10 lg:h-11 text-xs sm:text-sm w-auto shadow-[0_4px_18px_-6px_oklch(88%_0.11_105/0.45)] sm:shadow-[0_8px_28px_-8px_oklch(88%_0.11_105/0.55)]"
+        className="rounded-full bg-primary text-primary-foreground hover:brightness-110 font-medium sm:font-semibold px-5 sm:px-6 has-[>svg]:px-5 sm:has-[>svg]:px-6 h-8 sm:h-10 lg:h-11 text-xs sm:text-sm w-auto shadow-[0_4px_18px_-6px_oklch(from_var(--primary)_l_c_h/0.45)] sm:shadow-[0_8px_28px_-8px_oklch(from_var(--primary)_l_c_h/0.55)]"
         asChild
       >
         <Link href={isLoggedIn ? "/home" : TRY_ROUTE}>
