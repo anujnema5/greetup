@@ -78,6 +78,11 @@ export const API_ENDPOINTS = {
     user: (targetUserId: string) =>
       `/blocks/${encodeURIComponent(targetUserId)}` as const,
   },
+  PROBLEM_REPORTS: {
+    CREATE: "/problem-reports",
+    /** Presigned PUT to DigitalOcean Spaces for an optional screenshot. */
+    SCREENSHOT_UPLOAD_URL: "/problem-reports/screenshot-upload-url",
+  },
   PRESENCE: {
     ONLINE_PEOPLE_COUNT: "/presence/online-people-count",
   },

@@ -26,3 +26,9 @@ export {
   presignProfileImageUpload,
   type ProfileImagePresignResult,
 } from "./profile-photo.service";
+
+export {
+  isValidReportScreenshotUrl,
+  presignReportScreenshotUpload,
+  type ReportScreenshotPresignResult,
+} from "./report-attachment.service";
