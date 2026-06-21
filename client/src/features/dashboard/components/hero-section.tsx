@@ -35,8 +35,8 @@ function HeroSectionInner({
   return (
     <div className="relative overflow-hidden rounded-3xl border border-border flex flex-col items-center justify-center gap-4 bg-card py-6 px-4 md:gap-5 md:py-8 md:px-8 bg-hero-card-surface">
       <div className="pointer-events-none absolute inset-0 bg-dot-grid-hero opacity-100" />
-      <div className="pointer-events-none absolute -top-24 left-1/2 h-[280px] w-[480px] -translate-x-1/2 rounded-full bg-[oklch(88%_0.11_105/0.15)] blur-[100px] opacity-40" />
-      <div className="pointer-events-none absolute -bottom-16 -right-16 h-[280px] w-[280px] rounded-full bg-[oklch(60%_0.2_280/0.1)] blur-[80px] opacity-25" />
+      <div className="pointer-events-none absolute -top-24 left-1/2 h-[280px] w-[480px] -translate-x-1/2 rounded-full bg-primary/8 blur-[100px] opacity-40 dark:bg-primary/10 dark:opacity-40" />
+      <div className="pointer-events-none absolute -bottom-16 -right-16 h-[280px] w-[280px] rounded-full bg-secondary/5 blur-[80px] opacity-20 dark:bg-secondary/10 dark:opacity-35" />
 
       <HeroOnlinePeopleBadge />
 

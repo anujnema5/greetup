@@ -125,8 +125,8 @@ function PersonCard({
       className={cn(
         "flex flex-1 flex-col items-center gap-2.5 rounded-xl border px-3 py-4 text-center transition-colors duration-300",
         highlight
-          ? "border-[oklch(88%_0.11_105/0.24)] bg-[oklch(88%_0.11_105/0.06)]"
-          : "border-white/8 bg-[oklch(12%_0.012_110/0.5)]",
+          ? "border-[oklch(88%_0.18_105/0.24)] bg-[oklch(88%_0.18_105/0.06)]"
+          : "border-white/8 bg-card/50",
       )}
     >
       <div
@@ -145,7 +145,7 @@ function PersonCard({
         <motion.span
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          className="rounded-full bg-[oklch(88%_0.11_105/0.12)] px-2 py-0.5 text-[10px] font-medium text-[oklch(88%_0.11_105/0.9)]"
+          className="rounded-full bg-[oklch(88%_0.18_105/0.12)] px-2 py-0.5 text-[10px] font-medium text-[oklch(88%_0.18_105/0.9)]"
         >
           matched
         </motion.span>
@@ -156,10 +156,10 @@ function PersonCard({
 
 function EmptySlot({ scanning, lite }: { scanning: boolean; lite: boolean }) {
   return (
-    <div className="relative flex flex-1 flex-col items-center justify-center gap-2.5 rounded-xl border border-dashed border-white/10 bg-[oklch(12%_0.012_110/0.35)] px-3 py-4">
+    <div className="relative flex flex-1 flex-col items-center justify-center gap-2.5 rounded-xl border border-dashed border-white/10 bg-card/35 px-3 py-4">
       {scanning && !lite && (
         <motion.div
-          className="pointer-events-none absolute inset-2 rounded-lg border border-[oklch(88%_0.11_105/0.18)]"
+          className="pointer-events-none absolute inset-2 rounded-lg border border-[oklch(88%_0.18_105/0.18)]"
           animate={{ opacity: [0.4, 0, 0.4] }}
           transition={{ duration: 1.8, repeat: Infinity, ease: "easeOut" }}
         />
@@ -184,7 +184,7 @@ function Connector({
       <div className="relative flex w-7 shrink-0 items-center self-center">
         <div className="h-px w-full bg-white/8" />
         <motion.div
-          className="absolute left-1/2 size-1.5 -translate-x-1/2 rounded-full bg-[oklch(88%_0.11_105)] shadow-[0_0_8px_oklch(88%_0.11_105/0.55)]"
+          className="absolute left-1/2 size-1.5 -translate-x-1/2 rounded-full bg-[oklch(88%_0.18_105)] shadow-[0_0_8px_oklch(88%_0.18_105/0.55)]"
           animate={{ x: [-9, 9, -9] }}
           transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }}
         />
@@ -196,7 +196,7 @@ function Connector({
     <div className="flex w-7 shrink-0 items-center self-center">
       <div className="h-px flex-1 bg-white/8" />
       <motion.div
-        className={cn("mx-1 size-1.5 shrink-0 rounded-full", active ? "bg-[oklch(88%_0.11_105)]" : "bg-white/15")}
+        className={cn("mx-1 size-1.5 shrink-0 rounded-full", active ? "bg-[oklch(88%_0.18_105)]" : "bg-white/15")}
         animate={active && !lite ? { scale: [1, 1.3, 1] } : undefined}
         transition={{ duration: 1.4, repeat: Infinity, ease: "easeInOut" }}
       />
@@ -225,7 +225,7 @@ export function HeroMatchDemo({ lite }: { lite: boolean }) {
           : null;
 
   return (
-    <div className="w-full overflow-hidden rounded-xl border border-white/7 bg-[oklch(14.5%_0.012_110)]">
+    <div className="w-full overflow-hidden rounded-xl border border-white/7 bg-card">
       <div className="flex items-start justify-between gap-3 border-b border-white/6 px-4 py-4 sm:px-5">
         <div className="min-w-0">
           <p className="text-[11px] text-white/36">{beat.filter}</p>
@@ -246,16 +246,16 @@ export function HeroMatchDemo({ lite }: { lite: boolean }) {
           className={cn(
             "mt-0.5 flex shrink-0 items-center gap-1.5 rounded-full px-2 py-0.5 text-[10px] font-medium",
             linked
-              ? "bg-[oklch(88%_0.11_105/0.1)] text-[oklch(88%_0.11_105/0.95)]"
+              ? "bg-[oklch(88%_0.18_105/0.1)] text-[oklch(88%_0.18_105/0.95)]"
               : "bg-white/4 text-white/38",
           )}
         >
           {linked && (
             <span className="relative flex size-1.5">
               {!lite && (
-                <span className="absolute inline-flex size-full animate-ping rounded-full bg-[oklch(88%_0.11_105/0.45)]" />
+                <span className="absolute inline-flex size-full animate-ping rounded-full bg-[oklch(88%_0.18_105/0.45)]" />
               )}
-              <span className="relative inline-flex size-1.5 rounded-full bg-[oklch(88%_0.11_105)]" />
+              <span className="relative inline-flex size-1.5 rounded-full bg-[oklch(88%_0.18_105)]" />
             </span>
           )}
           {linked ? "Live" : "Searching"}
@@ -263,7 +263,7 @@ export function HeroMatchDemo({ lite }: { lite: boolean }) {
       </div>
 
       <div className="px-4 py-4 sm:px-5 sm:py-5">
-        <div className="rounded-xl bg-[oklch(12%_0.012_110/0.55)] p-2.5 ring-1 ring-white/4 ring-inset">
+        <div className="rounded-xl bg-card/55 p-2.5 ring-1 ring-white/4 ring-inset">
           <div className="flex items-stretch gap-1.5">
             <AnimatePresence mode="wait">
               <motion.div key={`you-${step}`} className="flex flex-1" initial={false} animate={{ opacity: 1 }}>
@@ -343,7 +343,7 @@ export function HeroMatchDemo({ lite }: { lite: boolean }) {
                   key={s.id}
                   className={cn(
                     "h-1 rounded-full transition-all duration-400",
-                    i === step ? "w-4 bg-[oklch(88%_0.11_105/0.7)]" : "w-1 bg-white/14",
+                    i === step ? "w-4 bg-[oklch(88%_0.18_105/0.7)]" : "w-1 bg-white/14",
                   )}
                 />
               ))}

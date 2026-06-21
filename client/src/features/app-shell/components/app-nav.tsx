@@ -14,7 +14,7 @@ export function NavSidebar({ activePath = "/home" }: { activePath?: string }) {
 
   return (
     <aside className="hidden md:flex flex-col items-center gap-1 w-16 min-h-screen border-r border-border bg-card py-5 px-2">
-      <Link href="/home" className="mb-6 h-10 w-10 rounded-xl bg-primary flex items-center justify-center shadow-lg shadow-primary/25">
+      <Link href="/home" className="mb-6 h-10 w-10 rounded-xl bg-primary flex items-center justify-center shadow-sm shadow-primary/5">
         <span className="text-sm font-black text-primary-foreground">C</span>
       </Link>
 

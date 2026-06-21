@@ -34,7 +34,7 @@ export function DashboardActiveNowSection() {
         <button
           type="button"
           onClick={() => router.push(CIRCLES_BROWSE_PATH)}
-          className="cursor-pointer text-xs text-primary hover:underline"
+          className="cursor-pointer text-xs text-muted-foreground transition-colors hover:text-primary hover:underline"
         >
           {DASHBOARD_SECTIONS.activeNow.seeAll}
         </button>

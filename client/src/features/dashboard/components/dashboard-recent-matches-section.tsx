@@ -162,7 +162,7 @@ export function DashboardRecentMatchesSection() {
             <button
               type="button"
               onClick={() => setDialogOpen(true)}
-              className="cursor-pointer text-xs text-primary hover:underline"
+              className="cursor-pointer text-xs text-muted-foreground transition-colors hover:text-primary hover:underline"
             >
               {DASHBOARD_SECTIONS.recentMatches.seeAll}
             </button>

@@ -49,7 +49,7 @@ function MatchOrbInner({
         className={cn(
           "match-orb-btn",
           disabled ? "cursor-not-allowed opacity-60" : "cursor-pointer",
-          !isSearching && !disabled && "hover:brightness-105",
+          !isSearching && !disabled && "hover:brightness-[1.02] dark:hover:brightness-105",
           isSearching && "match-orb-btn-searching animate-match-orb-breathe",
         )}
       >

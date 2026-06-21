@@ -19,16 +19,16 @@ const HERO_SIGNALS = [
 function HeroBackdropStatic() {
   return (
     <div className="pointer-events-none absolute inset-0 overflow-hidden" aria-hidden>
-      <div className="absolute inset-0 bg-[radial-gradient(ellipse_90%_70%_at_50%_-10%,oklch(22%_0.025_105/0.55),transparent_72%)]" />
-      <div className="absolute -top-28 -left-36 h-[400px] w-[400px] rounded-full bg-[oklch(88%_0.11_105/0.06)] blur-[96px]" />
-      <div className="absolute top-[16%] -right-20 h-[340px] w-[340px] rounded-full bg-[oklch(88%_0.11_105/0.09)] blur-[88px]" />
-      <div className="absolute bottom-[8%] left-[22%] h-[260px] w-[260px] rounded-full bg-[oklch(62%_0.14_285/0.05)] blur-[72px]" />
+      <div className="absolute inset-0 bg-[radial-gradient(ellipse_90%_70%_at_50%_-10%,oklch(26%_0.06_285/0.5),transparent_72%)]" />
+      <div className="absolute -top-28 -left-36 h-[400px] w-[400px] rounded-full bg-[oklch(88%_0.18_105/0.06)] blur-[96px]" />
+      <div className="absolute top-[16%] -right-20 h-[340px] w-[340px] rounded-full bg-[oklch(88%_0.18_105/0.09)] blur-[88px]" />
+      <div className="absolute bottom-[8%] left-[22%] h-[260px] w-[260px] rounded-full bg-[oklch(62%_0.2_285/0.06)] blur-[72px]" />
       <div
         className="absolute inset-0 opacity-70 [mask-image:radial-gradient(ellipse_88%_82%_at_68%_50%,#000_28%,transparent_80%)] bg-dot-grid-landing"
       />
-      <div className="absolute inset-0 bg-[radial-gradient(ellipse_50%_58%_at_84%_44%,oklch(88%_0.11_105/0.11),transparent_72%)]" />
-      <div className="absolute inset-0 bg-[radial-gradient(ellipse_38%_42%_at_14%_32%,oklch(88%_0.11_105/0.045),transparent_70%)]" />
-      <div className="absolute inset-0 bg-[radial-gradient(ellipse_120%_100%_at_50%_50%,transparent_44%,#0A0A0A_94%)]" />
+      <div className="absolute inset-0 bg-[radial-gradient(ellipse_50%_58%_at_84%_44%,oklch(88%_0.18_105/0.11),transparent_72%)]" />
+      <div className="absolute inset-0 bg-[radial-gradient(ellipse_38%_42%_at_14%_32%,oklch(88%_0.18_105/0.045),transparent_70%)]" />
+      <div className="absolute inset-0 bg-[radial-gradient(ellipse_120%_100%_at_50%_50%,transparent_44%,oklch(10%_0.02_285)_94%)]" />
       <div className="absolute inset-x-0 top-0 h-px bg-linear-to-r from-transparent via-white/8 to-transparent" />
     </div>
   );
@@ -54,7 +54,7 @@ export function LandingHeroServer() {
             </div>
 
             <h1 className="text-[1.95rem] leading-[1.1] sm:text-[2.85rem] lg:text-[3.75rem] xl:text-[4.15rem] font-semibold tracking-[-0.025em] mb-4 sm:mb-6">
-              Instantly <span className="text-[oklch(88%_0.11_105)]">connect</span>
+              Instantly <span className="text-secondary">connect</span>
               <span className="mt-1 sm:mt-1.5 block text-white/92">with the people you want.</span>
               <span className="mt-4 sm:mt-6 block text-[0.82em] sm:text-[0.78em] font-medium text-white/58">
                 Chat, voice, or video.
@@ -76,7 +76,7 @@ export function LandingHeroServer() {
                   className="inline-flex items-center gap-1.5 text-[12px] sm:text-sm text-white/38"
                 >
                   <Icon
-                    className="size-3 sm:size-3.5 text-[oklch(88%_0.11_105/0.65)]"
+                    className="size-3 sm:size-3.5 text-secondary/65"
                     strokeWidth={1.75}
                   />
                   {label}
