@@ -197,7 +197,7 @@ const PlayerBar = memo(function PlayerBar({
           {name}
         </span>
         {isActive ? (
-          <span className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-primary/12 px-2.5 py-0.5 text-[10px] font-semibold tracking-wide text-primary">
+          <span className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-primary/12 px-2.5 py-0.5 text-[10px] font-semibold tracking-wide text-tertiary-foreground">
             <span className="relative flex h-1.5 w-1.5 shrink-0">
               {/* Ping only on `md+` — continuous animation is costly on low-end phones. */}
               <span className="absolute hidden h-full w-full animate-ping rounded-full bg-primary/60 opacity-70 md:inline-flex" />
@@ -499,7 +499,7 @@ export function ChessActivityStage({
     () => (
       <div className="overflow-hidden rounded-xl border border-border/50 bg-card/40 shadow-sm">
         <div className="flex items-center gap-2 border-b border-border/40 bg-muted/25 px-3 py-2">
-          <svg className="h-3.5 w-3.5 shrink-0 text-primary/80" fill="currentColor" viewBox="0 0 20 20">
+          <svg className="h-3.5 w-3.5 shrink-0 text-tertiary-foreground/80" fill="currentColor" viewBox="0 0 20 20">
             <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
           </svg>
           <span className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">Score</span>
@@ -521,7 +521,7 @@ export function ChessActivityStage({
             <span
               className={cn(
                 "rounded-lg px-2 py-0.5 text-xs font-bold tabular-nums",
-                leading ? "bg-primary/14 text-primary ring-1 ring-primary/15" : "bg-muted/50 text-muted-foreground",
+                leading ? "bg-primary/14 text-tertiary-foreground ring-1 ring-primary/15" : "bg-muted/50 text-muted-foreground",
               )}
             >
               {score}

@@ -104,7 +104,7 @@ export function TryStepper({
                   className={cn(
                     "flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-[11px] font-semibold",
                     isCurrent && "bg-primary text-primary-foreground",
-                    isComplete && !isCurrent && "bg-primary/15 text-primary",
+                    isComplete && !isCurrent && "bg-primary/15 text-tertiary-foreground",
                     !isCurrent && !isComplete && "bg-white/6 text-muted-foreground",
                   )}
                 >
@@ -200,7 +200,7 @@ export function TryStepper({
               key={step.key}
               className={cn(
                 "min-w-0 flex-1 truncate text-center text-xs font-medium sm:text-sm",
-                isCurrent && "text-primary",
+                isCurrent && "text-tertiary-foreground",
                 isComplete && !isCurrent && "text-muted-foreground",
                 !isCurrent && !isComplete && "text-muted-foreground/50",
               )}

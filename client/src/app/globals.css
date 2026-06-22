@@ -51,62 +51,64 @@
 
 :root {
   /*
-   * GreetUp — Light Mode (Vivid Social). Roles per the light board:
-   * Primary = Violet (#7C3AED), Secondary = Amber (#FACC15),
-   * Tertiary = Lavender-white (#F5F3FF), Neutral text = Navy (#0F172A).
+   * circlo — Light Mode (bright yellow, slightly toned down). `--primary` is a
+   * vibrant yellow FILL (avatars, buttons, match orb, logo) with dark text.
+   * Warm-neutral ramp (hue 95). NOTE: bright yellow reads poorly as `text-primary`
+   * on white — those text/icon accents stay light; ask for the gold-text sweep
+   * if they look washed out.
    */
   --radius: 0.8rem;
 
-  --background: oklch(97% 0.01 290); /* Light lavender canvas */
-  --foreground: oklch(21% 0.04 265); /* Navy (#0F172A) */
+  --background: oklch(98.6% 0.006 95); /* warm soft canvas */
+  --foreground: oklch(22% 0.018 95);   /* warm deep text */
 
-  --card: oklch(100% 0 0); /* Pure White */
-  --card-foreground: oklch(21% 0.04 265);
+  --card: #ffffff;
+  --card-foreground: oklch(22% 0.018 95);
 
-  --popover: oklch(100% 0 0);
-  --popover-foreground: oklch(21% 0.04 265);
+  --popover: #ffffff;
+  --popover-foreground: oklch(22% 0.018 95);
 
-  /* PRIMARY — Soft Violet (calmer than board #7C3AED) */
-  --primary: oklch(50% 0.17 293);
-  --primary-foreground: oklch(99% 0.005 293);
+  /* PRIMARY — yellow fill (dark text), darkened a notch for a deeper golden tone */
+  --primary: oklch(76% 0.175 96);
+  --primary-foreground: oklch(25% 0.035 96);
 
-  /* SECONDARY — Warm Gold (calmer than board #FACC15) */
-  --secondary: oklch(76% 0.11 82);
-  --secondary-foreground: oklch(30% 0.04 80);
+  /* SECONDARY — gold (circle orbs) */
+  --secondary: oklch(70% 0.13 85);
+  --secondary-foreground: oklch(24% 0.04 85);
 
-  /* TERTIARY — Lavender White (#F5F3FF) */
-  --tertiary: oklch(96.5% 0.012 290);
-  --tertiary-foreground: oklch(35% 0.1 293);
+  /* TERTIARY — soft gold surface + deep gold text */
+  --tertiary: oklch(94% 0.05 90);
+  --tertiary-foreground: oklch(46% 0.12 80);
 
-  /* ACCENT — soft violet wash (hover/active surfaces) */
-  --accent: oklch(94% 0.025 293);
-  --accent-foreground: oklch(42% 0.14 293);
+  /* ACCENT — neutral warm hover surface (gold reserved for active states) */
+  --accent: oklch(96.5% 0.01 95);
+  --accent-foreground: oklch(22% 0.018 95);
 
   /* MUTED */
-  --muted: oklch(95% 0.008 285);
-  --muted-foreground: oklch(45% 0.03 265);
+  --muted: oklch(96.8% 0.01 95);
+  --muted-foreground: oklch(48% 0.02 95);
 
   /* DESTRUCTIVE */
   --destructive: oklch(60% 0.2 25);
   --destructive-foreground: oklch(98% 0.01 25);
 
   /* INPUTS */
-  --border: oklch(91% 0.01 285);
-  --input: oklch(100% 0 0);
-  --ring: oklch(50% 0.17 293);
+  --border: oklch(91.5% 0.012 95);
+  --input: #ffffff;
+  --ring: oklch(68% 0.15 90); /* gold focus ring */
 
-  /* SIDEBAR */
-  --sidebar: oklch(98% 0.006 290);
-  --sidebar-foreground: oklch(21% 0.04 265);
+  /* SIDEBAR — white rail with soft gold active pill */
+  --sidebar: #ffffff;
+  --sidebar-foreground: oklch(22% 0.018 95);
 
-  --sidebar-primary: oklch(50% 0.17 293);
-  --sidebar-primary-foreground: oklch(99% 0.005 293);
+  --sidebar-primary: oklch(60% 0.16 66);
+  --sidebar-primary-foreground: oklch(99% 0.01 80);
 
-  --sidebar-accent: oklch(94% 0.025 293);
-  --sidebar-accent-foreground: oklch(42% 0.14 293);
+  --sidebar-accent: oklch(94% 0.05 72); /* soft amber (active nav) */
+  --sidebar-accent-foreground: oklch(46% 0.13 64);
 
-  --sidebar-border: oklch(91% 0.01 285);
-  --sidebar-ring: oklch(50% 0.17 293);
+  --sidebar-border: oklch(91.5% 0.012 95);
+  --sidebar-ring: oklch(60% 0.16 66);
 
   /* Success — kept green for semantic clarity */
   --success: oklch(44% 0.072 155);
@@ -114,58 +116,63 @@
   --success-foreground: oklch(36% 0.065 155);
   --success-border: oklch(80% 0.038 155);
 
-  /* SURFACE GLOWS — soft violet + gold washes */
+  /* SURFACE GLOWS — soft indigo + teal washes (track primary/secondary) */
   --surface-hero-base: var(--card);
-  --surface-hero-glow: oklch(50% 0.17 293 / 0.04);
-  --surface-hero-glow-2: oklch(76% 0.11 82 / 0.04);
-  --surface-dot-grid: oklch(21% 0.04 265 / 0.04);
+  --surface-hero-glow: oklch(from var(--primary) l c h / 0.04);
+  --surface-hero-glow-2: oklch(from var(--secondary) l c h / 0.04);
+  --surface-dot-grid: oklch(from var(--foreground) l c h / 0.04);
 }
 
 .dark {
-  /* Dark mode — warm charcoal + glowing gold (main branch palette) */
+  /* Golden Hour — dark. Warm near-black neutrals (hue 110) with a glowing gold
+     accent; primary stays light so dark text reads crisply on the fills. */
   --background: oklch(15% 0.015 110);
   --foreground: oklch(96% 0.015 110);
 
   --card: oklch(17% 0.015 110);
   --card-foreground: oklch(96% 0.015 110);
 
-  --popover: oklch(18% 0.015 110);
+  --popover: oklch(18% 0.015 110); /* elevated surface */
   --popover-foreground: oklch(96% 0.015 110);
 
-  /* primary glowing gold */
+  /* PRIMARY — glowing gold (dark text for legibility on the bright fill) */
   --primary: oklch(88% 0.11 105);
   --primary-foreground: oklch(15% 0.02 110);
 
-  /* secondary */
+  /* SECONDARY — muted gold */
   --secondary: oklch(70% 0.05 110);
   --secondary-foreground: oklch(96% 0.015 110);
 
-  /* muted */
+  /* TERTIARY — dark gold surface + light gold text */
+  --tertiary: oklch(30% 0.05 110);
+  --tertiary-foreground: oklch(85% 0.12 108);
+
+  /* MUTED */
   --muted: oklch(25% 0.01 110);
   --muted-foreground: oklch(75% 0.02 110);
 
-  /* accent - light yellow/gold bg, needs dark text for contrast */
+  /* ACCENT — light gold bg, needs dark text for contrast */
   --accent: oklch(88% 0.11 105);
   --accent-foreground: oklch(22% 0.03 110);
 
-  /* destructive */
+  /* DESTRUCTIVE */
   --destructive: oklch(55% 0.22 25);
   --destructive-foreground: oklch(96% 0.015 110);
 
-  /* inputs */
+  /* INPUTS */
   --border: oklch(25% 0.01 110);
   --input: oklch(27% 0.01 110);
   --ring: oklch(88% 0.11 105);
 
-  /* sidebar */
+  /* SIDEBAR */
   --sidebar: oklch(17% 0.015 110);
   --sidebar-foreground: oklch(96% 0.015 110);
 
   --sidebar-primary: oklch(88% 0.11 105);
   --sidebar-primary-foreground: oklch(15% 0.02 110);
 
-  --sidebar-accent: oklch(25% 0.01 110);
-  --sidebar-accent-foreground: oklch(96% 0.015 110);
+  --sidebar-accent: oklch(30% 0.06 110); /* soft gold (active nav) */
+  --sidebar-accent-foreground: oklch(86% 0.11 108);
 
   --sidebar-border: oklch(25% 0.01 110);
   --sidebar-ring: oklch(88% 0.11 105);
@@ -579,33 +586,33 @@ html {
     inset 0 1px 0 oklch(100% 0 0 / 0.14);
 }
 
-/* Dark mode: muted purple circle orb with balanced orbit rings. */
+/* Dark mode: glowing gold circle orb (matches secondary) with orbit rings. */
 .dark .circle-orb-shell {
-  --circle-orb-purple: oklch(50% 0.14 310);
-  --circle-orb-purple-fg: oklch(96% 0.01 285);
-  --circle-orb-ring-outer: oklch(50% 0.14 310 / 0.14);
-  --circle-orb-ring-mid: oklch(50% 0.14 310 / 0.18);
-  --circle-orb-glow-color: oklch(50% 0.14 310);
-  --circle-orb-glow-opacity: 0.07;
+  --circle-orb-gold: oklch(80% 0.1 108);
+  --circle-orb-gold-fg: oklch(18% 0.03 110);
+  --circle-orb-ring-outer: oklch(80% 0.1 108 / 0.16);
+  --circle-orb-ring-mid: oklch(80% 0.1 108 / 0.22);
+  --circle-orb-glow-color: oklch(80% 0.1 108);
+  --circle-orb-glow-opacity: 0.08;
 }
 
 .dark .circle-orb-shell:has(.circle-orb-ring-outer.animate-pulse) {
-  --circle-orb-ring-outer: oklch(50% 0.14 310 / 0.2);
-  --circle-orb-ring-mid: oklch(50% 0.14 310 / 0.26);
-  --circle-orb-glow-opacity: 0.1;
+  --circle-orb-ring-outer: oklch(80% 0.1 108 / 0.24);
+  --circle-orb-ring-mid: oklch(80% 0.1 108 / 0.3);
+  --circle-orb-glow-opacity: 0.12;
 }
 
 .dark .circle-orb-btn {
-  color: oklch(96% 0.01 285);
+  color: oklch(18% 0.03 110);
   background: radial-gradient(
     circle at 40% 35%,
-    oklch(54% 0.13 310),
-    oklch(44% 0.11 308)
+    oklch(86% 0.1 106),
+    oklch(74% 0.1 110)
   );
   box-shadow:
-    0 0 12px oklch(50% 0.14 310 / 0.12),
-    0 6px 14px oklch(50% 0.14 310 / 0.08),
-    inset 0 1px 0 oklch(100% 0 0 / 0.1);
+    0 0 12px oklch(80% 0.1 108 / 0.14),
+    0 6px 14px oklch(80% 0.1 108 / 0.1),
+    inset 0 1px 0 oklch(100% 0 0 / 0.18);
 }
 
 /* Match found dialog */

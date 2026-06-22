@@ -36,7 +36,7 @@ export default function ResetPasswordPage() {
                 <div className="w-full max-w-md space-y-6 rounded-2xl border bg-card p-8 shadow-xl">
                     <div className="flex justify-center">
                         <div className="rounded-full bg-primary/10 p-4">
-                            <CheckCircle2 className="h-12 w-12 text-primary" />
+                            <CheckCircle2 className="h-12 w-12 text-tertiary-foreground" />
                         </div>
                     </div>
 
@@ -219,7 +219,7 @@ export default function ResetPasswordPage() {
                         <div className="text-center">
                             <Link
                                 href="/login"
-                                className="text-sm font-medium text-primary transition-colors hover:text-primary/80 hover:underline"
+                                className="text-sm font-medium text-tertiary-foreground transition-colors hover:text-tertiary-foreground/80 hover:underline"
                             >
                                 Back to login
                             </Link>

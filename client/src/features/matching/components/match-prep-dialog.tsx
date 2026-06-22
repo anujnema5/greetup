@@ -213,7 +213,7 @@ export function MatchPrepDialog({
       <DialogContent showCloseButton className={dialogShellClass}>
         <div className="shrink-0 px-5 pt-5 sm:px-6 sm:pt-6 sm:pb-2">
           <DialogHeader className="space-y-2 text-left">
-            <div className="flex items-center gap-2 text-primary">
+            <div className="flex items-center gap-2 text-tertiary-foreground">
               <DialogTitle className="text-lg font-semibold tracking-tight">
                 {isEdit ? "Match preferences" : "Before you match"}
               </DialogTitle>

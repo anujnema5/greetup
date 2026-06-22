@@ -97,7 +97,7 @@ function VerifyEmailContent() {
             <Card className="w-full max-w-md">
                 <CardHeader className="text-center space-y-4">
                     <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-primary/10 mx-auto">
-                        <Mail className="w-8 h-8 text-primary" />
+                        <Mail className="w-8 h-8 text-tertiary-foreground" />
                     </div>
                     <div className="space-y-2">
                         <CardTitle className="text-xl font-semibold tracking-tight">

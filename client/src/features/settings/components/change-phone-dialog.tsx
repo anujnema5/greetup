@@ -311,7 +311,7 @@ export function ChangePhoneDialog({ open, onOpenChange, currentPhone }: ChangePh
                     Didn&apos;t receive it?{" "}
                     <button
                       type="button"
-                      className="font-medium text-primary hover:underline disabled:opacity-50"
+                      className="font-medium text-tertiary-foreground hover:underline disabled:opacity-50"
                       disabled={busy}
                       onClick={handleResend}
                     >

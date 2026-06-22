@@ -38,7 +38,7 @@ export function ChessGameOutcomeDialog({
           <div
             className={cn(
               "flex h-14 w-14 items-center justify-center rounded-2xl text-3xl ring-1 ring-border/60",
-              copy.kind === "decisive" && copy.youWon && "bg-primary/15 text-primary",
+              copy.kind === "decisive" && copy.youWon && "bg-primary/15 text-tertiary-foreground",
               copy.kind === "decisive" && !copy.youWon && "bg-muted text-muted-foreground",
               copy.kind === "draw" && "bg-muted text-foreground",
             )}
@@ -55,7 +55,7 @@ export function ChessGameOutcomeDialog({
           {copy.kind === "decisive" ? (
             <div className="space-y-2 rounded-xl border border-border/45 bg-card/50 p-3 shadow-sm">
               <div className="flex items-center justify-between gap-2 text-sm">
-                <span className="font-medium text-primary">Winner</span>
+                <span className="font-medium text-tertiary-foreground">Winner</span>
                 <span className="truncate font-semibold text-foreground">{copy.winnerName}</span>
               </div>
               <div className="border-t border-border/35" />
