@@ -20,7 +20,7 @@ export function ReplayTourSettingsCard() {
   return (
     <div className="rounded-xl border border-border bg-card p-4 shadow-sm">
       <div className="flex items-start gap-3">
-        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-tertiary-foreground">
           <Compass className="size-4" aria-hidden />
         </div>
         <div className="min-w-0 flex-1 space-y-3">

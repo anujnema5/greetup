@@ -110,7 +110,7 @@ export function PublicProfileContent({
         {unavailableBackHref ? (
           <Link
             href={unavailableBackHref}
-            className="mt-4 inline-flex text-sm font-semibold text-primary hover:underline"
+            className="mt-4 inline-flex text-sm font-semibold text-tertiary-foreground hover:underline"
           >
             {unavailableBackLabel}
           </Link>
