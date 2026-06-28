@@ -37,7 +37,7 @@ export function useMatchmaking(): MatchmakingContextValue {
 
 /**
  * One shared matchmaking session for the whole app: socket-driven state, the “match found” dialog,
- * and navigation into `/circle/[roomId]`. Render inside {@link SocketProvider}.
+ * and navigation into `/space/[roomId]`. Render inside {@link SocketProvider}.
  */
 export function MatchmakingProvider({ children }: { children: ReactNode }) {
   const matchFlow = useAppMatchFlow();

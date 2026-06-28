@@ -12,30 +12,30 @@ export const TOUR_GUIDE = {
       description:
         "Tap Match to meet someone who fits your goals and mood. Before your first search, we might ask how you're feeling.",
     },
-    circleOrb: {
-      title: "Start or join a Circle",
+    spaceOrb: {
+      title: "Start or join a Space",
       description:
-        "Circles are group video hangouts. Start your own or browse live ones below.",
+        "Spaces are group video hangouts. Start your own or browse live ones below.",
     },
     preferences: {
       title: "Tune who you meet",
       description:
         "Change match preferences anytime, including mood, goals, and who you want to talk to.",
     },
-    circlesGrid: {
-      title: "Live circles",
+    spacesGrid: {
+      title: "Live spaces",
       description:
-        "See what's happening now. Tap a circle to join, or browse all circles for more options.",
+        "See what's happening now. Tap a space to join, or browse all spaces for more options.",
     },
     sidebar: {
       title: "Quick glance",
       description:
-        "Active circles, recent matches, and connections, all from Home.",
+        "Active spaces, recent matches, and connections, all from Home.",
     },
   },
   settings: {
     replayTitle: "Product tour",
-    replayDescription: "Replay the Home walkthrough to see how matching, circles, and navigation work.",
+    replayDescription: "Replay the Home walkthrough to see how matching, spaces, and navigation work.",
     replayButton: "Replay tour",
     replayPending: "Opening Home…",
   },

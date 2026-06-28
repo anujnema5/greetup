@@ -1,6 +1,6 @@
 import { describe, expect, it } from "bun:test";
 import {
-  CIRCLE_SESSION_MAX_MS,
+  SPACE_SESSION_MAX_MS,
   DIRECT_SESSION_MAX_MS,
 } from "@/modules/rooms/constants/session/room-session-limits";
 import {
@@ -19,8 +19,8 @@ describe("computeSessionCapDeadline", () => {
 
   it("adds 3h for circle", () => {
     const start = new Date("2026-05-17T10:00:00.000Z");
-    const cap = computeSessionCapDeadline(start, "circle");
-    expect(cap.getTime() - start.getTime()).toBe(CIRCLE_SESSION_MAX_MS);
+    const cap = computeSessionCapDeadline(start, "space");
+    expect(cap.getTime() - start.getTime()).toBe(SPACE_SESSION_MAX_MS);
   });
 });
 
@@ -31,7 +31,7 @@ describe("computeLiveSessionExpiresAt", () => {
     const scheduledEndAt = new Date("2026-05-17T18:30:00.000Z");
     const expiresAt = computeLiveSessionExpiresAt({
       status: "live",
-      roomType: "circle",
+      roomType: "space",
       startedAt,
       scheduledStartAt,
       scheduledEndAt,
@@ -44,14 +44,14 @@ describe("computeLiveSessionExpiresAt", () => {
     const startedAt = new Date("2026-05-17T10:00:00.000Z");
     const expiresAt = computeLiveSessionExpiresAt({
       status: "live",
-      roomType: "circle",
+      roomType: "space",
       startedAt,
       scheduledStartAt: null,
       scheduledEndAt: null,
       advancedOptions: null,
     });
     expect(expiresAt?.getTime()).toBe(
-      startedAt.getTime() + CIRCLE_SESSION_MAX_MS,
+      startedAt.getTime() + SPACE_SESSION_MAX_MS,
     );
   });
 });

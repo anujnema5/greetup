@@ -115,13 +115,13 @@ export function ParticipantRemoveConfirmDialog({
       <AlertDialogContent>
         <AlertDialogHeader>
           <AlertDialogTitle>
-            {restrict ? "Remove and restrict?" : "Remove from circle?"}
+            {restrict ? "Remove and restrict?" : "Remove from space?"}
           </AlertDialogTitle>
           <AlertDialogDescription>
             {target
               ? restrict
-                ? `${target.displayName} will leave now and won't be able to rejoin this circle.`
-                : `${target.displayName} will leave this circle immediately.`
+                ? `${target.displayName} will leave now and won't be able to rejoin this space.`
+                : `${target.displayName} will leave this space immediately.`
               : null}
           </AlertDialogDescription>
         </AlertDialogHeader>

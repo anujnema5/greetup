@@ -105,7 +105,7 @@ function resolveDmPeerUserId(
   conv: NonNullable<Awaited<ReturnType<typeof conversationService.getById>>>,
   callerUserId: string,
 ): string | null {
-  if (conv.type === "room_circle") return null;
+  if (conv.type === "room_space") return null;
   const others = conv.participants.filter((p) => p.userId !== callerUserId);
   if (others.length !== 1) return null;
   return others[0]!.userId;

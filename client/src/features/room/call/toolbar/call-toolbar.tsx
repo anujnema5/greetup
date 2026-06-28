@@ -97,7 +97,7 @@ function EndCallToolbarCaption({ children }: { children: ReactNode }) {
 const SESSION_EXIT_BUTTON_LABEL_CLASS =
   "whitespace-nowrap text-[13px] font-semibold tracking-tight leading-none";
 
-/** Leave control; circle hosts get a chevron for “end for everyone”. */
+/** Leave control; space hosts get a chevron for “end for everyone”. */
 function LeaveCallEndControl({
   onEnd,
   hostEndForEveryoneEnabled,
@@ -222,14 +222,14 @@ export function RoomVideoToolbar({
   isGroupRoom,
   isLive,
   setIsLive,
-  showAddToCircle,
-  onOpenAddToCircle,
-  showCircleOptions = false,
-  onOpenCircleOptions,
+  showAddToSpace,
+  onOpenAddToSpace,
+  showSpaceOptions = false,
+  onOpenSpaceOptions,
   showSkip,
   onSkip,
   onEnd,
-  onHostEndCircleForEveryone,
+  onHostEndSpaceForEveryone,
   showPeopleTab = false,
   showActivitiesTab = false,
 }: {
@@ -247,16 +247,16 @@ export function RoomVideoToolbar({
   isGroupRoom: boolean;
   isLive: boolean;
   setIsLive: (value: (prev: boolean) => boolean) => void;
-  showAddToCircle: boolean;
-  onOpenAddToCircle?: () => void;
-  /** Circle call: show footer control that opens rename / invite / link / chat dialog. */
-  showCircleOptions?: boolean;
-  onOpenCircleOptions?: () => void;
+  showAddToSpace: boolean;
+  onOpenAddToSpace?: () => void;
+  /** Space call: show footer control that opens rename / invite / link / chat dialog. */
+  showSpaceOptions?: boolean;
+  onOpenSpaceOptions?: () => void;
   showSkip: boolean;
   onSkip: () => void;
   onEnd: () => void;
-  /** Circle host: ends the DB session for everyone (optional; omit for guests / non-circles). */
-  onHostEndCircleForEveryone?: () => void;
+  /** Space host: ends the DB session for everyone (optional; omit for guests / non-space sessions). */
+  onHostEndSpaceForEveryone?: () => void;
   showPeopleTab?: boolean;
   showActivitiesTab?: boolean;
 }) {
@@ -267,7 +267,7 @@ export function RoomVideoToolbar({
 
   const openHostEndForEveryoneDialog = () => setHostEndForEveryoneDialogOpen(true);
 
-  const hostEndForEveryoneEnabled = isGroupRoom && Boolean(onHostEndCircleForEveryone);
+  const hostEndForEveryoneEnabled = isGroupRoom && Boolean(onHostEndSpaceForEveryone);
   const sessionExitCopy = getSessionExitCopy({
     isGroupRoom,
     hostCanEndForEveryone: hostEndForEveryoneEnabled,
@@ -284,10 +284,10 @@ export function RoomVideoToolbar({
     {
       conversationId,
       isGroupRoom,
-      showAddToCircle,
-      onOpenAddToCircle,
-      showCircleOptions,
-      onOpenCircleOptions,
+      showAddToSpace,
+      onOpenAddToSpace,
+      showSpaceOptions,
+      onOpenSpaceOptions,
       showSkip,
       showPeopleTab,
       showActivitiesTab,
@@ -370,24 +370,24 @@ export function RoomVideoToolbar({
           </CircleToolbarButton>
         );
       case "add":
-        return onOpenAddToCircle ? (
+        return onOpenAddToSpace ? (
           <CircleToolbarButton
             key={id}
-            onClick={onOpenAddToCircle}
+            onClick={onOpenAddToSpace}
             ariaLabel={
-              isGroupRoom ? "Add people to this circle call" : "Add someone to your circle"
+              isGroupRoom ? "Add people to this space call" : "Add someone to your space"
             }
             caption={isGroupRoom ? "Add people" : "Add"}
           >
             <UserPlus size={18} className="text-white/80" />
           </CircleToolbarButton>
         ) : null;
-      case "circleOptions":
-        return onOpenCircleOptions ? (
+      case "spaceOptions":
+        return onOpenSpaceOptions ? (
           <CircleToolbarButton
             key={id}
-            onClick={onOpenCircleOptions}
-            ariaLabel="Circle options"
+            onClick={onOpenSpaceOptions}
+            ariaLabel="Space options"
             caption="Options"
           >
             <MoreHorizontal size={18} className="text-white/80" />
@@ -452,17 +452,17 @@ export function RoomVideoToolbar({
           </DropdownMenuItem>
         );
       case "add":
-        return onOpenAddToCircle ? (
-          <DropdownMenuItem key={id} onClick={onOpenAddToCircle}>
+        return onOpenAddToSpace ? (
+          <DropdownMenuItem key={id} onClick={onOpenAddToSpace}>
             <UserPlus size={16} />
-            {isGroupRoom ? "Add people" : "Add to circle"}
+            {isGroupRoom ? "Add people" : "Add to space"}
           </DropdownMenuItem>
         ) : null;
-      case "circleOptions":
-        return onOpenCircleOptions ? (
-          <DropdownMenuItem key={id} onClick={onOpenCircleOptions}>
+      case "spaceOptions":
+        return onOpenSpaceOptions ? (
+          <DropdownMenuItem key={id} onClick={onOpenSpaceOptions}>
             <MoreHorizontal size={16} />
-            Circle options
+            Space options
           </DropdownMenuItem>
         ) : null;
       case "skip":
@@ -660,7 +660,7 @@ export function RoomVideoToolbar({
             <AlertDialogAction
               type="button"
               className={buttonVariants({ variant: "destructive" })}
-              onClick={() => void onHostEndCircleForEveryone?.()}
+              onClick={() => void onHostEndSpaceForEveryone?.()}
             >
               {sessionExitCopy.hostEndAlertConfirmLabel}
             </AlertDialogAction>

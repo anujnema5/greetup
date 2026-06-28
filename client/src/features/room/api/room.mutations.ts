@@ -6,7 +6,7 @@ import { API_ENDPOINTS } from '@/lib/api';
 import { API_BASE_URL } from '@/shared/constants/environments';
 import { setRtcTokenInCache } from '@/features/rtc/lib/rtc-token-cache';
 
-import { invalidateCirclesCaches } from '@/features/circles/lib/invalidate-circles-cache';
+import { invalidateSpacesCaches } from '@/features/spaces/lib/invalidate-spaces-cache';
 import {
   invalidateRoomAfterOpenMeeting,
   invalidateRoomAfterRtcSessionChange,
@@ -24,8 +24,8 @@ import type {
   UpdateRoomTitleMutationResult,
 } from '../types/api/room-api.types';
 import {
-  serializeKickCircleParticipantBody,
-  type KickCircleParticipantRequest,
+  serializeKickSpaceParticipantBody,
+  type KickSpaceParticipantRequest,
 } from '@/features/room/types/call/participant-remove.types';
 
 const { MATCHING, ROOM } = API_ENDPOINTS;
@@ -42,10 +42,10 @@ export function leaveRoomKeepalive(): void {
   });
 }
 
-/** Clears lobby / RTC participation when navigating away from a circle page. */
-export function leaveCircleRtcKeepalive(roomId: string): void {
+/** Clears lobby / RTC participation when navigating away from a space page. */
+export function leaveSpaceRtcKeepalive(roomId: string): void {
   if (typeof window === 'undefined' || !roomId) return;
-  void fetch(`${API_BASE_URL}${ROOM.leaveCircleRtc(roomId)}`, {
+  void fetch(`${API_BASE_URL}${ROOM.leaveSpaceRtc(roomId)}`, {
     method: 'POST',
     credentials: 'include',
     keepalive: true,
@@ -86,7 +86,7 @@ export function useJoinRoom() {
   });
 }
 
-export function useStartScheduledCircle() {
+export function useStartScheduledSpace() {
   const qc = useQueryClient();
 
   return useMutation({
@@ -98,39 +98,39 @@ export function useStartScheduledCircle() {
   });
 }
 
-export function useOpenCircleMeeting() {
+export function useOpenSpaceMeeting() {
   const qc = useQueryClient();
 
   return useMutation({
     mutationFn: (roomId: string) =>
-      roomApiVoid(ROOM.openMeeting(roomId), { method: 'POST' }, 'Could not open circle'),
+      roomApiVoid(ROOM.openMeeting(roomId), { method: 'POST' }, 'Could not open space'),
     onSuccess: (_result, roomId) => {
       invalidateRoomAfterOpenMeeting(qc, roomId);
     },
   });
 }
 
-export function useLeaveCircleRtc() {
+export function useLeaveSpaceRtc() {
   const qc = useQueryClient();
 
   return useMutation({
     mutationFn: (roomId: string) =>
-      roomApiVoid(ROOM.leaveCircleRtc(roomId), { method: 'POST' }, 'Could not leave circle RTC'),
+      roomApiVoid(ROOM.leaveSpaceRtc(roomId), { method: 'POST' }, 'Could not leave space RTC'),
     onSuccess: (_result, roomId) => {
       invalidateRoomAfterRtcSessionChange(qc, roomId);
     },
   });
 }
 
-export function useHostEndCircleForEveryone() {
+export function useHostEndSpaceForEveryone() {
   const qc = useQueryClient();
 
   return useMutation({
     mutationFn: (roomId: string) =>
       roomApiVoid(
-        ROOM.hostEndCircleForEveryone(roomId),
+        ROOM.hostEndSpaceForEveryone(roomId),
         { method: 'POST' },
-        'Could not end circle',
+        'Could not end space',
       ),
     onSuccess: (_result, roomId) => {
       invalidateRoomAfterRtcSessionChange(qc, roomId);
@@ -138,16 +138,16 @@ export function useHostEndCircleForEveryone() {
   });
 }
 
-export function useKickCircleParticipant() {
+export function useKickSpaceParticipant() {
   const qc = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ roomId, userId, restrict }: KickCircleParticipantRequest) =>
+    mutationFn: ({ roomId, userId, restrict }: KickSpaceParticipantRequest) =>
       roomApiVoid(
         ROOM.kickParticipant(roomId, userId),
         {
           method: 'POST',
-          body: serializeKickCircleParticipantBody(restrict),
+          body: serializeKickSpaceParticipantBody(restrict),
         },
         'Could not remove participant',
       ),
@@ -155,12 +155,12 @@ export function useKickCircleParticipant() {
       // Host stays in the same RTC session — do not refetch the token (new JWT reconnects
       // rtc-service and tears down mediasoup, turning off mic/camera).
       invalidateRoomAndPeersCallStatus(qc, roomId);
-      invalidateCirclesCaches(qc);
+      invalidateSpacesCaches(qc);
     },
   });
 }
 
-export function useReportCircleNsfwViolation() {
+export function useReportSpaceNsfwViolation() {
   return useMutation({
     mutationFn: async ({
       roomId,

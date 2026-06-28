@@ -18,7 +18,7 @@ function RightPanelInner() {
         <DashboardProfileCard />
       </div>
 
-      <div className="flex min-h-0 flex-1 flex-col gap-6 overflow-y-auto p-4">
+      <div className="app-scrollbar flex min-h-0 flex-1 flex-col gap-6 overflow-y-auto p-4">
         <DashboardActiveNowSection />
         <DashboardRecentMatchesSection />
         <DashboardRecentConnectionsSection />

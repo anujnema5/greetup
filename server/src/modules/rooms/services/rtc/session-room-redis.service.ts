@@ -5,7 +5,7 @@ import type { RoomSessionType } from "@/shared/types/room-session";
 
 const sessionRoomKey = (roomId: string) => `${ROOM_KEYS.ROOM}${roomId}`;
 
-export type CircleSessionRoomRedisPayload = {
+export type SpaceSessionRoomRedisPayload = {
   roomId: string;
   hostUserId: string;
   roomType: RoomSessionType;
@@ -24,15 +24,15 @@ export type ConnectionCallSessionRoomRedisPayload = {
   conversationId: string;
 };
 
-/** Ephemeral `room:{id}` hash for a live circle session (idempotent). */
+/** Ephemeral `room:{id}` hash for a live space session (idempotent). */
 export async function provisionSessionRoomRedis(
-  payload: CircleSessionRoomRedisPayload,
+  payload: SpaceSessionRoomRedisPayload,
 ): Promise<void> {
   const redis = getRedis();
   const key = sessionRoomKey(payload.roomId);
 
   await redis.hset(key, {
-    sessionKind: "circle",
+    sessionKind: "space",
     roomId: payload.roomId,
     hostUserId: payload.hostUserId,
     roomType: payload.roomType,
@@ -45,7 +45,7 @@ export async function provisionSessionRoomRedis(
   logger.info("Session room provisioned in Redis", {
     roomId: payload.roomId,
     roomType: payload.roomType,
-    sessionKind: "circle",
+    sessionKind: "space",
   });
 }
 
@@ -86,13 +86,13 @@ export async function patchSessionRoomRedisRoomType(
   await redis.expire(key, ROOM_TTL);
 }
 
-/** After match → circle expand: align Redis with Postgres `session_kind` / `room_type`. */
-export async function patchSessionRoomRedisCircleExpand(roomId: string): Promise<void> {
+/** After match → space expand: align Redis with Postgres `session_kind` / `room_type`. */
+export async function patchSessionRoomRedisSpaceExpand(roomId: string): Promise<void> {
   const redis = getRedis();
   const key = sessionRoomKey(roomId);
   const exists = await redis.exists(key);
   if (!exists) return;
-  await redis.hset(key, { roomType: "circle", sessionKind: "circle" });
+  await redis.hset(key, { roomType: "space", sessionKind: "space" });
   await redis.expire(key, ROOM_TTL);
 }
 
@@ -105,8 +105,8 @@ export async function patchSessionRoomRedisTitle(roomId: string, title: string):
   await redis.expire(key, ROOM_TTL);
 }
 
-/** Host opens the circle to all participants (clears lobby RTC gate). */
-export async function clearCircleLobbyGateInRedis(roomId: string): Promise<boolean> {
+/** Host opens the space to all participants (clears lobby RTC gate). */
+export async function clearSpaceLobbyGateInRedis(roomId: string): Promise<boolean> {
   const redis = getRedis();
   const key = sessionRoomKey(roomId);
   const exists = await redis.exists(key);

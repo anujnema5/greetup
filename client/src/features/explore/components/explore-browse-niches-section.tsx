@@ -5,7 +5,7 @@ import { Loader2 } from "lucide-react";
 import { EXPLORE } from "@/lib/copy/user-messages";
 import { cn } from "@/lib/utils";
 
-import { formatTopicCircleCount } from "../lib/browse-niche-display";
+import { formatTopicSpaceCount } from "../lib/browse-niche-display";
 import type { BrowseNicheItem } from "../types/browse-niches.types";
 import { ExploreSectionHeader } from "./explore-section-header";
 
@@ -16,21 +16,27 @@ type Props = {
   onRetry: () => void;
   onSelectNiche: (niche: BrowseNicheItem) => void;
   hideHeader?: boolean;
+  /** Tighter tiles for dashboard home preview. */
+  compact?: boolean;
+  /** Cap visible tiles (e.g. home preview); full list still available via View all. */
+  maxItems?: number;
 };
 
 function topicStatusLabel(niche: BrowseNicheItem): string {
   if (niche.liveGroupCount > 0) {
     return niche.liveGroupCount === 1 ? "1 live now" : `${niche.liveGroupCount} live now`;
   }
-  return formatTopicCircleCount(niche);
+  return formatTopicSpaceCount(niche);
 }
 
 function TopicTile({
   niche,
   onSelect,
+  compact = false,
 }: {
   niche: BrowseNicheItem;
   onSelect: (niche: BrowseNicheItem) => void;
+  compact?: boolean;
 }) {
   const isLive = niche.liveGroupCount > 0;
 
@@ -39,14 +45,16 @@ function TopicTile({
       type="button"
       onClick={() => onSelect(niche)}
       className={cn(
-        "group flex w-full items-center gap-3 rounded-xl border border-border/70 bg-card p-3 text-left",
+        "group flex w-full items-center gap-3 rounded-xl border border-border/70 bg-card text-left",
+        compact ? "p-2.5" : "p-3",
         "transition-colors duration-150 hover:border-border hover:bg-muted/25",
         "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
       )}
     >
       <span
         className={cn(
-          "flex size-10 shrink-0 items-center justify-center rounded-xl text-xl leading-none",
+          "flex shrink-0 items-center justify-center rounded-xl text-xl leading-none",
+          compact ? "size-9" : "size-10",
           isLive ? "bg-primary/15" : "bg-muted/60",
         )}
         aria-hidden
@@ -90,10 +98,17 @@ export function ExploreBrowseNichesSection({
   onRetry,
   onSelectNiche,
   hideHeader = false,
+  compact = false,
+  maxItems,
 }: Props) {
   if (!isLoading && !isError && niches.length === 0) {
     return null;
   }
+
+  const visibleNiches =
+    maxItems != null && maxItems > 0 ? niches.slice(0, maxItems) : niches;
+  const gridGap = compact ? "gap-2" : "gap-2.5";
+  const skeletonCount = maxItems != null && maxItems > 0 ? maxItems : 6;
 
   const Wrapper = hideHeader ? "div" : "section";
 
@@ -107,8 +122,8 @@ export function ExploreBrowseNichesSection({
       )}
 
       {isLoading ? (
-        <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2 lg:grid-cols-3">
-          {Array.from({ length: 6 }).map((_, i) => (
+        <div className={cn("grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3", gridGap)}>
+          {Array.from({ length: skeletonCount }).map((_, i) => (
             <TopicSkeleton key={i} />
           ))}
         </div>
@@ -124,9 +139,9 @@ export function ExploreBrowseNichesSection({
           </button>
         </div>
       ) : (
-        <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2 lg:grid-cols-3">
-          {niches.map((niche) => (
-            <TopicTile key={niche.id} niche={niche} onSelect={onSelectNiche} />
+        <div className={cn("grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3", gridGap)}>
+          {visibleNiches.map((niche) => (
+            <TopicTile key={niche.id} niche={niche} onSelect={onSelectNiche} compact={compact} />
           ))}
         </div>
       )}

@@ -1,6 +1,6 @@
 import type { QueryClient } from '@tanstack/react-query';
 
-import { invalidateCirclesCaches } from '@/features/circles/lib/invalidate-circles-cache';
+import { invalidateSpacesCaches } from '@/features/spaces/lib/invalidate-spaces-cache';
 import { invalidateRtcTokenCache } from '@/features/rtc/lib/rtc-token-cache';
 import { queryClient } from '@/lib/query/client';
 import { queryKeys } from '@/lib/query/keys';
@@ -30,7 +30,7 @@ export function invalidateRoomAfterRtcSessionChange(
 ) {
   invalidateRtcTokenCache(roomId, qc);
   invalidateRoomDetail(qc, roomId);
-  invalidateCirclesCaches(qc);
+  invalidateSpacesCaches(qc);
   invalidateRoomAndPeersCallStatus(qc, roomId);
 }
 

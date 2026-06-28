@@ -17,8 +17,8 @@
  */
 import { useMemo, useRef, type RefObject } from "react";
 import { cn } from "@/lib/utils";
-import { circleGridClass } from "@/features/room/call/layouts/grid/circle-grid-classes";
-import { CircleGalleryGrid } from "@/features/room/call/layouts/grid/circle-grid";
+import { spaceGridClass } from "@/features/room/call/layouts/grid/space-grid-classes";
+import { SpaceGalleryGrid } from "@/features/room/call/layouts/grid/space-grid";
 import type { RoomActivityId } from "@/features/room/types/call/room-activity.types";
 import type { RoomActivityMeta } from "@/features/room/types/call/room-activity.types";
 import { ActivityStage } from "@/features/room/call/activities/activity-stage";
@@ -40,7 +40,7 @@ import {
   VideoMirror,
 } from "@/features/room/call/tiles/tile-primitives";
 import type { RemoteParticipant, ScreenShareTileInfo } from "@/features/rtc";
-import type { CircleParticipantKickProps } from "@/features/room/types/call/participant-remove.types";
+import type { SpaceParticipantKickProps } from "@/features/room/types/call/participant-remove.types";
 import { hasLiveEnabledVideo, hasLiveVideo } from "@/features/rtc";
 import { useAttachMediaStream } from "@/features/room/hooks/media/use-attach-media-stream";
 import { ScreenShareFilmstrip } from "@/features/room/call/layouts/screen-share/screen-share-strip";
@@ -102,7 +102,7 @@ export function MainStage({
   shareStageImmersive = false,
   liveSpeakerPeerId = null,
   liveSpeakerSpeakingMs = {},
-  isCircleHost = false,
+  isSpaceHost = false,
   onKickParticipant,
   kickingUserId = null,
 }: {
@@ -152,10 +152,10 @@ export function MainStage({
   /** SFU mic-dominant user id (rtc-service `dominantSpeaker`). */
   liveSpeakerPeerId?: string | null;
   liveSpeakerSpeakingMs?: Record<string, number>;
-} & CircleParticipantKickProps) {
+} & SpaceParticipantKickProps) {
   const stageActivity = activeRealtimeActivity?.kind === "chess" ? "chess" : activeActivity;
   const remoteKickProps = {
-    canKick: Boolean(isCircleHost && onKickParticipant),
+    canKick: Boolean(isSpaceHost && onKickParticipant),
     onKickParticipant,
     kickingUserId,
   };
@@ -201,8 +201,8 @@ export function MainStage({
     featuredParticipant == null
       ? groupGalleryParticipants
       : groupGalleryParticipants.filter((p) => p.peer.peerId !== featuredParticipant.peer.peerId);
-  const groupGridClass = circleGridClass(groupTileCount);
-  const circleTileAvatarSize =
+  const groupGridClass = spaceGridClass(groupTileCount);
+  const spaceTileAvatarSize =
     groupTileCount <= 2 ? undefined : CALL_TILE_AVATAR_SIZE_COMPACT;
   /** Same full-area local tile as 1:1 “You”, without a side-by-side empty peer slot. */
   const renderDirectSoloCamera = directSoloLayout && !stageActivity;
@@ -248,7 +248,7 @@ export function MainStage({
         aria-hidden
       />
 
-      {/* --- Circle rooms --- */}
+      {/* --- Space rooms --- */}
       {isGroupRoom ? (
         screenShareMainLayout ? (
           /* Circle + share: shared screen on top, 2×2 participant grid below. Grid hides on xl+ (cameras in People panel). */
@@ -306,7 +306,7 @@ export function MainStage({
                 currentUserId={currentUserId ?? null}
                 liveSpeakerPeerId={liveSpeakerPeerId}
                 liveSpeakerSpeakingMs={liveSpeakerSpeakingMs}
-                isCircleHost={isCircleHost}
+                isSpaceHost={isSpaceHost}
                 onKickParticipant={onKickParticipant}
                 kickingUserId={kickingUserId}
               />
@@ -314,7 +314,7 @@ export function MainStage({
           </div>
         ) : groupTileCount > 6 ? (
           /* 7+ participants: paginated gallery — no Y-scroll, left/right pages */
-          <CircleGalleryGrid
+          <SpaceGalleryGrid
             participants={groupGalleryParticipants}
             localVideoRef={localVideoRef}
             localVideoLive={localVideoLive}
@@ -326,7 +326,7 @@ export function MainStage({
             cameraEnabled={cameraEnabled}
             currentUserId={currentUserId ?? null}
             liveSpeakerPeerId={liveSpeakerPeerId}
-            isCircleHost={isCircleHost}
+            isSpaceHost={isSpaceHost}
             onKickParticipant={onKickParticipant}
             kickingUserId={kickingUserId}
           />
@@ -338,7 +338,7 @@ export function MainStage({
                 <RemoteParticipantTile
                   participant={featuredParticipant}
                   className="md:row-span-2"
-                  avatarSizeClass={circleTileAvatarSize}
+                  avatarSizeClass={spaceTileAvatarSize}
                   isLiveSpeaker={isLiveSpeakerOnTile(
                     liveSpeakerPeerId,
                     featuredParticipant.peer.peerId,
@@ -356,14 +356,14 @@ export function MainStage({
                 micEnabled={micEnabled}
                 cameraEnabled={cameraEnabled}
                 isLiveSpeaker={localIsLiveSpeaker}
-                avatarSizeClass={circleTileAvatarSize}
+                avatarSizeClass={spaceTileAvatarSize}
               />
               {sideParticipants.map((participant, idx) => (
                 <RemoteParticipantTile
                   key={participant.peer.peerId}
                   participant={participant}
                   className={groupTileCount === 3 && idx < 2 ? "min-h-0 md:min-h-22" : undefined}
-                  avatarSizeClass={circleTileAvatarSize}
+                  avatarSizeClass={spaceTileAvatarSize}
                   isLiveSpeaker={isLiveSpeakerOnTile(
                     liveSpeakerPeerId,
                     participant.peer.peerId,

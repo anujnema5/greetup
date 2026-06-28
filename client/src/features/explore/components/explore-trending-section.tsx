@@ -3,18 +3,18 @@
 import { useRouter } from "next/navigation";
 
 import { SectionHeader } from "@/components/section-header";
-import { CIRCLES_BROWSE_PATH } from "@/features/circles/lib/circles-browse-path";
+import { SPACES_BROWSE_PATH } from "@/features/spaces/lib/spaces-browse-path";
 import { EXPLORE } from "@/lib/copy/user-messages";
-import type { ActiveCircleItem } from "@/features/circles/types/circles-api.types";
+import type { ActiveSpaceItem } from "@/features/spaces/types/spaces-api.types";
 
-import { ExploreCirclesGrid } from "./explore-circles-grid";
+import { ExploreSpacesGrid } from "./explore-spaces-grid";
 
 type Props = {
-  circles: readonly ActiveCircleItem[];
+  spaces: readonly ActiveSpaceItem[];
   isLoading: boolean;
 };
 
-export function ExploreTrendingSection({ circles, isLoading }: Props) {
+export function ExploreTrendingSection({ spaces, isLoading }: Props) {
   const router = useRouter();
 
   return (
@@ -22,17 +22,17 @@ export function ExploreTrendingSection({ circles, isLoading }: Props) {
       <SectionHeader
         title={EXPLORE.trending.title}
         actionLabel={EXPLORE.trending.viewAll}
-        onAction={() => router.push(CIRCLES_BROWSE_PATH)}
+        onAction={() => router.push(SPACES_BROWSE_PATH)}
       />
 
       {isLoading ? (
-        <ExploreCirclesGrid circles={[]} isLoading skeletonCount={2} />
-      ) : circles.length === 0 ? (
+        <ExploreSpacesGrid spaces={[]} isLoading skeletonCount={2} />
+      ) : spaces.length === 0 ? (
         <p className="rounded-2xl border border-dashed border-border bg-muted/20 px-4 py-8 text-center text-sm text-muted-foreground">
           {EXPLORE.trending.empty}
         </p>
       ) : (
-        <ExploreCirclesGrid circles={circles} isLoading={false} skeletonCount={2} />
+        <ExploreSpacesGrid spaces={spaces} isLoading={false} skeletonCount={2} />
       )}
     </section>
   );

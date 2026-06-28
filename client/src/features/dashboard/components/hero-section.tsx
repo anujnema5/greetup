@@ -6,7 +6,7 @@ import { SlidersHorizontal, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { DASHBOARD_GREETING_SUBTITLE, DASHBOARD_HERO, DASHBOARD_SECTIONS } from "@/lib/copy/user-messages";
 import { TOUR_TARGETS } from "@/features/tour-guide";
-import { useStartCircleModal } from "@/features/circles";
+import { useStartSpaceModal } from "@/features/spaces";
 import { useDashboardGreeting } from "../hooks/use-dashboard-greeting";
 import { useDashboardInsights } from "../hooks/use-dashboard-insights";
 import { HeroActionCards } from "./hero-action-cards";
@@ -25,7 +25,7 @@ function HeroSectionInner({
   onChangePreferences: () => void;
   error?: string | null;
 }) {
-  const { openModal, categoriesLoading, isOpen } = useStartCircleModal();
+  const { openModal, categoriesLoading, isOpen } = useStartSpaceModal();
   const { title } = useDashboardGreeting();
   const { heroStats, isLoading: insightsLoading } = useDashboardInsights();
   const isSearching = appState === "searching";
@@ -42,7 +42,7 @@ function HeroSectionInner({
 
   return (
     <section className="rounded-2xl border border-border bg-hero-card-surface">
-      <div className="grid gap-5 p-4 sm:p-5 lg:grid-cols-[minmax(0,1fr)_300px] lg:items-start lg:gap-8 xl:grid-cols-[minmax(0,1fr)_320px]">
+      <div className="grid gap-5 p-4 sm:p-5 lg:grid-cols-[minmax(0,1fr)_300px] lg:items-start lg:gap-7 xl:grid-cols-[minmax(0,1fr)_320px]">
         <div className="min-w-0 space-y-3.5">
           <HeroOnlinePeopleBadge />
 
@@ -53,7 +53,7 @@ function HeroSectionInner({
             <p className="mt-2 max-w-xl text-[15px] leading-relaxed text-muted-foreground">{subtitle}</p>
           </div>
 
-          <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-muted-foreground">
+          <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
             <span className="inline-flex items-center gap-1.5">
               {insightsLoading ? (
                 <span className="inline-block h-3.5 w-10 animate-pulse rounded bg-muted" />
@@ -64,18 +64,6 @@ function HeroSectionInner({
                 </>
               )}
             </span>
-
-            <span className="hidden h-3 w-px bg-border sm:block" aria-hidden />
-
-            <button
-              type="button"
-              className="inline-flex cursor-pointer items-center gap-1.5 text-sm text-muted-foreground underline-offset-4 transition-colors hover:text-foreground hover:underline"
-              data-tour-id={TOUR_TARGETS.changePreferences}
-              onClick={onChangePreferences}
-            >
-              <SlidersHorizontal className="size-3.5 opacity-70" aria-hidden />
-              {DASHBOARD_SECTIONS.changePreferences}
-            </button>
           </div>
         </div>
 
@@ -83,12 +71,26 @@ function HeroSectionInner({
           <HeroActionCards
             isSearching={isSearching}
             matchDisabled={isProposed}
-            circleLoading={isOpen && categoriesLoading}
+            spaceLoading={isOpen && categoriesLoading}
             onFindMatch={() => {
               if (!isSearching) onRequestMatch();
             }}
-            onStartCircle={openModal}
+            onStartSpace={openModal}
           />
+
+          {!isSearching && !isProposed ? (
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="w-full gap-2 rounded-2xl border-border/70 bg-card py-5 text-sm font-medium"
+              data-tour-id={TOUR_TARGETS.changePreferences}
+              onClick={onChangePreferences}
+            >
+              <SlidersHorizontal className="size-4 shrink-0 opacity-80" aria-hidden />
+              {DASHBOARD_SECTIONS.changePreferences}
+            </Button>
+          ) : null}
 
           {isSearching ? (
             <Button type="button" variant="ghost" size="sm" className="self-center rounded-full" onClick={onCancel}>

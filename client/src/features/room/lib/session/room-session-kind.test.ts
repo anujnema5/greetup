@@ -1,8 +1,8 @@
 import { describe, expect, it } from "bun:test";
 import {
   getSessionKind,
-  isCircleGroupSession,
-  isCircleSession,
+  isSpaceGroupSession,
+  isSpaceSession,
   isConnectionCallSession,
   isMatchSession,
 } from "./room-session-kind";
@@ -13,8 +13,8 @@ describe("room-session-kind", () => {
     expect(getSessionKind(room)).toBe("match");
     expect(isMatchSession(room)).toBe(true);
     expect(isConnectionCallSession(room)).toBe(false);
-    expect(isCircleSession(room)).toBe(false);
-    expect(isCircleGroupSession(room)).toBe(false);
+    expect(isSpaceSession(room)).toBe(false);
+    expect(isSpaceGroupSession(room)).toBe(false);
   });
 
   it("classifies connection_call", () => {
@@ -22,20 +22,20 @@ describe("room-session-kind", () => {
     expect(getSessionKind(room)).toBe("connection_call");
     expect(isConnectionCallSession(room)).toBe(true);
     expect(isMatchSession(room)).toBe(false);
-    expect(isCircleGroupSession(room)).toBe(false);
+    expect(isSpaceGroupSession(room)).toBe(false);
   });
 
-  it("classifies circle", () => {
-    const room = { sessionKind: "circle" as const };
-    expect(getSessionKind(room)).toBe("circle");
-    expect(isCircleSession(room)).toBe(true);
-    expect(isCircleGroupSession(room)).toBe(true);
+  it("classifies space", () => {
+    const room = { sessionKind: "space" as const };
+    expect(getSessionKind(room)).toBe("space");
+    expect(isSpaceSession(room)).toBe(true);
+    expect(isSpaceGroupSession(room)).toBe(true);
     expect(isMatchSession(room)).toBe(false);
   });
 
-  it("uses rtcRoomType circle for group layout without sessionKind", () => {
-    expect(isCircleGroupSession({}, "circle")).toBe(true);
-    expect(isCircleGroupSession({ sessionKind: "match" }, "circle")).toBe(true);
+  it("uses rtcRoomType space for group layout without sessionKind", () => {
+    expect(isSpaceGroupSession({}, "space")).toBe(true);
+    expect(isSpaceGroupSession({ sessionKind: "match" }, "space")).toBe(true);
   });
 
   it("returns null for unknown or missing sessionKind", () => {

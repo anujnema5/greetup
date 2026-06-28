@@ -9,7 +9,7 @@ export type RoomSessionEndReason =
   | "session_cap"
   | "calendar_end"
   | "empty_room_2h"
-  | "delete_circle_after_call"
+  | "delete_space_after_call"
   | "match_finalized"
   | "connection_call_ended"
   | "reconciled_on_access";
@@ -17,7 +17,7 @@ export type RoomSessionEndReason =
 export type EndLiveRoomSessionOptions = {
   /**
    * Circle with `scheduled_start_at`: return to `scheduled` and reactivate host row
-   * (calendar slot kept). Default: true for calendar circles except `delete_circle_after_call`.
+   * (calendar slot kept). Default: true for calendar spaces except `delete_space_after_call`.
    */
   preserveScheduledSlot?: boolean;
   /** Notify non-host circle participants to leave RTC (uses `hostEndedForEveryone` event). */

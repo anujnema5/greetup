@@ -1,6 +1,6 @@
 import logger from "@/core/logging";
 import { emitToUser } from "@/core/socket/socket";
-import { CIRCLE_ROOM_SOCKET_EVENTS } from "@/modules/rooms/constants/events/circle-room-socket.events";
+import { SPACE_ROOM_SOCKET_EVENTS } from "@/modules/rooms/constants/events/space-room-socket.events";
 import { isDbRoomSessionClosed } from "@/modules/rooms/lib/expiry/room-expiry";
 import { roomsRepository } from "@/modules/rooms/repositories/rooms.repository";
 import { roomSessionsRepository } from "@/modules/rooms/repositories/room-sessions.repository";
@@ -25,13 +25,13 @@ function shouldPreserveScheduledSlot(
   if (options.preserveScheduledSlot !== undefined) {
     return options.preserveScheduledSlot;
   }
-  if (room.roomType !== "circle" || !room.scheduledStartAt) {
+  if (room.roomType !== "space" || !room.scheduledStartAt) {
     return false;
   }
-  return reason !== "delete_circle_after_call" && reason !== "match_finalized";
+  return reason !== "delete_space_after_call" && reason !== "match_finalized";
 }
 
-async function notifyCircleParticipantsToLeave(
+async function notifySpaceParticipantsToLeave(
   roomId: string,
   hostUserId: string,
   excludeUserId?: string,
@@ -40,13 +40,13 @@ async function notifyCircleParticipantsToLeave(
   const payload = { roomId };
   for (const uid of userIds) {
     if (uid === hostUserId || uid === excludeUserId) continue;
-    emitToUser(uid, CIRCLE_ROOM_SOCKET_EVENTS.hostEndedForEveryone, payload);
+    emitToUser(uid, SPACE_ROOM_SOCKET_EVENTS.hostEndedForEveryone, payload);
   }
 }
 
 /**
  * Idempotent: marks active participants left, closes live DB session, clears Redis + SFU.
- * Used by host end, match finalize, deleteCircleAfterCall, join-time reconcile, and background sweep.
+ * Used by host end, match finalize, deleteSpaceAfterCall, join-time reconcile, and background sweep.
  */
 export async function endLiveRoomSession(
   roomId: string,
@@ -88,10 +88,10 @@ export async function endLiveRoomSession(
 
     const shouldNotify =
       options.notifyParticipants ??
-      (room.roomType === "circle" && reason !== "match_finalized");
+      (room.roomType === "space" && reason !== "match_finalized");
 
-    if (shouldNotify && room.roomType === "circle") {
-      await notifyCircleParticipantsToLeave(
+    if (shouldNotify && room.roomType === "space") {
+      await notifySpaceParticipantsToLeave(
         roomId,
         room.hostUserId,
         options.excludeUserIdFromNotify,

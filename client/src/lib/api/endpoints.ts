@@ -86,15 +86,15 @@ export const API_ENDPOINTS = {
   PRESENCE: {
     ONLINE_PEOPLE_COUNT: "/presence/online-people-count",
   },
-  CIRCLES: {
-    CATEGORIES: "/circles/categories",
-    BROWSE_NICHES: "/circles/browse/niches",
+  SPACES: {
+    CATEGORIES: "/spaces/categories",
+    BROWSE_NICHES: "/spaces/browse/niches",
     browseNicheRooms: (categoryId: string) =>
-      `/circles/browse/niches/${encodeURIComponent(categoryId)}/rooms` as const,
-    CREATE: "/circles",
-    ACTIVE: "/circles/active",
+      `/spaces/browse/niches/${encodeURIComponent(categoryId)}/rooms` as const,
+    CREATE: "/spaces",
+    ACTIVE: "/spaces/active",
     /** Same path for PATCH (update) and DELETE (remove) — method differs per request. */
-    room: (roomId: string) => `/circles/${encodeURIComponent(roomId)}` as const,
+    room: (roomId: string) => `/spaces/${encodeURIComponent(roomId)}` as const,
   },
   CHAT: {
     CONVERSATIONS:        '/chat/conversations',
@@ -113,9 +113,9 @@ export const API_ENDPOINTS = {
     get: (roomId: string) => `/room/${roomId}` as const,
     join: (roomId: string) => `/room/${roomId}/join` as const,
     openMeeting: (roomId: string) => `/room/${roomId}/open-meeting` as const,
-    leaveCircleRtc: (roomId: string) => `/room/${roomId}/leave-circle-rtc` as const,
-    hostEndCircleForEveryone: (roomId: string) =>
-      `/room/${roomId}/host-end-circle` as const,
+    leaveSpaceRtc: (roomId: string) => `/room/${roomId}/leave-space-rtc` as const,
+    hostEndSpaceForEveryone: (roomId: string) =>
+      `/room/${roomId}/host-end-space` as const,
     kickParticipant: (roomId: string, userId: string) =>
       `/room/${roomId}/kick/${userId}` as const,
     nsfwViolation: (roomId: string) => `/room/${roomId}/nsfw-violation` as const,

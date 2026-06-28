@@ -77,12 +77,12 @@ export const queryKeys = {
   connectionCall: {
     all: ['connection-call'] as const,
   },
-  circles: {
-    all: ['circles'] as const,
-    categories: ['circles', 'categories'] as const,
+  spaces: {
+    all: ['spaces'] as const,
+    categories: ['spaces', 'categories'] as const,
     active: (args: { cursor?: string; limit?: number }) =>
-      ['circles', 'active', args.cursor ?? '', args.limit ?? ''] as const,
-    browseInfinite: (limit: number) => ['circles', 'browse', limit] as const,
+      ['spaces', 'active', args.cursor ?? '', args.limit ?? ''] as const,
+    browseInfinite: (limit: number) => ['spaces', 'browse', limit] as const,
   },
   room: {
     all: ['room'] as const,

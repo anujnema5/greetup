@@ -125,6 +125,9 @@
   --surface-hero-glow: oklch(from var(--primary) l c h / 0.02);
   --surface-hero-glow-2: oklch(from var(--secondary) l c h / 0.015);
   --surface-dot-grid: oklch(from var(--foreground) l c h / 0.04);
+
+  --scrollbar-thumb: color-mix(in oklch, var(--foreground) 16%, transparent);
+  --scrollbar-thumb-hover: color-mix(in oklch, var(--foreground) 28%, transparent);
 }
 
 .dark {
@@ -191,44 +194,42 @@
   --surface-hero-glow: oklch(86% 0.1 98 / 0.03);
   --surface-hero-glow-2: oklch(68% 0.06 90 / 0.02);
   --surface-dot-grid: oklch(100% 0 0 / 0.025);
+
+  --scrollbar-thumb: color-mix(in oklch, var(--foreground) 12%, transparent);
+  --scrollbar-thumb-hover: color-mix(in oklch, var(--foreground) 22%, transparent);
 }
 
 
-/* ─── Scrollbar ──────────────────────────────────────────────────────────────── */
+/* ─── Scrollbar — thin, low-contrast; slightly stronger on hover ─────────────── */
 
-html {
+* {
   scrollbar-width: thin;
-  scrollbar-color: oklch(72% 0.02 285) transparent;
+  scrollbar-color: var(--scrollbar-thumb) transparent;
 }
 
-.dark {
-  scrollbar-color: #2a2a2a transparent;
-}
-
-::-webkit-scrollbar {
+*::-webkit-scrollbar {
   width: 4px;
   height: 4px;
 }
 
-::-webkit-scrollbar-track {
+*::-webkit-scrollbar-track {
   background: transparent;
 }
 
-::-webkit-scrollbar-thumb {
-  background: oklch(72% 0.02 285);
+*::-webkit-scrollbar-thumb {
+  background: var(--scrollbar-thumb);
   border-radius: 9999px;
 }
 
-::-webkit-scrollbar-thumb:hover {
-  background: oklch(60% 0.04 285);
+*::-webkit-scrollbar-thumb:hover {
+  background: var(--scrollbar-thumb-hover);
 }
 
-.dark ::-webkit-scrollbar-thumb {
-  background: #2e2e2e;
-}
-
-.dark ::-webkit-scrollbar-thumb:hover {
-  background: #555;
+*::-webkit-scrollbar-button,
+*::-webkit-scrollbar-corner {
+  display: none;
+  width: 0;
+  height: 0;
 }
 
 .scrollbar-none {
@@ -237,6 +238,11 @@ html {
 
 .scrollbar-none::-webkit-scrollbar {
   display: none;
+}
+
+.app-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: var(--scrollbar-thumb) transparent;
 }
 
 /* ─── Base ───────────────────────────────────────────────────────────────────── */
@@ -535,33 +541,33 @@ html {
     inset 0 1px 0 oklch(100% 0 0 / 0.2);
 }
 
-/* Circle orb — dashboard */
-.circle-orb-shell {
-  --circle-orb-ring-outer: oklch(from var(--secondary) l c h / 0.15);
-  --circle-orb-ring-mid: oklch(from var(--secondary) l c h / 0.2);
-  --circle-orb-glow-color: var(--secondary);
-  --circle-orb-glow-opacity: 0.1;
+/* Space orb — dashboard */
+.space-orb-shell {
+  --space-orb-ring-outer: oklch(from var(--secondary) l c h / 0.15);
+  --space-orb-ring-mid: oklch(from var(--secondary) l c h / 0.2);
+  --space-orb-glow-color: var(--secondary);
+  --space-orb-glow-opacity: 0.1;
 
   @apply relative flex size-[148px] items-center justify-center;
 }
 
-.circle-orb-ring-outer {
+.space-orb-ring-outer {
   @apply absolute inset-0 rounded-full border transition-opacity duration-500;
-  border-color: var(--circle-orb-ring-outer);
+  border-color: var(--space-orb-ring-outer);
 }
 
-.circle-orb-ring-mid {
+.space-orb-ring-mid {
   @apply absolute inset-4 rounded-full border transition-opacity duration-500;
-  border-color: var(--circle-orb-ring-mid);
+  border-color: var(--space-orb-ring-mid);
 }
 
-.circle-orb-glow {
+.space-orb-glow {
   @apply absolute inset-[29px] rounded-full blur-xl transition-opacity duration-500;
-  background: var(--circle-orb-glow-color);
-  opacity: var(--circle-orb-glow-opacity);
+  background: var(--space-orb-glow-color);
+  opacity: var(--space-orb-glow-opacity);
 }
 
-.circle-orb-btn {
+.space-orb-btn {
   @apply relative z-10 flex size-[90px] cursor-pointer flex-col items-center justify-center gap-2 rounded-full font-semibold text-secondary-foreground transition-all duration-300 hover:brightness-[1.02] dark:hover:brightness-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-secondary/80 focus-visible:ring-offset-2 focus-visible:ring-offset-card disabled:cursor-not-allowed disabled:opacity-60;
   background: radial-gradient(circle at 40% 35%, oklch(from var(--secondary) calc(l - 0.03) calc(c - 0.03) h), oklch(from var(--secondary) calc(l - 0.11) calc(c - 0.04) h));
   box-shadow:
@@ -583,11 +589,11 @@ html {
     inset 0 1px 0 oklch(100% 0 0 / 0.14);
 }
 
-:root:not(.dark) .circle-orb-shell {
-  --circle-orb-glow-opacity: 0.06;
+:root:not(.dark) .space-orb-shell {
+  --space-orb-glow-opacity: 0.06;
 }
 
-:root:not(.dark) .circle-orb-btn {
+:root:not(.dark) .space-orb-btn {
   background: radial-gradient(circle at 40% 35%, oklch(from var(--secondary) calc(l - 0.08) calc(c - 0.02) h), oklch(from var(--secondary) calc(l - 0.17) calc(c - 0.01) h));
   box-shadow:
     0 0 10px oklch(from var(--secondary) calc(l - 0.14) c h / 0.1),
@@ -614,23 +620,23 @@ html {
     inset 0 1px 0 oklch(100% 0 0 / 0.14);
 }
 
-/* Dark mode: glowing gold circle orb (matches secondary) with orbit rings. */
-.dark .circle-orb-shell {
-  --circle-orb-gold: oklch(80% 0.1 108);
-  --circle-orb-gold-fg: oklch(18% 0.03 110);
-  --circle-orb-ring-outer: oklch(80% 0.1 108 / 0.16);
-  --circle-orb-ring-mid: oklch(80% 0.1 108 / 0.22);
-  --circle-orb-glow-color: oklch(80% 0.1 108);
-  --circle-orb-glow-opacity: 0.08;
+/* Dark mode: glowing gold space orb (matches secondary) with orbit rings. */
+.dark .space-orb-shell {
+  --space-orb-gold: oklch(80% 0.1 108);
+  --space-orb-gold-fg: oklch(18% 0.03 110);
+  --space-orb-ring-outer: oklch(80% 0.1 108 / 0.16);
+  --space-orb-ring-mid: oklch(80% 0.1 108 / 0.22);
+  --space-orb-glow-color: oklch(80% 0.1 108);
+  --space-orb-glow-opacity: 0.08;
 }
 
-.dark .circle-orb-shell:has(.circle-orb-ring-outer.animate-pulse) {
-  --circle-orb-ring-outer: oklch(80% 0.1 108 / 0.24);
-  --circle-orb-ring-mid: oklch(80% 0.1 108 / 0.3);
-  --circle-orb-glow-opacity: 0.12;
+.dark .space-orb-shell:has(.space-orb-ring-outer.animate-pulse) {
+  --space-orb-ring-outer: oklch(80% 0.1 108 / 0.24);
+  --space-orb-ring-mid: oklch(80% 0.1 108 / 0.3);
+  --space-orb-glow-opacity: 0.12;
 }
 
-.dark .circle-orb-btn {
+.dark .space-orb-btn {
   color: oklch(18% 0.03 110);
   background: radial-gradient(circle at 40% 35%,
       oklch(86% 0.1 106),
@@ -702,35 +708,35 @@ html {
   backdrop-filter: saturate(180%) blur(12px);
 }
 
-.dash-circle-cover-0 {
+.dash-space-cover-0 {
   background: oklch(from var(--primary) 94% 0.045 96);
 }
 
-.dash-circle-cover-1 {
+.dash-space-cover-1 {
   background: oklch(from var(--secondary) 94% 0.04 85);
 }
 
-.dash-circle-cover-2 {
+.dash-space-cover-2 {
   background: oklch(95% 0.035 75);
 }
 
-.dash-circle-cover-3 {
+.dash-space-cover-3 {
   background: oklch(95% 0.03 25);
 }
 
-.dark .dash-circle-cover-0 {
+.dark .dash-space-cover-0 {
   background: oklch(26% 0.035 90);
 }
 
-.dark .dash-circle-cover-1 {
+.dark .dash-space-cover-1 {
   background: oklch(25% 0.03 80);
 }
 
-.dark .dash-circle-cover-2 {
+.dark .dash-space-cover-2 {
   background: oklch(26% 0.028 70);
 }
 
-.dark .dash-circle-cover-3 {
+.dark .dash-space-cover-3 {
   background: oklch(25% 0.025 55);
 }
 

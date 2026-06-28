@@ -1,9 +1,9 @@
 export { RoomSocketBridge } from "./room-socket-bridge";
-export { OnCircleTitleUpdated } from "./on-circle-title-updated";
-export { OnCircleOpenedForJoin } from "./on-circle-opened-for-join";
-export { OnHostEndedCircle } from "./on-host-ended-circle";
-export { OnParticipantRemovedFromCircle } from "./on-participant-removed-from-circle";
+export { OnSpaceTitleUpdated } from "./on-space-title-updated";
+export { OnSpaceOpenedForJoin } from "./on-space-opened-for-join";
+export { OnHostEndedSpace } from "./on-host-ended-space";
+export { OnParticipantRemovedFromSpace } from "./on-participant-removed-from-space";
 export { OnConnectionCallEnded } from "./on-connection-call-ended";
-export { OnDirectExpandedToCircle } from "./on-direct-expanded-to-circle";
+export { OnDirectExpandedToSpace } from "./on-direct-expanded-to-space";
 export { OnPartnerDisconnected } from "./on-partner-disconnected";
 export { OnRoomActivityToasts } from "./on-room-activity-toasts";

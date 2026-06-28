@@ -2,9 +2,9 @@
 
 import dynamic from "next/dynamic";
 import { useState } from "react";
-import { NavSidebar, BottomNav, AppTopbar, AppTopbarShell } from "@/features/app-shell";
+import { NavSidebar, BottomNav, AppSearchTopbar } from "@/features/app-shell";
 import { WelcomeTourLauncher } from "@/features/tour-guide";
-import { CirclesGrid, StartCircleModalProvider } from "@/features/circles";
+import { SpacesGrid, StartSpaceModalProvider } from "@/features/spaces";
 import { HeroSection } from "../components/hero-section";
 import { DashboardBrowseTopicsSection } from "../components/dashboard-browse-topics-section";
 import { useMatchPrepPromptStatus } from "@/features/profile-setup/api";
@@ -42,7 +42,7 @@ export function DashboardPage() {
   };
 
   return (
-    <StartCircleModalProvider>
+    <StartSpaceModalProvider>
       <MatchPrepDialog
         open={prepOpen}
         onOpenChange={setPrepOpen}
@@ -54,12 +54,10 @@ export function DashboardPage() {
       <div className="flex h-screen overflow-hidden bg-background">
         <NavSidebar activePath="/home" />
 
-        <main className="flex min-w-0 flex-1 flex-col overflow-y-auto pb-16 md:pb-0">
-          <AppTopbarShell>
-            <AppTopbar />
-          </AppTopbarShell>
+        <main className="app-scrollbar flex min-w-0 flex-1 flex-col overflow-y-auto pb-16 md:pb-0">
+          <AppSearchTopbar />
 
-          <div className="flex w-full flex-col gap-6 px-4 py-5 lg:px-5 lg:py-6">
+          <div className="flex w-full flex-col gap-5 px-4 py-5 lg:px-5 lg:py-5">
             <HeroSection
               appState={status}
               onRequestMatch={() => {
@@ -70,7 +68,7 @@ export function DashboardPage() {
               onChangePreferences={() => openMatchPrep("edit")}
               error={error}
             />
-            <CirclesGrid />
+            <SpacesGrid />
             <DashboardBrowseTopicsSection />
           </div>
         </main>
@@ -78,6 +76,6 @@ export function DashboardPage() {
         <RightPanel />
         <BottomNav activePath="/home" />
       </div>
-    </StartCircleModalProvider>
+    </StartSpaceModalProvider>
   );
 }

@@ -5,7 +5,7 @@ import { buildPageMetadata } from "@/lib/site";
 
 export const metadata: Metadata = buildPageMetadata({
   title: "Log in",
-  description: "Sign in to your Greetup account to match, chat, and join live circles.",
+  description: "Sign in to your Greetup account to match, chat, and join live spaces.",
   path: "/login",
 });
 

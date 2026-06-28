@@ -11,7 +11,7 @@ export type NsfwClientScore = {
   probability: number;
 };
 
-export type RecordLiveCircleNsfwViolationInput = {
+export type RecordLiveSpaceNsfwViolationInput = {
   userId: string;
   roomId: string;
   clientScores?: NsfwClientScore[];
@@ -36,8 +36,8 @@ export const userModerationRepository = {
     return Number(row?.total ?? 0);
   },
 
-  async recordLiveCircleNsfwViolation(
-    input: RecordLiveCircleNsfwViolationInput,
+  async recordLiveSpaceNsfwViolation(
+    input: RecordLiveSpaceNsfwViolationInput,
   ): Promise<{ strikeCount: number; actionTaken: "warned_and_kicked" | "account_banned" }> {
     const priorStrikes = await this.countActiveNsfwStrikes(input.userId);
     const strikeIndex = priorStrikes + 1;
@@ -46,7 +46,7 @@ export const userModerationRepository = {
     await db.insert(nsfwModerationEvents).values({
       userId: input.userId,
       roomId: input.roomId,
-      source: "live_circle_self",
+      source: "live_space_self",
       strikeIndex,
       actionTaken,
       clientScores: input.clientScores?.length ? input.clientScores : null,

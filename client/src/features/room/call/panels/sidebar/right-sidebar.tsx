@@ -124,7 +124,7 @@ export function RightSidebar({
           {conversationId ? (
             <ChatPanel
               conversationId={conversationId}
-              conversationType={isGroupRoom ? "room_circle" : "room_direct"}
+              conversationType={isGroupRoom ? "room_space" : "room_direct"}
               showQuickReactions
               sendDisabled={!isGroupRoom && searchingForNextCandidate}
             />

@@ -6,7 +6,7 @@ import { buildPageMetadata } from "@/lib/site";
 export const metadata: Metadata = buildPageMetadata({
   title: "",
   description:
-    "Meet like-minded people online — matched by interests, job, or mood. Talk your way with chat, voice, or video. Join live circles around what you care about.",
+    "Meet like-minded people online — matched by interests, job, or mood. Talk your way with chat, voice, or video. Join live spaces around what you care about.",
   path: "/",
 });
 

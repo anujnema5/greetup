@@ -22,6 +22,7 @@ export function DashboardBrowseTopicsSection() {
     <>
       <section>
         <SectionHeader
+          className="mb-2.5"
           title={DASHBOARD_SECTIONS.browseTopics.title}
           actionLabel={DASHBOARD_SECTIONS.browseTopics.viewAll}
           onAction={() => router.push("/explore")}
@@ -34,6 +35,7 @@ export function DashboardBrowseTopicsSection() {
           onRetry={() => void refetch()}
           onSelectNiche={nicheModal.openForNiche}
           hideHeader
+          maxItems={6}
         />
       </section>
 

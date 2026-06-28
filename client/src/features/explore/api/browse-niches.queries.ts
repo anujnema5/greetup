@@ -12,10 +12,10 @@ import type {
   BrowseNichesData,
 } from '../types/browse-niches.types';
 
-const { CIRCLES } = API_ENDPOINTS;
+const { SPACES } = API_ENDPOINTS;
 
 async function fetchBrowseNiches(): Promise<BrowseNichesData> {
-  const data = await apiFetch<BrowseNichesData | null | undefined>(CIRCLES.BROWSE_NICHES);
+  const data = await apiFetch<BrowseNichesData | null | undefined>(SPACES.BROWSE_NICHES);
   return data?.niches ? data : { niches: [] };
 }
 
@@ -24,7 +24,7 @@ export async function fetchBrowseNicheRooms(
 ): Promise<BrowseNicheRoomsData> {
   const { categoryId, cursor, limit } = args;
   const qs = buildQueryParams({ cursor, limit });
-  const base = CIRCLES.browseNicheRooms(categoryId);
+  const base = SPACES.browseNicheRooms(categoryId);
   const path = qs ? `${base}?${qs}` : base;
   const data = await apiFetch<BrowseNicheRoomsData | null | undefined>(path);
   return data ?? { items: [], nextCursor: null, hasMore: false };

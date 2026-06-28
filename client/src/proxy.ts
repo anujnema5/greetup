@@ -72,7 +72,7 @@ const GUEST_BLOCKED_ROUTES = [
   "/connections",
   "/u",
   "/chat",
-  "/circle/search",
+  "/space/search",
 ];
 
 const COMMON_ROUTES = [
@@ -157,7 +157,7 @@ export async function proxy(req: NextRequest) {
       setSecurityHeaders(response);
       return response;
     }
-    if (isGuestCircleMatchRoom(pathname)) {
+    if (isGuestSpaceMatchRoom(pathname)) {
       return NextResponse.redirect(new URL(GUEST_TRIAL_ROUTE, req.url));
     }
   }
@@ -272,15 +272,15 @@ function isGuestTrialCompleteRoute(pathname: string): boolean {
   );
 }
 
-/** Direct match room `/circle/[roomId]` — not browse/search. */
-function isGuestCircleMatchRoom(pathname: string): boolean {
-  if (!pathname.startsWith("/circle/")) {
+/** Direct match room `/space/[roomId]` — not browse/search. */
+function isGuestSpaceMatchRoom(pathname: string): boolean {
+  if (!pathname.startsWith("/space/")) {
     return false;
   }
-  if (pathname === "/circle/search" || pathname.startsWith("/circle/search/")) {
+  if (pathname === "/space/search" || pathname.startsWith("/space/search/")) {
     return false;
   }
-  return /^\/circle\/[^/]+$/.test(pathname);
+  return /^\/space\/[^/]+$/.test(pathname);
 }
 
 /** Routes guests use while upgrading to a full account — must not bounce to /try. */
@@ -355,7 +355,7 @@ async function resolveGuestRouteRedirect(
     return null;
   }
 
-  if (isGuestCircleMatchRoom(pathname)) {
+  if (isGuestSpaceMatchRoom(pathname)) {
     return null;
   }
 

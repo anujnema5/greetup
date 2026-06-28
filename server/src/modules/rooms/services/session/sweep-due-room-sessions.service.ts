@@ -7,7 +7,7 @@ import type {
 } from "@/modules/rooms/types";
 
 /**
- * Background / list-circles: full session teardown for wall-clock due rooms (not only `is_expired`).
+ * Background / list-spaces: full session teardown for wall-clock due rooms (not only `is_expired`).
  */
 export async function sweepDueRoomSessions(
   options: SweepDueRoomSessionsOptions = {},

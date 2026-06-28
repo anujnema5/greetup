@@ -7,19 +7,19 @@ import { TOUR_TARGETS } from "@/features/tour-guide";
 type HeroActionCardsProps = {
   isSearching: boolean;
   matchDisabled: boolean;
-  circleLoading: boolean;
-  circleDisabled?: boolean;
+  spaceLoading: boolean;
+  spaceDisabled?: boolean;
   onFindMatch: () => void;
-  onStartCircle: () => void;
+  onStartSpace: () => void;
 };
 
 export function HeroActionCards({
   isSearching,
   matchDisabled,
-  circleLoading,
-  circleDisabled,
+  spaceLoading,
+  spaceDisabled,
   onFindMatch,
-  onStartCircle,
+  onStartSpace,
 }: HeroActionCardsProps) {
   return (
     <div className="flex w-full flex-col gap-2.5">
@@ -62,10 +62,10 @@ export function HeroActionCards({
 
       <button
         type="button"
-        data-tour-id={TOUR_TARGETS.circleOrb}
-        disabled={circleDisabled || circleLoading}
-        onClick={onStartCircle}
-        aria-label="Start a circle"
+        data-tour-id={TOUR_TARGETS.spaceOrb}
+        disabled={spaceDisabled || spaceLoading}
+        onClick={onStartSpace}
+        aria-label="Start a space"
         className={cn(
           "flex w-full cursor-pointer items-center gap-3 rounded-2xl border border-border/70 bg-card p-3.5 text-left transition-colors duration-150",
           "hover:border-border hover:bg-muted/30",
@@ -74,14 +74,14 @@ export function HeroActionCards({
         )}
       >
         <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-secondary/15 text-secondary-foreground dark:text-[oklch(82%_0.08_100)]">
-          {circleLoading ? (
+          {spaceLoading ? (
             <Loader2 className="size-[18px] animate-spin" aria-hidden />
           ) : (
             <UsersRound className="size-[18px]" strokeWidth={2} aria-hidden />
           )}
         </span>
         <span className="min-w-0 flex-1">
-          <span className="block text-sm font-semibold text-foreground">Start a circle</span>
+          <span className="block text-sm font-semibold text-foreground">Start a space</span>
           <span className="mt-0.5 block text-xs leading-snug text-muted-foreground">
             Host a small group hangout
           </span>

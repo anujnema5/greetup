@@ -10,7 +10,7 @@ type RoomActivityStore = RoomActivityStoreState & {
   setActiveActivity: (activity: RoomActiveActivity | null) => void;
   setLastChessOutcome: (outcome: RoomChessLastOutcome) => void;
   clearLastChessOutcome: () => void;
-  /** Clears activity when the `/circle/[roomId]` route id changes. */
+  /** Clears activity when the `/space/[roomId]` route id changes. */
   onEnterRoomPage: (roomId: string) => void;
   /** Clears in-call activity when the video session ends or rematch search begins. */
   clearOnSessionChange: () => void;

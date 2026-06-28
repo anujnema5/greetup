@@ -1,8 +1,10 @@
 import type { RoomData } from '@/features/matching/types/room.types';
+import { isSpaceRoomData } from '@/features/matching/types/room.types';
+import { isSpaceSession } from '@/features/room/lib/session/room-session-kind';
 
-/** After `circle:opened_for_join` — circle is live and the host lobby gate is cleared. */
+/** After `space:opened_for_join` — space is live and the host lobby gate is cleared. */
 export function patchCachedRoomOpenedForJoin(draft: RoomData): void {
-  if (draft.sessionKind !== 'circle') return;
+  if (!isSpaceSession(draft) || !isSpaceRoomData(draft)) return;
   draft.status = 'live';
   draft.lobbyGateActive = '0';
 }

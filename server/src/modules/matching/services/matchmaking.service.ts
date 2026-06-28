@@ -6,7 +6,7 @@ import { resolveConnectionCallConversationId } from "@/modules/rooms/lib/session
 import { clearUserActiveRtcRoom, getUserActiveRtcRoomId } from "@/modules/rooms/services/rtc/user-active-rtc-room-redis.service";
 import { finalizeConnectionCallRoomSession } from "@/modules/rooms/services/direct/finalize-connection-call-room.service";
 import { finalizeDirectMatchRoomSession } from "@/modules/rooms/services/direct/finalize-direct-match-room.service";
-import { leaveCircleRtcSessionInternal } from "@/modules/rooms/services/participation/leave-circle-rtc-session.service";
+import { leaveSpaceRtcSessionInternal } from "@/modules/rooms/services/participation/leave-space-rtc-session.service";
 import { roomParticipantsRepository } from "@/modules/rooms/repositories/room-participants.repository";
 import { roomsRepository } from "@/modules/rooms/repositories/rooms.repository";
 
@@ -287,8 +287,8 @@ export const leaveRoomService = async (
     }
   } finally {
     if (roomId && room) {
-      if (room.roomType === "circle") {
-        await leaveCircleRtcSessionInternal(userId, roomId);
+      if (room.roomType === "space") {
+        await leaveSpaceRtcSessionInternal(userId, roomId);
       } else if (room.sessionKind === "connection_call") {
         await notifyConnectionCallPeerEnded(roomId, userId);
         await roomParticipantsRepository.markParticipantLeft(roomId, userId);

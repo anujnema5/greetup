@@ -7,7 +7,7 @@ import type { Conversation } from '../types/chat.types';
 
 /** The other person in a 1:1 DM (`connection` or `room_direct`). */
 export function getDmPeerUserId(conversation: Conversation, currentUserId: string): string | null {
-  if (conversation.type === 'room_circle') return null;
+  if (conversation.type === 'room_space') return null;
   const others = conversation.participants.filter((p) => p.userId !== currentUserId);
   if (others.length !== 1) return null;
   return others[0]!.userId;

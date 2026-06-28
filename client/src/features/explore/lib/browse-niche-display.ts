@@ -1,6 +1,6 @@
 import { EXPLORE } from "@/lib/copy/user-messages";
 
-import type { ActiveCircleItem } from "@/features/circles/types/circles-api.types";
+import type { ActiveSpaceItem } from "@/features/spaces/types/spaces-api.types";
 import type { BrowseNicheItem } from "../types/browse-niches.types";
 
 /** Keep in sync with server `isRoomCategoryPickable`. */
@@ -22,18 +22,25 @@ export function formatNicheGroupCounts(niche: Pick<BrowseNicheItem, "liveGroupCo
   return EXPLORE.browseNiches.groupCounts(niche.liveGroupCount, niche.scheduledGroupCount);
 }
 
-/** Short label for topic tiles (e.g. "12 circles"). */
-export function formatTopicCircleCount(
+/** Short label for topic tiles (e.g. "12 spaces"). */
+export function formatTopicSpaceCount(
   niche: Pick<BrowseNicheItem, "liveGroupCount" | "scheduledGroupCount">,
 ): string {
   const total = niche.liveGroupCount + niche.scheduledGroupCount;
-  if (total === 0) return "No circles yet";
-  return total === 1 ? "1 circle" : `${total} circles`;
+  if (total === 0) return "No spaces yet";
+  return total === 1 ? "1 space" : `${total} spaces`;
 }
 
-export function partitionNicheRooms(rooms: readonly ActiveCircleItem[]) {
-  const live: ActiveCircleItem[] = [];
-  const scheduled: ActiveCircleItem[] = [];
+/** @deprecated Use formatTopicSpaceCount */
+export function formatTopicCircleCount(
+  niche: Pick<BrowseNicheItem, "liveGroupCount" | "scheduledGroupCount">,
+): string {
+  return formatTopicSpaceCount(niche);
+}
+
+export function partitionNicheRooms(rooms: readonly ActiveSpaceItem[]) {
+  const live: ActiveSpaceItem[] = [];
+  const scheduled: ActiveSpaceItem[] = [];
 
   for (const room of rooms) {
     if (room.status === "live") {

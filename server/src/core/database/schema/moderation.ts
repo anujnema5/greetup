@@ -15,7 +15,7 @@ import { rooms } from "./rooms";
 
 /** Where the NSFW signal originated (extend as product grows). */
 export const nsfwModerationSourceEnum = pgEnum("nsfw_moderation_source", [
-  "live_circle_self",
+  "live_space_self",
   "chat_media_upload",
 ]);
 
@@ -36,7 +36,7 @@ export const nsfwModerationEvents = pgTable(
     userId: text("user_id")
       .notNull()
       .references(() => users.id, { onDelete: "cascade" }),
-    /** Circle room when the violation occurred (null for non-room sources). */
+    /** Space room when the violation occurred (null for non-room sources). */
     roomId: uuid("room_id").references(() => rooms.id, { onDelete: "set null" }),
     source: nsfwModerationSourceEnum("source").notNull(),
     /** 1-based strike index at the time of this event (within policy window). */

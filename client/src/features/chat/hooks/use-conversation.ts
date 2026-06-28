@@ -85,7 +85,7 @@ export function useConversation(
     const onPeerRead = (p: ReadPayload) => {
       if (p.conversationId !== conversationId) return;
       if (!currentUserId || p.userId === currentUserId) return;
-      if (conversationType === 'room_circle') return;
+      if (conversationType === 'room_space') return;
 
       markOwnMessagesReadInCache(qc, conversationId, currentUserId);
     };

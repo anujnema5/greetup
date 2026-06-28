@@ -10,14 +10,14 @@ import {
 import { useSession } from "@/lib/auth-client";
 import { useRoom } from "@/features/matching";
 import {
-  isCircleHostUser,
-  isCircleRoomData,
-  isPersistedCircleSession,
+  isSpaceHostUser,
+  isSpaceRoomData,
+  isPersistedSpaceSession,
   isRoomGroupLayout,
-  resolveCircleHostUserId,
+  resolveSpaceHostUserId,
 } from "@/features/matching/types/room.types";
 import { InCallContainer } from "@/features/room/call/shell/in-call-container";
-import { CircleRouteLoadingShell } from "@/features/room/components/search/circle-route-loading-shell";
+import { SpaceRouteLoadingShell } from "@/features/room/components/search/space-route-loading-shell";
 import { useRoomJoinAndStartVideo } from "@/features/room/hooks/session/use-room-join-and-start-video";
 import { isConnectionCallSession } from "@/features/room/lib/session/room-session-kind";
 
@@ -44,19 +44,19 @@ export function RoomPage() {
 
   const myName = currentUserName ?? "You";
   const scoreLabel = score != null && String(score).length > 0 ? `${String(score)}% match` : null;
-  const isCircleRoom = isRoomGroupLayout(room, rtcRoomType);
+  const isSpaceRoom = isRoomGroupLayout(room, rtcRoomType);
   const uid = session?.user?.id;
-  const circleHostUserId = resolveCircleHostUserId(room);
-  const circleCanEditTitle = isCircleHostUser(room, uid, rtcRoomType);
-  const isPersistedCircleCall = isPersistedCircleSession(room, rtcRoomType);
-  const circleLobbyGateActive =
-    room && isCircleRoomData(room) ? (room.lobbyGateActive ?? null) : null;
+  const spaceHostUserId = resolveSpaceHostUserId(room);
+  const spaceCanEditTitle = isSpaceHostUser(room, uid, rtcRoomType);
+  const isPersistedSpaceCall = isPersistedSpaceSession(room, rtcRoomType);
+  const spaceLobbyGateActive =
+    room && isSpaceRoomData(room) ? (room.lobbyGateActive ?? null) : null;
   const isConnectionCall = isConnectionCallSession(room);
   const rematchLanding = isSearchingNext && Boolean(peerId);
   const shouldStartVideo =
     !duplicateTabRedirect &&
     (rematchLanding || (!loading && Boolean(room))) &&
-    (isCircleRoom || isConnectionCall || Boolean(peerId)) &&
+    (isSpaceRoom || isConnectionCall || Boolean(peerId)) &&
     (!isSearchingNext || rematchLanding);
 
   const { joinRoomError, joinRoomLoading } = useRoomJoinAndStartVideo({
@@ -75,14 +75,14 @@ export function RoomPage() {
     !localLeavePending &&
     Boolean(error) &&
     !room &&
-    !isCircleRoom;
+    !isSpaceRoom;
 
   if (localLeavePending) {
-    return <CircleRouteLoadingShell message="Leaving call…" />;
+    return <SpaceRouteLoadingShell message="Leaving call…" />;
   }
 
   if (transientMatchRoomLoss) {
-    return <CircleRouteLoadingShell message="Partner left — finding next match…" />;
+    return <SpaceRouteLoadingShell message="Partner left — finding next match…" />;
   }
 
   if (
@@ -138,20 +138,20 @@ export function RoomPage() {
         peerId={peerId}
         scoreLabel={scoreLabel}
         myName={myName}
-        isGroupRoom={isCircleRoom}
-        circleDisplayTitle={
+        isGroupRoom={isSpaceRoom}
+        spaceDisplayTitle={
           room && "title" in room && typeof room.title === "string" ? room.title : null
         }
-        circleCanEditTitle={circleCanEditTitle}
-        circleHostUserId={circleHostUserId}
-        circleLobbyGateActive={circleLobbyGateActive}
-        circleScheduledStartAt={
-          room && isCircleRoomData(room) && room.scheduledStartAt ? room.scheduledStartAt : null
+        spaceCanEditTitle={spaceCanEditTitle}
+        spaceHostUserId={spaceHostUserId}
+        spaceLobbyGateActive={spaceLobbyGateActive}
+        spaceScheduledStartAt={
+          room && isSpaceRoomData(room) && room.scheduledStartAt ? room.scheduledStartAt : null
         }
-        circleRoomStatus={
-          room && isCircleRoomData(room) && room.status ? room.status : null
+        spaceRoomStatus={
+          room && isSpaceRoomData(room) && room.status ? room.status : null
         }
-        isDbCircleCall={isPersistedCircleCall}
+        isDbSpaceCall={isPersistedSpaceCall}
         room={room}
       />
     );

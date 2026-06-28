@@ -6,8 +6,8 @@ function peerLabel(u: { displayName: string | null; name: string }): string {
 }
 
 export function conversationDisplayTitle(conv: Conversation, currentUserId: string): string {
-  if (conv.type === 'room_circle') {
-    return conv.room?.title?.trim() || 'Circle';
+  if (conv.type === 'room_space') {
+    return conv.room?.title?.trim() || 'Space';
   }
 
   const others = conv.participants
@@ -32,7 +32,7 @@ function participantPhrase(n: number): string {
 
 export function conversationMetaSubtitle(conv: Conversation): string {
   const n = conv.participants.length;
-  if (conv.type === 'room_circle') {
+  if (conv.type === 'room_space') {
     return participantPhrase(n);
   }
   if (conv.type === 'connection' || conv.type === 'room_direct') {
@@ -51,8 +51,8 @@ export function conversationListAvatar(
   conv: Conversation,
   currentUserId: string,
 ): { image: string | null; label: string } {
-  if (conv.type === 'room_circle') {
-    const title = conv.room?.title?.trim() || 'Circle';
+  if (conv.type === 'room_space') {
+    const title = conv.room?.title?.trim() || 'Space';
     return { image: null, label: nameInitials(title) };
   }
 

@@ -18,7 +18,7 @@ export const ABOUT_CONTENT = {
   eyebrow: "About Greetup",
   title: "Real connection, built around what you care about",
   description:
-    "Greetup helps you meet people through shared interests, profession, and location, then talk live through chat, voice, video, and circles.",
+    "Greetup helps you meet people through shared interests, profession, and location, then talk live through chat, voice, video, and spaces.",
   sections: [
     {
       title: "Why we built Greetup",
@@ -33,7 +33,7 @@ export const ABOUT_CONTENT = {
         "Match 1:1 by profession, interests, or open preferences",
         "Connect nearby or globally",
         "Chat, voice, and video when you match",
-        "Join circles around shared topics and meet in group rooms",
+        "Join spaces around shared topics and meet in group rooms",
       ],
     },
     {
@@ -110,14 +110,14 @@ export const PRIVACY_CONTENT = {
       bullets: [
         "Account details such as name, email, and profile information you choose to share",
         "Matching preferences, interests, and optional location signals you provide",
-        "Messages, calls, and circle activity needed to deliver the service",
+        "Messages, calls, and space activity needed to deliver the service",
         "Basic device and usage data to keep the product secure and reliable",
       ],
     },
     {
       title: "How we use information",
       bullets: [
-        "To match you with relevant people and circles",
+        "To match you with relevant people and spaces",
         "To enable chat, voice, video, and live rooms",
         "To moderate the platform and enforce our guidelines",
         "To improve product performance and fix issues",

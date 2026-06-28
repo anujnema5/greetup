@@ -175,13 +175,10 @@ export function MessagesPage({ urlKind, urlConversationId }: MessagesPageProps) 
 
         <PageHeader
           title="Messages"
-          subtitle="Chats from connections, circles, and direct rooms."
+          subtitle="Chats from connections, spaces, and direct rooms."
         />
 
-
-
         <div className="flex min-h-0 flex-1 flex-col px-3 py-3 md:px-6 md:py-5">
-
           <div className="flex min-h-0 flex-1 overflow-hidden rounded-2xl border border-border bg-card/40 shadow-sm dark:bg-card/25">
 
             <aside

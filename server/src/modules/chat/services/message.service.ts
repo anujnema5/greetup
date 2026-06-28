@@ -25,7 +25,7 @@ function systemPayloadPreview(payload: unknown): string | null {
     if (typeof o.text === 'string' && o.text.trim()) return o.text.trim();
     if (typeof o.message === 'string' && o.message.trim()) return o.message.trim();
     if (typeof o.body === 'string' && o.body.trim()) return o.body.trim();
-    if (o.event === 'user_added') return 'Someone joined the circle';
+    if (o.event === 'user_added') return 'Someone joined the space';
     if (isConnectionCallSystemPayload(o)) return connectionCallInboxPreview(o);
   }
   return 'System message';

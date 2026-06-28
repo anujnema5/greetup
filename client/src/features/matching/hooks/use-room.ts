@@ -8,27 +8,27 @@ import { useRoomStore, selectLocalLeavePending } from "@/features/room/state/roo
 import { useRoomPageTabLease } from "@/features/room/hooks";
 import { clearRoomStorage } from "@/features/room/lib/session/room-sync";
 import { useGetRoom } from "@/features/room/api/room.queries";
-import { useLeaveCircleRtc, useLeaveRoom } from "@/features/room/api/room.mutations";
+import { useLeaveSpaceRtc, useLeaveRoom } from "@/features/room/api/room.mutations";
 import { useRtcSocketContext } from "@/features/rtc";
 import { prefetchRtcLiveSessionChunk } from "@/features/rtc/lib/prefetch-rtc-live-session-chunk";
 import {
-  clearCircleRoomBootstrap,
-  migrateLegacyCircleRoomQuery,
-  readCircleRoomSeeds,
-} from "@/features/matching/lib/circle-room-bootstrap";
+  clearSpaceRoomBootstrap,
+  migrateLegacySpaceRoomQuery,
+  readSpaceRoomSeeds,
+} from "@/features/matching/lib/space-room-bootstrap";
 import {
-  isCircleSession,
+  isSpaceSession,
   isConnectionCallSession,
 } from "@/features/room/lib/session/room-session-kind";
-import { isCircleRoomData, type MatchRoomData, type RoomData } from "../types/room.types";
+import { isSpaceRoomData, type MatchRoomData, type RoomData } from "../types/room.types";
 import { useMyProfile } from "@/features/profile-setup/api";
 
 export type { RoomData };
 
 /**
- * `/circle/[roomId]`: room query, tab lease, RTC context, leave/cleanup.
- * Peer + score for fresh 1:1 joins: `readCircleRoomSeeds` (session + optional legacy query).
- * Legacy `?peer=&score=` is migrated via `migrateLegacyCircleRoomQuery` then stripped from the URL.
+ * `/space/[roomId]`: room query, tab lease, RTC context, leave/cleanup.
+ * Peer + score for fresh 1:1 joins: `readSpaceRoomSeeds` (session + optional legacy query).
+ * Legacy `?peer=&score=` is migrated via `migrateLegacySpaceRoomQuery` then stripped from the URL.
  */
 export function useRoom() {
   const resetRoomState = useRoomStore((s) => s.resetRoomState);
@@ -38,7 +38,7 @@ export function useRoom() {
   const { data: session, isPending: sessionPending } = useSession();
   const { data: myProfileData } = useMyProfile({ enabled: !sessionPending });
   const { mutateAsync: leaveRoom } = useLeaveRoom();
-  const { mutateAsync: leaveCircleRtc } = useLeaveCircleRtc();
+  const { mutateAsync: leaveSpaceRtc } = useLeaveSpaceRtc();
 
   const roomId = params.roomId as string;
   const legacyPeer = searchParams.get("peer");
@@ -47,10 +47,10 @@ export function useRoom() {
     if (roomId) prefetchRtcLiveSessionChunk();
   }, [roomId]);
   const legacyScore = searchParams.get("score");
-  const { seedPeerId, seedScore } = readCircleRoomSeeds(roomId, legacyPeer, legacyScore);
+  const { seedPeerId, seedScore } = readSpaceRoomSeeds(roomId, legacyPeer, legacyScore);
 
   useEffect(() => {
-    migrateLegacyCircleRoomQuery(roomId, legacyPeer, legacyScore, (path) =>
+    migrateLegacySpaceRoomQuery(roomId, legacyPeer, legacyScore, (path) =>
       router.replace(path, { scroll: false }),
     );
   }, [roomId, legacyPeer, legacyScore, router]);
@@ -70,7 +70,7 @@ export function useRoom() {
 
   useEffect(() => {
     if (roomQuery.isSuccess && roomQuery.data) {
-      clearCircleRoomBootstrap(roomId);
+      clearSpaceRoomBootstrap(roomId);
     }
   }, [roomId, roomQuery.isSuccess, roomQuery.data]);
 
@@ -135,7 +135,7 @@ export function useRoom() {
 
   const peerId = useMemo(() => {
     if (!room) return seedPeerId ?? null;
-    if (isCircleSession(room)) return null;
+    if (isSpaceSession(room)) return null;
     if (isConnectionCallSession(room)) return seedPeerId ?? null;
     if ("userA" in room) {
       return room.userA === currentUserId ? room.userB : room.userA;
@@ -147,7 +147,7 @@ export function useRoom() {
     myProfileData?.displayName ?? sessionUser?.displayName ?? sessionUser?.name ?? null;
 
   const score = useMemo(() => {
-    if (room && (isCircleSession(room) || isConnectionCallSession(room))) return null;
+    if (room && (isSpaceSession(room) || isConnectionCallSession(room))) return null;
     return room && "matchScore" in room ? room.matchScore : seedScore;
   }, [room, seedScore]);
 
@@ -158,8 +158,8 @@ export function useRoom() {
   const leaveRoomAndClear = useCallback(async () => {
     clearLeaseIfOwner();
     try {
-      if (room && isCircleRoomData(room)) {
-        await leaveCircleRtc(roomId);
+      if (room && isSpaceRoomData(room)) {
+        await leaveSpaceRtc(roomId);
       } else {
         await leaveRoom({ roomId });
       }
@@ -167,9 +167,9 @@ export function useRoom() {
       /* best-effort */
     }
     clearRoomStorage();
-    clearCircleRoomBootstrap(roomId);
+    clearSpaceRoomBootstrap(roomId);
     resetRoomState();
-  }, [clearLeaseIfOwner, leaveRoom, leaveCircleRtc, resetRoomState, roomId, room]);
+  }, [clearLeaseIfOwner, leaveRoom, leaveSpaceRtc, resetRoomState, roomId, room]);
 
   const leaveAndGoHome = useCallback(() => {
     void leaveRoomAndClear().then(() => router.replace("/home"));

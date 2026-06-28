@@ -21,16 +21,17 @@ import {
   resolveConnectionCallPeerLeftDebounceMs,
 } from "@/features/room/constants/direct-call/direct-call-recovery";
 import {
-  goToCircleSearch,
+  goToSpaceSearch,
   resolveApiRoomId,
-  resolveCircleRouteRoomId,
-} from "@/features/room/lib/navigation/circle-routes";
+  resolveSpaceRouteRoomId,
+} from "@/features/room/lib/navigation/space-routes";
 import { TRY_SIGNUP_ROUTE } from "@/features/guest-try/constants/try-routes";
 import { shouldGuestSkipRematch } from "@/features/guest-try/lib/try-navigation";
 import { consumeRoomReturnPath } from "@/features/room/lib/session/room-return-path";
 import { clearRoomStorage } from "@/features/room/lib/session/room-sync";
+import { isGroupRoomSessionType } from "@/shared/types/room-session";
 import {
-  isCircleSession,
+  isSpaceSession,
   isConnectionCallSession,
   isMatchSession,
 } from "@/features/room/lib/session/room-session-kind";
@@ -43,7 +44,7 @@ import {
 
 /**
  * Direct 1:1 calls: match restarts search when the peer leaves; connection calls end and
- * return to the conversation. Circle calls are unchanged — empty slots are normal when
+ * return to the conversation. Space calls are unchanged — empty slots are normal when
  * friends join late.
  */
 export function OnPartnerDisconnected() {
@@ -52,7 +53,7 @@ export function OnPartnerDisconnected() {
   const params = useParams();
   const pathname = usePathname();
   const router = useRouter();
-  const routeRoomId = resolveCircleRouteRoomId(params, pathname);
+  const routeRoomId = resolveSpaceRouteRoomId(params, pathname);
   const activeRoomId = useRoomStore(selectActiveRoomId);
   const { socket } = useSocket();
   const matchmaking = useMatchmaking();
@@ -133,7 +134,7 @@ export function OnPartnerDisconnected() {
     clearNetworkRecoveryTimer();
     clearSearchRetryTimer();
     beginSearchingNextCall();
-    goToCircleSearch(router);
+    goToSpaceSearch(router);
     const roomIdToLeave = activeRoomId ?? resolveApiRoomId(routeRoomId);
     const leavePromise = roomIdToLeave
       ? leaveRoom({ roomId: roomIdToLeave })
@@ -211,7 +212,7 @@ export function OnPartnerDisconnected() {
 
   useEffect(() => {
     if (!sessionActive) return;
-    if (rtcRoomType === "circle" || isCircleSession(roomData)) return;
+    if (isGroupRoomSessionType(rtcRoomType) || isSpaceSession(roomData)) return;
     if (callRoomId && roomFetching && !roomData) return;
     if (roomPhase === "searching") return;
     if (matchmakingStatus === "proposed" || waitingForPeerConnect) {
@@ -318,7 +319,7 @@ export function OnPartnerDisconnected() {
       clearSearchRetryTimer();
       return;
     }
-    if (isConnectionCallSession(roomData) || isCircleSession(roomData)) {
+    if (isConnectionCallSession(roomData) || isSpaceSession(roomData)) {
       clearSearchRetryTimer();
       return;
     }

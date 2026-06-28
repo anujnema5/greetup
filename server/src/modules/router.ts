@@ -1,6 +1,6 @@
 import { Hono } from "hono";
 import { connectionsRoute } from "./connections/router";
-import { circlesRoute } from "./circles/router";
+import { spacesRoute } from "./spaces/router";
 import { profileRoute } from "./profile/router";
 import { matchmakingRoute } from "./matching/router";
 import { roomRoute } from "./rooms/router";
@@ -23,7 +23,7 @@ router.use(authMiddleware);
 
 router.use("/profile/*", blockGuestFromProfileRoutes);
 router.use("/connections/*", blockGuestFromFullApp);
-router.use("/circles/*", blockGuestFromFullApp);
+router.use("/spaces/*", blockGuestFromFullApp);
 router.use("/search/*", blockGuestFromFullApp);
 router.use("/notifications/*", blockGuestFromFullApp);
 router.use("/chat/*", blockGuestFromFullApp);
@@ -32,7 +32,7 @@ router.use("/presence/*", blockGuestFromFullApp);
 
 router.route("/profile", profileRoute);
 router.route("/connections", connectionsRoute);
-router.route("/circles", circlesRoute);
+router.route("/spaces", spacesRoute);
 router.route("/matching", matchmakingRoute);
 router.route("/room", roomRoute);
 router.route("/search", searchRoute);

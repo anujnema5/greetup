@@ -1,6 +1,6 @@
 /**
  * Seat math for circle invites: active participants + pending invitees (deduped).
- * Direct rooms skip this — invites may expand 1:1 → circle on accept.
+ * Direct rooms skip this — invites may expand 1:1 → space on accept.
  */
 
 export function countReservedRoomSeats(

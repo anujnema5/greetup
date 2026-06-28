@@ -4,7 +4,7 @@ import { roomsRepository } from "@/modules/rooms/repositories/rooms.repository";
 import { roomSessionsRepository } from "@/modules/rooms/repositories/room-sessions.repository";
 import { assertRoomSessionOpenOnAccess } from "@/modules/rooms/services/session/reconcile-room-session-on-access.service";
 
-import { runLiveCircleAfterMarkLive } from "./live-circle-after-mark-live.service";
+import { runLiveSpaceAfterMarkLive } from "./live-space-after-mark-live.service";
 
 export type StartRoomSessionErrorCode =
   | "ROOM_NOT_FOUND"
@@ -73,7 +73,7 @@ export async function startRoomSessionService(hostUserId: string, roomId: string
 
   const adv = mergeRoomAdvancedOptions(existing.advancedOptions);
 
-  await runLiveCircleAfterMarkLive({
+  await runLiveSpaceAfterMarkLive({
     roomId: row.id,
     hostUserId,
     roomType: row.roomType,

@@ -88,7 +88,7 @@ export function getMessageRowLayout(params: {
     ? messages.find((m) => m.id === msg.replyToId) ?? null
     : null;
 
-  const isGroup = conversationType === 'room_circle';
+  const isGroup = conversationType === 'room_space';
   const clusterPosition = getClusterPosition(msg, prev, next);
   const isPeerText = !isOwn && msg.messageType !== 'system';
   const isDirectPeerText = isPeerText && !isGroup;

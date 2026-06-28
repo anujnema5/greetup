@@ -35,8 +35,8 @@ import {
   ParticipantTileControlsBar,
   TileMediaControlsBar,
 } from "@/features/room/call/tiles/parts/tile-participant-controls-bar";
-import type { OnRemoveCircleParticipant } from "@/features/room/types/call/participant-remove.types";
-import { CircleParticipantRoster } from "@/features/room/call/panels/sidebar/participant-roster";
+import type { OnRemoveSpaceParticipant } from "@/features/room/types/call/participant-remove.types";
+import { SpaceParticipantRoster } from "@/features/room/call/panels/sidebar/participant-roster";
 import { CameraTilePageButtons } from "@/features/room/call/components/pagination/camera-tile-page-buttons";
 import { useTileGridPage } from "@/features/room/hooks/call/use-tile-grid-page";
 import { usePeoplePanelCameraOrder } from "@/features/room/hooks/call/use-people-panel-camera-order";
@@ -69,7 +69,7 @@ type ParticipantVideoTileProps = {
   participantUserId?: string;
   canKick?: boolean;
   kickingUserId?: string | null;
-  onKickParticipant?: OnRemoveCircleParticipant;
+  onKickParticipant?: OnRemoveSpaceParticipant;
 };
 
 function shareTileKeyForPeer(tiles: ScreenShareTileInfo[], peerId: string | "local"): string | null {
@@ -293,14 +293,14 @@ type CameraTilesContext = {
   stretchTilesInGrid: boolean;
   currentUserId: string | null;
   liveSpeakerPeerId: string | null;
-  isCircleHost?: boolean;
-  onKickParticipant?: OnRemoveCircleParticipant;
+  isSpaceHost?: boolean;
+  onKickParticipant?: OnRemoveSpaceParticipant;
   kickingUserId?: string | null;
 };
 
 function buildCameraTiles(p: CameraTilesContext): ReactElement<ParticipantVideoTileProps>[] {
   const aspect = p.stretchTilesInGrid ? ("fill" as const) : ("video" as const);
-  const canKickRemote = Boolean(p.isCircleHost && p.onKickParticipant);
+  const canKickRemote = Boolean(p.isSpaceHost && p.onKickParticipant);
   const base = {
     allowPickShareFromTile: p.allowPickShareFromTile,
     onSelectShare: p.onSelectScreenShare,
@@ -431,7 +431,7 @@ export function RoomCallParticipantsPanel({
   currentUserId = null,
   liveSpeakerPeerId = null,
   liveSpeakerSpeakingMs = {},
-  isCircleHost = false,
+  isSpaceHost = false,
   onKickParticipant,
   kickingUserId = null,
 }: {
@@ -456,8 +456,8 @@ export function RoomCallParticipantsPanel({
   currentUserId?: string | null;
   liveSpeakerPeerId?: string | null;
   liveSpeakerSpeakingMs?: Record<string, number>;
-  isCircleHost?: boolean;
-  onKickParticipant?: OnRemoveCircleParticipant;
+  isSpaceHost?: boolean;
+  onKickParticipant?: OnRemoveSpaceParticipant;
   kickingUserId?: string | null;
 }) {
   const { allPeerIds, peerIdsWithSpeakerFirst, lockedSpeakerPeerId } = usePeoplePanelCameraOrder(
@@ -511,7 +511,7 @@ export function RoomCallParticipantsPanel({
         stretchTilesInGrid,
         currentUserId,
         liveSpeakerPeerId,
-        isCircleHost,
+        isSpaceHost,
         onKickParticipant,
         kickingUserId,
       }),
@@ -539,7 +539,7 @@ export function RoomCallParticipantsPanel({
       stretchTilesInGrid,
       currentUserId,
       liveSpeakerPeerId,
-      isCircleHost,
+      isSpaceHost,
       onKickParticipant,
       kickingUserId,
     ],
@@ -573,12 +573,12 @@ export function RoomCallParticipantsPanel({
   return (
     <div className="flex h-full min-h-0 min-w-0 flex-1 flex-col gap-4 overflow-y-auto p-3">
       {showParticipantRoster ? (
-        <CircleParticipantRoster
+        <SpaceParticipantRoster
           myName={myName}
           myAvatarUrl={myAvatarUrl}
           currentUserId={currentUserId}
           remotePeers={remotePeers}
-          isHost={isCircleHost}
+          isHost={isSpaceHost}
           kickingUserId={kickingUserId}
           onKickParticipant={onKickParticipant}
         />

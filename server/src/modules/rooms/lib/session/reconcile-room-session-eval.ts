@@ -1,7 +1,7 @@
 import type { InferSelectModel } from "drizzle-orm";
 
 import type { rooms } from "@/core/database/schema";
-import { SCHEDULED_JOIN_GRACE_AFTER_START_MINUTES } from "@/modules/rooms/constants/session/scheduled-circle-join-grace";
+import { SCHEDULED_JOIN_GRACE_AFTER_START_MINUTES } from "@/modules/rooms/constants/session/scheduled-space-join-grace";
 import { SCHEDULED_EMPTY_ROOM_GRACE_MS } from "@/modules/rooms/constants/session/room-session-limits";
 import {
   computeCalendarEndForScheduledRoom,
@@ -44,7 +44,7 @@ export function evaluateRoomSessionEndReason(
   presence: ParticipantPresence,
   now: Date = new Date(),
 ): RoomSessionEndReason | null {
-  if (room.status === "scheduled" && room.roomType === "circle" && room.scheduledStartAt) {
+  if (room.status === "scheduled" && room.roomType === "space" && room.scheduledStartAt) {
     if (now.getTime() >= joinGraceDeadline(room.scheduledStartAt).getTime()) {
       return "join_grace_missed";
     }
@@ -62,7 +62,7 @@ export function evaluateRoomSessionEndReason(
     return "session_cap";
   }
 
-  if (room.roomType === "circle" && room.scheduledStartAt) {
+  if (room.roomType === "space" && room.scheduledStartAt) {
     const calendarEnd = computeCalendarEndForScheduledRoom({
       scheduledStartAt: room.scheduledStartAt,
       scheduledEndAt: room.scheduledEndAt,
@@ -90,13 +90,13 @@ export function evaluateRoomSessionEndReason(
 export function roomSessionClosedMessage(reason: RoomSessionEndReason | null): string {
   switch (reason) {
     case "empty_room_2h":
-      return "This circle has ended — no one has been in the call for over 2 hours.";
+      return "This space has ended — no one has been in the call for over 2 hours.";
     case "session_cap":
       return "This call has reached its time limit.";
     case "calendar_end":
       return "This scheduled meeting has ended.";
     case "join_grace_missed":
-      return "This scheduled circle is no longer available.";
+      return "This scheduled space is no longer available.";
     case "expires_at_past":
       return "This room session is no longer available.";
     case "reconciled_on_access":

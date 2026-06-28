@@ -146,64 +146,67 @@ export function MatchPrepDialog({
     onStartSearch();
   }, [handleDialogOpenChange, onStartSearch]);
 
-  const handleSave = useCallback(async () => {
-    setLocalError(null);
-    if (moods.size === 0 || lookingFor.size === 0 || interests.size === 0) {
-      setLocalError("Choose at least one mood, one “looking for” option, and one interest.");
-      return;
-    }
-    if (
-      locationPreferenceEnabled &&
-      (!selectedLocation ||
-        typeof selectedLocation.latitude !== "number" ||
-        typeof selectedLocation.longitude !== "number")
-    ) {
-      setLocalError("Select a location (with coordinates) to enable location-based matching.");
-      return;
-    }
-    try {
-      await saveMatchPrep({
-        moodIds: [...moods],
-        lookingForIds: [...lookingFor],
-        interestIds: [...interests],
-        connectionPreference,
-        locationPreferenceEnabled,
-        distancePreference: locationPreferenceEnabled ? distancePreference : "random",
-        location: selectedLocation
-          ? {
-              country: selectedLocation.country,
-              countryCode: selectedLocation.countryCode,
-              region: selectedLocation.region,
-              regionCode: selectedLocation.regionCode,
-              city: selectedLocation.city,
-              latitude: selectedLocation.latitude,
-              longitude: selectedLocation.longitude,
-              source: selectedLocation.source,
-            }
-          : undefined,
-        sessionGoal: sessionGoal.trim() || null,
-        clientSessionId: clientSessionId ?? undefined,
-      });
-      handleDialogOpenChange(false);
-      if (!isEdit) onStartSearch();
-    } catch {
-      setLocalError(isEdit ? "Could not save. Try again." : "Could not save. Try again or skip for now.");
-    }
-  }, [
-    moods,
-    lookingFor,
-    interests,
-    connectionPreference,
-    locationPreferenceEnabled,
-    distancePreference,
-    selectedLocation,
-    sessionGoal,
-    clientSessionId,
-    isEdit,
-    saveMatchPrep,
-    handleDialogOpenChange,
-    onStartSearch,
-  ]);
+  const handleSave = useCallback(
+    async (startMatchAfterSave = false) => {
+      setLocalError(null);
+      if (moods.size === 0 || lookingFor.size === 0 || interests.size === 0) {
+        setLocalError("Choose at least one mood, one “looking for” option, and one interest.");
+        return;
+      }
+      if (
+        locationPreferenceEnabled &&
+        (!selectedLocation ||
+          typeof selectedLocation.latitude !== "number" ||
+          typeof selectedLocation.longitude !== "number")
+      ) {
+        setLocalError("Select a location (with coordinates) to enable location-based matching.");
+        return;
+      }
+      try {
+        await saveMatchPrep({
+          moodIds: [...moods],
+          lookingForIds: [...lookingFor],
+          interestIds: [...interests],
+          connectionPreference,
+          locationPreferenceEnabled,
+          distancePreference: locationPreferenceEnabled ? distancePreference : "random",
+          location: selectedLocation
+            ? {
+                country: selectedLocation.country,
+                countryCode: selectedLocation.countryCode,
+                region: selectedLocation.region,
+                regionCode: selectedLocation.regionCode,
+                city: selectedLocation.city,
+                latitude: selectedLocation.latitude,
+                longitude: selectedLocation.longitude,
+                source: selectedLocation.source,
+              }
+            : undefined,
+          sessionGoal: sessionGoal.trim() || null,
+          clientSessionId: clientSessionId ?? undefined,
+        });
+        handleDialogOpenChange(false);
+        if (!isEdit || startMatchAfterSave) onStartSearch();
+      } catch {
+        setLocalError(isEdit ? "Could not save. Try again." : "Could not save. Try again or skip for now.");
+      }
+    },
+    [
+      moods,
+      lookingFor,
+      interests,
+      connectionPreference,
+      locationPreferenceEnabled,
+      distancePreference,
+      selectedLocation,
+      sessionGoal,
+      clientSessionId,
+      isEdit,
+      saveMatchPrep,
+      handleDialogOpenChange,
+      onStartSearch,
+    ],
+  );
 
   const busy = isSaving;
   const prefsLoading = isLoading || (open && !savedReady && !savedError);
@@ -335,9 +338,9 @@ export function MatchPrepDialog({
             <>
               <Button
                 type="button"
-                variant="ghost"
-                size="sm"
-                className="w-full text-xs font-medium text-muted-foreground sm:w-auto"
+                variant="outline"
+                size="default"
+                className="w-full sm:w-auto"
                 onClick={() => handleDialogOpenChange(false)}
                 disabled={busy}
               >
@@ -345,9 +348,10 @@ export function MatchPrepDialog({
               </Button>
               <Button
                 type="button"
-                size="sm"
-                className="w-full text-xs font-medium sm:w-auto"
-                onClick={() => void handleSave()}
+                variant="secondary"
+                size="default"
+                className="w-full sm:w-auto"
+                onClick={() => void handleSave(false)}
                 disabled={prefsLoading || busy || !data}
               >
                 {isSaving ? (
@@ -356,7 +360,23 @@ export function MatchPrepDialog({
                     Saving…
                   </span>
                 ) : (
-                  "Save"
+                  "Save preferences"
+                )}
+              </Button>
+              <Button
+                type="button"
+                size="default"
+                className="w-full sm:w-auto"
+                onClick={() => void handleSave(true)}
+                disabled={prefsLoading || busy || !data}
+              >
+                {isSaving ? (
+                  <span className="inline-flex items-center gap-1.5">
+                    <Loader2 className="size-4 shrink-0 animate-spin" aria-hidden />
+                    Saving…
+                  </span>
+                ) : (
+                  "Save & find match"
                 )}
               </Button>
             </>
@@ -376,7 +396,7 @@ export function MatchPrepDialog({
                 type="button"
                 size="sm"
                 className="w-full text-xs font-medium sm:w-auto"
-                onClick={() => void handleSave()}
+                onClick={() => void handleSave(false)}
                 disabled={prefsLoading || busy || !data}
               >
                 {isSaving ? (

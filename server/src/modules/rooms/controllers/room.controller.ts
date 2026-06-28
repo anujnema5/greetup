@@ -13,7 +13,7 @@ import {
   roomInviteBodySchema,
   roomInviteRespondBodySchema,
   updateLiveRoomTitleBodySchema,
-  reportCircleNsfwViolationBodySchema,
+  reportSpaceNsfwViolationBodySchema,
   matchCompletedBodySchema,
   matchFailedBodySchema,
   matchProposalCancelledBodySchema,
@@ -33,7 +33,7 @@ import {
 import {
   updateLiveRoomTitleService,
   UpdateLiveRoomTitleError,
-} from "../services/circle/update-live-room-title.service";
+} from "../services/space/update-live-room-title.service";
 import { mergeRoomAdvancedOptions } from "@/core/database/schema";
 import { isDbRoomSessionClosed } from "@/modules/rooms/lib/expiry/room-expiry";
 import { roomSessionTimingPayload } from "@/modules/rooms/lib/expiry/room-session-timing-payload";
@@ -48,30 +48,30 @@ import {
 } from "../services/access/issue-rtc-token.service";
 import { joinRoomService, JoinRoomError } from "../services/access/join-room.service";
 import {
-  openCircleMeetingService,
-  OpenCircleMeetingError,
-} from "../services/access/open-circle-meeting.service";
+  openSpaceMeetingService,
+  OpenSpaceMeetingError,
+} from "../services/access/open-space-meeting.service";
 import {
-  hostEndCircleForEveryoneService,
-  HostEndCircleForEveryoneError,
-} from "../services/participation/host-end-circle-for-everyone.service";
+  hostEndSpaceForEveryoneService,
+  HostEndSpaceForEveryoneError,
+} from "../services/participation/host-end-space-for-everyone.service";
 import {
-  kickCircleParticipantService,
-  KickCircleParticipantError,
-} from "../services/participation/kick-circle-participant.service";
+  kickSpaceParticipantService,
+  KickSpaceParticipantError,
+} from "../services/participation/kick-space-participant.service";
 import {
-  reportCircleNsfwViolationService,
-  ReportCircleNsfwViolationError,
-} from "../services/moderation/report-circle-nsfw-violation.service";
+  reportSpaceNsfwViolationService,
+  ReportSpaceNsfwViolationError,
+} from "../services/moderation/report-space-nsfw-violation.service";
 import {
-  leaveCircleRtcSessionForUser,
-  LeaveCircleRtcError,
-} from "../services/participation/leave-circle-rtc-session.service";
+  leaveSpaceRtcSessionForUser,
+  LeaveSpaceRtcError,
+} from "../services/participation/leave-space-rtc-session.service";
 import {
   startRoomSessionService,
   StartRoomSessionError,
 } from "../services/session/start-room-session.service";
-import { syncCircleRoomExpiryFromClockIfDue } from "../services/session/circle-room-expiry-sync.service";
+import { syncSpaceRoomExpiryFromClockIfDue } from "../services/session/space-room-expiry-sync.service";
 import { syncGuestMatchRoomSessionCap } from "../services/session/sync-guest-match-room-session-cap.service";
 import { deleteSessionRoomRedis } from "../services/rtc/session-room-redis.service";
 import { resolveConnectionCallConversationId } from "@/modules/rooms/lib/session/resolve-connection-call-conversation-id";
@@ -80,7 +80,7 @@ import { AppError } from "@/shared/errors";
 
 /**
  * GET /api/room/:roomId/rtc-token
- * Short-lived JWT for rtc-service Socket.IO (direct or circle rooms; must be live + participant).
+ * Short-lived JWT for rtc-service Socket.IO (direct or space rooms; must be live + participant).
  */
 export const handleIssueRtcToken = async (c: Context) => {
   const roomId = c.req.param("roomId");
@@ -182,7 +182,7 @@ export const handleCreateRoom = async (c: Context) => {
  * POST /api/room/:roomId/open-meeting
  * Host clears the lobby gate so non-hosts can obtain RTC tokens (`shouldHostStartMeeting`).
  */
-export const handleOpenCircleMeeting = async (c: Context) => {
+export const handleOpenSpaceMeeting = async (c: Context) => {
   const roomId = c.req.param("roomId");
   const userId = c.get("userId") as string;
 
@@ -194,10 +194,10 @@ export const handleOpenCircleMeeting = async (c: Context) => {
   }
 
   try {
-    await openCircleMeetingService(userId, roomId);
-    return c.json(ApiResponse.success({ roomId }, "Circle opened", 200), 200);
+    await openSpaceMeetingService(userId, roomId);
+    return c.json(ApiResponse.success({ roomId }, "Space opened", 200), 200);
   } catch (error: unknown) {
-    if (error instanceof OpenCircleMeetingError) {
+    if (error instanceof OpenSpaceMeetingError) {
       return c.json(
         ApiResponse.error({
           message: error.message,
@@ -207,17 +207,17 @@ export const handleOpenCircleMeeting = async (c: Context) => {
         error.statusCode as 400 | 403 | 404 | 503,
       );
     }
-    logger.error("Open circle error", { error });
+    logger.error("Open space error", { error });
     return internalError(c, error);
   }
 };
 
 /**
- * POST /api/room/:roomId/leave-circle-rtc
- * Records the caller as departed. When nobody remains: if `deleteCircleAfterCall`, ends immediately;
+ * POST /api/room/:roomId/leave-space-rtc
+ * Records the caller as departed. When nobody remains: if `deleteSpaceAfterCall`, ends immediately;
  * else sets `expires_at` to the sooner of empty-room grace, `scheduled_end_at`, or an existing deadline.
  */
-export const handleLeaveCircleRtc = async (c: Context) => {
+export const handleLeaveSpaceRtc = async (c: Context) => {
   const roomId = c.req.param("roomId");
   const userId = c.get("userId") as string;
 
@@ -229,10 +229,10 @@ export const handleLeaveCircleRtc = async (c: Context) => {
   }
 
   try {
-    const result = await leaveCircleRtcSessionForUser(userId, roomId, { httpStrict: true });
+    const result = await leaveSpaceRtcSessionForUser(userId, roomId, { httpStrict: true });
     return c.json(ApiResponse.success(result, "Recorded", 200), 200);
   } catch (error: unknown) {
-    if (error instanceof LeaveCircleRtcError) {
+    if (error instanceof LeaveSpaceRtcError) {
       return c.json(
         ApiResponse.error({
           message: error.message,
@@ -242,17 +242,17 @@ export const handleLeaveCircleRtc = async (c: Context) => {
         error.statusCode as 400 | 403 | 404,
       );
     }
-    logger.error("Leave circle RTC error", { error });
+    logger.error("Leave space RTC error", { error });
     return internalError(c, error);
   }
 };
 
 /**
- * POST /api/room/:roomId/host-end-circle
+ * POST /api/room/:roomId/host-end-space
  * Host-only: ends the live RTC session for everyone (participants marked left, Redis cleared).
  * Calendar circles with a scheduled start return to `scheduled`; instant circles are ended in Postgres.
  */
-export const handleHostEndCircleForEveryone = async (c: Context) => {
+export const handleHostEndSpaceForEveryone = async (c: Context) => {
   const roomId = c.req.param("roomId");
   const userId = c.get("userId") as string;
 
@@ -264,10 +264,10 @@ export const handleHostEndCircleForEveryone = async (c: Context) => {
   }
 
   try {
-    const result = await hostEndCircleForEveryoneService(userId, roomId);
-    return c.json(ApiResponse.success(result, "Circle ended", 200), 200);
+    const result = await hostEndSpaceForEveryoneService(userId, roomId);
+    return c.json(ApiResponse.success(result, "Space ended", 200), 200);
   } catch (error: unknown) {
-    if (error instanceof HostEndCircleForEveryoneError) {
+    if (error instanceof HostEndSpaceForEveryoneError) {
       return c.json(
         ApiResponse.error({
           message: error.message,
@@ -277,16 +277,16 @@ export const handleHostEndCircleForEveryone = async (c: Context) => {
         error.statusCode as 400 | 403 | 404,
       );
     }
-    logger.error("Host end circle for everyone error", { error });
+    logger.error("Host end space for everyone error", { error });
     return internalError(c, error);
   }
 };
 
 /**
  * POST /api/room/:roomId/kick/:userId
- * Host-only: removes one participant from the live circle and disconnects their RTC session.
+ * Host-only: removes one participant from the live space and disconnects their RTC session.
  */
-export const handleKickCircleParticipant = async (c: Context) => {
+export const handleKickSpaceParticipant = async (c: Context) => {
   const roomId = c.req.param("roomId");
   const targetUserId = c.req.param("userId");
   const hostUserId = c.get("userId") as string;
@@ -311,7 +311,7 @@ export const handleKickCircleParticipant = async (c: Context) => {
   }
 
   try {
-    const result = await kickCircleParticipantService(hostUserId, roomId, targetUserId, {
+    const result = await kickSpaceParticipantService(hostUserId, roomId, targetUserId, {
       restrict,
     });
     const message = result.restricted
@@ -319,7 +319,7 @@ export const handleKickCircleParticipant = async (c: Context) => {
       : "Participant removed";
     return c.json(ApiResponse.success(result, message, 200), 200);
   } catch (error: unknown) {
-    if (error instanceof KickCircleParticipantError) {
+    if (error instanceof KickSpaceParticipantError) {
       return c.json(
         ApiResponse.error({
           message: error.message,
@@ -329,7 +329,7 @@ export const handleKickCircleParticipant = async (c: Context) => {
         error.statusCode as 400 | 403 | 404,
       );
     }
-    logger.error("Kick circle participant error", { error });
+    logger.error("Kick space participant error", { error });
     return internalError(c, error);
   }
 };
@@ -338,7 +338,7 @@ export const handleKickCircleParticipant = async (c: Context) => {
  * POST /api/room/:roomId/nsfw-violation
  * Client-detected NSFW on the caller's own video: kick self from circle, record strike, ban on repeat.
  */
-export const handleReportCircleNsfwViolation = async (c: Context) => {
+export const handleReportSpaceNsfwViolation = async (c: Context) => {
   const roomId = c.req.param("roomId");
   const userId = c.get("userId") as string;
 
@@ -352,7 +352,7 @@ export const handleReportCircleNsfwViolation = async (c: Context) => {
   let body = {};
   try {
     const raw = await c.req.json();
-    const parsed = reportCircleNsfwViolationBodySchema.safeParse(raw);
+    const parsed = reportSpaceNsfwViolationBodySchema.safeParse(raw);
     if (!parsed.success) {
       return zodBodyValidationError(c, parsed.error);
     }
@@ -362,13 +362,13 @@ export const handleReportCircleNsfwViolation = async (c: Context) => {
   }
 
   try {
-    const result = await reportCircleNsfwViolationService(userId, roomId, body);
+    const result = await reportSpaceNsfwViolationService(userId, roomId, body);
     return c.json(
       ApiResponse.success(result, "NSFW policy violation recorded", 200),
       200,
     );
   } catch (error: unknown) {
-    if (error instanceof ReportCircleNsfwViolationError) {
+    if (error instanceof ReportSpaceNsfwViolationError) {
       return c.json(
         ApiResponse.error({
           message: error.message,
@@ -378,7 +378,7 @@ export const handleReportCircleNsfwViolation = async (c: Context) => {
         error.statusCode as 400 | 403 | 404 | 429,
       );
     }
-    logger.error("Report circle NSFW violation error", { error });
+    logger.error("Report space NSFW violation error", { error });
     return internalError(c, error);
   }
 };
@@ -488,7 +488,7 @@ export const handleJoinRoom = async (c: Context) => {
 
 /**
  * PATCH /api/room/:roomId/title
- * Host renames a live circle room; syncs Redis session hash when present.
+ * Host renames a live space room; syncs Redis session hash when present.
  */
 export const handlePatchRoomTitle = async (c: Context) => {
   const roomId = c.req.param("roomId");
@@ -533,7 +533,7 @@ export const handlePatchRoomTitle = async (c: Context) => {
 
 /**
  * POST /api/room/:roomId/invite
- * Participant invites a connection to upgrade this direct call to a circle (pending until they accept).
+ * Participant invites a connection to upgrade this direct call to a space (pending until they accept).
  */
 export const handleRoomInvite = async (c: Context) => {
   const roomId = c.req.param("roomId");
@@ -643,25 +643,25 @@ function formatRoomScheduledStartAt(dbRoom: DbRoomRow): string | null {
   return null;
 }
 
-function circleLobbyGateFromAdvancedOptions(dbRoom: DbRoomRow): "0" | "1" {
+function spaceLobbyGateFromAdvancedOptions(dbRoom: DbRoomRow): "0" | "1" {
   const adv = mergeRoomAdvancedOptions(dbRoom.advancedOptions);
   return adv.shouldHostStartMeeting !== false ? "1" : "0";
 }
 
-function circleLobbyGateFromRedis(room: Record<string, string>): "0" | "1" {
+function spaceLobbyGateFromRedis(room: Record<string, string>): "0" | "1" {
   return typeof room.lobbyGateActive === "string" &&
     (room.lobbyGateActive === "0" || room.lobbyGateActive === "1")
     ? room.lobbyGateActive
     : "0";
 }
 
-function buildCircleRoomPayload(
+function buildSpaceRoomPayload(
   dbRoom: DbRoomRow,
   lobbyGateActive: "0" | "1",
   roomIdOverride?: string,
 ) {
   return {
-    sessionKind: "circle" as const,
+    sessionKind: "space" as const,
     roomId: roomIdOverride ?? dbRoom.id,
     hostUserId: dbRoom.hostUserId,
     roomType: dbRoom.roomType,
@@ -752,7 +752,7 @@ export const handleGetRoom = async (c: Context) => {
         }
       }
 
-      if (dbRoom.roomType !== "circle" && dbRoom.sessionKind !== "circle") {
+      if (dbRoom.roomType !== "space" && dbRoom.sessionKind !== "space") {
         return c.json(
           ApiResponse.error({ message: "Room not found", statusCode: 404, code: "NOT_FOUND" }),
           404,
@@ -770,7 +770,7 @@ export const handleGetRoom = async (c: Context) => {
         );
       }
       dbRoom = (await roomsRepository.findRoomById(roomId)) ?? dbRoom;
-      const allowed = await roomAccessRepository.canUserViewCircleRoomMetadata(userId, dbRoom);
+      const allowed = await roomAccessRepository.canUserViewSpaceRoomMetadata(userId, dbRoom);
       if (!allowed) {
         return c.json(
           ApiResponse.error({
@@ -783,7 +783,7 @@ export const handleGetRoom = async (c: Context) => {
       }
       return c.json(
         ApiResponse.success(
-          buildCircleRoomPayload(dbRoom, circleLobbyGateFromAdvancedOptions(dbRoom)),
+          buildSpaceRoomPayload(dbRoom, spaceLobbyGateFromAdvancedOptions(dbRoom)),
           "Room found",
         ),
       );
@@ -827,9 +827,9 @@ export const handleGetRoom = async (c: Context) => {
       );
     }
 
-    if (room.sessionKind === "circle") {
+    if (room.sessionKind === "space") {
       let dbRoom = await roomsRepository.findRoomById(roomId);
-      if (dbRoom?.roomType === "circle" || dbRoom?.roomType === "direct") {
+      if (dbRoom?.roomType === "space" || dbRoom?.roomType === "direct") {
         const reconciled = await reconcileRoomSessionOnAccess(roomId);
         if (reconciled.closed) {
           await deleteSessionRoomRedis(roomId);
@@ -863,7 +863,7 @@ export const handleGetRoom = async (c: Context) => {
       }
       return c.json(
         ApiResponse.success(
-          buildCircleRoomPayload(dbRoom, circleLobbyGateFromRedis(room), room.roomId),
+          buildSpaceRoomPayload(dbRoom, spaceLobbyGateFromRedis(room), room.roomId),
           "Room found",
         ),
       );
@@ -871,7 +871,7 @@ export const handleGetRoom = async (c: Context) => {
 
     const dbRoomForRedisKind = await roomsRepository.findRoomById(roomId);
     if (
-      dbRoomForRedisKind?.sessionKind === "circle" &&
+      dbRoomForRedisKind?.sessionKind === "space" &&
       !isSessionKind(room.sessionKind)
     ) {
       const reconciled = await reconcileRoomSessionOnAccess(roomId);
@@ -900,7 +900,7 @@ export const handleGetRoom = async (c: Context) => {
       }
       return c.json(
         ApiResponse.success(
-          buildCircleRoomPayload(dbRoom, circleLobbyGateFromRedis(room), room.roomId),
+          buildSpaceRoomPayload(dbRoom, spaceLobbyGateFromRedis(room), room.roomId),
           "Room found",
         ),
       );
@@ -914,8 +914,8 @@ export const handleGetRoom = async (c: Context) => {
       userB: room.userB,
       matchScore: room.matchScore ?? null,
     };
-    if (dbRoom?.roomType === "circle") {
-      matchPayload.roomType = "circle";
+    if (dbRoom?.roomType === "space") {
+      matchPayload.roomType = "space";
       matchPayload.title = dbRoom.title;
       if (dbRoom.hostUserId) {
         matchPayload.hostUserId = dbRoom.hostUserId;

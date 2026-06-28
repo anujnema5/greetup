@@ -89,8 +89,8 @@ const FEATURES = [
   },
   {
     icon: Users,
-    label: "Circles",
-    desc: "Circles are group rooms where people meet around shared interests and talk live.",
+    label: "Spaces",
+    desc: "Spaces are group rooms where people meet around shared interests and talk live.",
     tint: "from-violet-400/15 to-transparent",
     iconClass: "text-violet-400 bg-violet-400/10 border-violet-400/20",
   },
@@ -104,7 +104,7 @@ const FEATURES = [
   {
     icon: MessageCircle,
     label: "Instant Connect",
-    desc: "Chat, voice, and video instantly. Invite trusted friends into private circles or keep it 1:1.",
+    desc: "Chat, voice, and video instantly. Invite trusted friends into private spaces or keep it 1:1.",
     tint: "from-sky-400/15 to-transparent",
     iconClass: "text-sky-400 bg-sky-400/10 border-sky-400/20",
   },
@@ -124,12 +124,12 @@ const MATCHING_SIGNALS = [
   {
     icon: MapPin,
     title: "By location",
-    desc: "Connect nearby, in your city, across your country, or globally when you want a wider circle.",
+    desc: "Connect nearby, in your city, across your country, or globally when you want a wider reach.",
   },
   {
     icon: Globe,
     title: "In real time",
-    desc: "Matching updates live, so new relevant people and circles appear as soon as they are active.",
+    desc: "Matching updates live, so new relevant people and spaces appear as soon as they are active.",
   },
 ];
 
@@ -143,14 +143,14 @@ type CommTab = (typeof COMM_TABS)[number]["id"];
 const STEPS = [
   { n: "01", title: "Set your preferences", desc: "Answer a few quick questions about your interests, goals, and the kind of connections you want." },
   { n: "02", title: "Get matched", desc: "Our engine finds people with real alignment, not just the same city, but the same wavelength." },
-  { n: "03", title: "Connect & grow", desc: "Chat, call, join activities, or hop into a circle together. Build real relationships naturally." },
+  { n: "03", title: "Connect & grow", desc: "Chat, call, join activities, or hop into a space together. Build real relationships naturally." },
 ];
 
 const BETA_HIGHLIGHTS = [
   { value: "Beta", label: "Early access" },
   { value: "Safe", label: "NSFW protected" },
   { value: "1:1", label: "Match & video" },
-  { value: "Live", label: "Circles & chat" },
+  { value: "Live", label: "Spaces & chat" },
 ];
 
 const TRUST = [
@@ -221,7 +221,7 @@ const LIVE_STREAM_EXAMPLES = [
     platforms: ["YouTube", "X Live"],
   },
   {
-    title: "Creative writing circle",
+    title: "Creative writing space",
     topic: "Poetry prompts and short reading sessions",
     category: "Writing",
     platforms: ["YouTube", "Twitch"],
@@ -492,7 +492,7 @@ function LandingPageInner() {
             <h2 className="text-[1.75rem] sm:text-4xl lg:text-5xl font-black tracking-tight leading-tight">Find your people with real control</h2>
             <p className="mt-3 sm:mt-4 text-sm sm:text-base text-white/50 max-w-2xl mx-auto">
               Filter your connections your way and discover people instantly, whether you want nearby friends,
-              city-level networking, country-wide communities, or global circles.
+              city-level networking, country-wide communities, or global spaces.
             </p>
           </motion.div>
 
@@ -571,7 +571,7 @@ function LandingPageInner() {
             </motion.h2>
             <motion.p variants={fadeUp} className="text-sm sm:text-base text-white/55 leading-relaxed max-w-md mb-6 sm:mb-10">
               Once you match, move instantly between text, voice, and video. Start 1:1, bring in your friends,
-              or continue inside a public or private circle without losing momentum.
+              or continue inside a public or private space without losing momentum.
             </motion.p>
             <motion.div variants={stagger} className="flex flex-col gap-3 sm:gap-4">
               {[
@@ -658,22 +658,22 @@ function LandingPageInner() {
           <RevealSection className="order-1 lg:order-1">
             <motion.div variants={fadeUp} className="mb-3 sm:mb-5">
               <Badge variant="outline" className="border-[oklch(88%_0.18_105/0.3)] bg-[oklch(88%_0.18_105/0.08)] text-[oklch(88%_0.18_105/0.8)] rounded-full tracking-widest uppercase text-[10px]">
-                Circles that feel alive
+                Spaces that feel alive
               </Badge>
             </motion.div>
             <motion.h2 variants={fadeUp} className="text-[1.75rem] sm:text-4xl lg:text-5xl font-black tracking-tight leading-tight mb-4 sm:mb-6">
               Discuss your niche.<br />
-              <span className="bg-linear-to-r from-[oklch(88%_0.18_105)] via-[oklch(94%_0.16_105)] to-[oklch(82%_0.18_106)] bg-clip-text text-transparent">Build your network in circles.</span>
+              <span className="bg-linear-to-r from-[oklch(88%_0.18_105)] via-[oklch(94%_0.16_105)] to-[oklch(82%_0.18_106)] bg-clip-text text-transparent">Build your network in spaces.</span>
             </motion.h2>
             <motion.p variants={fadeUp} className="text-sm sm:text-base text-white/55 leading-relaxed max-w-md mb-5 sm:mb-8">
-              Circles are group rooms built around shared interests. Join rooms like Startup Founder Night Talk,
+              Spaces are group rooms built around shared interests. Join rooms like Startup Founder Night Talk,
               Jam Session for Musicians, chess rooms, Watch Together, draw together, study together, debate rooms,
               truth or dare, music rooms, and live polls, then move to 1:1 when you click.
             </motion.p>
             <motion.div variants={stagger} className="flex flex-col gap-3 sm:gap-4">
               {[
-                { icon: Users, text: "Public and private circles for open communities or close trusted groups" },
-                { icon: MessageCircle, text: "Move from circle chat to 1:1 when you find someone you click with" },
+                { icon: Users, text: "Public and private spaces for open communities or close trusted groups" },
+                { icon: MessageCircle, text: "Move from space chat to 1:1 when you find someone you click with" },
                 { icon: Lightbulb, text: "Get conversation cues about that person so starting a conversation feels effortless. Coming soon." },
                 { icon: Wind, text: "Invite your friend into the conversation and grow your network naturally" },
               ].map(({ icon: Icon, text }) => (
@@ -756,9 +756,9 @@ function LandingPageInner() {
             <Badge variant="outline" className="border-[oklch(88%_0.18_105/0.3)] bg-[oklch(88%_0.18_105/0.08)] text-[oklch(88%_0.18_105/0.85)] rounded-full mb-3 sm:mb-5 tracking-widest uppercase text-[10px]">
               Live with your connections
             </Badge>
-            <h2 className="text-[1.75rem] sm:text-4xl lg:text-5xl font-black tracking-tight leading-tight">Go live from your matches and circles</h2>
+            <h2 className="text-[1.75rem] sm:text-4xl lg:text-5xl font-black tracking-tight leading-tight">Go live from your matches and spaces</h2>
             <p className="mt-3 sm:mt-4 text-sm sm:text-base text-white/50 max-w-2xl mx-auto">
-              Turn any active match or circle conversation into a live session in one tap, then stream out to platforms like YouTube from the same flow. Coming soon.
+              Turn any active match or space conversation into a live session in one tap, then stream out to platforms like YouTube from the same flow. Coming soon.
             </p>
           </motion.div>
 
@@ -890,12 +890,12 @@ function LandingPageInner() {
           <motion.h2 variants={fadeUp} className="text-[1.85rem] sm:text-5xl lg:text-7xl font-black tracking-tight leading-tight mb-4 sm:mb-6">
             Your people.<br />
             <span className="bg-linear-to-r from-[oklch(88%_0.18_105)] via-[oklch(94%_0.16_105)] to-[oklch(82%_0.18_106)] bg-clip-text text-transparent">
-              Your circles.
+              Your spaces.
             </span>
           </motion.h2>
 
           <motion.p variants={fadeUp} className="text-sm sm:text-lg text-white/50 mb-8 sm:mb-12 max-w-xl mx-auto">
-            Join circles around what you care about, match with people who truly align, and connect in real time from
+            Join spaces around what you care about, match with people who truly align, and connect in real time from
             nearby to global communities.
           </motion.p>
 

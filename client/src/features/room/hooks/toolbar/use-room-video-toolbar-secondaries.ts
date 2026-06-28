@@ -8,16 +8,16 @@ export type RoomVideoToolbarSecondaryId =
   | "activities"
   | "live"
   | "add"
-  | "circleOptions"
+  | "spaceOptions"
   | "skip";
 
 type SecondariesInput = {
   conversationId: string | null;
   isGroupRoom: boolean;
-  showAddToCircle: boolean;
-  onOpenAddToCircle?: () => void;
-  showCircleOptions: boolean;
-  onOpenCircleOptions?: () => void;
+  showAddToSpace: boolean;
+  onOpenAddToSpace?: () => void;
+  showSpaceOptions: boolean;
+  onOpenSpaceOptions?: () => void;
   showSkip: boolean;
   showPeopleTab: boolean;
   /** Direct call: omit when the DB catalog has no `is_active` embedded activities. */
@@ -42,17 +42,17 @@ export function useRoomVideoToolbarSecondaries(
     if (input.showPeopleTab) items.push("participants");
     if (input.conversationId) items.push("chat");
     if (!input.isGroupRoom && input.showActivitiesTab) items.push("activities");
-    if (input.showAddToCircle && input.onOpenAddToCircle) items.push("add");
-    if (input.showCircleOptions && input.onOpenCircleOptions) items.push("circleOptions");
+    if (input.showAddToSpace && input.onOpenAddToSpace) items.push("add");
+    if (input.showSpaceOptions && input.onOpenSpaceOptions) items.push("spaceOptions");
     if (input.showSkip) items.push("skip");
     return items;
   }, [
     input.conversationId,
     input.isGroupRoom,
-    input.showAddToCircle,
-    input.onOpenAddToCircle,
-    input.showCircleOptions,
-    input.onOpenCircleOptions,
+    input.showAddToSpace,
+    input.onOpenAddToSpace,
+    input.showSpaceOptions,
+    input.onOpenSpaceOptions,
     input.showSkip,
     input.showPeopleTab,
     input.showActivitiesTab,

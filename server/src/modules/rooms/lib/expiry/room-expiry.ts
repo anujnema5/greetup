@@ -1,10 +1,10 @@
-import { mergeRoomAdvancedOptions } from "@/core/database/schema";
+import { mergeRoomAdvancedOptions, resolveSpaceExpirationMinutes } from "@/core/database/schema";
 import {
-  CIRCLE_SESSION_MAX_MS,
+  SPACE_SESSION_MAX_MS,
   DIRECT_SESSION_MAX_MS,
 } from "@/modules/rooms/constants/session/room-session-limits";
 import type {
-  CircleUpgradeExpiryParams,
+  SpaceUpgradeExpiryParams,
   DbRoomSessionRow,
   RoomExpiryFields,
   RoomExpiryInputs,
@@ -14,7 +14,7 @@ import type {
 } from "@/modules/rooms/types";
 
 export type {
-  CircleUpgradeExpiryParams,
+  SpaceUpgradeExpiryParams,
   DbRoomSessionRow,
   RoomExpiryFields,
   RoomExpiryInputs,
@@ -40,7 +40,7 @@ function addMs(d: Date, ms: number): Date {
   return new Date(d.getTime() + ms);
 }
 
-/** Scheduled booking end: explicit `scheduled_end_at` or start + `circleExpirationMinutes`. */
+/** Scheduled booking end: explicit `scheduled_end_at` or start + `spaceExpirationMinutes`. */
 export function computeCalendarEndForScheduledRoom(
   input: ScheduledCalendarEndInput,
 ): Date | null {
@@ -48,19 +48,19 @@ export function computeCalendarEndForScheduledRoom(
     return input.scheduledEndAt;
   }
   const opts = mergeRoomAdvancedOptions(input.advancedOptions);
-  const expMins = opts.circleExpirationMinutes;
+  const expMins = resolveSpaceExpirationMinutes(opts);
   if (input.scheduledStartAt && typeof expMins === "number" && expMins > 0) {
     return addMinutes(input.scheduledStartAt, expMins);
   }
   return null;
 }
 
-/** Per-session cap from when the room went live (direct 2h, circle 3h). */
+/** Per-session cap from when the room went live (direct 2h, space 3h). */
 export function computeSessionCapDeadline(
   liveStartedAt: Date,
   roomType: RoomLiveSessionInputs["roomType"],
 ): Date {
-  const capMs = roomType === "direct" ? DIRECT_SESSION_MAX_MS : CIRCLE_SESSION_MAX_MS;
+  const capMs = roomType === "direct" ? DIRECT_SESSION_MAX_MS : SPACE_SESSION_MAX_MS;
   return addMs(liveStartedAt, capMs);
 }
 
@@ -98,10 +98,10 @@ export function isLiveSessionCapExceeded(
   return isPastDeadline(computeSessionCapDeadline(liveStartedAt, roomType), now);
 }
 
-/** Listing deadline: `scheduledEndAt` and/or scheduled-start + `circleExpirationMinutes`. */
+/** Listing deadline: `scheduledEndAt` and/or scheduled-start + `spaceExpirationMinutes`. */
 export function computeRoomExpiresAt(input: RoomExpiryInputs): Date | null {
   const opts = mergeRoomAdvancedOptions(input.advancedOptions);
-  const expMins = opts.circleExpirationMinutes;
+  const expMins = resolveSpaceExpirationMinutes(opts);
   const deadlines: Date[] = [];
 
   if (input.scheduledEndAt) {
@@ -172,13 +172,13 @@ export function computeExpiryFieldsForRoom(
 }
 
 /** Direct → circle upgrade: never shorten `expires_at`; extend by at least 3h from upgrade time. */
-export function computeExpiresAtAfterCircleUpgrade(params: CircleUpgradeExpiryParams): Date {
+export function computeExpiresAtAfterSpaceUpgrade(params: SpaceUpgradeExpiryParams): Date {
   const now = params.now ?? new Date();
   const candidateMs = [
-    computeSessionCapDeadline(now, "circle").getTime(),
+    computeSessionCapDeadline(now, "space").getTime(),
     computeLiveSessionExpiresAt({
       status: "live",
-      roomType: "circle",
+      roomType: "space",
       startedAt: params.liveStartedAt,
       scheduledStartAt: params.scheduledStartAt,
       scheduledEndAt: params.scheduledEndAt,

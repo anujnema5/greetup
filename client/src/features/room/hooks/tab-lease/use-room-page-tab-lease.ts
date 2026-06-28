@@ -6,7 +6,7 @@ import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react
 
 import { useRoomStore } from "@/features/room/state/room.store";
 
-import { leaveCircleRtcKeepalive, leaveRoomKeepalive } from "@/features/room/api/room.mutations";
+import { leaveSpaceRtcKeepalive, leaveRoomKeepalive } from "@/features/room/api/room.mutations";
 
 import {
 
@@ -25,12 +25,10 @@ import { clearRoomStorage, isRoomMinimizedMarked } from "@/features/room/lib/ses
 import { toast } from "sonner";
 
 import {
-
-  CIRCLE_SEARCH_PATH,
-
-  isCircleSearchRoomId,
-
-} from "@/features/room/lib/navigation/circle-routes";
+  SPACE_SEARCH_PATH,
+  isSpaceSearchRoomId,
+  spaceRoomPath,
+} from "@/features/room/lib/navigation/space-routes";
 
 
 
@@ -58,7 +56,7 @@ type UseRoomPageTabLeaseArgs = {
 
 /**
 
- * `/circle/[roomId]` only: cross-tab lease in localStorage, room `enterRoomPage`, unload cleanup.
+ * `/space/[roomId]` only: cross-tab lease in localStorage, room `enterRoomPage`, unload cleanup.
 
  * Redirects to home with a toast if another tab already holds this room for the same user.
 
@@ -106,7 +104,7 @@ export function useRoomPageTabLease({
 
 
 
-    if (isCircleSearchRoomId(roomId)) {
+    if (isSpaceSearchRoomId(roomId)) {
 
       enterRoomPage({ roomId });
 
@@ -264,11 +262,9 @@ export function useRoomPageTabLease({
 
           if (
 
-            path === CIRCLE_SEARCH_PATH ||
-
-            path === `/circle/${rid}` ||
-
-            path.startsWith(`/circle/${rid}/`)
+            path === SPACE_SEARCH_PATH ||
+            path === spaceRoomPath(rid) ||
+            path.startsWith(`${spaceRoomPath(rid)}/`)
 
           ) {
 
@@ -286,7 +282,7 @@ export function useRoomPageTabLease({
 
         if (uid) clearRoomTabLeaseIfOwner(uid, tabId);
 
-        leaveCircleRtcKeepalive(rid);
+        leaveSpaceRtcKeepalive(rid);
 
         leaveRoomKeepalive();
 

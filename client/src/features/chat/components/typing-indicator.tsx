@@ -86,7 +86,7 @@ export function TypingIndicator({
 
   if (!render) return null;
 
-  const isGroup = conversationType === 'room_circle';
+  const isGroup = conversationType === 'room_space';
   const showDirectPeerAvatar = !isGroup && !!peerMessage;
   const showPeerColumnGutter = isGroup || !showDirectPeerAvatar;
 

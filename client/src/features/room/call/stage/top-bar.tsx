@@ -2,8 +2,8 @@
 
 import { type ReactNode } from "react";
 import { PictureInPicture2 } from "lucide-react";
-import { CircleCallTitleBadge } from "@/features/room/call/components/circle-call-title-badge";
-import { DEFAULT_CIRCLE_DISPLAY_TITLE } from "@/features/room/constants/call/circle-display";
+import { SpaceCallTitleBadge } from "@/features/room/call/components/space-call-title-badge";
+import { DEFAULT_SPACE_DISPLAY_TITLE } from "@/features/room/constants/call/space-display";
 import { cn } from "@/lib/utils";
 
 const STAGE_CHROME_BTN =
@@ -11,7 +11,7 @@ const STAGE_CHROME_BTN =
 
 /**
  * Top overlay: stage title (when not 1:1 tile-only layout) + **Minimize call** (dock / keep session).
- * Circle rooms: compact title on stage (host edit opens rename dialog); footer “Options” for invite/link/chat.
+ * Space rooms: compact title on stage (host edit opens rename dialog); footer “Options” for invite/link/chat.
  *
  * `stageTrailingActions` (fullscreen, share audio, etc.) shares one row with minimize so controls
  * never stack in the same corner.
@@ -19,9 +19,9 @@ const STAGE_CHROME_BTN =
 export function CallTopBar({
   isOneToOneStage,
   isGroupRoom = false,
-  circleDisplayTitle = null,
-  canEditCircleTitle = false,
-  onEditCircleTitle,
+  spaceDisplayTitle = null,
+  canEditSpaceTitle = false,
+  onEditSpaceTitle,
   activeActivityLabel,
   activeActivity,
   mainStageShowsScreen,
@@ -31,9 +31,9 @@ export function CallTopBar({
 }: {
   isOneToOneStage: boolean;
   isGroupRoom?: boolean;
-  circleDisplayTitle?: string | null;
-  canEditCircleTitle?: boolean;
-  onEditCircleTitle?: () => void;
+  spaceDisplayTitle?: string | null;
+  canEditSpaceTitle?: boolean;
+  onEditSpaceTitle?: () => void;
   activeActivityLabel: string | null;
   activeActivity: boolean;
   mainStageShowsScreen: boolean;
@@ -42,7 +42,7 @@ export function CallTopBar({
   /** e.g. fullscreen + mute screen audio — rendered before minimize, same row */
   stageTrailingActions?: ReactNode;
 }) {
-  const circleTitle = circleDisplayTitle?.trim() || DEFAULT_CIRCLE_DISPLAY_TITLE;
+  const spaceTitle = spaceDisplayTitle?.trim() || DEFAULT_SPACE_DISPLAY_TITLE;
   const showRightCluster = Boolean(stageTrailingActions) || Boolean(onMinimize);
 
   return (
@@ -62,10 +62,10 @@ export function CallTopBar({
         <div className="min-w-0">
           {!isOneToOneStage && !activeActivity ? (
             isGroupRoom ? (
-              <CircleCallTitleBadge
-                title={circleTitle}
-                canEdit={canEditCircleTitle}
-                onEdit={onEditCircleTitle}
+              <SpaceCallTitleBadge
+                title={spaceTitle}
+                canEdit={canEditSpaceTitle}
+                onEdit={onEditSpaceTitle}
               />
             ) : (
               <>

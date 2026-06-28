@@ -3,12 +3,12 @@
 import { useRouter } from "next/navigation";
 import { Radio, Users } from "lucide-react";
 
-import { CIRCLES_BROWSE_PATH } from "@/features/circles/lib/circles-browse-path";
+import { SPACES_BROWSE_PATH } from "@/features/spaces/lib/spaces-browse-path";
 import { DASHBOARD_SECTIONS } from "@/lib/copy/user-messages";
-import { circleRoomPath } from "@/features/room/lib/navigation/circle-routes";
+import { spaceRoomPath } from "@/features/room/lib/navigation/space-routes";
 
 import { DashboardSectionHeader } from "./dashboard-section-header";
-import { useDashboardActiveNowCircles } from "../hooks/use-dashboard-active-now-circles";
+import { useDashboardActiveNowSpaces } from "../hooks/use-dashboard-active-now-spaces";
 
 function ActiveNowRowSkeleton() {
   return (
@@ -24,7 +24,7 @@ function ActiveNowRowSkeleton() {
 
 export function DashboardActiveNowSection() {
   const router = useRouter();
-  const { circles, isLoading } = useDashboardActiveNowCircles();
+  const { spaces, isLoading } = useDashboardActiveNowSpaces();
 
   return (
     <section>
@@ -32,7 +32,7 @@ export function DashboardActiveNowSection() {
         variant="panel"
         title={DASHBOARD_SECTIONS.activeNow.title}
         actionLabel={DASHBOARD_SECTIONS.activeNow.seeAll}
-        onAction={() => router.push(CIRCLES_BROWSE_PATH)}
+        onAction={() => router.push(SPACES_BROWSE_PATH)}
       />
 
       {isLoading ? (
@@ -41,28 +41,28 @@ export function DashboardActiveNowSection() {
             <ActiveNowRowSkeleton key={index} />
           ))}
         </div>
-      ) : circles.length === 0 ? (
+      ) : spaces.length === 0 ? (
         <div className="rounded-xl border border-dashed border-border bg-muted/30 px-3 py-4 text-center">
           <Radio className="mx-auto mb-2 size-4 text-muted-foreground/60" aria-hidden />
           <p className="text-xs leading-relaxed text-muted-foreground">{DASHBOARD_SECTIONS.activeNow.empty}</p>
         </div>
       ) : (
         <div className="flex flex-col gap-0.5">
-          {circles.map((circle) => (
+          {spaces.map((space) => (
             <button
-              key={circle.id}
+              key={space.id}
               type="button"
-              onClick={() => router.push(circleRoomPath(circle.id))}
+              onClick={() => router.push(spaceRoomPath(space.id))}
               className="flex w-full cursor-pointer items-center gap-2.5 rounded-lg px-2 py-2 text-left transition-colors hover:bg-muted/60"
             >
               <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-primary/15 text-sm">
-                {circle.category.emoji ?? "○"}
+                {space.category.emoji ?? "○"}
               </span>
               <div className="min-w-0 flex-1">
-                <p className="truncate text-xs font-medium text-foreground">{circle.title}</p>
+                <p className="truncate text-xs font-medium text-foreground">{space.title}</p>
                 <p className="flex items-center gap-1 text-[11px] text-muted-foreground">
                   <span className="dash-live-dot size-1.5 rounded-full bg-destructive" aria-hidden />
-                  Live · {circle.participantCount} <Users className="size-2.5" aria-hidden />
+                  Live · {space.participantCount} <Users className="size-2.5" aria-hidden />
                 </p>
               </div>
             </button>

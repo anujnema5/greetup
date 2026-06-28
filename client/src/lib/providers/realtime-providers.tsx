@@ -9,7 +9,7 @@ import {
   RoomMinimizedHydration,
   MinimizedRoomDock,
   RoomSocketBridge,
-  OnDirectExpandedToCircle,
+  OnDirectExpandedToSpace,
 } from "@/features/room";
 import { MatchmakingProvider } from "@/features/matching";
 import { ConnectionRealtimeBridge } from "@/features/connections";
@@ -24,7 +24,7 @@ export function RealtimeProviders({ children }: { children: React.ReactNode }) {
       <RoomMinimizedHydration />
       <RtcSocketProvider>
         <SocketProvider>
-          <OnDirectExpandedToCircle />
+          <OnDirectExpandedToSpace />
           <ChessSocketBridge />
           <ConnectionCallBridge />
           <NotificationsRealtimeBridge />

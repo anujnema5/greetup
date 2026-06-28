@@ -3,8 +3,8 @@
 import { useCallback } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import { toast } from 'sonner';
-import { stashCircleRoomBootstrap } from '@/features/matching/lib/circle-room-bootstrap';
-import { circleRoomPath } from '@/features/room/lib/navigation/circle-routes';
+import { stashSpaceRoomBootstrap } from '@/features/matching/lib/space-room-bootstrap';
+import { spaceRoomPath } from '@/features/room/lib/navigation/space-routes';
 import { setRoomReturnPath } from '@/features/room/lib/session/room-return-path';
 import { getApiErrorMessage } from '@/lib/api/fetch-client';
 import {
@@ -38,8 +38,8 @@ export function useConnectionCallActions() {
     (roomId: string, peerUserId: string, mode: ConnectionCallMode) => {
       setRoomReturnPath(pathname);
       applyConnectionCallMediaIntent(mode);
-      stashCircleRoomBootstrap(roomId, { peerId: peerUserId, score: null });
-      router.push(circleRoomPath(roomId));
+      stashSpaceRoomBootstrap(roomId, { peerId: peerUserId, score: null });
+      router.push(spaceRoomPath(roomId));
     },
     [pathname, router],
   );

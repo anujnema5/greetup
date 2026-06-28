@@ -6,13 +6,13 @@ import { useQueryClient } from "@tanstack/react-query";
 import { setRoomReturnPath } from "@/features/room";
 import { prefetchRoomDetail } from "@/features/room/api/room.queries";
 import { prefetchRtcLiveSessionChunk } from "@/features/rtc/lib/prefetch-rtc-live-session-chunk";
-import { stashCircleRoomBootstrap } from "@/features/matching/lib/circle-room-bootstrap";
+import { stashSpaceRoomBootstrap } from "@/features/matching/lib/space-room-bootstrap";
 import { isLocalCallEndInProgress } from "@/features/room/lib/call/direct-match-leave-guard";
-import { circleRoomPath } from "@/features/room/lib/navigation/circle-routes";
+import { spaceRoomPath } from "@/features/room/lib/navigation/space-routes";
 import { useFindMatch } from "./useFindMatch";
 
 /**
- * Connects matchmaking state to the router: when a match completes, sends the user to the circle room
+ * Connects matchmaking state to the router: when a match completes, sends the user to the space room
  * and remembers where they were (for minimizing the call). Exposes controls for the home hero and other screens.
  *
  * Match completion navigation uses `startTransition` so the UI stays responsive during the route change.
@@ -60,17 +60,17 @@ export function useAppMatchFlow() {
 
     setRoomReturnPath(pathname);
 
-    stashCircleRoomBootstrap(roomId, {
+    stashSpaceRoomBootstrap(roomId, {
       peerId: result.peerId ?? null,
       score: result.matchScore != null ? String(Math.round(result.matchScore)) : null,
     });
     void prefetchRoomDetail(queryClient, roomId);
     prefetchRtcLiveSessionChunk();
-    const target = circleRoomPath(roomId);
-    const alreadyOnCircleRoute =
-      pathname === target || pathname.startsWith("/circle/");
+    const target = spaceRoomPath(roomId);
+    const alreadyOnSpaceRoute =
+      pathname === target || pathname.startsWith("/space/");
     startTransition(() => {
-      if (alreadyOnCircleRoute) {
+      if (alreadyOnSpaceRoute) {
         router.replace(target);
       } else {
         router.push(target);

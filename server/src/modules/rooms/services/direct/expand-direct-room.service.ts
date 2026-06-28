@@ -15,10 +15,10 @@ import {
 } from "@/modules/rooms/repositories/expand-direct-room.repository";
 import { roomsRepository } from "@/modules/rooms/repositories/rooms.repository";
 import { roomParticipantsRepository } from "@/modules/rooms/repositories/room-participants.repository";
-import { syncCircleRoomTitleFromParticipants } from "@/modules/rooms/services/circle/circle-participant-title.service";
+import { syncSpaceRoomTitleFromParticipants } from "@/modules/rooms/services/space/space-participant-title.service";
 import { notifyRtcServiceRoomType } from "@/modules/rooms/services/rtc/notify-rtc-room-type.service";
 import { canInviteWithoutExceedingCapacity } from "@/modules/rooms/lib/session/room-invite-capacity";
-import { patchSessionRoomRedisCircleExpand } from "@/modules/rooms/services/rtc/session-room-redis.service";
+import { patchSessionRoomRedisSpaceExpand } from "@/modules/rooms/services/rtc/session-room-redis.service";
 
 export class RoomInviteError extends Error {
   constructor(
@@ -63,7 +63,7 @@ export async function createRoomInviteService(
   if (room.status !== "live") {
     throw new RoomInviteError("Room is not live", "ROOM_NOT_LIVE", 400);
   }
-  if (room.roomType !== "direct" && room.roomType !== "circle") {
+  if (room.roomType !== "direct" && room.roomType !== "space") {
     throw new RoomInviteError("This room type does not support invites", "NOT_DIRECT", 400);
   }
 
@@ -184,7 +184,7 @@ export async function respondRoomInviteService(
   if (!room || room.status !== "live") {
     throw new RoomInviteError("Room is no longer available", "ROOM_NOT_LIVE", 400);
   }
-  if (room.roomType === "circle") {
+  if (room.roomType === "space") {
     await roomInviteRepository.setFriendInviteAccepted(inviteId);
     return { roomId, expanded: true };
   }
@@ -207,19 +207,19 @@ export async function respondRoomInviteService(
     throw err;
   }
 
-  await patchSessionRoomRedisCircleExpand(roomId);
+  await patchSessionRoomRedisSpaceExpand(roomId);
 
   try {
-    await syncCircleRoomTitleFromParticipants(roomId);
+    await syncSpaceRoomTitleFromParticipants(roomId);
   } catch (err) {
-    logger.warn("Could not set participant-based circle title after expand", { roomId, err });
+    logger.warn("Could not set participant-based space title after expand", { roomId, err });
   }
 
-  void notifyRtcServiceRoomType(roomId, "circle");
+  void notifyRtcServiceRoomType(roomId, "space");
 
   const notifyIds = await roomParticipantsRepository.listActiveParticipantUserIds(roomId);
   for (const uid of notifyIds) {
-    emitToUser(uid, DIRECT_EXPAND_SOCKET_EVENTS.becameCircle, { roomId });
+    emitToUser(uid, DIRECT_EXPAND_SOCKET_EVENTS.becameSpace, { roomId });
   }
 
   return { roomId, expanded: true };

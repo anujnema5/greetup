@@ -16,13 +16,13 @@ import {
 import { useRtcSocketContext } from "@/features/rtc";
 import { useMatchmaking } from "@/features/matching";
 import {
-  useOpenCircleMeeting,
-  useStartScheduledCircle,
+  useOpenSpaceMeeting,
+  useStartScheduledSpace,
 } from "@/features/room/api/room.mutations";
 import { Button } from "@/components/ui/button";
-import { AddToCircleDialog } from "@/features/room/components/dialogs/add-to-circle-dialog";
-import { CircleLobbyOverlay } from "@/features/room/components/lobby/circle-lobby-overlay";
-import { CircleNsfwModerationLayer } from "@/features/moderation";
+import { AddToSpaceDialog } from "@/features/room/components/dialogs/add-to-space-dialog";
+import { SpaceLobbyOverlay } from "@/features/room/components/lobby/space-lobby-overlay";
+import { SpaceNsfwModerationLayer } from "@/features/moderation";
 import { RoomSessionExpiryWarningsLayer } from "@/features/room/components/session/room-session-expiry-warnings-layer";
 import { useCallRenderDebug } from "@/features/room/hooks/debug/use-call-render-debug";
 import { InCallScreen } from "@/features/room/call/shell/in-call-screen";
@@ -53,24 +53,24 @@ export type InCallContainerProps = {
   peerId: string | null;
   scoreLabel: string | null;
   myName: string;
-  /** GET `/room/:id` — drives skip / add-to-circle / activities by `sessionKind`. */
+  /** GET `/room/:id` — drives skip / add-to-space / activities by `sessionKind`. */
   room?: RoomData | null;
   isGroupRoom: boolean;
-  circleDisplayTitle: string | null;
-  circleCanEditTitle?: boolean;
-  /** DB circle host — used for “open circle for everyone” lobby control. */
-  circleHostUserId?: string | null;
+  spaceDisplayTitle: string | null;
+  spaceCanEditTitle?: boolean;
+  /** DB space host — used for “open circle for everyone” lobby control. */
+  spaceHostUserId?: string | null;
   /** From GET `/room/:id` (`sessionKind: circle`). */
-  circleLobbyGateActive?: "0" | "1" | null;
+  spaceLobbyGateActive?: "0" | "1" | null;
   /** ISO scheduled start from GET room — pre-start lobby (G-Meet–style time line). */
-  circleScheduledStartAt?: string | null;
+  spaceScheduledStartAt?: string | null;
   /** Postgres circle lifecycle from GET room (`scheduled`, `live`, …). */
-  circleRoomStatus?: string | null;
+  spaceRoomStatus?: string | null;
   /**
    * True for a Postgres circle session: native `circle` **or** a 1:1 match expanded
    * in place (`room_type = circle` on the same `roomId`).
    */
-  isDbCircleCall?: boolean;
+  isDbSpaceCall?: boolean;
 };
 
 export function InCallContainer({
@@ -80,37 +80,37 @@ export function InCallContainer({
   myName,
   room = null,
   isGroupRoom,
-  circleDisplayTitle,
-  circleCanEditTitle = false,
-  circleHostUserId = null,
-  circleLobbyGateActive = null,
-  circleScheduledStartAt = null,
-  circleRoomStatus = null,
-  isDbCircleCall = false,
+  spaceDisplayTitle,
+  spaceCanEditTitle = false,
+  spaceHostUserId = null,
+  spaceLobbyGateActive = null,
+  spaceScheduledStartAt = null,
+  spaceRoomStatus = null,
+  isDbSpaceCall = false,
 }: InCallContainerProps) {
   const setDirectCallPeerLabel = useRoomStore((s) => s.setDirectCallPeerLabel);
   const { data: session } = useSession();
   const roomPhase = useRoomStore(selectRoomPhase);
   const localLeavePending = useRoomStore(selectLocalLeavePending);
   const activeRealtimeActivity = useRoomActivityStore(selectRoomActiveActivity);
-  const [addCircleOpen, setAddCircleOpen] = useState(false);
+  const [addToSpaceOpen, setAddToSpaceOpen] = useState(false);
   const [embeddedStageActivityId, setEmbeddedStageActivityId] =
     useState<RoomActivityId | null>(null);
   const { mutateAsync: inviteToChess, isPending: requestingChess } = useRoomChessInvite();
   const { mutateAsync: endChess, isPending: endingChess } = useRoomChessEnd();
   const { mutateAsync: offerDraw, isPending: offeringDraw } = useRoomChessDrawOffer();
-  const { mutateAsync: openCircleMeeting, isPending: openingCircleMeeting } =
-    useOpenCircleMeeting();
-  const { mutateAsync: startScheduledCircle, isPending: startingScheduledCircle } =
-    useStartScheduledCircle();
+  const { mutateAsync: openSpaceMeeting, isPending: openingSpaceMeeting } =
+    useOpenSpaceMeeting();
+  const { mutateAsync: startScheduledSpace, isPending: startingScheduledSpace } =
+    useStartScheduledSpace();
   const isMatch = isMatchSession(room);
   const isConnectionCall = isConnectionCallSession(room);
   const canSkipAndRematch =
     isMatch || (roomPhase === "searching" && !isGroupRoom && !isConnectionCall);
 
   const video = useRoomVideo(roomId, {
-    isDbCircleCall,
-    circleHostUserId,
+    isDbSpaceCall,
+    spaceHostUserId,
     canSkipAndRematch,
     isConnectionCallSession: isConnectionCall,
     connectionCallConversationId:
@@ -174,7 +174,7 @@ export function InCallContainer({
     [embeddedStageActivityId, activeRealtimeActivity, embeddedCallPolicyLookup],
   );
 
-  const showAddToCircle = isMatch && !embeddedCallPolicy.blockParticipantInvites;
+  const showAddToSpace = isMatch && !embeddedCallPolicy.blockParticipantInvites;
 
   const showActivitiesTab =
     isMatch && shouldShowDirectCallActivitiesTab(isGroupRoom, directRoomActivities);
@@ -194,7 +194,7 @@ export function InCallContainer({
         showActivitiesTab,
         hasScreenShare: screenShareTiles.length > 0 || mainStageShowsScreen,
         directSoloLayout: !isGroupRoom && !peerId,
-        useCircleGallery: isGroupRoom && remoteParticipants.length + 1 > 6,
+        useSpaceGallery: isGroupRoom && remoteParticipants.length + 1 > 6,
       }),
     [
       isGroupRoom,
@@ -209,13 +209,13 @@ export function InCallContainer({
     ],
   );
 
-  const openAddToCircle = useCallback(() => {
+  const openAddToSpace = useCallback(() => {
     const msg = toastMessageForBlockedInvite(embeddedCallPolicy);
     if (msg) {
       toast.info(msg);
       return;
     }
-    setAddCircleOpen(true);
+    setAddToSpaceOpen(true);
   }, [embeddedCallPolicy]);
 
   const searchingForNextCandidate =
@@ -268,7 +268,7 @@ export function InCallContainer({
 
   useEffect(() => {
     if (!embeddedCallPolicy.blockParticipantInvites) return;
-    const id = requestAnimationFrame(() => setAddCircleOpen(false));
+    const id = requestAnimationFrame(() => setAddToSpaceOpen(false));
     return () => cancelAnimationFrame(id);
   }, [embeddedCallPolicy.blockParticipantInvites]);
 
@@ -307,48 +307,48 @@ export function InCallContainer({
   }, [rtcTokenErrorCode, rtcTokenLoading, rtcToken, stickyLobbyGateCode]);
 
   const isHostUser = Boolean(
-    session?.user?.id && circleHostUserId && session.user.id === circleHostUserId,
+    session?.user?.id && spaceHostUserId && session.user.id === spaceHostUserId,
   );
   const guestLobbyWait =
     isGroupRoom && !isHostUser && rtcLobbyGateCode === "LOBBY_WAITING_FOR_HOST";
 
-  const circleLobbyScheduledNotReady = isGroupRoom && rtcLobbyGateCode === "LOBBY_NOT_READY";
+  const spaceLobbyScheduledNotReady = isGroupRoom && rtcLobbyGateCode === "LOBBY_NOT_READY";
 
-  const rtcLobbyWait = guestLobbyWait || circleLobbyScheduledNotReady;
+  const rtcLobbyWait = guestLobbyWait || spaceLobbyScheduledNotReady;
 
   const lobbyPreview = useLobbyPreviewMedia(rtcLobbyWait);
 
-  const hostCanStartScheduledCircleNow = Boolean(
-    isDbCircleCall &&
+  const hostCanStartScheduledSpaceNow = Boolean(
+    isDbSpaceCall &&
       isHostUser &&
-      circleRoomStatus === "scheduled",
+      spaceRoomStatus === "scheduled",
   );
 
   const scheduledLobbyLabel = useMemo(
-    () => formatScheduledStart(circleScheduledStartAt ?? undefined),
-    [circleScheduledStartAt],
+    () => formatScheduledStart(spaceScheduledStartAt ?? undefined),
+    [spaceScheduledStartAt],
   );
 
-  const handleLobbyJoinCircle = useCallback(() => {
+  const handleLobbyJoinSpace = useCallback(() => {
     if (
-      circleLobbyScheduledNotReady &&
-      isClientStillBeforeScheduledStart(circleScheduledStartAt) &&
+      spaceLobbyScheduledNotReady &&
+      isClientStillBeforeScheduledStart(spaceScheduledStartAt) &&
       !isHostUser
     ) {
       const when = scheduledLobbyLabel?.trim();
       toast.error(
         when
-          ? `This circle hasn’t opened yet. You can join after ${when} (your device time).`
-          : "This circle hasn’t opened yet — try again after the scheduled start time.",
-        { id: `circle-lobby-join-${roomId}` },
+          ? `This space hasn’t opened yet. You can join after ${when} (your device time).`
+          : "This space hasn’t opened yet — try again after the scheduled start time.",
+        { id: `space-lobby-join-${roomId}` },
       );
       return;
     }
     setLobbyMediaIntent({ mic: lobbyPreview.micOn, camera: lobbyPreview.camOn });
     void refetchRtcToken();
   }, [
-    circleLobbyScheduledNotReady,
-    circleScheduledStartAt,
+    spaceLobbyScheduledNotReady,
+    spaceScheduledStartAt,
     isHostUser,
     scheduledLobbyLabel,
     lobbyPreview.micOn,
@@ -360,83 +360,83 @@ export function InCallContainer({
   useEffect(() => {
     if (!rtcLobbyWait) return;
     const id = window.setInterval(() => {
-      if (circleLobbyScheduledNotReady && isClientStillBeforeScheduledStart(circleScheduledStartAt)) {
+      if (spaceLobbyScheduledNotReady && isClientStillBeforeScheduledStart(spaceScheduledStartAt)) {
         return;
       }
       refetchRtcToken();
     }, 10000);
     return () => window.clearInterval(id);
-  }, [rtcLobbyWait, refetchRtcToken, circleLobbyScheduledNotReady, circleScheduledStartAt]);
+  }, [rtcLobbyWait, refetchRtcToken, spaceLobbyScheduledNotReady, spaceScheduledStartAt]);
 
-  const handleOpenCircleMeeting = useCallback(async () => {
+  const handleOpenSpaceMeeting = useCallback(async () => {
     try {
-      await openCircleMeeting(roomId);
-      toast.success("Everyone can join the circle now.");
+      await openSpaceMeeting(roomId);
+      toast.success("Everyone can join the space now.");
     } catch (e: unknown) {
-      toast.error(getApiErrorMessage(e, "Could not open the circle for everyone"));
+      toast.error(getApiErrorMessage(e, "Could not open the space for everyone"));
     }
-  }, [openCircleMeeting, roomId]);
+  }, [openSpaceMeeting, roomId]);
 
-  const handleHostStartScheduledCircleNow = useCallback(async () => {
+  const handleHostStartScheduledSpaceNow = useCallback(async () => {
     try {
       setLobbyMediaIntent({ mic: lobbyPreview.micOn, camera: lobbyPreview.camOn });
-      await startScheduledCircle(roomId);
-      toast.success("Circle is live — connecting you now.");
+      await startScheduledSpace(roomId);
+      toast.success("Space is live — connecting you now.");
       void refetchRtcToken();
     } catch (e: unknown) {
-      toast.error(getApiErrorMessage(e, "Could not start the circle"));
+      toast.error(getApiErrorMessage(e, "Could not start the space"));
     }
   }, [
     lobbyPreview.camOn,
     lobbyPreview.micOn,
     refetchRtcToken,
     roomId,
-    startScheduledCircle,
+    startScheduledSpace,
   ]);
 
   return (
     <div className="fixed inset-0 z-100 flex flex-col overflow-hidden bg-background">
       <RoomSessionExpiryWarningsLayer roomId={roomId} enabled={mediasoupReady} />
-      <CircleNsfwModerationLayer
+      <SpaceNsfwModerationLayer
         roomId={roomId}
-        enabled={NSFW_LOG_ENABLED && isDbCircleCall}
+        enabled={NSFW_LOG_ENABLED && isDbSpaceCall}
         localStream={moderationStream}
         mediasoupReady={mediasoupReady}
         cameraEnabled={cameraEnabled}
         screenSharing={screenSharing}
       />
       {rtcLobbyWait ? (
-        <CircleLobbyOverlay
+        <SpaceLobbyOverlay
           open
           lobbyPreview={lobbyPreview}
-          circleTitle={circleDisplayTitle}
+          spaceTitle={spaceDisplayTitle}
           scheduledLabel={scheduledLobbyLabel}
-          waitingForScheduledStart={circleLobbyScheduledNotReady}
+          waitingForScheduledStart={spaceLobbyScheduledNotReady}
           rtcTokenError={rtcTokenError}
           rtcTokenLoading={rtcTokenLoading}
-          onJoinCircle={handleLobbyJoinCircle}
+          onJoinSpace={handleLobbyJoinSpace}
           viewerDisplayName={myName}
-          hostCanStartScheduledNow={hostCanStartScheduledCircleNow}
-          hostStartScheduledBusy={startingScheduledCircle}
-          onHostStartScheduledNow={() => void handleHostStartScheduledCircleNow()}
+          hostCanStartScheduledNow={hostCanStartScheduledSpaceNow}
+          hostStartScheduledBusy={startingScheduledSpace}
+          onHostStartScheduledNow={() => void handleHostStartScheduledSpaceNow()}
         />
       ) : null}
-      {isGroupRoom && isHostUser && circleLobbyGateActive === "1" ? (
+      {isGroupRoom && isHostUser && spaceLobbyGateActive === "1" ? (
         <div className="pointer-events-auto absolute top-4 left-1/2 z-[150] flex -translate-x-1/2 justify-center px-4">
           <Button
             type="button"
             size="sm"
             className="shadow-md"
-            disabled={openingCircleMeeting}
-            onClick={() => void handleOpenCircleMeeting()}
+            disabled={openingSpaceMeeting}
+            onClick={() => void handleOpenSpaceMeeting()}
           >
-            {openingCircleMeeting ? "Starting…" : "Open circle for everyone"}
+            {openingSpaceMeeting ? "Starting…" : "Open space for everyone"}
           </Button>
         </div>
       ) : null}
-      <AddToCircleDialog
-        open={addCircleOpen}
-        onOpenChange={setAddCircleOpen}
+      <AddToSpaceDialog
+        open={addToSpaceOpen}
+        onOpenChange={setAddToSpaceOpen}
         roomId={roomId}
         excludeUserIds={excludeAddIds}
       />
@@ -475,8 +475,8 @@ export function InCallContainer({
         remotePeerCameraOff={remotePeerCameraOff}
         remotePeerMicOff={remotePeerMicOff}
         conversationId={roomConversationId}
-        showAddToCircle={showAddToCircle}
-        onOpenAddToCircle={openAddToCircle}
+        showAddToSpace={showAddToSpace}
+        onOpenAddToSpace={openAddToSpace}
         searchingForNextCandidate={searchingForNextCandidate}
         directCallMatchSearchFailed={directCallMatchSearchFailed}
         directCallMatchSearchError={
@@ -489,16 +489,16 @@ export function InCallContainer({
         onEndActiveGame={() => void handleEndActiveGame()}
         onOfferDrawGame={() => void handleOfferDraw()}
         roomId={roomId}
-        circleDisplayTitle={circleDisplayTitle}
-        circleCanEditTitle={circleCanEditTitle}
-        onHostEndCircleForEveryone={
-          isDbCircleCall && video.isCircleHost
-            ? video.handleHostEndCircleForEveryone
+        spaceDisplayTitle={spaceDisplayTitle}
+        spaceCanEditTitle={spaceCanEditTitle}
+        onHostEndSpaceForEveryone={
+          isDbSpaceCall && video.isSpaceHost
+            ? video.handleHostEndSpaceForEveryone
             : undefined
         }
         onKickParticipant={video.handleKickParticipant}
         kickingUserId={video.kickingUserId}
-        isCircleHost={video.isCircleHost}
+        isSpaceHost={video.isSpaceHost}
         screenShareTiles={screenShareTiles}
         focusedScreenShareKey={focusedScreenShareKey}
         onSelectScreenShare={setFocusedScreenShareKey}

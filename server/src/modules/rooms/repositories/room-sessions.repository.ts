@@ -12,23 +12,23 @@ import {
   computeRoomExpiryFields,
 } from "@/modules/rooms/lib/expiry/room-expiry";
 import {
-  CIRCLE_SESSION_MAX_MINUTES,
+  SPACE_SESSION_MAX_MINUTES,
   DIRECT_SESSION_MAX_MINUTES,
   SCHEDULED_EMPTY_ROOM_GRACE_MINUTES,
 } from "@/modules/rooms/constants/session/room-session-limits";
-import { SCHEDULED_JOIN_GRACE_AFTER_START_MINUTES } from "@/modules/rooms/constants/session/scheduled-circle-join-grace";
+import { SCHEDULED_JOIN_GRACE_AFTER_START_MINUTES } from "@/modules/rooms/constants/session/scheduled-space-join-grace";
 
 function roomSessionSweepCandidatesWhere() {
   return or(
     and(
-      eq(rooms.roomType, "circle"),
+      eq(rooms.roomType, "space"),
       eq(rooms.status, "scheduled"),
       isNotNull(rooms.scheduledStartAt),
       sql`(${rooms.scheduledStartAt} + (${SCHEDULED_JOIN_GRACE_AFTER_START_MINUTES} * interval '1 minute')) <= NOW()`,
     ),
     and(
       eq(rooms.status, "live"),
-      inArray(rooms.roomType, ["direct", "circle"]),
+      inArray(rooms.roomType, ["direct", "space"]),
       or(
         eq(rooms.isExpired, true),
         and(isNotNull(rooms.expiresAt), sql`${rooms.expiresAt} <= NOW()`),
@@ -36,7 +36,7 @@ function roomSessionSweepCandidatesWhere() {
           isNotNull(rooms.startedAt),
           sql`(
             (${rooms.roomType} = 'direct' AND ${rooms.startedAt} + (${DIRECT_SESSION_MAX_MINUTES} * interval '1 minute') <= NOW())
-            OR (${rooms.roomType} = 'circle' AND ${rooms.startedAt} + (${CIRCLE_SESSION_MAX_MINUTES} * interval '1 minute') <= NOW())
+            OR (${rooms.roomType} = 'space' AND ${rooms.startedAt} + (${SPACE_SESSION_MAX_MINUTES} * interval '1 minute') <= NOW())
           )`,
         ),
         and(
@@ -57,9 +57,9 @@ function roomSessionSweepCandidatesWhere() {
   );
 }
 
-function circleRoomsPastDueForSyncWhere() {
+function spaceRoomsPastDueForSyncWhere() {
   return and(
-    eq(rooms.roomType, "circle"),
+    eq(rooms.roomType, "space"),
     inArray(rooms.status, ["live", "scheduled"]),
     eq(rooms.isExpired, false),
     or(
@@ -115,20 +115,20 @@ export const roomSessionsRepository = {
     return row ?? null;
   },
 
-  async syncPastDueCircleRoomExpiry(): Promise<string[]> {
+  async syncPastDueSpaceRoomExpiry(): Promise<string[]> {
     const rows = await db
       .update(rooms)
       .set({ isExpired: true, updatedAt: new Date() })
-      .where(circleRoomsPastDueForSyncWhere())
+      .where(spaceRoomsPastDueForSyncWhere())
       .returning({ id: rooms.id });
     return rows.map((r) => r.id);
   },
 
-  async syncCircleRoomExpiryIfPastDue(roomId: string): Promise<boolean> {
+  async syncSpaceRoomExpiryIfPastDue(roomId: string): Promise<boolean> {
     const rows = await db
       .update(rooms)
       .set({ isExpired: true, updatedAt: new Date() })
-      .where(and(eq(rooms.id, roomId), circleRoomsPastDueForSyncWhere()))
+      .where(and(eq(rooms.id, roomId), spaceRoomsPastDueForSyncWhere()))
       .returning({ id: rooms.id });
     return rows.length > 0;
   },
@@ -208,9 +208,9 @@ export const roomSessionsRepository = {
       .where(eq(rooms.id, roomId));
   },
 
-  async refreshLiveCircleExpiryAfterParticipantJoin(roomId: string): Promise<void> {
+  async refreshLiveSpaceExpiryAfterParticipantJoin(roomId: string): Promise<void> {
     const row = await db.query.rooms.findFirst({
-      where: and(eq(rooms.id, roomId), eq(rooms.roomType, "circle"), eq(rooms.status, "live")),
+      where: and(eq(rooms.id, roomId), eq(rooms.roomType, "space"), eq(rooms.status, "live")),
       columns: {
         scheduledStartAt: true,
         scheduledEndAt: true,
@@ -229,7 +229,7 @@ export const roomSessionsRepository = {
     await db
       .update(rooms)
       .set({ expiresAt, isExpired, updatedAt: new Date() })
-      .where(and(eq(rooms.id, roomId), eq(rooms.roomType, "circle"), eq(rooms.status, "live")));
+      .where(and(eq(rooms.id, roomId), eq(rooms.roomType, "space"), eq(rooms.status, "live")));
   },
 
   async loadParticipantPresence(roomId: string) {
@@ -258,7 +258,7 @@ export const roomSessionsRepository = {
       .where(
         and(
           eq(rooms.id, roomId),
-          eq(rooms.roomType, "circle"),
+          eq(rooms.roomType, "space"),
           eq(rooms.status, "scheduled"),
           sql`(${rooms.scheduledStartAt} + (${SCHEDULED_JOIN_GRACE_AFTER_START_MINUTES} * interval '1 minute')) < NOW()`,
         ),
@@ -285,7 +285,7 @@ export const roomSessionsRepository = {
         .set({ leftAt: now, updatedAt: now })
         .where(and(eq(roomParticipants.roomId, roomId), isNull(roomParticipants.leftAt)));
 
-      if (roomType === "circle" && preserveScheduledSlot) {
+      if (roomType === "space" && preserveScheduledSlot) {
         const { expiresAt, isExpired } = computeRoomExpiryFields(
           {
             status: "scheduled",
@@ -310,7 +310,7 @@ export const roomSessionsRepository = {
           .where(
             and(
               eq(rooms.id, roomId),
-              eq(rooms.roomType, "circle"),
+              eq(rooms.roomType, "space"),
               eq(rooms.status, "live"),
             ),
           )
@@ -352,7 +352,7 @@ export const roomSessionsRepository = {
     roomId: string,
     userId: string,
     now: Date,
-    deleteCircleAfterCall: boolean,
+    deleteSpaceAfterCall: boolean,
   ): Promise<{ lastParticipantLeft: boolean; roomEnded: boolean }> {
     let lastParticipantLeft = false;
     let roomEnded = false;
@@ -379,7 +379,7 @@ export const roomSessionsRepository = {
 
       lastParticipantLeft = true;
 
-      if (deleteCircleAfterCall) {
+      if (deleteSpaceAfterCall) {
         const [updated] = await tx
           .update(rooms)
           .set({
@@ -389,7 +389,7 @@ export const roomSessionsRepository = {
             isExpired: true,
             updatedAt: now,
           })
-          .where(and(eq(rooms.id, roomId), eq(rooms.roomType, "circle"), eq(rooms.status, "live")))
+          .where(and(eq(rooms.id, roomId), eq(rooms.roomType, "space"), eq(rooms.status, "live")))
           .returning({ id: rooms.id });
         roomEnded = Boolean(updated);
       }

@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 
-import { isCircleSearchRoomId } from '@/features/room/lib/navigation/circle-routes';
+import { isSpaceSearchRoomId } from '@/features/room/lib/navigation/space-routes';
 import { useRoomActivityStore } from '@/features/room/state/room-activity.store';
 import type { RoomMediaStatus, RoomPeerEntry, RoomSessionPhase } from '@/features/room/types/room-state.types';
 
@@ -80,7 +80,7 @@ export const useRoomStore = create<RoomStore>((set) => ({
         (state.session.phase === 'searching' || state.session.phase === 'in_call');
 
       if (state.session.activeRoomId !== nextId) {
-        if (rematchRouteChange && isCircleSearchRoomId(nextId)) {
+        if (rematchRouteChange && isSpaceSearchRoomId(nextId)) {
           return {
             ...state,
             session: {
@@ -93,7 +93,7 @@ export const useRoomStore = create<RoomStore>((set) => ({
             peers: { byUserId: {} },
           };
         }
-        if (rematchRouteChange && !isCircleSearchRoomId(nextId)) {
+        if (rematchRouteChange && !isSpaceSearchRoomId(nextId)) {
           return {
             ...state,
             session: {

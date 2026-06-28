@@ -1,0 +1,101 @@
+"use client";
+
+/**
+ * Paginated gallery for space rooms with 7+ participants (6 tiles per page).
+ */
+import type { RefObject } from "react";
+import type { RemoteParticipant } from "@/features/rtc";
+import { PaginatedTileGrid } from "@/features/room/call/layouts/grid/paginated-tile-grid";
+import { CALL_TILE_AVATAR_SIZE_COMPACT } from "@/features/room/call/tiles/tile-styles";
+import { LocalParticipantTile } from "@/features/room/call/tiles/my-camera-tile";
+import { RemoteParticipantTile } from "@/features/room/call/tiles/peer-camera-tile";
+import {
+  isYouTheLiveSpeaker,
+  isLiveSpeakerOnTile,
+} from "@/features/room/lib/call/active-speaker";
+import type { SpaceParticipantKickProps } from "@/features/room/types/call/participant-remove.types";
+
+const TILES_PER_PAGE = 6;
+const PAGED_GRID = "grid-cols-2 md:grid-cols-3";
+
+export function SpaceGalleryGrid({
+  participants,
+  localVideoRef,
+  localVideoLive,
+  localStream,
+  myName,
+  myInitial,
+  myAvatarUrl,
+  micEnabled,
+  cameraEnabled,
+  currentUserId = null,
+  liveSpeakerPeerId = null,
+  isSpaceHost = false,
+  onKickParticipant,
+  kickingUserId = null,
+}: {
+  participants: RemoteParticipant[];
+  localVideoRef: RefObject<HTMLVideoElement | null>;
+  localVideoLive: boolean;
+  localStream: MediaStream | null;
+  myName: string;
+  myInitial: string;
+  myAvatarUrl?: string | null;
+  micEnabled?: boolean;
+  cameraEnabled?: boolean;
+  currentUserId?: string | null;
+  liveSpeakerPeerId?: string | null;
+} & SpaceParticipantKickProps) {
+  const localIsLiveSpeaker = isYouTheLiveSpeaker(liveSpeakerPeerId, currentUserId);
+  const remoteKickProps = {
+    canKick: Boolean(isSpaceHost && onKickParticipant),
+    onKickParticipant,
+    kickingUserId,
+  };
+  const total = participants.length + 1;
+
+  return (
+    <PaginatedTileGrid
+      totalTiles={total}
+      tilesPerPage={TILES_PER_PAGE}
+      gridClassName={PAGED_GRID}
+      shellClassName="absolute inset-0 p-1 md:p-1.5"
+      paginationVariant="dots"
+      renderTile={(tileIdx, spanFullWidth) => {
+        const spanClass = spanFullWidth ? "col-span-full" : undefined;
+        if (tileIdx === 0) {
+          return (
+            <LocalParticipantTile
+              key="local"
+              localVideoRef={localVideoRef}
+              localVideoLive={localVideoLive}
+              localStream={localStream}
+              myName={myName}
+              myInitial={myInitial}
+              myAvatarUrl={myAvatarUrl}
+              micEnabled={micEnabled}
+              cameraEnabled={cameraEnabled}
+              isLiveSpeaker={localIsLiveSpeaker}
+              avatarSizeClass={CALL_TILE_AVATAR_SIZE_COMPACT}
+              className={spanClass}
+            />
+          );
+        }
+        const participant = participants[tileIdx - 1]!;
+        return (
+          <RemoteParticipantTile
+            key={participant.peer.peerId}
+            participant={participant}
+            className={spanClass}
+            avatarSizeClass={CALL_TILE_AVATAR_SIZE_COMPACT}
+            isLiveSpeaker={isLiveSpeakerOnTile(
+              liveSpeakerPeerId,
+              participant.peer.peerId,
+            )}
+            {...remoteKickProps}
+          />
+        );
+      }}
+    />
+  );
+}

@@ -7,8 +7,8 @@ export type NotificationItem = {
   type:
     | "connection_request_received"
     | "connection_request_accepted"
-    | "circle_invite_received"
-    | "circle_started";
+    | "space_invite_received"
+    | "space_started";
   entityType: "connection" | "room";
   entityId: string;
   title: string;

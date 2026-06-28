@@ -3,9 +3,8 @@
 import { ChevronDown } from "lucide-react";
 import type { RefObject } from "react";
 
-import type {
-  MatchPrepOptionRow,
-} from "@/features/profile-setup/types/profile-setup-api.types";
+import { Button } from "@/components/ui/button";
+import type { MatchPrepOptionRow } from "@/features/profile-setup/types/profile-setup-api.types";
 import { cn } from "@/lib/utils";
 import type {
   ConnectionPreferenceValue,
@@ -127,12 +126,14 @@ export function InterestsBlock({
       className="space-y-3 scroll-mt-4"
     >
       <div className="flex justify-start">
-        <button
+        <Button
           type="button"
+          variant="outline"
+          size="sm"
           onClick={onToggleOpen}
-          className="inline-flex cursor-pointer items-center gap-1 text-sm text-muted-foreground transition-colors hover:text-foreground"
+          className="gap-1.5 rounded-full"
         >
-          Select Interests
+          Select interests
           <ChevronDown
             aria-hidden
             className={cn(
@@ -140,7 +141,7 @@ export function InterestsBlock({
               open && "rotate-180",
             )}
           />
-        </button>
+        </Button>
       </div>
       {open && (
         <div className="space-y-2 rounded-xl bg-muted/10 py-1">

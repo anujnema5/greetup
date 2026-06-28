@@ -22,8 +22,8 @@ import { users } from "./users";
 export type RoomAdvancedOptions = {
   shouldHostStartMeeting?: boolean;
   shouldMeetingAutoStart?: boolean;
-  circleExpirationMinutes?: number | null;
-  deleteCircleAfterCall?: boolean;
+  spaceExpirationMinutes?: number | null;
+  deleteSpaceAfterCall?: boolean;
   hostControlsActiveSpeaker?: boolean;
 };
 
@@ -31,8 +31,8 @@ export function defaultRoomAdvancedOptions(): RoomAdvancedOptions {
   return {
     shouldHostStartMeeting: false,
     shouldMeetingAutoStart: true,
-    circleExpirationMinutes: null,
-    deleteCircleAfterCall: false,
+    spaceExpirationMinutes: null,
+    deleteSpaceAfterCall: false,
     hostControlsActiveSpeaker: false,
   };
 }
@@ -40,7 +40,7 @@ export function defaultRoomAdvancedOptions(): RoomAdvancedOptions {
 /**
  * `shouldMeetingAutoStart` and `shouldHostStartMeeting` are mutually exclusive.
  * After merging defaults with stored/partial JSON: auto-start on forces host-start off; then if the
- * host still opens the circle manually first, lazy auto-start is turned off. (Handles partial payloads like only
+ * host still opens the space manually first, lazy auto-start is turned off. (Handles partial payloads like only
  * `{ shouldMeetingAutoStart: true }` where the default would otherwise leave both implied on.)
  */
 export function applyMeetingStartExclusivity(opts: RoomAdvancedOptions): RoomAdvancedOptions {
@@ -63,7 +63,22 @@ export function mergeRoomAdvancedOptions(
   stored: RoomAdvancedOptions | null | undefined,
 ): RoomAdvancedOptions {
   const merged = { ...defaultRoomAdvancedOptions(), ...stored };
-  return applyMeetingStartExclusivity(merged);
+  const normalized: RoomAdvancedOptions = {
+    ...merged,
+    spaceExpirationMinutes: merged.spaceExpirationMinutes ?? null,
+    deleteSpaceAfterCall: merged.deleteSpaceAfterCall ?? false,
+  };
+  return applyMeetingStartExclusivity(normalized);
+}
+
+export function resolveSpaceExpirationMinutes(
+  opts: RoomAdvancedOptions,
+): number | null | undefined {
+  return opts.spaceExpirationMinutes;
+}
+
+export function resolveDeleteSpaceAfterCall(opts: RoomAdvancedOptions): boolean {
+  return opts.deleteSpaceAfterCall ?? false;
 }
 
 /**
@@ -88,43 +103,43 @@ export const roomCategories = pgTable(
   (table) => [index("room_categories_active_sort_idx").on(table.isActive, table.sortOrder)],
 );
 
-/** DB enum name kept as `circle_visibility` (see migrations). */
-export const roomVisibilityEnum = pgEnum("circle_visibility", [
+/** Postgres enum `room_visibility` (renamed from `circle_visibility` in migration 0032). */
+export const roomVisibilityEnum = pgEnum("room_visibility", [
   "private",
   "public",
 ]);
 
-export const roomStatusEnum = pgEnum("circle_status", [
+export const roomStatusEnum = pgEnum("room_status", [
   "scheduled",
   "live",
   "ended",
   "cancelled",
 ]);
 
-export const roomParticipantRoleEnum = pgEnum("circle_participant_role", [
+export const roomParticipantRoleEnum = pgEnum("room_participant_role", [
   "host",
   "participant",
 ]);
 
-export const roomFriendInviteStatusEnum = pgEnum("circle_friend_invite_status", [
+export const roomFriendInviteStatusEnum = pgEnum("room_friend_invite_status", [
   "pending",
   "accepted",
   "declined",
   "cancelled",
 ]);
 
-/** `direct` = 1:1-style; `circle` = group circle call. */
-export const roomTypeEnum = pgEnum("room_type", ["direct", "circle"]);
+/** `direct` = 1:1-style; `space` = group space call. */
+export const roomTypeEnum = pgEnum("room_type", ["direct", "space"]);
 
 /** Why this room exists — distinct from `room_type` (topology). */
 export const sessionKindEnum = pgEnum("session_kind", [
   "match",
   "connection_call",
-  "circle",
+  "space",
 ]);
 
 /**
- * Live call session: circle or direct (1:1). Category applies to circle-style rooms.
+ * Live call session: space or direct (1:1). Category applies to space-style rooms.
  */
 export const rooms = pgTable(
   "rooms",
@@ -169,7 +184,7 @@ export const rooms = pgTable(
       .notNull()
       .default(sql`'{}'::jsonb`),
 
-    roomType: roomTypeEnum("room_type").notNull().default("circle"),
+    roomType: roomTypeEnum("room_type").notNull().default("space"),
 
     sessionKind: sessionKindEnum("session_kind").notNull(),
 
