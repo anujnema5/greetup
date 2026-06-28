@@ -2,17 +2,21 @@
 
 import Link from "next/link";
 import { useMemo } from "react";
+import { useRouter } from "next/navigation";
 
 import { useMyConnections } from "@/features/connections/api/connections.queries";
 import { PeerContactActionIcons } from "@/features/connections/components/peer-contact-action-icons";
 import type { PeerContactTarget } from "@/features/connections/hooks/use-peer-contact-actions";
 import { usePeerContactActions } from "@/features/connections/hooks/use-peer-contact-actions";
 import type { ConnectionListItem } from "@/features/connections/types/connections-api.types";
+import { formatProfileHandle } from "@/features/app-shell/lib/page-header-account";
 import { profileAvatarGradientClass } from "@/features/profile/lib/profile-insights-display";
 import { OnlinePresenceDot, usePeersOnlineStatus } from "@/features/presence";
 import { getProfileImageUrl } from "@/lib/ui/profile-image";
 import { DASHBOARD_SECTIONS } from "@/lib/copy/user-messages";
 import { cn } from "@/lib/utils";
+
+import { DashboardSectionHeader } from "./dashboard-section-header";
 
 const RECENT_CONNECTIONS_PREVIEW_LIMIT = 3;
 
@@ -21,8 +25,8 @@ function connectionPeerLabel(item: ConnectionListItem): string {
 }
 
 function connectionPeerSubtitle(item: ConnectionListItem): string {
-  const username = item.peer.username?.trim();
-  return username ? `@${username}` : "Connected";
+  const handle = formatProfileHandle(item.peer.username);
+  return handle ?? "Connected";
 }
 
 function connectionToPeer(item: ConnectionListItem): PeerContactTarget {
@@ -108,7 +112,7 @@ function RecentConnectionRow({
   );
 
   return (
-    <div className="flex items-center gap-1.5 rounded-xl px-2 py-2.5 transition-colors duration-150 hover:bg-muted/60">
+    <div className="group flex items-center gap-1 rounded-lg px-1.5 py-1.5 transition-colors hover:bg-muted/60">
       {profileHref ? (
         <Link href={profileHref} className="flex min-w-0 flex-1 items-center gap-3">
           {profileBlock}
@@ -127,6 +131,7 @@ function RecentConnectionRow({
 }
 
 export function DashboardRecentConnectionsSection() {
+  const router = useRouter();
   const {
     startPeerCall,
     openPeerMessage,
@@ -157,30 +162,26 @@ export function DashboardRecentConnectionsSection() {
   const hasMore = (data?.hasMore ?? false) || connections.length > 0;
 
   return (
-    <div>
-      <div className="mb-3 flex items-center justify-between">
-        <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-          {DASHBOARD_SECTIONS.recentConnections.title}
-        </h3>
-        {hasMore ? (
-          <Link href="/connections" className="cursor-pointer text-xs text-muted-foreground transition-colors hover:text-primary hover:underline">
-            {DASHBOARD_SECTIONS.recentConnections.seeAll}
-          </Link>
-        ) : null}
-      </div>
+    <section>
+      <DashboardSectionHeader
+        variant="panel"
+        title={DASHBOARD_SECTIONS.recentConnections.title}
+        actionLabel={hasMore ? DASHBOARD_SECTIONS.recentConnections.seeAll : undefined}
+        onAction={hasMore ? () => router.push("/connections") : undefined}
+      />
 
       {loading ? (
-        <div className="flex flex-col gap-1">
+        <div className="flex flex-col gap-0.5">
           {Array.from({ length: 3 }).map((_, index) => (
             <ConnectionRowSkeleton key={index} />
           ))}
         </div>
       ) : connections.length === 0 ? (
-        <p className="px-2 py-3 text-xs text-muted-foreground">
+        <p className="rounded-xl border border-dashed border-border bg-muted/30 px-3 py-4 text-center text-xs leading-relaxed text-muted-foreground">
           {DASHBOARD_SECTIONS.recentConnections.empty}
         </p>
       ) : (
-        <div className="flex flex-col gap-1">
+        <div className="flex flex-col gap-0.5">
           {connections.map((item) => (
             <RecentConnectionRow
               key={item.connectionId}
@@ -194,6 +195,6 @@ export function DashboardRecentConnectionsSection() {
           ))}
         </div>
       )}
-    </div>
+    </section>
   );
 }

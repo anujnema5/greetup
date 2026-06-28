@@ -1,25 +1,33 @@
 "use client";
 
-import { NavSidebar, BottomNav, PageHeader } from "@/features/app-shell";
+import { useState } from "react";
+
+import { NavSidebar, BottomNav, AppTopbar, AppTopbarShell } from "@/features/app-shell";
 import { StartCircleModalProvider } from "@/features/circles";
 import { useDebouncedValue } from "@/lib/hooks/use-debounced-value";
 import { EXPLORE } from "@/lib/copy/user-messages";
 
 import { useSearchUsers } from "../api/user-search.queries";
-import { ExploreSearchField } from "../components/explore-search-field";
+import { ExploreFilterChips } from "../components/explore-filter-chips";
 import { ExplorePeopleLikeYouSection } from "../components/explore-people-like-you-section";
 import { ExploreUserSearchResults } from "../components/explore-user-search-results";
 import { ExploreBrowseNichesSection } from "../components/explore-browse-niches-section";
 import { ExploreNicheRoomsModal } from "../components/explore-niche-rooms-modal";
+import { ExploreTrendingSection } from "../components/explore-trending-section";
+import { ExplorePopularCirclesSection } from "../components/explore-popular-circles-section";
 import { useExploreBrowseNiches } from "../hooks/use-explore-browse-niches";
+import { useExploreCircles } from "../hooks/use-explore-circles";
 import { useExploreSearch } from "../hooks/use-explore-search";
 import { useExploreNicheRoomsModal } from "../hooks/use-explore-niche-rooms-modal";
 import { useExploreSuggestedPeople } from "../hooks/use-explore-suggested-people";
+import type { ExploreFilter } from "../types/explore-filter.types";
 
 const SEARCH_MIN_LENGTH = 2;
 const SEARCH_LIMIT = 15;
 
 export function ExplorePage() {
+  const [activeFilter, setActiveFilter] = useState<ExploreFilter>("for-you");
+
   const { niches: browseNiches, isLoading: nichesLoading, isError: nichesError, refetch: refetchNiches } =
     useExploreBrowseNiches();
 
@@ -57,74 +65,100 @@ export function ExplorePage() {
   const liveResults = searchData?.items ?? [];
 
   const trimmed = query.trim();
-  const showTopicsAndSuggested = trimmed === "";
+  const showDiscovery = trimmed === "";
   const showShortHint = trimmed.length === 1;
   const sectionTitle = canSearch
     ? `Results for "${debouncedQuery}"`
-    : showTopicsAndSuggested
-      ? EXPLORE.peopleLikeYou.title
+    : showDiscovery
+      ? EXPLORE.peopleToMeet.title
       : showShortHint
         ? "One more character…"
         : "Keep typing…";
 
+  const {
+    trending,
+    popular,
+    isLoading: circlesLoading,
+  } = useExploreCircles(activeFilter);
+
   return (
     <StartCircleModalProvider>
-    <div className="flex h-screen overflow-hidden bg-background">
-      <NavSidebar activePath="/explore" />
+      <div className="flex h-screen overflow-hidden bg-background">
+        <NavSidebar activePath="/explore" />
 
-      <main className="flex flex-1 flex-col overflow-y-auto pb-16 md:pb-0">
-        <PageHeader title="Explore" subtitle="Search people by username or name" />
-
-        <div className="flex flex-col gap-6 px-4 md:px-8 py-5">
-          <ExploreSearchField value={query} onChange={setQuery} />
-
-          {showTopicsAndSuggested && (
-            <ExploreBrowseNichesSection
-              niches={browseNiches}
-              isLoading={nichesLoading}
-              isError={nichesError}
-              onRetry={() => void refetchNiches()}
-              onSelectNiche={nicheModal.openForNiche}
+        <main className="flex min-w-0 flex-1 flex-col overflow-y-auto pb-16 md:pb-0">
+          <AppTopbarShell>
+            <AppTopbar
+              searchQuery={query}
+              onSearchQueryChange={setQuery}
+              showStartCircle
             />
-          )}
+          </AppTopbarShell>
 
-          <ExploreNicheRoomsModal
-            niche={nicheModal.selectedNiche}
-            open={nicheModal.open}
-            onOpenChange={(next) => {
-              if (!next) nicheModal.close();
-            }}
-            rooms={nicheModal.rooms}
-            isLoading={nicheModal.isLoading}
-            isLoadingMore={nicheModal.isLoadingMore}
-            isError={nicheModal.isError}
-            hasMore={nicheModal.hasMore}
-            onLoadMore={nicheModal.loadMore}
-          />
+          <div className="flex w-full flex-col gap-8 px-4 py-5 lg:px-8 lg:py-6">
+            <header className="space-y-1">
+              <h1 className="text-[26px] font-extrabold tracking-tight text-foreground">Explore</h1>
+              <p className="text-[15px] text-muted-foreground">{EXPLORE.pageSubtitle}</p>
+            </header>
 
-          <section>
+            {showDiscovery ? (
+              <ExploreFilterChips
+                activeFilter={activeFilter}
+                onFilterChange={setActiveFilter}
+                niches={browseNiches}
+              />
+            ) : null}
+
             {canSearch ? (
-              <>
-                <h2 className="text-sm font-semibold text-foreground">{sectionTitle}</h2>
-                <div className="mb-3" />
+              <section>
+                <h2 className="mb-3 text-base font-semibold tracking-tight text-foreground">
+                  {sectionTitle}
+                </h2>
                 <ExploreUserSearchResults
                   results={liveResults}
                   isLoading={isSearchLoading}
                   queryLabel={debouncedQuery}
                 />
+              </section>
+            ) : showDiscovery ? (
+              <>
+                <ExploreTrendingSection circles={trending} isLoading={circlesLoading} />
+
+                <ExplorePopularCirclesSection circles={popular} isLoading={circlesLoading} />
+
+                <ExploreBrowseNichesSection
+                  niches={browseNiches}
+                  isLoading={nichesLoading}
+                  isError={nichesError}
+                  onRetry={() => void refetchNiches()}
+                  onSelectNiche={nicheModal.openForNiche}
+                />
+
+                <ExplorePeopleLikeYouSection
+                  title={sectionTitle}
+                  subtitle={sectionSubtitle}
+                  hasUserInterests={hasUserInterests}
+                  hasLoadedData={hasLoadedData}
+                  isLoading={isSuggestedLoading}
+                  isError={isSuggestedError}
+                  showEmptyNoMatches={showEmptyNoMatches}
+                  people={filtered}
+                  canLoadMore={canLoadMore && !query.trim()}
+                  loadMoreSentinelRef={loadMoreSentinelRef}
+                  showEndMessage={showSuggestedEndMessage}
+                />
               </>
             ) : (
-              (showTopicsAndSuggested || showShortHint) && (
-                <>
-                  {showShortHint && (
-                    <p className="text-xs text-muted-foreground mb-3">
+              (showShortHint || trimmed.length > 0) && (
+                <section>
+                  {showShortHint ? (
+                    <p className="mb-3 text-xs text-muted-foreground">
                       Enter at least {SEARCH_MIN_LENGTH} characters to search the directory.
                     </p>
-                  )}
+                  ) : null}
 
                   <ExplorePeopleLikeYouSection
                     title={sectionTitle}
-                    subtitle={showTopicsAndSuggested ? sectionSubtitle : undefined}
                     hasUserInterests={hasUserInterests}
                     hasLoadedData={hasLoadedData}
                     isLoading={isSuggestedLoading}
@@ -135,15 +169,28 @@ export function ExplorePage() {
                     loadMoreSentinelRef={loadMoreSentinelRef}
                     showEndMessage={showSuggestedEndMessage}
                   />
-                </>
+                </section>
               )
             )}
-          </section>
-        </div>
-      </main>
+          </div>
+        </main>
 
-      <BottomNav activePath="/explore" />
-    </div>
+        <ExploreNicheRoomsModal
+          niche={nicheModal.selectedNiche}
+          open={nicheModal.open}
+          onOpenChange={(next) => {
+            if (!next) nicheModal.close();
+          }}
+          rooms={nicheModal.rooms}
+          isLoading={nicheModal.isLoading}
+          isLoadingMore={nicheModal.isLoadingMore}
+          isError={nicheModal.isError}
+          hasMore={nicheModal.hasMore}
+          onLoadMore={nicheModal.loadMore}
+        />
+
+        <BottomNav activePath="/explore" />
+      </div>
     </StartCircleModalProvider>
   );
 }

@@ -56,6 +56,10 @@ export const DASHBOARD_SECTIONS = {
   },
   changePreferences: "Change match preferences",
   startCircle: "Start a circle",
+  browseTopics: {
+    title: "Browse topics",
+    viewAll: "Explore all",
+  },
 } as const;
 
 export const RECENT_MATCHES = {
@@ -87,6 +91,15 @@ export const CIRCLES_HOME = {
 } as const;
 
 export const CONNECTIONS = {
+  pageSubtitle: "People you're connected with and pending requests.",
+  emptyDetailTitle: "Select a connection",
+  emptyDetailSubtitle: "Choose someone from your network to view their profile here.",
+  searchPlaceholder: "Search by name…",
+  sections: {
+    incoming: "Incoming requests",
+    outgoing: "Sent requests",
+    network: "Your network",
+  },
   requestActions: {
     connect: "Connect",
     sending: "Sending…",
@@ -98,6 +111,27 @@ export const CONNECTIONS = {
 } as const;
 
 export const EXPLORE = {
+  pageSubtitle: "Find live circles, meet new people, and follow what you're into.",
+  searchPlaceholder: "Search circles, people, and topics",
+  filterForYou: "For you",
+  filterLiveNow: "Live now",
+  trending: {
+    title: "Trending now",
+    viewAll: "View all",
+    empty: "No live circles trending right now. Start one or check back soon.",
+  },
+  popularCircles: {
+    title: "Popular circles",
+    viewAll: "View all",
+    empty: "No circles to show yet. Browse topics or start your own.",
+  },
+  peopleToMeet: {
+    title: "People to meet",
+    viewAll: "View all",
+  },
+  browseTopics: {
+    title: "Browse topics",
+  },
   browseNiches: {
     title: "Browse circles by niche",
     subtitle: "Live circles happening now and scheduled ones you can join",

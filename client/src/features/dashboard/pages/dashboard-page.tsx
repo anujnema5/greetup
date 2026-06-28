@@ -2,24 +2,18 @@
 
 import dynamic from "next/dynamic";
 import { useState } from "react";
-import { SlidersHorizontal } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { NavSidebar, BottomNav } from "@/features/app-shell";
+import { NavSidebar, BottomNav, AppTopbar, AppTopbarShell } from "@/features/app-shell";
 import { WelcomeTourLauncher } from "@/features/tour-guide";
-import { DASHBOARD_SECTIONS } from "@/lib/copy/user-messages";
 import { CirclesGrid, StartCircleModalProvider } from "@/features/circles";
-import { TOUR_TARGETS } from "@/features/tour-guide";
-import { DashboardHeader } from "../components/dashboard-header";
 import { HeroSection } from "../components/hero-section";
-// import { DashboardMatchQualityCard } from "../components/dashboard-match-quality-card";
+import { DashboardBrowseTopicsSection } from "../components/dashboard-browse-topics-section";
 import { useMatchPrepPromptStatus } from "@/features/profile-setup/api";
 import { MatchPrepDialog, useMatchmaking } from "@/features/matching";
 import { useMatchPrepClientSessionId } from "@/features/matching/hooks/use-match-prep-client-session-id";
 
-/** Side panel is desktop-only; load it in a separate chunk to keep the main dashboard bundle smaller. */
 const RightPanel = dynamic(
   () => import("../components/right-panel").then((m) => m.RightPanel),
-  { ssr: true }
+  { ssr: true },
 );
 
 export function DashboardPage() {
@@ -42,6 +36,11 @@ export function DashboardPage() {
   const [prepOpen, setPrepOpen] = useState(false);
   const [matchPrepMode, setMatchPrepMode] = useState<"match_flow" | "edit">("match_flow");
 
+  const openMatchPrep = (mode: "match_flow" | "edit") => {
+    setMatchPrepMode(mode);
+    setPrepOpen(true);
+  };
+
   return (
     <StartCircleModalProvider>
       <MatchPrepDialog
@@ -53,51 +52,31 @@ export function DashboardPage() {
       />
       <WelcomeTourLauncher blocked={prepOpen} />
       <div className="flex h-screen overflow-hidden bg-background">
-        <NavSidebar activePath="/" />
+        <NavSidebar activePath="/home" />
 
-        <main className="flex flex-1 flex-col overflow-y-auto pb-16 md:pb-0">
-          <DashboardHeader />
+        <main className="flex min-w-0 flex-1 flex-col overflow-y-auto pb-16 md:pb-0">
+          <AppTopbarShell>
+            <AppTopbar />
+          </AppTopbarShell>
 
-          <div className="flex flex-col gap-4 px-4 md:px-8 py-5">
+          <div className="flex w-full flex-col gap-6 px-4 py-5 lg:px-5 lg:py-6">
             <HeroSection
               appState={status}
               onRequestMatch={() => {
-                if (openPrepOnFindMatchClick) {
-                  setMatchPrepMode("match_flow");
-                  setPrepOpen(true);
-                } else handleFindMatch();
+                if (openPrepOnFindMatchClick) openMatchPrep("match_flow");
+                else handleFindMatch();
               }}
               onCancel={handleCancel}
+              onChangePreferences={() => openMatchPrep("edit")}
               error={error}
             />
-            <div className="flex justify-end px-0">
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                className="gap-2 rounded-full border-border text-xs"
-                data-tour-id={TOUR_TARGETS.changePreferences}
-                onClick={() => {
-                  setMatchPrepMode("edit");
-                  setPrepOpen(true);
-                }}
-              >
-                <SlidersHorizontal className="size-3.5 opacity-80" aria-hidden />
-                {DASHBOARD_SECTIONS.changePreferences}
-              </Button>
-            </div>
             <CirclesGrid />
-
-            {/* MVP: match quality card hidden on mobile too
-            <div className="lg:hidden">
-              <DashboardMatchQualityCard />
-            </div>
-            */}
+            <DashboardBrowseTopicsSection />
           </div>
         </main>
 
         <RightPanel />
-        <BottomNav activePath="/" />
+        <BottomNav activePath="/home" />
       </div>
     </StartCircleModalProvider>
   );

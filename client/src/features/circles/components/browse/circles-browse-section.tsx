@@ -32,14 +32,12 @@ export function CirclesBrowseSection({
   }
 
   return (
-    <section className="rounded-2xl border border-border/60 bg-card/30 p-4 md:p-5 shadow-sm backdrop-blur-sm">
+    <section className="rounded-2xl border border-border bg-card/40 p-4 md:p-5">
       <CirclesBrowseSectionHeader title={copy.title} description={copy.description} icon={Icon} />
       <ActiveCircleCardGrid
         items={items}
-        layout="responsive"
-        density="browse"
         renderBadge={renderBadge}
-        className="gap-4"
+        className="gap-3"
         {...cardHandlers}
       />
     </section>

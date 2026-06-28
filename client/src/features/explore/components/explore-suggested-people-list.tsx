@@ -1,14 +1,13 @@
 "use client";
 
 import type { RefObject } from "react";
-import { useMemo } from "react";
 
 import { usePeerConnectionRequestActions } from "@/features/connections/hooks/use-peer-connection-request-actions";
 import { usePeersOnlineStatus } from "@/features/presence";
 import { EXPLORE } from "@/lib/copy/user-messages";
 
 import type { SuggestedPersonItem } from "../types/suggested-people.types";
-import { ExploreSuggestedPersonRow } from "./explore-suggested-person-row";
+import { ExploreSuggestedPersonCard } from "./explore-suggested-person-card";
 
 type Props = {
   people: readonly SuggestedPersonItem[];
@@ -26,18 +25,18 @@ export function ExploreSuggestedPeopleList({
   const { getOutgoing, connect, withdraw, connectingUserId, withdrawingUserId } =
     usePeerConnectionRequestActions();
 
-  const peerIds = useMemo(() => people.map((p) => p.userId), [people]);
+  const peerIds = people.map((p) => p.userId);
   const { isOnline } = usePeersOnlineStatus(peerIds);
 
   return (
-    <div className="flex flex-col gap-2">
+    <div className="grid grid-cols-1 items-start gap-2 sm:grid-cols-2 lg:grid-cols-3">
       {people.map((person) => {
         const outgoing = getOutgoing(person.userId);
         const connectBusy = connectingUserId === person.userId;
         const withdrawBusy = withdrawingUserId === person.userId;
 
         return (
-          <ExploreSuggestedPersonRow
+          <ExploreSuggestedPersonCard
             key={person.userId}
             person={person}
             isOnline={isOnline(person.userId)}
@@ -60,15 +59,15 @@ export function ExploreSuggestedPeopleList({
 
       <div
         ref={loadMoreSentinelRef}
-        className="min-h-px"
+        className="col-span-full min-h-px"
         aria-hidden={!canLoadMore}
       />
 
-      {showEndMessage && (
-        <p className="text-center text-xs text-muted-foreground py-3">
+      {showEndMessage ? (
+        <p className="col-span-full py-2 text-center text-xs text-muted-foreground">
           {EXPLORE.peopleLikeYou.endOfList}
         </p>
-      )}
+      ) : null}
     </div>
   );
 }

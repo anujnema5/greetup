@@ -13,11 +13,9 @@ export function HeroOnlinePeopleBadge() {
   }
 
   return (
-    <div className="relative z-10 flex items-center gap-2 rounded-full border border-border bg-muted/40 px-4 py-2 backdrop-blur-sm">
-      <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-emerald-600 animate-pulse dark:bg-emerald-400" />
-      <span className="text-xs text-muted-foreground">
-        {DASHBOARD_HERO.onlineBadge(onlinePeopleCount)}
-      </span>
+    <div className="inline-flex items-center gap-2 rounded-full bg-success-muted/80 px-3 py-1 text-xs font-medium text-success-foreground">
+      <span className="dash-live-dot size-1.5 shrink-0 rounded-full bg-success" aria-hidden />
+      <span>{DASHBOARD_HERO.onlineBadge(onlinePeopleCount)}</span>
     </div>
   );
 }

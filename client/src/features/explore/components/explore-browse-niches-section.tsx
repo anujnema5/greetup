@@ -5,9 +5,9 @@ import { Loader2 } from "lucide-react";
 import { EXPLORE } from "@/lib/copy/user-messages";
 import { cn } from "@/lib/utils";
 
-import { nicheCardGradient } from "../constants/niche-card-gradients";
-import { formatNicheGroupCounts } from "../lib/browse-niche-display";
+import { formatTopicCircleCount } from "../lib/browse-niche-display";
 import type { BrowseNicheItem } from "../types/browse-niches.types";
+import { ExploreSectionHeader } from "./explore-section-header";
 
 type Props = {
   niches: readonly BrowseNicheItem[];
@@ -15,7 +15,73 @@ type Props = {
   isError: boolean;
   onRetry: () => void;
   onSelectNiche: (niche: BrowseNicheItem) => void;
+  hideHeader?: boolean;
 };
+
+function topicStatusLabel(niche: BrowseNicheItem): string {
+  if (niche.liveGroupCount > 0) {
+    return niche.liveGroupCount === 1 ? "1 live now" : `${niche.liveGroupCount} live now`;
+  }
+  return formatTopicCircleCount(niche);
+}
+
+function TopicTile({
+  niche,
+  onSelect,
+}: {
+  niche: BrowseNicheItem;
+  onSelect: (niche: BrowseNicheItem) => void;
+}) {
+  const isLive = niche.liveGroupCount > 0;
+
+  return (
+    <button
+      type="button"
+      onClick={() => onSelect(niche)}
+      className={cn(
+        "group flex w-full items-center gap-3 rounded-xl border border-border/70 bg-card p-3 text-left",
+        "transition-colors duration-150 hover:border-border hover:bg-muted/25",
+        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+      )}
+    >
+      <span
+        className={cn(
+          "flex size-10 shrink-0 items-center justify-center rounded-xl text-xl leading-none",
+          isLive ? "bg-primary/15" : "bg-muted/60",
+        )}
+        aria-hidden
+      >
+        {niche.emoji ?? "○"}
+      </span>
+
+      <span className="min-w-0 flex-1">
+        <span className="block truncate text-sm font-semibold text-foreground">
+          {niche.displayName}
+        </span>
+        <span
+          className={cn(
+            "mt-0.5 block truncate text-xs",
+            isLive ? "font-medium text-primary" : "text-muted-foreground",
+          )}
+        >
+          {topicStatusLabel(niche)}
+        </span>
+      </span>
+    </button>
+  );
+}
+
+function TopicSkeleton() {
+  return (
+    <div className="flex items-center gap-3 rounded-xl border border-border/70 bg-card p-3">
+      <div className="size-10 shrink-0 animate-pulse rounded-xl bg-muted" />
+      <div className="min-w-0 flex-1 space-y-1.5">
+        <div className="h-3.5 w-24 animate-pulse rounded bg-muted" />
+        <div className="h-3 w-16 animate-pulse rounded bg-muted" />
+      </div>
+    </div>
+  );
+}
 
 export function ExploreBrowseNichesSection({
   niches,
@@ -23,60 +89,47 @@ export function ExploreBrowseNichesSection({
   isError,
   onRetry,
   onSelectNiche,
+  hideHeader = false,
 }: Props) {
   if (!isLoading && !isError && niches.length === 0) {
     return null;
   }
 
+  const Wrapper = hideHeader ? "div" : "section";
+
   return (
-    <section>
-      <h2 className="text-sm font-semibold text-foreground">{EXPLORE.browseNiches.title}</h2>
-      <p className="text-xs text-muted-foreground mt-1 mb-3">{EXPLORE.browseNiches.subtitle}</p>
+    <Wrapper>
+      {hideHeader ? null : (
+        <ExploreSectionHeader
+          title={EXPLORE.browseTopics.title}
+          subtitle={EXPLORE.browseNiches.subtitle}
+        />
+      )}
 
       {isLoading ? (
-        <div className="flex h-24 items-center justify-center gap-2 text-sm text-muted-foreground">
-          <Loader2 className="size-4 animate-spin shrink-0" aria-hidden />
-          {EXPLORE.browseNiches.loading}
+        <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2 lg:grid-cols-3">
+          {Array.from({ length: 6 }).map((_, i) => (
+            <TopicSkeleton key={i} />
+          ))}
         </div>
       ) : isError ? (
-        <div className="rounded-xl border border-destructive/25 bg-destructive/5 px-3 py-3 text-sm">
+        <div className="rounded-xl border border-destructive/25 bg-destructive/5 px-4 py-3 text-sm">
           <p className="text-muted-foreground">{EXPLORE.browseNiches.error}</p>
           <button
             type="button"
             onClick={onRetry}
-            className="mt-2 text-xs font-semibold text-primary hover:underline cursor-pointer"
+            className="mt-2 cursor-pointer text-xs font-semibold text-primary hover:underline"
           >
             Retry
           </button>
         </div>
       ) : (
-        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-          {niches.map((niche, index) => (
-            <button
-              key={niche.id}
-              type="button"
-              onClick={() => onSelectNiche(niche)}
-              className={cn(
-                "group relative flex items-center gap-3 rounded-2xl bg-linear-to-br p-4 text-left overflow-hidden cursor-pointer transition-all duration-200 hover:scale-[1.02] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-                nicheCardGradient(index),
-              )}
-            >
-              <div className="absolute inset-0 bg-black/20 group-hover:bg-black/10 transition-colors" />
-              <span className="relative z-10 text-lg leading-none shrink-0" aria-hidden>
-                {niche.emoji ?? "○"}
-              </span>
-              <div className="relative z-10 min-w-0">
-                <p className="text-sm font-semibold text-white leading-tight truncate">
-                  {niche.displayName}
-                </p>
-                <p className="text-[11px] text-white/70 mt-1 leading-snug">
-                  {formatNicheGroupCounts(niche)}
-                </p>
-              </div>
-            </button>
+        <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2 lg:grid-cols-3">
+          {niches.map((niche) => (
+            <TopicTile key={niche.id} niche={niche} onSelect={onSelectNiche} />
           ))}
         </div>
       )}
-    </section>
+    </Wrapper>
   );
 }

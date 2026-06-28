@@ -15,8 +15,8 @@ function SkeletonBlock({ className }: { className?: string }) {
 /** Matches the page search input shell. */
 function ConnectionsSearchSkeleton() {
   return (
-    <div className="flex h-11 w-full items-center gap-3 rounded-xl border border-border bg-card px-3 shadow-sm">
-      <SkeletonBlock className="h-4 w-4 shrink-0 rounded-sm bg-muted dark:bg-muted/50" />
+    <div className="flex h-10 w-full items-center gap-3 rounded-xl border border-border/80 bg-background/60 px-3">
+      <SkeletonBlock className="size-4 shrink-0 rounded-sm bg-muted dark:bg-muted/50" />
       <SkeletonBlock className="h-3.5 w-[42%] max-w-40 rounded-md bg-muted/80 dark:bg-muted/40" />
     </div>
   );
@@ -25,19 +25,16 @@ function ConnectionsSearchSkeleton() {
 /** Same shell as a loaded connection card. */
 export function ConnectionRowSkeleton() {
   return (
-    <div className="flex flex-col gap-2 rounded-2xl border border-border bg-card px-4 py-3 shadow-sm">
-      <div className="flex min-w-0 items-center gap-3">
-        <SkeletonBlock className="h-10 w-10 shrink-0 rounded-full bg-muted dark:bg-muted/45" />
-        <div className="min-w-0 flex-1 space-y-2">
-          <SkeletonBlock className="h-3.5 w-28 max-w-[70%] bg-muted/85 dark:bg-muted/40" />
-          <SkeletonBlock className="h-3 w-16 max-w-[45%] bg-muted/75 dark:bg-muted/30" />
-        </div>
-        <div className="flex shrink-0 items-center gap-1.5">
-          {Array.from({ length: 3 }).map((_, i) => (
-            <SkeletonBlock key={i} className="h-8 w-8 rounded-lg bg-muted/80 dark:bg-muted/35" />
-          ))}
-        </div>
-        <SkeletonBlock className="h-8 w-17 shrink-0 rounded-xl bg-muted/80 dark:bg-muted/35" />
+    <div className="flex min-w-0 items-center gap-2 rounded-xl border border-border/70 bg-card px-3 py-2.5">
+      <div className="size-10 shrink-0 animate-pulse rounded-full bg-muted dark:bg-muted/45" />
+      <div className="min-w-0 flex-1 space-y-1.5">
+        <div className="h-3.5 w-28 max-w-[70%] animate-pulse rounded bg-muted/85 dark:bg-muted/40" />
+        <div className="h-3 w-16 max-w-[45%] animate-pulse rounded bg-muted/75 dark:bg-muted/30" />
+      </div>
+      <div className="flex shrink-0 items-center gap-1">
+        {Array.from({ length: 3 }).map((_, i) => (
+          <div key={i} className="size-7 animate-pulse rounded-lg bg-muted/80 dark:bg-muted/35" />
+        ))}
       </div>
     </div>
   );
@@ -65,7 +62,10 @@ export function ConnectionsListSkeleton({
     >
       {variant === "page" ? (
         <>
-          <SkeletonBlock className="h-3.5 w-28 bg-muted dark:bg-muted/45" />
+          <div className="flex gap-2">
+            <SkeletonBlock className="h-7 w-24 rounded-full bg-muted dark:bg-muted/45" />
+            <SkeletonBlock className="h-7 w-20 rounded-full bg-muted/85 dark:bg-muted/35" />
+          </div>
           <ConnectionsSearchSkeleton />
         </>
       ) : (

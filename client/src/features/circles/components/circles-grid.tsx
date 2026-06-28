@@ -2,10 +2,13 @@
 
 import { memo, useMemo } from "react";
 import { useRouter } from "next/navigation";
-import { ChevronRight } from "lucide-react";
+import { Orbit } from "lucide-react";
 
+import { Button } from "@/components/ui/button";
+import { SectionHeader } from "@/components/section-header";
 import { getApiErrorMessage } from "@/lib/api/fetch-client";
 import { TOUR_TARGETS } from "@/features/tour-guide";
+import { useStartCircleModal } from "../components/start-circle-modal-provider";
 import { useListActiveCircles } from "../api/circles.queries";
 import { CIRCLES_GRID_COPY } from "../constants/circles-browse-copy";
 import { useActiveCircleCardActions } from "../hooks/use-active-circle-card-actions";
@@ -13,14 +16,15 @@ import { useCircleListBadges } from "../hooks/use-circle-list-badges";
 import { dedupeCircles } from "../lib/dedupe-circles";
 import { CIRCLES_BROWSE_PATH } from "../lib/circles-browse-path";
 import {
-  ActiveCircleCardGrid,
-  ActiveCircleCardSkeletonGrid,
-} from "./active-circle-card";
+  HomeCircleCard,
+  HomeCircleCardSkeletonGrid,
+} from "./home-circle-card";
 
-const HOME_PREVIEW_LIMIT = 5;
+const HOME_PREVIEW_LIMIT = 4;
 
 function CirclesGridInner() {
   const router = useRouter();
+  const { openModal } = useStartCircleModal();
   const cardHandlers = useActiveCircleCardActions();
   const { data: apiData, isLoading, isError, error, isFetching } = useListActiveCircles();
 
@@ -38,52 +42,55 @@ function CirclesGridInner() {
   const goToBrowse = () => router.push(CIRCLES_BROWSE_PATH);
 
   return (
-    <div data-tour-id={TOUR_TARGETS.circlesGrid}>
-      <div className="flex items-center justify-between mb-3">
-        <div>
-          <h2 className="text-sm font-semibold text-foreground">{CIRCLES_GRID_COPY.title}</h2>
-          <p className="text-xs text-muted-foreground mt-0.5">{CIRCLES_GRID_COPY.subtitle}</p>
-        </div>
-        <button
-          type="button"
-          onClick={goToBrowse}
-          className="flex items-center gap-1 text-xs text-primary font-medium hover:underline cursor-pointer"
-        >
-          {CIRCLES_GRID_COPY.viewAll} <ChevronRight size={12} />
-        </button>
-      </div>
+    <section data-tour-id={TOUR_TARGETS.circlesGrid}>
+      <SectionHeader
+        title={CIRCLES_GRID_COPY.title}
+        actionLabel={CIRCLES_GRID_COPY.viewAll}
+        onAction={goToBrowse}
+      />
 
       {isError ? (
-        <p className="text-sm text-destructive py-6 text-center">
+        <p className="rounded-xl border border-destructive/30 bg-destructive/5 px-4 py-6 text-center text-sm text-destructive">
           {getApiErrorMessage(error, "Could not load active circles")}
         </p>
       ) : isLoading && !apiData ? (
-        <ActiveCircleCardSkeletonGrid count={HOME_PREVIEW_LIMIT} layout="scroll" />
+        <HomeCircleCardSkeletonGrid count={HOME_PREVIEW_LIMIT} />
       ) : !hasAny ? (
-        <p className="text-sm text-muted-foreground py-6 text-center">
-          {CIRCLES_GRID_COPY.emptyPrefix}{" "}
-          <button
-            type="button"
-            onClick={goToBrowse}
-            className="text-primary font-medium hover:underline cursor-pointer"
-          >
-            {CIRCLES_GRID_COPY.exploreLink}
-          </button>
-        </p>
+        <div className="flex flex-col items-center rounded-2xl border border-dashed border-border bg-muted/20 px-6 py-10 text-center">
+          <div className="mb-3 flex size-11 items-center justify-center rounded-full bg-primary/10 text-primary">
+            <Orbit className="size-5" aria-hidden />
+          </div>
+          <p className="text-sm font-medium text-foreground">{CIRCLES_GRID_COPY.emptyPrefix}</p>
+          <p className="mt-1 max-w-xs text-xs leading-relaxed text-muted-foreground">
+            Browse public circles or start your own hang.
+          </p>
+          <div className="mt-4 flex flex-wrap items-center justify-center gap-2">
+            <Button type="button" size="sm" variant="outline" className="rounded-full" onClick={goToBrowse}>
+              {CIRCLES_GRID_COPY.exploreLink}
+            </Button>
+            <Button type="button" size="sm" className="rounded-full" onClick={openModal}>
+              Start a circle
+            </Button>
+          </div>
+        </div>
       ) : (
         <>
-          <ActiveCircleCardGrid
-            items={previewItems}
-            layout="scroll"
-            renderBadge={badgeForCircle}
-            {...cardHandlers}
-          />
+          <div className="grid grid-cols-[repeat(auto-fill,minmax(240px,280px))] gap-3">
+            {previewItems.map((circle) => (
+              <HomeCircleCard
+                key={circle.id}
+                circle={circle}
+                badge={badgeForCircle(circle)}
+                {...cardHandlers}
+              />
+            ))}
+          </div>
           {isFetching && !isLoading ? (
-            <p className="text-[11px] text-muted-foreground text-center mt-2">Updating…</p>
+            <p className="mt-2 text-center text-[11px] text-muted-foreground">Updating…</p>
           ) : null}
         </>
       )}
-    </div>
+    </section>
   );
 }
 

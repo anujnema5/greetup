@@ -1,5 +1,7 @@
 import type { ProfileRecentMatch } from "@/features/profile/types/profile-insights.types";
 
+import { formatProfileHandle } from "@/features/app-shell/lib/page-header-account";
+
 const PROFILE_AVATAR_GRADIENTS = [
   "from-violet-400 to-indigo-600",
   "from-pink-400 to-rose-600",
@@ -24,7 +26,8 @@ export function recentMatchSecondaryLabel(match: {
   tagline: string | null;
 }): string {
   const username = match.username?.trim();
-  if (username) return `@${username}`;
+  const handle = formatProfileHandle(username);
+  if (handle) return handle;
 
   const tagline = match.tagline?.trim();
   if (tagline && tagline.length <= RECENT_MATCH_TAGLINE_MAX) return tagline;
@@ -32,14 +35,49 @@ export function recentMatchSecondaryLabel(match: {
   return "Met on Greetup";
 }
 
+/** Sidebar rows: time only — name is the primary line; skip noisy handles. */
+export function recentMatchSidebarLabel(
+  match: Pick<ProfileRecentMatch, "username" | "tagline" | "matchedAt">,
+): string {
+  const when = formatRecentMatchShort(match.matchedAt);
+  if (when) return when;
+
+  const handle = formatProfileHandle(match.username);
+  if (handle) return handle;
+
+  const tagline = match.tagline?.trim();
+  if (tagline && tagline.length <= RECENT_MATCH_TAGLINE_MAX) return tagline;
+
+  return "Recent match";
+}
+
 /** Sidebar / home preview: @handle plus when you matched (full history, not connections-only). */
 export function recentMatchHistoryLabel(match: Pick<ProfileRecentMatch, "username" | "tagline" | "matchedAt">): string {
   const when = formatRecentMatchDate(match.matchedAt);
-  const username = match.username?.trim();
-  if (username && when) return `@${username} · ${when}`;
-  if (username) return `@${username}`;
+  const handle = formatProfileHandle(match.username);
+  if (handle && when) return `${handle} · ${when}`;
+  if (handle) return handle;
   if (when) return `Matched ${when}`;
   return recentMatchSecondaryLabel(match);
+}
+
+/** Compact relative time for dashboard match cards (e.g. "2m ago", "3h ago"). */
+export function formatRecentMatchShort(iso: string): string {
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) return "";
+
+  const diffMs = Date.now() - date.getTime();
+  const diffMin = Math.floor(diffMs / (1000 * 60));
+  if (diffMin < 1) return "Just now";
+  if (diffMin < 60) return `${diffMin}m ago`;
+
+  const diffHours = Math.floor(diffMin / 60);
+  if (diffHours < 24) return `${diffHours}h ago`;
+
+  const diffDays = Math.floor(diffHours / 24);
+  if (diffDays < 7) return `${diffDays}d ago`;
+
+  return formatRecentMatchDate(iso);
 }
 
 export function formatRecentMatchDate(iso: string): string {

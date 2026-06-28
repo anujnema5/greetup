@@ -7,7 +7,7 @@ import type { BrowseNicheItem } from "../types/browse-niches.types";
 const HIDDEN_NICHE_SLUGS = new Set(["match", "connection_call", "connection-call"]);
 
 function normalizeCategorySlug(slug: string): string {
-  return slug.trim().toLowerCase().replace(/-/g, "_");
+  return slug.trim().toLowerCase().replace(/-/g, "_").replace(/\s+/g, "_");
 }
 
 export function isBrowseNichePickable(slug: string): boolean {
@@ -20,6 +20,15 @@ export function filterBrowseNiches(niches: readonly BrowseNicheItem[]): BrowseNi
 
 export function formatNicheGroupCounts(niche: Pick<BrowseNicheItem, "liveGroupCount" | "scheduledGroupCount">): string {
   return EXPLORE.browseNiches.groupCounts(niche.liveGroupCount, niche.scheduledGroupCount);
+}
+
+/** Short label for topic tiles (e.g. "12 circles"). */
+export function formatTopicCircleCount(
+  niche: Pick<BrowseNicheItem, "liveGroupCount" | "scheduledGroupCount">,
+): string {
+  const total = niche.liveGroupCount + niche.scheduledGroupCount;
+  if (total === 0) return "No circles yet";
+  return total === 1 ? "1 circle" : `${total} circles`;
 }
 
 export function partitionNicheRooms(rooms: readonly ActiveCircleItem[]) {

@@ -50,7 +50,7 @@ export function CirclesBrowseView() {
           <CirclesBrowseTabsList />
 
           {browse.isLoading && !browse.hasLoadedOnce ? (
-            <div className="rounded-2xl border border-border/50 bg-card/20 p-4 md:p-5">
+            <div className="rounded-2xl border border-border bg-card/40 p-4 md:p-5">
               <ActiveCircleCardSkeletonGrid count={6} />
             </div>
           ) : browse.isEmpty ? (

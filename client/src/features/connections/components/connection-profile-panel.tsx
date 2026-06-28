@@ -1,9 +1,10 @@
 "use client";
 
-import { X, User } from "lucide-react";
+import { Users, X } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { PublicProfileContent } from "@/features/user-profile/components/public-profile-content";
+import { CONNECTIONS } from "@/lib/copy/user-messages";
 import { cn } from "@/lib/utils";
 
 type ConnectionProfilePanelProps = {
@@ -20,7 +21,7 @@ export function ConnectionProfilePanel({
   return (
     <div
       className={cn(
-        "flex min-h-0 min-w-0 flex-1 flex-col",
+        "flex min-h-0 min-w-0 flex-1 flex-col bg-background",
         "animate-in fade-in slide-in-from-right-3 duration-300",
         className,
       )}
@@ -34,7 +35,7 @@ export function ConnectionProfilePanel({
           type="button"
           variant="ghost"
           size="icon"
-          className="shrink-0 rounded-xl"
+          className="shrink-0 rounded-xl text-muted-foreground hover:text-foreground"
           onClick={onClose}
           aria-label="Close profile panel"
         >
@@ -42,7 +43,7 @@ export function ConnectionProfilePanel({
         </Button>
       </div>
 
-      <div className="min-h-0 flex-1 overflow-y-auto px-4 py-5 md:px-6">
+      <div className="min-h-0 flex-1 overflow-y-auto px-5 py-5 md:px-6">
         <PublicProfileContent
           key={username}
           username={username}
@@ -65,12 +66,12 @@ export function ConnectionProfileEmptyState({ className }: { className?: string 
       )}
     >
       <div className="flex size-14 items-center justify-center rounded-2xl bg-primary/10 text-primary shadow-inner shadow-primary/5">
-        <User className="size-7 opacity-90" strokeWidth={1.75} />
+        <Users className="size-7 opacity-90" strokeWidth={1.75} />
       </div>
       <div className="space-y-1">
-        <p className="text-sm font-medium text-foreground">Select a connection</p>
+        <p className="text-sm font-medium text-foreground">{CONNECTIONS.emptyDetailTitle}</p>
         <p className="mx-auto max-w-[260px] text-xs text-muted-foreground">
-          Click someone in your network to view their profile here.
+          {CONNECTIONS.emptyDetailSubtitle}
         </p>
       </div>
     </div>

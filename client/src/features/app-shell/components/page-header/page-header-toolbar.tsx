@@ -1,23 +1,21 @@
 "use client";
 
 import { memo } from "react";
-import { Bell, LogOut, Settings, User } from "lucide-react";
+import { Bell } from "lucide-react";
 
 import {
   DropdownMenu,
   DropdownMenuContent,
-  DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { formatNotificationTime } from "@/features/notifications/utils/notification-ui";
 
-import { usePageHeaderAccount } from "../../hooks/use-page-header-account";
 import { usePageHeaderNotifications } from "../../hooks/use-page-header-notifications";
+import { PageHeaderAccountMenu } from "./page-header-account-menu";
 
 function PageHeaderToolbarInner() {
-  const account = usePageHeaderAccount();
   const notifications = usePageHeaderNotifications();
 
   return (
@@ -80,49 +78,7 @@ function PageHeaderToolbarInner() {
         </DropdownMenuContent>
       </DropdownMenu>
 
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <button
-            type="button"
-            aria-label="Open profile menu"
-            className="h-9 w-9 shrink-0 cursor-pointer overflow-hidden rounded-xl bg-muted/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
-          >
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={account.avatarSrc} alt="Profile" className="h-full w-full object-cover" />
-          </button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="end" sideOffset={8} className="w-56">
-          <DropdownMenuLabel className="space-y-0.5">
-            <p className="truncate text-sm font-medium text-foreground">
-              {account.displayName || "My Account"}
-            </p>
-            {account.accountSubtitle ? (
-              <p className="truncate text-xs font-normal text-muted-foreground">
-                {account.accountSubtitle}
-              </p>
-            ) : null}
-          </DropdownMenuLabel>
-          <DropdownMenuSeparator />
-          <DropdownMenuItem className="cursor-pointer" onClick={account.onGoToProfile}>
-            <User className="text-current" />
-            View profile
-          </DropdownMenuItem>
-          <DropdownMenuItem className="cursor-pointer" onClick={account.onGoToSettings}>
-            <Settings className="text-current" />
-            Settings
-          </DropdownMenuItem>
-          <DropdownMenuSeparator />
-          <DropdownMenuItem
-            className="cursor-pointer"
-            variant="destructive"
-            disabled={account.isSigningOut}
-            onClick={() => void account.onLogout()}
-          >
-            <LogOut className="text-current" />
-            {account.isSigningOut ? "Logging out..." : "Logout"}
-          </DropdownMenuItem>
-        </DropdownMenuContent>
-      </DropdownMenu>
+      <PageHeaderAccountMenu />
     </>
   );
 }
