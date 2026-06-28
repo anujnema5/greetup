@@ -14,6 +14,7 @@ export { DashboardOpenNowSection } from "./components/dashboard-open-now-section
 export { DashboardOpenNowSidebarSection } from "./components/dashboard-open-now-sidebar-section";
 export { ExploreOpenNowSection } from "./components/explore-open-now-section";
 export { OpenToConnectInboundSection } from "./components/open-to-connect-inbound-section";
+export { OpenToConnectInboundBridge } from "./components/open-to-connect-inbound-bridge";
 export { OpenToConnectRealtimeBridge } from "./components/open-to-connect-realtime-bridge";
 export { OpenToConnectEnableDialog } from "./components/open-to-connect-enable-dialog";
 export { OpenToConnectPostNoMatchDialog } from "./components/open-to-connect-post-no-match-dialog";

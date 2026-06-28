@@ -10,7 +10,7 @@ import { useOpenNowFeedInfinite } from "../api/open-to-connect.queries";
 import { usePendingOutboundByTargetUserId } from "../api/connect-requests.queries";
 import {
   OPEN_NOW_BROWSE_GRID_CLASS,
-  OPEN_NOW_HOME_PREVIEW_LIMIT,
+  OPEN_NOW_EXPLORE_PREVIEW_LIMIT,
 } from "../constants/open-now.constants";
 import { OpenNowEmptyStateIcon } from "../components/open-now-empty-state-icon";
 import { OpenNowFilterChips } from "../components/open-now-filter-chips";
@@ -78,7 +78,7 @@ export function OpenNowPage() {
     return () => observer.disconnect();
   }, [hasNextPage, loadMore, people.length, activeFilter]);
 
-  const showEndMessage = !isLoading && people.length > OPEN_NOW_HOME_PREVIEW_LIMIT && !hasNextPage;
+  const showEndMessage = !isLoading && people.length > OPEN_NOW_EXPLORE_PREVIEW_LIMIT && !hasNextPage;
 
   return (
     <div className="flex h-screen overflow-hidden bg-background">

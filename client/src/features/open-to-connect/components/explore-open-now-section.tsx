@@ -10,8 +10,8 @@ import { ExploreSectionHeader } from "@/features/explore/components/explore-sect
 import { useOpenNowFeed } from "../api/open-to-connect.queries";
 import { usePendingOutboundByTargetUserId } from "../api/connect-requests.queries";
 import {
-  OPEN_NOW_HOME_GRID_CLASS,
-  OPEN_NOW_HOME_PREVIEW_LIMIT,
+  OPEN_NOW_EXPLORE_GRID_CLASS,
+  OPEN_NOW_EXPLORE_PREVIEW_LIMIT,
 } from "../constants/open-now.constants";
 import { OpenNowEmptyStateIcon } from "./open-now-empty-state-icon";
 import { OpenNowPersonCard, OpenNowPersonCardSkeleton } from "./open-now-person-card";
@@ -28,11 +28,11 @@ export function ExploreOpenNowSection() {
 
   const allPeople = data?.items ?? [];
 
-  const people = allPeople.slice(0, OPEN_NOW_HOME_PREVIEW_LIMIT);
+  const people = allPeople.slice(0, OPEN_NOW_EXPLORE_PREVIEW_LIMIT);
 
   const showSeeAll =
 
-    allPeople.length > OPEN_NOW_HOME_PREVIEW_LIMIT || Boolean(data?.nextCursor) || allPeople.length > 0;
+    allPeople.length > OPEN_NOW_EXPLORE_PREVIEW_LIMIT || Boolean(data?.nextCursor) || allPeople.length > 0;
 
 
 
@@ -54,9 +54,9 @@ export function ExploreOpenNowSection() {
 
       {isLoading ? (
 
-        <div className={OPEN_NOW_HOME_GRID_CLASS}>
+        <div className={OPEN_NOW_EXPLORE_GRID_CLASS}>
 
-          {Array.from({ length: OPEN_NOW_HOME_PREVIEW_LIMIT }).map((_, index) => (
+          {Array.from({ length: OPEN_NOW_EXPLORE_PREVIEW_LIMIT }).map((_, index) => (
 
             <OpenNowPersonCardSkeleton key={index} />
 
@@ -84,7 +84,7 @@ export function ExploreOpenNowSection() {
 
       ) : (
 
-        <div className={OPEN_NOW_HOME_GRID_CLASS}>
+        <div className={OPEN_NOW_EXPLORE_GRID_CLASS}>
 
           {people.map((person) => (
 

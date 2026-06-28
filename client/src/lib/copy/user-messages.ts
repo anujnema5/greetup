@@ -206,6 +206,11 @@ export const OPEN_TO_CONNECT = {
     decline: "Decline",
     accepting: "Accepting…",
     declining: "Declining…",
+    modalTitle: "Connect request",
+    modalDescription: "Someone found you on Open now and wants to connect.",
+    modalHint: "You'll join a room together when you accept.",
+    modalRequestNote: "Their note",
+    expired: "Connect request expired",
   },
   toast: {
     requestSent: "Request sent",

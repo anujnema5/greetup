@@ -19,10 +19,12 @@ import {
   CONNECT_REQUEST_TTL_MS,
 } from "../constants";
 import { connectRequestsRepository } from "../repositories/connect-requests.repository";
+import { buildConnectRequesterPreview } from "./build-connect-requester-preview.service";
 import { otcRedisIndexService } from "./otc-redis-index.service";
 import { provisionOpenToConnectRoom } from "./provision-otc-room.service";
 import { otcSocketService } from "./otc-socket.service";
 import type { CreateConnectRequestBody } from "../schemas/connect-request.schema";
+import type { ConnectRequesterPreviewDto } from "./build-connect-requester-preview.service";
 
 export type ConnectRequestPeerDto = {
   userId: string;
@@ -41,6 +43,7 @@ export type ConnectRequestItemDto = {
   respondedAt: string | null;
   roomId: string | null;
   peer: ConnectRequestPeerDto;
+  requesterPreview?: ConnectRequesterPreviewDto;
 };
 
 async function assertUserNotBusy(userId: string, label: string): Promise<void> {
@@ -111,6 +114,7 @@ function toConnectRequestItemDto(
     targetUserId: string;
   },
   peer: ConnectRequestPeerDto,
+  requesterPreview?: ConnectRequesterPreviewDto,
 ): ConnectRequestItemDto {
   return {
     id: row.id,
@@ -121,6 +125,7 @@ function toConnectRequestItemDto(
     respondedAt: row.respondedAt?.toISOString() ?? null,
     roomId: row.roomId,
     peer,
+    ...(requesterPreview ? { requesterPreview } : {}),
   };
 }
 
@@ -189,6 +194,8 @@ export async function createConnectRequestService(
     throw new AppError("User not found", 404, "NOT_FOUND");
   }
 
+  const requesterPreview = await buildConnectRequesterPreview(requesterUserId, targetUserId);
+
   otcSocketService.emitRequestReceived(targetUserId, {
     requestId: row.id,
     requesterUserId,
@@ -197,6 +204,11 @@ export async function createConnectRequestService(
     requesterImage: requester.image,
     message,
     expiresAt: expiresAt.toISOString(),
+    headline: requesterPreview.headline,
+    activities: requesterPreview.activities,
+    lookingFor: requesterPreview.lookingFor,
+    profession: requesterPreview.profession,
+    sharedInterests: requesterPreview.sharedInterests,
   });
 
   return toConnectRequestItemDto(row, target);
@@ -208,13 +220,15 @@ export async function listInboundConnectRequestsService(
   const rows = await connectRequestsRepository.listInboundPending(targetUserId);
   const peerIds = rows.map((row) => row.requesterUserId);
   const peers = await loadPeersByUserIds(peerIds);
-  return rows
-    .map((row) => {
+  const results = await Promise.all(
+    rows.map(async (row) => {
       const peer = peers.get(row.requesterUserId);
       if (!peer) return null;
-      return toConnectRequestItemDto(row, peer);
-    })
-    .filter((row): row is ConnectRequestItemDto => row !== null);
+      const requesterPreview = await buildConnectRequesterPreview(row.requesterUserId, targetUserId);
+      return toConnectRequestItemDto(row, peer, requesterPreview);
+    }),
+  );
+  return results.filter((row): row is ConnectRequestItemDto => row !== null);
 }
 
 export async function listOutboundConnectRequestsService(

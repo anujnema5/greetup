@@ -3,7 +3,6 @@
 import { useEffect, useTransition } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { useQueryClient } from "@tanstack/react-query";
-import { toast } from "sonner";
 
 import { stashSpaceRoomBootstrap } from "@/features/matching/lib/space-room-bootstrap";
 import { prefetchRoomDetail } from "@/features/room/api/room.queries";
@@ -12,7 +11,6 @@ import { setRoomReturnPath } from "@/features/room";
 import { spaceRoomPath } from "@/features/room/lib/navigation/space-routes";
 import { useSocket } from "@/lib/socket";
 import { queryKeys } from "@/lib/query/keys";
-import { OPEN_TO_CONNECT } from "@/lib/copy/user-messages";
 
 import type {
   OtcRequestReceivedSocketPayload,
@@ -43,11 +41,6 @@ export function OpenToConnectRealtimeBridge() {
 
     const onRequestReceived = (payload?: OtcRequestReceivedSocketPayload) => {
       invalidate();
-      if (payload?.requesterUsername) {
-        toast.message(OPEN_TO_CONNECT.toast.incoming, {
-          description: `@${payload.requesterUsername}`,
-        });
-      }
     };
 
     const onRequestResponded = (payload?: OtcRequestRespondedSocketPayload) => {

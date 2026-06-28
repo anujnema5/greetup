@@ -2,6 +2,8 @@ import { emitToUser } from "@/core/socket/socket";
 
 import type { OpenToConnectActivityTagDto } from "../types";
 
+import type { OpenToConnectActivityTagDto } from "../types";
+
 export type OtcRequestReceivedPayload = {
   requestId: string;
   requesterUserId: string;
@@ -10,6 +12,11 @@ export type OtcRequestReceivedPayload = {
   requesterImage: string | null;
   message: string | null;
   expiresAt: string;
+  headline: string | null;
+  activities: OpenToConnectActivityTagDto[];
+  lookingFor: string[];
+  profession: string | null;
+  sharedInterests: string[];
 };
 
 export type OtcRequestRespondedPayload = {
