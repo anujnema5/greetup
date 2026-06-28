@@ -26,6 +26,9 @@ function isActivityActive(searchingIntent: MatchIntent | null) {
   return searchingIntent === "activity";
 }
 
+const actionButtonClass =
+  "flex w-full cursor-pointer items-center gap-3 rounded-2xl border border-border/70 bg-card p-3.5 text-left transition-colors duration-150 hover:border-border hover:bg-muted/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/30 disabled:cursor-not-allowed disabled:opacity-60";
+
 export function HeroActionCards({
   isSearching,
   searchingIntent,
@@ -62,13 +65,7 @@ export function HeroActionCards({
         aria-label={
           quickIsSwitch ? "Switch to quick match" : quickActive ? "Quick match in progress" : "Quick match"
         }
-        className={cn(
-          "flex w-full cursor-pointer items-center gap-3 rounded-2xl border border-border/70 bg-card p-3.5 text-left transition-colors duration-150",
-          "hover:border-border hover:bg-muted/30",
-          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/30",
-          "disabled:cursor-not-allowed disabled:opacity-60",
-          quickActive && "border-primary/20 bg-primary/5",
-        )}
+        className={cn(actionButtonClass, quickActive && "border-primary/20 bg-primary/5")}
       >
         <span
           className={cn(
@@ -108,13 +105,7 @@ export function HeroActionCards({
               ? "Activity match in progress"
               : "Match by activity"
         }
-        className={cn(
-          "flex w-full cursor-pointer items-center gap-3 rounded-2xl border border-border/70 bg-card p-3.5 text-left transition-colors duration-150",
-          "hover:border-border hover:bg-muted/30",
-          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/30",
-          "disabled:cursor-not-allowed disabled:opacity-60",
-          activityActive && "border-primary/20 bg-primary/5",
-        )}
+        className={cn(actionButtonClass, activityActive && "border-primary/20 bg-primary/5")}
       >
         <span
           className={cn(
@@ -148,12 +139,7 @@ export function HeroActionCards({
         disabled={spaceDisabled || spaceLoading || modeSwitchBusy}
         onClick={onStartSpace}
         aria-label="Start a space"
-        className={cn(
-          "flex w-full cursor-pointer items-center gap-3 rounded-2xl border border-border/70 bg-card p-3.5 text-left transition-colors duration-150",
-          "hover:border-border hover:bg-muted/30",
-          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/30",
-          "disabled:cursor-not-allowed disabled:opacity-60",
-        )}
+        className={actionButtonClass}
       >
         <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-secondary/15 text-secondary-foreground dark:text-[oklch(82%_0.08_100)]">
           {spaceLoading ? (

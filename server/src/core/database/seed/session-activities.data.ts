@@ -138,7 +138,7 @@ export const SESSION_ACTIVITY_SEED: SessionActivitySeedRow[] = [
     isActive: true,
     allowInMatchPrep: true,
     allowInSpace: true,
-    detailRequired: true,
+    detailRequired: false,
   },
   {
     name: "media_chat",

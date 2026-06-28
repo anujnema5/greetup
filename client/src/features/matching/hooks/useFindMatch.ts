@@ -14,6 +14,7 @@ import {
   messageForNoMatch,
   messageForProposalCancelled,
 } from './find-match-messages';
+import { shouldOfferOpenToConnectAfterNoMatch } from '@/features/open-to-connect/lib/should-offer-open-after-no-match';
 import { runSerialized } from './find-match-queue';
 import {
   clearMatchAttemptLocal,
@@ -46,6 +47,10 @@ export function useFindMatch() {
   const [respondBusy, setRespondBusy] = useState(false);
   /** True after our Connect succeeded until `match:completed` or proposal ends. */
   const [waitingForPeerConnect, setWaitingForPeerConnect] = useState(false);
+  /** Set when a search ends with no_match and the Open to Connect offer should show. */
+  const [noMatchOfferReason, setNoMatchOfferReason] = useState<string | null>(null);
+  /** Keeps search suggestions visible briefly after no_match (even if offer modal is dismissed). */
+  const [noMatchSuggestionContext, setNoMatchSuggestionContext] = useState(false);
 
   const { mutateAsync: findMatch, isPending: isStarting } = useFindMatchMutation();
   const { mutateAsync: cancelMatch } = useCancelMatchMutation();
@@ -68,6 +73,31 @@ export function useFindMatch() {
       requestIdRef.current === attemptId || readStoredMatchAttemptId() === attemptId,
     [],
   );
+
+  const dismissNoMatchOffer = useCallback(() => {
+    setNoMatchOfferReason(null);
+    setStatus('idle');
+    setError(null);
+  }, []);
+
+  const applyNoMatchOutcome = useCallback((reason: string | undefined) => {
+    clearMatchAttemptLocal(proposalPeerIdRef, requestIdRef);
+    setWaitingForPeerConnect(false);
+    setResult(null);
+
+    if (shouldOfferOpenToConnectAfterNoMatch(reason)) {
+      setNoMatchOfferReason(reason ?? 'no_match');
+      setNoMatchSuggestionContext(true);
+      setStatus('idle');
+      setError(null);
+      return;
+    }
+
+    const message = messageForNoMatch(reason ?? 'no_match');
+    setStatus('error');
+    setError(message);
+    toast.error(message);
+  }, []);
 
   const applyProposedFromServer = useCallback(
     (
@@ -93,6 +123,8 @@ export function useFindMatch() {
         setError(null);
         setErrorCode(null);
         setWaitingForPeerConnect(false);
+        setNoMatchOfferReason(null);
+        setNoMatchSuggestionContext(false);
 
         const res = await findMatch();
         const {
@@ -105,10 +137,14 @@ export function useFindMatch() {
         } = res;
 
         if (engineStatus === 'no_match') {
-          const message = messageForFailedStart(reason);
-          setStatus('error');
-          setError(message);
-          toast.error(message);
+          if (shouldOfferOpenToConnectAfterNoMatch(reason)) {
+            applyNoMatchOutcome(reason);
+          } else {
+            const message = messageForFailedStart(reason);
+            setStatus('error');
+            setError(message);
+            toast.error(message);
+          }
           return;
         }
 
@@ -132,7 +168,7 @@ export function useFindMatch() {
         toast.error(message);
       }
     });
-  }, [findMatch]);
+  }, [findMatch, applyNoMatchOutcome]);
 
   findAMatchRef.current = findAMatch;
 
@@ -201,12 +237,7 @@ export function useFindMatch() {
       const stored = readStoredMatchAttemptId();
       if (stored === null) return;
       if (data.attemptId !== stored && requestIdRef.current !== data.attemptId) return;
-      clearMatchAttemptLocal(proposalPeerIdRef, requestIdRef);
-      setWaitingForPeerConnect(false);
-      setStatus('error');
-      const message = messageForNoMatch(data.reason);
-      setError(message);
-      toast.error(message);
+      applyNoMatchOutcome(data.reason);
     };
 
     const onProposalCancelled = (data: MatchProposalCancelledPayload) => {
@@ -246,7 +277,7 @@ export function useFindMatch() {
       socket.off('match:no_match', onMatchNoMatch);
       socket.off('match:proposal_cancelled', onProposalCancelled);
     };
-  }, [socket, applies, applyProposedFromServer]);
+  }, [socket, applies, applyProposedFromServer, applyNoMatchOutcome]);
 
   const cancelSearch = async () => {
     try {
@@ -256,6 +287,8 @@ export function useFindMatch() {
     }
     clearMatchAttemptLocal(proposalPeerIdRef, requestIdRef);
     setWaitingForPeerConnect(false);
+    setNoMatchOfferReason(null);
+    setNoMatchSuggestionContext(false);
     setStatus('idle');
     setResult(null);
     setError(null);
@@ -311,5 +344,8 @@ export function useFindMatch() {
     isLoading: isStarting || status === 'searching' || respondBusy,
     respondBusy,
     waitingForPeerConnect,
+    noMatchOfferReason,
+    noMatchSuggestionContext,
+    dismissNoMatchOffer,
   };
 }

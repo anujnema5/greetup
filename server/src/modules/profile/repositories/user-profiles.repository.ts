@@ -104,6 +104,10 @@ export const userProfilesRepository = {
             lastActiveAt: true,
             updatedAt: true,
             matchIntent: true,
+            openToConnect: true,
+            openToConnectUpdatedAt: true,
+            openToConnectSource: true,
+            openToConnectHeadline: true,
           },
           with: {
             moods: {

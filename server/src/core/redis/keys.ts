@@ -4,6 +4,19 @@ export const USER_PRESENCE_KEYS = {
   USER_LAST_SEEN: "user:last_seen:",
 } as const;
 
+/** Open to Connect discovery index (separate from matching pool). */
+export const OPEN_TO_CONNECT_KEYS = {
+  ONLINE: "otc:online",
+  user: (userId: string) => `otc:user:${userId}`,
+  activity: (activityId: string) => `otc:activity:${activityId}`,
+  interest: (interestId: string) => `otc:interest:${interestId}`,
+  pendingInbound: (targetUserId: string) => `otc:pending:${targetUserId}`,
+  recentNoMatch: (userId: string) => `otc:recent-no-match:${userId}`,
+} as const;
+
+/** Refreshed on presence heartbeat while user is open. */
+export const OPEN_TO_CONNECT_USER_TTL_SEC = 120;
+
 export const USER_CACHE_KEYS = {
   PROFILE_SNAPSHOT: "user:profile:snapshot:",
 } as const;

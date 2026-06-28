@@ -11,6 +11,8 @@ import { useDashboardGreeting } from "../hooks/use-dashboard-greeting";
 import { useDashboardInsights } from "../hooks/use-dashboard-insights";
 import { HeroActionCards } from "./hero-action-cards";
 import { HeroOnlinePeopleBadge } from "./hero-online-people-badge";
+import { HeroOpenToConnectCard } from "@/features/open-to-connect/components/hero-open-to-connect-card";
+import { SearchOpenNowSuggestions } from "@/features/open-to-connect/components/search-open-now-suggestions";
 
 function HeroSectionInner({
   appState,
@@ -21,6 +23,8 @@ function HeroSectionInner({
   onCancel,
   onChangePreferences,
   error,
+  showSearchSuggestions = false,
+  searchSuggestionsImmediate = false,
 }: {
   appState: "idle" | "searching" | "proposed" | "matched" | "error";
   searchingIntent: "quick" | "activity" | null;
@@ -30,6 +34,8 @@ function HeroSectionInner({
   onCancel: () => void;
   onChangePreferences: () => void;
   error?: string | null;
+  showSearchSuggestions?: boolean;
+  searchSuggestionsImmediate?: boolean;
 }) {
   const { openModal, categoriesLoading, isOpen } = useStartSpaceModal();
   const { title } = useDashboardGreeting();
@@ -48,8 +54,8 @@ function HeroSectionInner({
 
   return (
     <section className="rounded-2xl border border-border bg-hero-card-surface">
-      <div className="grid gap-5 p-4 sm:p-5 lg:grid-cols-[minmax(0,1fr)_300px] lg:items-start lg:gap-7 xl:grid-cols-[minmax(0,1fr)_320px]">
-        <div className="min-w-0 space-y-3.5">
+      <div className="grid gap-5 p-4 sm:p-5 lg:grid-cols-[minmax(0,1fr)_minmax(300px,400px)] lg:items-start lg:gap-7">
+        <div className="min-w-0 space-y-3">
           <HeroOnlinePeopleBadge />
 
           <div>
@@ -73,21 +79,27 @@ function HeroSectionInner({
           </div>
 
           {!isSearching && !isProposed ? (
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              className="gap-2 self-start rounded-full border-primary/25 bg-primary/10 px-4 py-2 text-sm font-medium text-tertiary-foreground hover:bg-primary/15 hover:text-tertiary-foreground"
-              data-tour-id={TOUR_TARGETS.changePreferences}
-              onClick={onChangePreferences}
-            >
-              <SlidersHorizontal className="size-4 shrink-0 opacity-90" aria-hidden />
-              {DASHBOARD_SECTIONS.changePreferences}
-            </Button>
+            <>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="gap-2 self-start rounded-full border-primary/25 bg-primary/10 px-4 py-2 text-sm font-medium text-tertiary-foreground hover:bg-primary/15 hover:text-tertiary-foreground"
+                data-tour-id={TOUR_TARGETS.changePreferences}
+                onClick={onChangePreferences}
+              >
+                <SlidersHorizontal className="size-4 shrink-0 opacity-90" aria-hidden />
+                {DASHBOARD_SECTIONS.changePreferences}
+              </Button>
+
+              <div className="max-w-md pt-1">
+                <HeroOpenToConnectCard variant="inline" disabled={false} />
+              </div>
+            </>
           ) : null}
         </div>
 
-        <div className="flex w-full flex-col gap-2.5 lg:pt-1">
+        <div className="flex w-full min-w-0 flex-col gap-2.5 lg:pt-1">
           <HeroActionCards
             isSearching={isSearching}
             searchingIntent={searchingIntent}
@@ -115,6 +127,11 @@ function HeroSectionInner({
               {DASHBOARD_HERO.cancelSearch}
             </Button>
           ) : null}
+
+          <SearchOpenNowSuggestions
+            active={showSearchSuggestions}
+            immediate={searchSuggestionsImmediate}
+          />
 
           {appState === "error" && error ? (
             <p className="text-center text-xs text-destructive">{error}</p>

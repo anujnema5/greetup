@@ -1,4 +1,4 @@
-import { Home, Search, Users, Orbit, MessagesSquare, User, type LucideIcon } from "lucide-react";
+import { Home, Compass, Users, Orbit, MessagesSquare, User, type LucideIcon } from "lucide-react";
 
 import { SPACES_BROWSE_PATH } from "@/features/spaces/lib/spaces-browse-path";
 
@@ -14,8 +14,8 @@ export type NavItem = {
 
 export const NAV_ITEMS: NavItem[] = [
   { icon: Home, label: "Home", href: "/home" },
+  { icon: Compass, label: "Explore", href: "/explore" },
   { icon: Orbit, label: "Spaces", href: SPACES_BROWSE_PATH },
-  { icon: Search, label: "Explore", href: "/explore" },
   { icon: Users, label: "Connections", href: "/connections", badgeId: "connectionsPending" },
   { icon: MessagesSquare, label: "Messages", href: "/messages", badgeId: "messagesUnread" },
   { icon: User, label: "Profile", href: "/profile" },

@@ -6,6 +6,8 @@ import logger from "@/core/logging";
 import { getRedis } from "@/core/redis";
 import { ROOM_KEYS, ROOM_TTL } from "@/core/redis/keys";
 import { clearUserActiveRtcRoom } from "@/modules/rooms/services/rtc/user-active-rtc-room-redis.service";
+import { markRecentNoMatchForSuggestions } from "@/modules/open-to-connect/services/otc-recent-no-match.service";
+import { isEligibleNoMatchReasonForSuggestions } from "@/modules/open-to-connect/lib/search-suggestions-eligibility";
 import { ensureProfileSnapshotCached } from "@/modules/user/services/profile-snapshot-cache.service";
 import {
   createRoomBodySchema,
@@ -1042,6 +1044,10 @@ export const handleMatchFailed = async (c: Context) => {
     logger.info("[handleMatchFailed] webhook received — emitting match:no_match to user", { attemptId, userId, reason });
 
     await clearUserActiveRtcRoom(userId);
+
+    if (isEligibleNoMatchReasonForSuggestions(reason)) {
+      await markRecentNoMatchForSuggestions(userId, reason);
+    }
 
     emitToUser(userId, "match:no_match", { attemptId, reason });
 

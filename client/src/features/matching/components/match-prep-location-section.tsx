@@ -72,7 +72,7 @@ export function MatchPrepLocationSection({
   locationError,
 }: MatchPrepLocationSectionProps) {
   return (
-    <section className="space-y-2 py-1">
+    <section className="space-y-2">
       <div className="flex items-center justify-between gap-3">
         <div>
           <p className={sectionLabelClass}>Location-based search</p>

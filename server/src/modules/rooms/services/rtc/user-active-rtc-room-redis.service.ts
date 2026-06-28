@@ -15,6 +15,18 @@ export async function setUserActiveRtcRoom(userId: string, roomId: string): Prom
   } catch (err) {
     logger.warn("setUserActiveRtcRoom failed", { userId, err: String(err) });
   }
+
+  try {
+    const { pauseOpenToConnectForRoom } = await import(
+      "@/modules/open-to-connect/services/open-to-connect.service"
+    );
+    await pauseOpenToConnectForRoom(userId);
+  } catch (err) {
+    logger.warn("pauseOpenToConnectForRoom after setUserActiveRtcRoom failed", {
+      userId,
+      err: String(err),
+    });
+  }
 }
 
 export async function getUserActiveRtcRoomId(userId: string): Promise<string | null> {
@@ -61,6 +73,18 @@ export async function clearUserActiveRtcRoom(userId: string): Promise<void> {
     await getRedis().del(activeRtcRoomKey(userId));
   } catch (err) {
     logger.warn("clearUserActiveRtcRoom failed", { userId, err: String(err) });
+  }
+
+  try {
+    const { restoreOpenToConnectAfterRoom } = await import(
+      "@/modules/open-to-connect/services/open-to-connect.service"
+    );
+    await restoreOpenToConnectAfterRoom(userId);
+  } catch (err) {
+    logger.warn("restoreOpenToConnectAfterRoom after clearUserActiveRtcRoom failed", {
+      userId,
+      err: String(err),
+    });
   }
 }
 

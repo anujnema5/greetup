@@ -5,6 +5,7 @@ import { useState, useCallback, useEffect } from "react";
 import { NavSidebar, BottomNav, AppSearchTopbar } from "@/features/app-shell";
 import { WelcomeTourLauncher } from "@/features/tour-guide";
 import { SpacesGrid, StartSpaceModalProvider } from "@/features/spaces";
+import { DashboardOpenNowSection } from "@/features/open-to-connect";
 import { HeroSection } from "../components/hero-section";
 import { DashboardBrowseTopicsSection } from "../components/dashboard-browse-topics-section";
 import { useMatchPrepPromptStatus, useMatchPrepCurrent } from "@/features/profile-setup/api";
@@ -17,7 +18,7 @@ const RightPanel = dynamic(
 );
 
 export function DashboardPage() {
-  const { status, error, handleFindMatch, handleCancel } = useMatchmaking();
+  const { status, error, handleFindMatch, handleCancel, noMatchSuggestionContext } = useMatchmaking();
   const clientSessionId = useMatchPrepClientSessionId();
   const {
     data: promptStatus,
@@ -133,8 +134,11 @@ export function DashboardPage() {
               onCancel={handleCancel}
               onChangePreferences={() => openMatchPrep("edit")}
               error={error}
+              showSearchSuggestions={status === "searching" || noMatchSuggestionContext}
+              searchSuggestionsImmediate={noMatchSuggestionContext}
             />
             <SpacesGrid />
+            <DashboardOpenNowSection />
             <DashboardBrowseTopicsSection />
           </div>
         </main>

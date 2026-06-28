@@ -112,6 +112,15 @@ export const DASHBOARD_SECTIONS = {
 
   changePreferences: "Change match preferences",
 
+  openNow: {
+    title: "Open now",
+    empty: "No one is open right now. Try going open yourself — recommended so the best people can find you.",
+    badge: "Open to connect",
+    seeAll: "See all",
+    sharedInterests: (count: number) =>
+      count === 1 ? "1 shared interest" : `${count} shared interests`,
+  },
+
   startSpace: "Start a space",
 
   browseTopics: {
@@ -182,6 +191,75 @@ export const SPACES_HOME = {
 
 
 
+export const OPEN_TO_CONNECT = {
+  requestActions: {
+    request: "Request to connect",
+    sending: "Sending…",
+    pending: "Request sent",
+    cancel: "Cancel",
+    cancelling: "Cancelling…",
+  },
+  inbound: {
+    title: "Requests to connect",
+    empty: "No pending requests.",
+    accept: "Accept",
+    decline: "Decline",
+    accepting: "Accepting…",
+    declining: "Declining…",
+  },
+  toast: {
+    requestSent: "Request sent",
+    requestFailed: "Could not send request",
+    accepted: "Connected — joining room",
+    declined: "Request declined",
+    incoming: "Someone wants to connect",
+    enabled: "You're open — people can find you even when you're not searching",
+    enableFailed: "Could not go open",
+    disabled: "You're no longer discoverable",
+    disableFailed: "Could not turn off discovery",
+  },
+  enable: {
+    title: "Let people find me",
+    recommendedBadge: "Recommended",
+    subtitle:
+      "People can find you even when you're not searching — so the best matches can reach out to you.",
+    activeTitle: "You're open",
+    activeSubtitle:
+      "Not searching, but people can still find you and send a connect request.",
+    pausedInRoomSubtitle: "Hidden while you're in a call — you'll be discoverable again when you leave.",
+    turnOff: "Turn off",
+    setUp: "Set up & go open",
+    dialogTitle: "Let people find me",
+    dialogDescription:
+      "Stay discoverable while you're online — even when you're not actively searching. Recommended to help us surface the best people for you.",
+    dialogHighlight:
+      "This is passive discovery, not a search. You won't be queued for random matching.",
+    headlineLabel: "Open line (optional)",
+    headlinePlaceholder: "e.g. Quick chat, brainstorm, or hang out",
+    enable: "Go open",
+    enabling: "Going open…",
+    disabling: "Turning off…",
+    activitiesLabel: "Activities to show (optional)",
+  },
+  postNoMatch: {
+    title: "No one available right now",
+    description:
+      "Recommended: let people find you even when you're not searching — the best matches often reach out to you.",
+    prefillHint: "We'll show these on your card — adjust if you like.",
+    noActivities: "You can still go open. Others will see your profile in Open now.",
+    stayOpen: "Let people find me",
+    notNow: "Not now",
+    enabling: "Going open…",
+  },
+  searchFallback: {
+    title: "These people are open",
+    subtitle: "No match yet — send a connect request. Your search keeps running.",
+    empty: "No one open who fits right now.",
+  },
+} as const;
+
+
+
 export const CONNECTIONS = {
 
   pageSubtitle: "People you're connected with and pending requests.",
@@ -218,6 +296,19 @@ export const CONNECTIONS = {
 
   },
 
+} as const;
+
+
+
+export const OPEN_NOW_PAGE = {
+  title: "Open now",
+  subtitle: "People open to connect right now — ranked for you.",
+  filterAll: "All",
+  filterAria: "Filter open people",
+  empty: "No one is open right now. Try going open on Home so the best people can find you too.",
+  error: "Could not load open people. Try again in a moment.",
+  loadingMore: "Loading more…",
+  end: "That's everyone open right now.",
 } as const;
 
 
@@ -269,6 +360,16 @@ export const EXPLORE = {
     title: "People to meet",
 
     viewAll: "View all",
+
+  },
+
+  openNow: {
+
+    title: "Open now",
+
+    empty: "Nobody is open right now. On Home, try going open yourself — recommended so the best people can find you.",
+
+    error: "Could not load open people. Try again in a moment.",
 
   },
 

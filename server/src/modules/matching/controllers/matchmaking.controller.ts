@@ -11,8 +11,7 @@ import {
 import { getMatchPeerPreview } from "../services/match-peer-preview.service";
 import { ensureUserBlocksSyncedForMatching } from "@/modules/blocks/services/block-user.service";
 import { assertGuestReadyForMatchSearch } from "@/modules/guest";
-import {
-  assertMatchPrepReadyForSearch,
+import { assertMatchPrepReadyForSearch,
   MatchPrepNotReadyError,
 } from "@/modules/profile/services/match-prep.service";
 import logger from "@/core/logging";

@@ -86,6 +86,21 @@ export const API_ENDPOINTS = {
   PRESENCE: {
     ONLINE_PEOPLE_COUNT: "/presence/online-people-count",
   },
+  OPEN_TO_CONNECT: {
+    ME: "/open-to-connect/me",
+    FEED: "/open-to-connect/feed",
+    SIDEBAR: "/open-to-connect/sidebar",
+    SUGGESTIONS_FOR_SEARCH: "/open-to-connect/suggestions-for-search",
+    ENABLE: "/open-to-connect/enable",
+    DISABLE: "/open-to-connect/disable",
+  },
+  CONNECT_REQUESTS: {
+    CREATE: "/connect-requests",
+    INBOUND: "/connect-requests/inbound",
+    OUTBOUND: "/connect-requests/outbound",
+    respond: (id: string) => `/connect-requests/${encodeURIComponent(id)}/respond` as const,
+    cancel: (id: string) => `/connect-requests/${encodeURIComponent(id)}/cancel` as const,
+  },
   SPACES: {
     CATEGORIES: "/spaces/categories",
     ACTIVITY_OPTIONS: "/spaces/activity-options",

@@ -6,6 +6,7 @@ import { NavSidebar, BottomNav, AppSearchTopbar, PageContentHeader } from "@/fea
 import { StartSpaceModalProvider } from "@/features/spaces";
 import { EXPLORE } from "@/lib/copy/user-messages";
 
+import { ExploreOpenNowSection } from "@/features/open-to-connect";
 import { ExploreFilterChips } from "../components/explore-filter-chips";
 import { ExplorePeopleLikeYouSection } from "../components/explore-people-like-you-section";
 import { ExploreBrowseNichesSection } from "../components/explore-browse-niches-section";
@@ -79,6 +80,8 @@ export function ExplorePage() {
               onRetry={() => void refetchNiches()}
               onSelectNiche={nicheModal.openForNiche}
             />
+
+            <ExploreOpenNowSection />
 
             <ExplorePeopleLikeYouSection
               title={EXPLORE.peopleToMeet.title}

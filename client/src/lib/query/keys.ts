@@ -95,4 +95,17 @@ export const queryKeys = {
     status: ['guest-try', 'status'] as const,
     signupContext: ['guest-try', 'signup-context'] as const,
   },
+  openToConnect: {
+    all: ['open-to-connect'] as const,
+    me: ['open-to-connect', 'me'] as const,
+    feed: (args: { activityId?: string; interestId?: string }) =>
+      ['open-to-connect', 'feed', args.activityId ?? '', args.interestId ?? ''] as const,
+    feedInfinite: (args: { activityId?: string; interestId?: string }) =>
+      ['open-to-connect', 'feed-infinite', args.activityId ?? '', args.interestId ?? ''] as const,
+    sidebar: (args: { activityId?: string; interestId?: string }) =>
+      ['open-to-connect', 'sidebar', args.activityId ?? '', args.interestId ?? ''] as const,
+    inboundRequests: ['open-to-connect', 'connect-requests', 'inbound'] as const,
+    outboundRequests: ['open-to-connect', 'connect-requests', 'outbound'] as const,
+    searchSuggestions: ['open-to-connect', 'search-suggestions'] as const,
+  },
 } as const;

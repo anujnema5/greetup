@@ -16,6 +16,7 @@ import { ConnectionRealtimeBridge } from "@/features/connections";
 import { NotificationsRealtimeBridge } from "@/features/notifications";
 import { ChatRealtimeBridges } from "@/features/chat/components/chat-realtime-bridges";
 import { ConnectionCallBridge } from "@/features/connection-call";
+import { OpenToConnectRealtimeBridge } from "@/features/open-to-connect";
 import { TourGuideProvider } from "@/features/tour-guide";
 
 export function RealtimeProviders({ children }: { children: React.ReactNode }) {
@@ -27,6 +28,7 @@ export function RealtimeProviders({ children }: { children: React.ReactNode }) {
           <OnDirectExpandedToSpace />
           <ChessSocketBridge />
           <ConnectionCallBridge />
+          <OpenToConnectRealtimeBridge />
           <NotificationsRealtimeBridge />
           <ConnectionRealtimeBridge />
           <ChatRealtimeBridges />

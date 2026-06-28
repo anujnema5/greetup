@@ -5,6 +5,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { API_ENDPOINTS } from '@/lib/api';
 import { API_BASE_URL } from '@/shared/constants/environments';
 import { setRtcTokenInCache } from '@/features/rtc/lib/rtc-token-cache';
+import { queryKeys } from '@/lib/query/keys';
 
 import { invalidateSpacesCaches } from '@/features/spaces/lib/invalidate-spaces-cache';
 import {
@@ -30,6 +31,10 @@ import {
 
 const { MATCHING, ROOM } = API_ENDPOINTS;
 
+function invalidateOpenToConnectMe(qc: ReturnType<typeof useQueryClient>) {
+  void qc.invalidateQueries({ queryKey: queryKeys.openToConnect.me });
+}
+
 /** Fire-and-forget for tab close / refresh; session cookie identifies the user. */
 export function leaveRoomKeepalive(): void {
   if (typeof window === 'undefined') return;
@@ -53,6 +58,8 @@ export function leaveSpaceRtcKeepalive(roomId: string): void {
 }
 
 export function useLeaveRoom() {
+  const qc = useQueryClient();
+
   return useMutation({
     mutationFn: (arg?: { roomId?: string } | void) =>
       roomApiVoid(MATCHING.LEAVE_ROOM, {
@@ -62,6 +69,9 @@ export function useLeaveRoom() {
             ? JSON.stringify({ roomId: arg.roomId })
             : undefined,
       }),
+    onSuccess: () => {
+      invalidateOpenToConnectMe(qc);
+    },
   });
 }
 
@@ -81,6 +91,7 @@ export function useJoinRoom() {
     onSuccess: (data, roomId) => {
       if (data.rtc?.token) {
         setRtcTokenInCache(roomId, data.rtc, qc);
+        invalidateOpenToConnectMe(qc);
       }
     },
   });
@@ -118,6 +129,7 @@ export function useLeaveSpaceRtc() {
       roomApiVoid(ROOM.leaveSpaceRtc(roomId), { method: 'POST' }, 'Could not leave space RTC'),
     onSuccess: (_result, roomId) => {
       invalidateRoomAfterRtcSessionChange(qc, roomId);
+      invalidateOpenToConnectMe(qc);
     },
   });
 }
@@ -134,6 +146,7 @@ export function useHostEndSpaceForEveryone() {
       ),
     onSuccess: (_result, roomId) => {
       invalidateRoomAfterRtcSessionChange(qc, roomId);
+      invalidateOpenToConnectMe(qc);
     },
   });
 }

@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef } from "react";
-import { Monitor, Sparkles } from "lucide-react";
+import { Monitor, Star } from "lucide-react";
 import type { ScreenShareTileInfo } from "@/features/rtc/types/mediasoup-room.types";
 import { useAttachMediaStream } from "@/features/room/hooks/media/use-attach-media-stream";
 import { hasLiveVideo, mediaStreamVideoAttachRevision } from "@/features/rtc";
@@ -101,7 +101,7 @@ function SharedScreenChooserRow({
         >
           {onStage ? (
             <>
-              <Sparkles size={12} className="shrink-0" />
+              <Star size={12} className="shrink-0" />
               On main stage
             </>
           ) : (

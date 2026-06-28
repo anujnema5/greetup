@@ -7,6 +7,7 @@ import { ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ProgressBar } from "@/components/ui/progress-bar";
 import { formatProfileHandle } from "@/features/app-shell/lib/page-header-account";
+import { useClientMounted } from "@/features/app-shell/hooks/use-client-mounted";
 import { usePageHeaderAccount } from "@/features/app-shell/hooks/use-page-header-account";
 import { useMyProfile } from "@/features/profile-setup/api";
 import { getProfileImageUrl } from "@/lib/ui/profile-image";
@@ -17,13 +18,14 @@ import { useDashboardInsights } from "../hooks/use-dashboard-insights";
 const PROFILE_COMPLETE_AT = 80;
 
 function DashboardProfileCardInner() {
+  const mounted = useClientMounted();
   const account = usePageHeaderAccount();
   const { data: profile } = useMyProfile();
   const { heroStats, isLoading } = useDashboardInsights();
 
-  const handle = formatProfileHandle(profile?.username);
-  const displayName = account.displayName || "Your profile";
-  const profilePhoto = profile?.photos?.[0]?.url?.trim();
+  const handle = mounted ? formatProfileHandle(profile?.username) : null;
+  const displayName = mounted ? account.displayName || "Your profile" : "Your profile";
+  const profilePhoto = mounted ? profile?.photos?.[0]?.url?.trim() : undefined;
   const avatarSrc = profilePhoto ? getProfileImageUrl(profilePhoto) : account.avatarSrc;
   const completionRaw = heroStats.profileCompletion;
   const completion =

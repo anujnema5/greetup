@@ -4,8 +4,8 @@ import { memo } from "react";
 import { TOUR_TARGETS } from "@/features/tour-guide";
 
 import { DashboardActiveNowSection } from "./dashboard-active-now-section";
+import { DashboardOpenNowSidebarSection, OpenToConnectInboundSection } from "@/features/open-to-connect";
 import { DashboardProfileCard } from "./dashboard-profile-card";
-import { DashboardRecentConnectionsSection } from "./dashboard-recent-connections-section";
 import { DashboardRecentMatchesSection } from "./dashboard-recent-matches-section";
 
 function RightPanelInner() {
@@ -19,9 +19,10 @@ function RightPanelInner() {
       </div>
 
       <div className="app-scrollbar flex min-h-0 flex-1 flex-col gap-6 overflow-y-auto p-4">
+        <OpenToConnectInboundSection />
+        <DashboardOpenNowSidebarSection />
         <DashboardActiveNowSection />
         <DashboardRecentMatchesSection />
-        <DashboardRecentConnectionsSection />
       </div>
     </aside>
   );

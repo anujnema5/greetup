@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import { CalendarClock, Loader2, Mic, MicOff, Radio, Sparkles, Video, VideoOff } from "lucide-react";
+import { CalendarClock, Loader2, Mic, MicOff, Radio, Video, VideoOff } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -124,7 +124,7 @@ export function SpaceLobbyOverlay({
       <div className="relative mx-auto flex w-full max-w-lg flex-1 flex-col justify-center gap-6 px-4 py-10 sm:px-6 sm:py-12">
         <div className="flex flex-col items-center gap-2 text-center">
           <Badge variant="outline" className="gap-1 border-primary/25 bg-primary/5 px-3 py-1 text-[11px] font-semibold tracking-wide text-primary uppercase">
-            <Sparkles className="size-3" aria-hidden />
+            <Radio className="size-3" aria-hidden />
             Lobby
           </Badge>
           <p className="text-xs text-muted-foreground">

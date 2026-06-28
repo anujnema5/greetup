@@ -39,6 +39,9 @@ export function useAppMatchFlow() {
     errorCode,
     respondBusy,
     waitingForPeerConnect,
+    noMatchOfferReason,
+    noMatchSuggestionContext,
+    dismissNoMatchOffer,
   } = useFindMatch();
 
   useEffect(() => {
@@ -102,5 +105,8 @@ export function useAppMatchFlow() {
     respondToProposal,
     respondBusy,
     waitingForPeerConnect,
+    noMatchOfferReason,
+    noMatchSuggestionContext,
+    dismissNoMatchOffer,
   };
 }

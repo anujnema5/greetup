@@ -8,6 +8,7 @@ import {
 } from "react";
 import { useAppMatchFlow } from "../hooks/use-app-match-flow";
 import { MatchFoundDialog } from "../components/match-found-dialog";
+import { OpenToConnectPostNoMatchDialog } from "@/features/open-to-connect/components/open-to-connect-post-no-match-dialog";
 
 type AppMatchFlow = ReturnType<typeof useAppMatchFlow>;
 
@@ -23,6 +24,9 @@ export type MatchmakingContextValue = Pick<
   | "respondToProposal"
   | "respondBusy"
   | "waitingForPeerConnect"
+  | "noMatchOfferReason"
+  | "noMatchSuggestionContext"
+  | "dismissNoMatchOffer"
 >;
 
 const MatchmakingContext = createContext<MatchmakingContextValue | null>(null);
@@ -54,6 +58,9 @@ export function MatchmakingProvider({ children }: { children: ReactNode }) {
       respondToProposal: matchFlow.respondToProposal,
       respondBusy: matchFlow.respondBusy,
       waitingForPeerConnect: matchFlow.waitingForPeerConnect,
+      noMatchOfferReason: matchFlow.noMatchOfferReason,
+      noMatchSuggestionContext: matchFlow.noMatchSuggestionContext,
+      dismissNoMatchOffer: matchFlow.dismissNoMatchOffer,
     }),
     [
       matchFlow.status,
@@ -66,10 +73,14 @@ export function MatchmakingProvider({ children }: { children: ReactNode }) {
       matchFlow.respondToProposal,
       matchFlow.respondBusy,
       matchFlow.waitingForPeerConnect,
+      matchFlow.noMatchOfferReason,
+      matchFlow.noMatchSuggestionContext,
+      matchFlow.dismissNoMatchOffer,
     ],
   );
 
   const isProposalDialogOpen = matchFlow.status === "proposed";
+  const isPostNoMatchOfferOpen = matchFlow.noMatchOfferReason != null;
 
   return (
     <MatchmakingContext.Provider value={contextValue}>
@@ -83,6 +94,12 @@ export function MatchmakingProvider({ children }: { children: ReactNode }) {
         onSkip={() => void matchFlow.respondToProposal("skip")}
         onConnect={() => void matchFlow.respondToProposal("connect")}
         onCancelSearch={matchFlow.handleCancel}
+      />
+      <OpenToConnectPostNoMatchDialog
+        open={isPostNoMatchOfferOpen}
+        onOpenChange={(open) => {
+          if (!open) matchFlow.dismissNoMatchOffer();
+        }}
       />
       {children}
     </MatchmakingContext.Provider>

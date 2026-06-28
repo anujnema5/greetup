@@ -15,13 +15,16 @@ export const dialogShellClass = cn(
   "rounded-2xl border-border bg-card p-0 shadow-xl sm:max-w-lg",
 );
 
+export const dialogSectionPxClass = "px-5 sm:px-6";
+
 export const scrollBodyClass = cn(
-  "min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 pb-2 sm:px-6",
-  "pr-4 sm:pr-5 [overflow-anchor:none] [scrollbar-gutter:stable]",
+  "min-h-0 flex-1 overflow-y-auto overscroll-contain pb-2",
+  dialogSectionPxClass,
+  "[overflow-anchor:none]",
 );
 
 export const sectionLabelClass =
-  "text-xs font-semibold uppercase tracking-wide text-muted-foreground";
+  "text-xs font-semibold text-muted-foreground";
 
 export function toggleIdInSet(id: string, prev: Set<string>): Set<string> {
   const next = new Set(prev);

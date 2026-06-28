@@ -16,6 +16,11 @@ export const connectionPreferenceEnum = t.pgEnum("connection_preference", [
 
 export const matchIntentEnum = t.pgEnum("match_intent", ["quick", "activity"]);
 
+export const openToConnectSourceEnum = t.pgEnum("open_to_connect_source", [
+    "manual",
+    "post_no_match",
+]);
+
 export const moods = t.pgTable("moods", {
     id: t.uuid("id").defaultRandom().primaryKey(),
     name: t.varchar("name", { length: 50 }).notNull().unique(),
@@ -43,6 +48,13 @@ export const currentStatus = t.pgTable("current_status", {
     connectionPreference: connectionPreferenceEnum("connection_preference"),
     matchIntent: matchIntentEnum("match_intent").default("quick").notNull(),
     availability: availabilityEnum("availability").default("offline").notNull(),
+
+    openToConnect: t.boolean("open_to_connect").default(false).notNull(),
+    openToConnectUpdatedAt: t.timestamp("open_to_connect_updated_at"),
+    openToConnectSource: openToConnectSourceEnum("open_to_connect_source"),
+    openToConnectHeadline: t.varchar("open_to_connect_headline", { length: 120 }),
+    /** User preference stays on; discovery is hidden while in an active RTC room. */
+    openToConnectPausedForRoom: t.boolean("open_to_connect_paused_for_room").default(false).notNull(),
 
     lastActiveAt: t.timestamp("last_active_at").defaultNow().notNull(),
     updatedAt: t.timestamp("updated_at").defaultNow().notNull(),
