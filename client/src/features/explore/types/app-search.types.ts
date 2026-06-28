@@ -18,4 +18,5 @@ export type AppSearchResults = {
 export type AppSearchDropdownProps = AppSearchResults & {
   onSelectSpace: (space: ActiveSpaceItem) => void;
   onSelectTopic: (topic: BrowseNicheItem) => void;
+  onResultActivate?: () => void;
 };

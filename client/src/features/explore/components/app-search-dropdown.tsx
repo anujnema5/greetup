@@ -25,11 +25,13 @@ function ResultRow({
   className,
   href,
   onClick,
+  onActivate,
 }: {
   children: ReactNode;
   className?: string;
   href?: string;
   onClick?: () => void;
+  onActivate?: () => void;
 }) {
   const rowClass = cn(
     "flex w-full items-center gap-3 px-3 py-2.5 text-left transition-colors hover:bg-muted/60",
@@ -38,14 +40,21 @@ function ResultRow({
 
   if (href) {
     return (
-      <Link href={href} className={rowClass}>
+      <Link href={href} className={rowClass} onClick={onActivate}>
         {children}
       </Link>
     );
   }
 
   return (
-    <button type="button" onClick={onClick} className={rowClass}>
+    <button
+      type="button"
+      onClick={() => {
+        onActivate?.();
+        onClick?.();
+      }}
+      className={rowClass}
+    >
       {children}
     </button>
   );
@@ -113,6 +122,7 @@ export function AppSearchDropdown({
   isLoading,
   onSelectSpace,
   onSelectTopic,
+  onResultActivate,
 }: AppSearchDropdownProps) {
   if (query.length > 0 && query.length < minLength) {
     return (
@@ -154,6 +164,7 @@ export function AppSearchDropdown({
             <ResultRow
               key={person.userId}
               href={`/u/${encodeURIComponent(person.username)}`}
+              onActivate={onResultActivate}
             >
               <PersonResult
                 displayName={person.displayName || person.name}
@@ -169,7 +180,7 @@ export function AppSearchDropdown({
         <section>
           <SectionHeading label="Spaces" />
           {visibleSpaces.map((space) => (
-            <ResultRow key={space.id} onClick={() => onSelectSpace(space)}>
+            <ResultRow key={space.id} onClick={() => onSelectSpace(space)} onActivate={onResultActivate}>
               <SpaceResult space={space} />
             </ResultRow>
           ))}
@@ -180,7 +191,7 @@ export function AppSearchDropdown({
         <section>
           <SectionHeading label="Topics" />
           {visibleTopics.map((topic) => (
-            <ResultRow key={topic.id} onClick={() => onSelectTopic(topic)}>
+            <ResultRow key={topic.id} onClick={() => onSelectTopic(topic)} onActivate={onResultActivate}>
               <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-muted/70 text-lg leading-none">
                 {topic.emoji ?? "○"}
               </span>

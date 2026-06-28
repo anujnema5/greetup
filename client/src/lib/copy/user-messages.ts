@@ -313,6 +313,16 @@ export const OPEN_NOW_PAGE = {
 
 
 
+export const APP_SHELL = {
+  searchPalette: {
+    title: "Search",
+    description: "Search people, spaces, and topics across Greetup.",
+    emptyHint: "Search people, live spaces, and topics.",
+  },
+} as const;
+
+
+
 export const EXPLORE = {
 
   pageSubtitle: "Find live spaces, meet new people, and follow what you're into.",
