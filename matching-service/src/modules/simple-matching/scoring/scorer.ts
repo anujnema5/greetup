@@ -1,6 +1,7 @@
 import { MATCH_SCORE_CONFIG } from "@/shared/config/constants";
 import type { SnapshotUserProfile } from "@/modules/simple-matching/types";
 import { canonicalDistancePreference } from "@/modules/simple-matching/scoring/location";
+import { sessionActivityOverlapScore } from "@/modules/simple-matching/scoring/activity-intent";
 
 /** Aligns with DB enum `connection_preference` and match-prep UI. */
 const CONNECTION_PREF = {
@@ -136,7 +137,14 @@ const activeMatchPrepWeights = (
   requesterMoods: string[],
   requesterLookingFor: string[],
   requesterConnectionPref: string | null,
-): { mood: number; lookingFor: number; connectionPreference: number } => {
+  requesterActivityIds: string[],
+): {
+  mood: number;
+  lookingFor: number;
+  connectionPreference: number;
+  sessionActivities: number;
+  sessionActivityDetail: number;
+} => {
   const pref =
     requesterConnectionPref?.trim() ? normalize(requesterConnectionPref) : CONNECTION_PREF.OPEN_TO_ANYONE;
   return {
@@ -144,6 +152,8 @@ const activeMatchPrepWeights = (
     lookingFor: requesterLookingFor.length > 0 ? weights.sessionLookingFor : 0,
     connectionPreference:
       pref && pref !== CONNECTION_PREF.OPEN_TO_ANYONE ? weights.connectionPreference : 0,
+    sessionActivities: requesterActivityIds.length > 0 ? weights.sessionActivities : 0,
+    sessionActivityDetail: requesterActivityIds.length > 0 ? weights.sessionActivityDetail : 0,
   };
 };
 
@@ -219,8 +229,17 @@ export class MatchScoreService {
     const requesterSessionLf = toStringArray(requester.attributes.sessionLookingForIds);
     const candidateSessionLf = toStringArray(candidate.attributes.sessionLookingForIds);
     const requesterConnPref = toString(requester.attributes.connectionPreference);
+    const requesterActivityIds = toStringArray(requester.attributes.sessionActivityIds);
 
-    const prep = activeMatchPrepWeights(weights, requesterMoods, requesterSessionLf, requesterConnPref);
+    const prep = activeMatchPrepWeights(
+      weights,
+      requesterMoods,
+      requesterSessionLf,
+      requesterConnPref,
+      requesterActivityIds,
+    );
+
+    const activityScore = sessionActivityOverlapScore(requester, candidate);
 
     const weightedTotal =
       overlapRatio(requesterInterests, candidateInterests) * weights.interests +
@@ -243,7 +262,9 @@ export class MatchScoreService {
         requesterProfessions,
         candidateProfessions,
       ) *
-        prep.connectionPreference;
+        prep.connectionPreference +
+      activityScore.overlap * prep.sessionActivities +
+      activityScore.detailBonus * prep.sessionActivityDetail;
 
     const totalWeight =
       weights.interests +
@@ -255,7 +276,9 @@ export class MatchScoreService {
       weights.trustScore +
       prep.mood +
       prep.lookingFor +
-      prep.connectionPreference;
+      prep.connectionPreference +
+      prep.sessionActivities +
+      prep.sessionActivityDetail;
     if (totalWeight <= 0) return 0;
     return (weightedTotal / totalWeight) * 100;
   }

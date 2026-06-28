@@ -14,13 +14,19 @@ import { HeroOnlinePeopleBadge } from "./hero-online-people-badge";
 
 function HeroSectionInner({
   appState,
+  searchingIntent,
+  switchingToIntent,
   onRequestMatch,
+  onRequestActivityMatch,
   onCancel,
   onChangePreferences,
   error,
 }: {
   appState: "idle" | "searching" | "proposed" | "matched" | "error";
+  searchingIntent: "quick" | "activity" | null;
+  switchingToIntent: "quick" | "activity" | null;
   onRequestMatch: () => void;
+  onRequestActivityMatch: () => void;
   onCancel: () => void;
   onChangePreferences: () => void;
   error?: string | null;
@@ -65,36 +71,47 @@ function HeroSectionInner({
               )}
             </span>
           </div>
-        </div>
-
-        <div className="flex w-full flex-col gap-2.5 lg:pt-1">
-          <HeroActionCards
-            isSearching={isSearching}
-            matchDisabled={isProposed}
-            spaceLoading={isOpen && categoriesLoading}
-            onFindMatch={() => {
-              if (!isSearching) onRequestMatch();
-            }}
-            onStartSpace={openModal}
-          />
 
           {!isSearching && !isProposed ? (
             <Button
               type="button"
               variant="outline"
               size="sm"
-              className="w-full gap-2 rounded-2xl border-border/70 bg-card py-5 text-sm font-medium"
+              className="gap-2 self-start rounded-full border-primary/25 bg-primary/10 px-4 py-2 text-sm font-medium text-tertiary-foreground hover:bg-primary/15 hover:text-tertiary-foreground"
               data-tour-id={TOUR_TARGETS.changePreferences}
               onClick={onChangePreferences}
             >
-              <SlidersHorizontal className="size-4 shrink-0 opacity-80" aria-hidden />
+              <SlidersHorizontal className="size-4 shrink-0 opacity-90" aria-hidden />
               {DASHBOARD_SECTIONS.changePreferences}
             </Button>
           ) : null}
+        </div>
+
+        <div className="flex w-full flex-col gap-2.5 lg:pt-1">
+          <HeroActionCards
+            isSearching={isSearching}
+            searchingIntent={searchingIntent}
+            switchingToIntent={switchingToIntent}
+            matchDisabled={isProposed}
+            spaceLoading={isOpen && categoriesLoading}
+            onQuickMatch={() => {
+              void onRequestMatch();
+            }}
+            onActivityMatch={() => {
+              void onRequestActivityMatch();
+            }}
+            onStartSpace={openModal}
+          />
 
           {isSearching ? (
-            <Button type="button" variant="ghost" size="sm" className="self-center rounded-full" onClick={onCancel}>
-              <X className="size-3.5 opacity-70" aria-hidden />
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              className="self-center rounded-full bg-accent text-accent-foreground hover:bg-accent/80 dark:bg-accent/50 dark:hover:bg-accent/40"
+              onClick={onCancel}
+            >
+              <X className="size-3.5" aria-hidden />
               {DASHBOARD_HERO.cancelSearch}
             </Button>
           ) : null}

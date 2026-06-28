@@ -9,9 +9,11 @@ import { updateScheduledSpaceBodySchema } from "../schemas/update-scheduled-spac
 import { createSpaceService } from "../services/create-space.service";
 import { deleteScheduledSpaceService } from "../services/delete-scheduled-space.service";
 import { listActiveSpacesService } from "../services/list-active-spaces.service";
+import { listSpaceActivityOptionsService } from "../services/list-space-activity-options.service";
 import { listSpaceCategoriesService } from "../services/list-categories.service";
 import { updateScheduledSpaceService } from "../services/update-scheduled-space.service";
 import { CreateSpaceError } from "../types/create-space.types";
+import { ActivitySelectionValidationError } from "@/modules/session-activities";
 import { DeleteScheduledSpaceError } from "../types/delete-scheduled-space.types";
 import { UpdateScheduledSpaceError } from "../types/update-scheduled-space.types";
 
@@ -41,6 +43,19 @@ export const handleListSpaceCategories = async (c: Context) => {
   } catch (error: unknown) {
     logger.error("List space categories error", { error });
     return internalError(c, error, "LIST_SPACE_CATEGORIES_FAILED");
+  }
+};
+
+export const handleListSpaceActivityOptions = async (c: Context) => {
+  try {
+    const result = await listSpaceActivityOptionsService();
+    return c.json(
+      ApiResponse.success(result, "Space activity options retrieved", 200),
+      200,
+    );
+  } catch (error: unknown) {
+    logger.error("List space activity options error", { error });
+    return internalError(c, error, "LIST_SPACE_ACTIVITY_OPTIONS_FAILED");
   }
 };
 
@@ -160,6 +175,16 @@ export const handleCreateSpace = async (c: Context) => {
           code: error.code,
         }),
         status,
+      );
+    }
+    if (error instanceof ActivitySelectionValidationError) {
+      return c.json(
+        ApiResponse.error({
+          message: error.message,
+          statusCode: 400,
+          code: error.code,
+        }),
+        400,
       );
     }
     logger.error("Create space error", { error });

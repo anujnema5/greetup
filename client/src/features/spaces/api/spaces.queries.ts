@@ -7,6 +7,7 @@ import { queryKeys } from '@/lib/query/keys';
 
 import type {
   ActiveSpacesData,
+  ListSpaceActivityOptionsData,
   ListSpaceCategoriesData,
 } from '../types/spaces-api.types';
 
@@ -36,6 +37,15 @@ export function useListSpaceCategories(enabled = true) {
   return useQuery({
     queryKey: queryKeys.spaces.categories,
     queryFn: () => apiFetch<ListSpaceCategoriesData>(SPACES.CATEGORIES),
+    enabled,
+    refetchOnMount: true,
+  });
+}
+
+export function useListSpaceActivityOptions(enabled = true) {
+  return useQuery({
+    queryKey: queryKeys.spaces.activityOptions,
+    queryFn: () => apiFetch<ListSpaceActivityOptionsData>(SPACES.ACTIVITY_OPTIONS),
     enabled,
     refetchOnMount: true,
   });

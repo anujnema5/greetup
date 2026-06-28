@@ -80,6 +80,7 @@ export const queryKeys = {
   spaces: {
     all: ['spaces'] as const,
     categories: ['spaces', 'categories'] as const,
+    activityOptions: ['spaces', 'activity-options'] as const,
     active: (args: { cursor?: string; limit?: number }) =>
       ['spaces', 'active', args.cursor ?? '', args.limit ?? ''] as const,
     browseInfinite: (limit: number) => ['spaces', 'browse', limit] as const,

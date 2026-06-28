@@ -184,10 +184,28 @@ export interface MatchPrepOptionRow {
   description: string | null
 }
 
+export interface MatchPrepActivityOptionRow extends MatchPrepOptionRow {
+  emoji: string | null
+  detailMode: "none" | "language" | "topic" | "optional_topic"
+  detailLabel: string | null
+  detailPlaceholder: string | null
+  detailMaxLength: number
+  detailRequired: boolean
+}
+
+export interface MatchPrepActivitySelection {
+  activityId: string
+  activityName?: string
+  displayName?: string
+  emoji?: string | null
+  detail: string | null
+}
+
 export interface MatchPrepOptionsData {
   moods: MatchPrepOptionRow[]
   lookingFor: MatchPrepOptionRow[]
   interests: MatchPrepOptionRow[]
+  activities: MatchPrepActivityOptionRow[]
 }
 
 /** GET /profile/match-prep/current */
@@ -195,6 +213,8 @@ export interface MatchPrepCurrentData {
   moodIds: string[]
   lookingForIds: string[]
   interestIds: string[]
+  matchIntent: "quick" | "activity"
+  activitySelections: MatchPrepActivitySelection[]
   locationPreferenceEnabled: boolean
   distancePreference: "random" | "same_city" | "same_country" | "global"
   location: {

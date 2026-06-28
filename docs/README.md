@@ -57,7 +57,9 @@ All paths below are from the **repository root** (`docs/...`).
 | [design/connection-call-session-origin.md](design/connection-call-session-origin.md) | **Connection vs match vs circle** — `session_kind` (PG) / `sessionKind` (Redis/API), phases, edge cases, regression matrix |
 | [design/chat-system-design.md](design/chat-system-design.md) | Chat system design |
 | [design/matching-system-design.md](design/matching-system-design.md) | Matching / matchmaking (see also [matching/matching-engine.md](matching/matching-engine.md)) |
-| [design/room-activities-and-chess.md](design/room-activities-and-chess.md) | Room activities & chess lifecycle |
+| [design/room-activities-and-chess.md](design/room-activities-and-chess.md) | In-room chess & runtime room activities (during a call) |
+| [design/session-activities-and-match-modes.md](design/session-activities-and-match-modes.md) | **Session activities** catalog, Quick vs Activity match modes, spaces tagging, edge cases & test matrix |
+| [design/open-to-connect.md](design/open-to-connect.md) | **Open to Connect** — passive discovery, connect requests, searcher fallback (request-only), phased plan |
 | [design/room-session-lifecycle-hinglish.md](design/room-session-lifecycle-hinglish.md) | **Hinglish:** circle/direct call kab start/band — per-session limits, scheduled slot, host end |
 | [design/room-session-lifecycle-hinglish.html](design/room-session-lifecycle-hinglish.html) | Same guide — **visual HTML** (timeline, priority ladder, dark UI) |
 | [design/room-session-lifecycle-hinglish.md](design/room-session-lifecycle-hinglish.md) | **Hinglish:** circle/direct call kab start/band — per-session limits, scheduled slot, host end |

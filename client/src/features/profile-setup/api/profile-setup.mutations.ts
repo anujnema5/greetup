@@ -27,6 +27,8 @@ export type RoomInviteSettingsPayload = {
 export type RoomInviteSettingsData = MyProfileResponse['roomInvite'];
 
 export type SaveMatchPrepBody = {
+  matchIntent?: "quick" | "activity";
+  activitySelections?: Array<{ activityId: string; detail?: string | null }>;
   moodIds: string[];
   lookingForIds: string[];
   interestIds: string[];

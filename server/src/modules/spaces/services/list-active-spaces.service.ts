@@ -4,6 +4,7 @@ import { roomSessionsRepository } from "@/modules/rooms/repositories/room-sessio
 import { deleteSessionRoomRedisMany } from "@/modules/rooms/services/rtc/session-room-redis.service";
 
 import { toActiveSpaceItem } from "../lib/map-active-space-item";
+import { roomActivitiesRepository } from "../repositories/room-activities.repository";
 import type { ActiveSpaceItem, ActiveSpacesResult, FriendInvitedSpaceItem } from "../types";
 
 const DEFAULT_PUBLIC_LIMIT = 10;
@@ -23,10 +24,10 @@ export async function listActiveSpacesService(
     activeSpacesListingsRepository.listPublicSpaces(userId, publicLimit, cursor),
   ]);
 
-  const joined: ActiveSpaceItem[] = joinedRows.map(toActiveSpaceItem);
-  const joinedIds = new Set(joined.map((c) => c.id));
+  const joinedBase: ActiveSpaceItem[] = joinedRows.map(toActiveSpaceItem);
+  const joinedIds = new Set(joinedBase.map((c) => c.id));
 
-  const friendInvited: FriendInvitedSpaceItem[] = friendInvitedRows
+  const friendInvitedBase: FriendInvitedSpaceItem[] = friendInvitedRows
     .map((row) => ({
       ...toActiveSpaceItem(row),
       inviteStatus: row.inviteStatus as "pending" | "accepted",
@@ -34,8 +35,27 @@ export async function listActiveSpacesService(
     .filter((c) => !joinedIds.has(c.id));
 
   const hasMore = publicRows.length > publicLimit;
-  const publicItems = hasMore ? publicRows.slice(0, publicLimit) : publicRows;
-  const nextCursor = hasMore ? (publicItems[publicItems.length - 1]?.id ?? null) : null;
+  const publicItemsBase = (hasMore ? publicRows.slice(0, publicLimit) : publicRows).map(
+    toActiveSpaceItem,
+  );
+  const nextCursor = hasMore ? (publicItemsBase[publicItemsBase.length - 1]?.id ?? null) : null;
+
+  const allRoomIds = [
+    ...joinedBase.map((i) => i.id),
+    ...friendInvitedBase.map((i) => i.id),
+    ...publicItemsBase.map((i) => i.id),
+  ];
+  const activityRows = await roomActivitiesRepository.listByRoomIds(allRoomIds);
+  const activitiesByRoom = roomActivitiesRepository.groupByRoomId(activityRows);
+
+  const withActivities = <T extends ActiveSpaceItem>(item: T): T => ({
+    ...item,
+    activities: activitiesByRoom.get(item.id) ?? [],
+  });
+
+  const joined = joinedBase.map(withActivities);
+  const friendInvited = friendInvitedBase.map(withActivities);
+  const publicItems = publicItemsBase.map(withActivities);
 
   logger.debug("active_spaces_listed", {
     userId,
@@ -50,7 +70,7 @@ export async function listActiveSpacesService(
     friendInvited,
     joined,
     public: {
-      items: publicItems.map(toActiveSpaceItem),
+      items: publicItems,
       nextCursor,
       hasMore,
     },

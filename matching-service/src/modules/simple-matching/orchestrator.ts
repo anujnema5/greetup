@@ -13,6 +13,7 @@ import {
   tryAcquireStartSearchLock,
 } from "@/modules/simple-matching/helpers";
 import { MatchValidatorService } from "@/modules/simple-matching/scoring/validator";
+import { passesActivityIntentStrictFilter } from "@/modules/simple-matching/scoring/activity-intent";
 import { MatchScoreService } from "@/modules/simple-matching/scoring/scorer";
 import type { MatchCandidate, ScoredMatchCandidate } from "@/modules/simple-matching/types";
 import { MatchLockService } from "@/modules/simple-matching/pool/lock";
@@ -332,6 +333,18 @@ export class MatchOrchestratorService {
         if (!this.validator.isBidirectionallyCompatible(requesterSnapshot, candidateSnapshot)) {
           if (logSkips) {
             logger.debug("[processMatchRequest] skipping candidate — not compatible", { candidateId: candidate.userId });
+          }
+          return null;
+        }
+
+        if (
+          mode === "eligible_only" &&
+          !passesActivityIntentStrictFilter(requesterSnapshot, candidateSnapshot)
+        ) {
+          if (logSkips) {
+            logger.debug("[processMatchRequest] skipping candidate — activity intent filter", {
+              candidateId: candidate.userId,
+            });
           }
           return null;
         }

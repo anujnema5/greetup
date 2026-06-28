@@ -1,6 +1,8 @@
 import { z } from "zod";
 
 import { LAUNCH_MAX_SPACE_PARTICIPANTS } from "@/modules/spaces/constants/space-capacity";
+import { MAX_SPACE_ACTIVITY_SELECTIONS } from "@/modules/session-activities";
+import { activitySelectionBodySchema } from "@/modules/profile/schemas/match-prep.schema";
 
 export const spaceAdvancedOptionsBodySchema = z
   .object({
@@ -34,6 +36,11 @@ export const createSpaceBodySchema = z
     advancedOptions: spaceAdvancedOptionsBodySchema,
     /** User IDs must be accepted connections of the host; deduped server-side. */
     invitedUserIds: z.array(z.string().min(1)).optional(),
+    /** Optional session activities for this space. */
+    activitySelections: z
+      .array(activitySelectionBodySchema)
+      .max(MAX_SPACE_ACTIVITY_SELECTIONS)
+      .optional(),
   })
   .superRefine((data, ctx) => {
     const cap = data.maxParticipants - 1;

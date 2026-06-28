@@ -15,6 +15,7 @@ import { upsertOnboardingLookups } from "./upsert-onboarding-lookups";
 import { upsertPromptQuestions } from "./upsert-prompt-questions";
 import { upsertRoomCategories } from "./upsert-room-categories";
 import { upsertRoomEmbeddedActivities } from "./upsert-room-embedded-activities";
+import { upsertSessionActivities } from "./upsert-session-activities";
 
 async function countRows(
   table:
@@ -36,6 +37,7 @@ export async function runStartupSeed(): Promise<void> {
   await upsertPromptQuestions(db);
   await upsertRoomCategories();
   await upsertRoomEmbeddedActivities();
+  await upsertSessionActivities(db);
 
   const [goalCount, interestCount, professionCount, moodCount, lookingForCount, promptCount] =
     await Promise.all([

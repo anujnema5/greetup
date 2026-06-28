@@ -68,7 +68,18 @@ export function deriveInitialFormState(
         ? [options.interests[0].id]
         : [];
 
+  const selectedActivityIds = new Set(
+    saved?.activitySelections.map((a) => a.activityId) ?? [],
+  );
+  const activityDetails: Record<string, string> = {};
+  for (const row of saved?.activitySelections ?? []) {
+    if (row.detail) activityDetails[row.activityId] = row.detail;
+  }
+
   return {
+    matchIntent: saved?.matchIntent ?? "quick",
+    selectedActivityIds,
+    activityDetails,
     moods: new Set(moodIds),
     lookingFor: new Set(lookingForIds),
     interests: new Set(interestIds),

@@ -1,5 +1,10 @@
 import { z } from "zod";
 
+import {
+  ACTIVITY_DETAIL_STORAGE_MAX,
+  MAX_MATCH_PREP_ACTIVITY_SELECTIONS,
+} from "@/modules/session-activities";
+
 const connectionPreferenceValues = [
   "same_profession",
   "different_profession",
@@ -13,8 +18,20 @@ const distancePreferenceValues = [
   "global",
 ] as const;
 
+const matchIntentValues = ["quick", "activity"] as const;
+
+export const activitySelectionBodySchema = z.object({
+  activityId: z.string().uuid(),
+  detail: z.string().max(ACTIVITY_DETAIL_STORAGE_MAX).optional().nullable(),
+});
+
 export const matchPrepSaveBodySchema = z
   .object({
+    matchIntent: z.enum(matchIntentValues).optional(),
+    activitySelections: z
+      .array(activitySelectionBodySchema)
+      .max(MAX_MATCH_PREP_ACTIVITY_SELECTIONS)
+      .optional(),
     moodIds: z.array(z.string().uuid()).max(12),
     lookingForIds: z.array(z.string().uuid()).max(12),
     /** Updates profile `profile_interests` (same as onboarding interests) for matching snapshot. */
@@ -70,6 +87,19 @@ export const matchPrepSaveBodySchema = z
   }, {
     message: "City is required for same_city matching",
     path: ["location", "city"],
+  })
+  .refine((d) => {
+    const intent = d.matchIntent ?? "quick";
+    const count = d.activitySelections?.length ?? 0;
+    if (intent === "activity" && count === 0) {
+      return false;
+    }
+    return true;
+  }, {
+    message: "Pick at least one activity for activity match",
+    path: ["activitySelections"],
   });
 
 export type MatchPrepSaveBody = z.infer<typeof matchPrepSaveBodySchema>;
+
+export type MatchIntent = (typeof matchIntentValues)[number];

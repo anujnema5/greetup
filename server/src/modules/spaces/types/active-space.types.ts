@@ -1,4 +1,5 @@
 import type { RoomAdvancedOptions } from "@/core/database/schema";
+import type { SpaceActivityTagDto } from "@/modules/session-activities";
 
 export type ActiveSpaceItem = {
   id: string;
@@ -25,6 +26,8 @@ export type ActiveSpaceItem = {
     name: string;
     displayName: string | null;
   };
+  /** Session activities tagged on this space (ordered by pick priority). */
+  activities: SpaceActivityTagDto[];
 };
 
 export type FriendInvitedSpaceItem = ActiveSpaceItem & {

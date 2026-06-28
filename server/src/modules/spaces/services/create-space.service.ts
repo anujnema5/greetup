@@ -13,6 +13,12 @@ import { isRoomCategoryPickable } from "@/modules/rooms/constants/room-category-
 import { roomCategoriesRepository } from "@/modules/rooms/repositories/room-categories.repository";
 import { roomCreationRepository } from "@/modules/rooms/repositories/room-creation.repository";
 import { provisionSessionRoomRedis } from "@/modules/rooms/services/rtc/session-room-redis.service";
+import {
+  activityCatalogRepository,
+  ActivitySelectionValidationError,
+  MAX_SPACE_ACTIVITY_SELECTIONS,
+} from "@/modules/session-activities";
+import { roomActivitiesRepository } from "../repositories/room-activities.repository";
 import type { CreateSpaceBody } from "../schemas/create-space.schema";
 import { CreateSpaceError, type CreateSpaceErrorCode } from "../types/create-space.types";
 
@@ -148,6 +154,11 @@ export async function createSpaceService(
 
   const roomType = body.roomType ?? "space";
 
+  const activitySelections = await activityCatalogRepository.validateSelectionsAgainstCatalog(
+    body.activitySelections,
+    { context: "space", maxCount: MAX_SPACE_ACTIVITY_SELECTIONS },
+  );
+
   const row = await roomCreationRepository.createRoomWithHostAndInvites({
     categoryId: body.categoryId,
     hostUserId,
@@ -164,6 +175,10 @@ export async function createSpaceService(
     inviteeUserIds: inviteeIds,
     roomType,
   });
+
+  if (activitySelections.length > 0) {
+    await roomActivitiesRepository.replaceRoomActivities(row.id, activitySelections);
+  }
 
   if (row.status === "live") {
     await provisionSessionRoomRedis({
@@ -213,6 +228,10 @@ export async function createSpaceService(
       displayName: category.displayName,
       emoji: category.emoji,
     },
+    activities: activitySelections.map((sel) => ({
+      activityId: sel.activityId,
+      detail: sel.detail,
+    })),
     friendInvitesCreated: inviteeIds.length,
   };
 }

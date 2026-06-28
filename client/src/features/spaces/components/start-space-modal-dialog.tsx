@@ -50,6 +50,7 @@ import {
 import { LAUNCH_MAX_SPACE_PARTICIPANTS } from "@/features/spaces/constants/space-capacity";
 import { scheduleTimeMeaningNote } from "@/features/spaces/constants/scheduled-space-join-grace";
 import { START_SPACE_COPY as C } from "@/features/spaces/constants/start-space-copy";
+import { SessionActivitiesBlock } from "@/features/matching/components/match-prep-dialog-parts";
 import type { StartSpaceModalState } from "@/features/spaces/hooks/use-start-space-modal-state";
 
 export type StartSpaceModalDialogProps = Omit<
@@ -82,6 +83,12 @@ export function StartSpaceModalDialog(props: StartSpaceModalDialogProps) {
     maxInviteSlots,
     handleInviteAtCapacity,
     handleMaxParticipantsChange,
+    activityOptions,
+    activitiesLoading,
+    selectedActivityIds,
+    activityDetails,
+    toggleActivity,
+    handleActivityDetailChange,
   } = props;
 
   const scheduleMode = useWatch({
@@ -434,6 +441,29 @@ export function StartSpaceModalDialog(props: StartSpaceModalDialogProps) {
                     </FormItem>
                   )}
                 />
+
+                {!isEditMode && (
+                  <div className="space-y-2">
+                    {activitiesLoading ? (
+                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                        <Loader2 className="size-4 shrink-0 animate-spin" aria-hidden />
+                        {C.activitiesLoading}
+                      </div>
+                    ) : activityOptions.length > 0 ? (
+                      <>
+                        <SessionActivitiesBlock
+                          rows={activityOptions}
+                          selectedIds={selectedActivityIds}
+                          activityDetails={activityDetails}
+                          onToggle={toggleActivity}
+                          onDetailChange={handleActivityDetailChange}
+                          required={false}
+                        />
+                        <p className={COMPACT_DIALOG_HINT}>{C.activitiesHint}</p>
+                      </>
+                    ) : null}
+                  </div>
+                )}
 
                 <div className="flex items-center justify-between gap-4 rounded-xl border border-border/50 bg-muted/10 px-4 py-3.5">
                   <div className="min-w-0">

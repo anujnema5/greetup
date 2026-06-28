@@ -43,6 +43,8 @@ export const MATCH_SCORE_CONFIG = {
     sessionMoods: 28,
     sessionLookingFor: 28,
     connectionPreference: 21,
+    sessionActivities: 20,
+    sessionActivityDetail: 8,
   },
   minScoreToMatch: 35,
   /**

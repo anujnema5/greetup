@@ -1,6 +1,7 @@
 import * as t from "drizzle-orm/pg-core";
 import { relations } from 'drizzle-orm';
 import { userProfiles } from "./users";
+import { currentStatusActivities } from "./session-activities";
 
 export const availabilityEnum = t.pgEnum("availability",
     ['available', 'busy', 'offline']
@@ -12,6 +13,8 @@ export const connectionPreferenceEnum = t.pgEnum("connection_preference", [
     "different_profession",
     "open_to_anyone",
 ]);
+
+export const matchIntentEnum = t.pgEnum("match_intent", ["quick", "activity"]);
 
 export const moods = t.pgTable("moods", {
     id: t.uuid("id").defaultRandom().primaryKey(),
@@ -38,6 +41,7 @@ export const currentStatus = t.pgTable("current_status", {
 
     sessionGoal: t.text("session_goal"),
     connectionPreference: connectionPreferenceEnum("connection_preference"),
+    matchIntent: matchIntentEnum("match_intent").default("quick").notNull(),
     availability: availabilityEnum("availability").default("offline").notNull(),
 
     lastActiveAt: t.timestamp("last_active_at").defaultNow().notNull(),
@@ -84,6 +88,7 @@ export const currentStatusRelations = relations(currentStatus, ({ one, many }) =
     }),
     moods: many(currentStatusMoods),
     lookingFor: many(currentStatusLookingFor),
+    activities: many(currentStatusActivities),
 }));
 
 export const currentStatusMoodsRelations = relations(currentStatusMoods, ({ one }) => ({

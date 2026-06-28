@@ -4,11 +4,13 @@ import { ChevronDown } from "lucide-react";
 import type { RefObject } from "react";
 
 import { Button } from "@/components/ui/button";
-import type { MatchPrepOptionRow } from "@/features/profile-setup/types/profile-setup-api.types";
+import type { MatchPrepOptionRow, MatchPrepActivityOptionRow } from "@/features/profile-setup/types/profile-setup-api.types";
 import { cn } from "@/lib/utils";
+import { sectionLabelClass } from "../utils/match-prep-dialog.utils";
 import type {
   ConnectionPreferenceValue,
   DistancePreferenceValue,
+  MatchIntentValue,
 } from "../types/match-prep.types";
 
 const CONNECTION_OPTIONS: { id: ConnectionPreferenceValue; label: string }[] = [
@@ -102,6 +104,107 @@ export function DistancePreferenceRow({
         </button>
       ))}
     </div>
+  );
+}
+
+export function MatchIntentRow({
+  value,
+  onChange,
+}: {
+  value: MatchIntentValue;
+  onChange: (next: MatchIntentValue) => void;
+}) {
+  const options: { id: MatchIntentValue; label: string; hint: string }[] = [
+    { id: "quick", label: "Quick match", hint: "Find anyone" },
+    { id: "activity", label: "Match by activity", hint: "Same activity" },
+  ];
+  return (
+    <div className="grid grid-cols-2 gap-2 py-1">
+      {options.map((o) => (
+        <button
+          key={o.id}
+          type="button"
+          onClick={() => onChange(o.id)}
+          className={cn(
+            "rounded-xl border px-3 py-2.5 text-left transition-colors",
+            value === o.id
+              ? "border-primary bg-primary/10"
+              : "border-border bg-muted/30 hover:bg-muted/50",
+          )}
+        >
+          <span className="block text-xs font-semibold text-foreground">{o.label}</span>
+          <span className="mt-0.5 block text-[11px] text-muted-foreground">{o.hint}</span>
+        </button>
+      ))}
+    </div>
+  );
+}
+
+function activityShowsDetailField(row: MatchPrepActivityOptionRow): boolean {
+  return row.detailMode !== "none";
+}
+
+export function SessionActivitiesBlock({
+  rows,
+  selectedIds,
+  activityDetails,
+  onToggle,
+  onDetailChange,
+  required,
+}: {
+  rows: MatchPrepActivityOptionRow[];
+  selectedIds: Set<string>;
+  activityDetails: Record<string, string>;
+  onToggle: (id: string) => void;
+  onDetailChange: (id: string, value: string) => void;
+  required: boolean;
+}) {
+  return (
+    <section className="space-y-2 py-1">
+      <p className={sectionLabelClass}>
+        What do you want to do?
+        {required ? " (required)" : " (optional)"}
+      </p>
+      <div className="flex flex-wrap gap-2">
+        {rows.map((row) => {
+          const selected = selectedIds.has(row.id);
+          return (
+            <button
+              key={row.id}
+              type="button"
+              onClick={() => onToggle(row.id)}
+              title={row.description ?? undefined}
+              className={chipClass(selected)}
+            >
+              {row.emoji ? `${row.emoji} ` : ""}
+              {row.displayName}
+            </button>
+          );
+        })}
+      </div>
+      {rows
+        .filter((row) => selectedIds.has(row.id) && activityShowsDetailField(row))
+        .map((row) => (
+          <div key={`detail-${row.id}`} className="space-y-1 pt-1">
+            <label htmlFor={`activity-detail-${row.id}`} className="text-xs text-muted-foreground">
+              {row.detailLabel ?? "Details"}
+              {!row.detailRequired ? " (optional)" : ""}
+            </label>
+            <input
+              id={`activity-detail-${row.id}`}
+              type="text"
+              value={activityDetails[row.id] ?? ""}
+              maxLength={row.detailMaxLength}
+              placeholder={
+                row.detailPlaceholder ??
+                (row.detailMode === "language" ? "e.g. Spanish" : "Add a short title")
+              }
+              onChange={(e) => onDetailChange(row.id, e.target.value)}
+              className="w-full rounded-xl border border-border bg-background px-3 py-2 text-sm"
+            />
+          </div>
+        ))}
+    </section>
   );
 }
 

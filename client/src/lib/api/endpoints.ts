@@ -88,6 +88,7 @@ export const API_ENDPOINTS = {
   },
   SPACES: {
     CATEGORIES: "/spaces/categories",
+    ACTIVITY_OPTIONS: "/spaces/activity-options",
     BROWSE_NICHES: "/spaces/browse/niches",
     browseNicheRooms: (categoryId: string) =>
       `/spaces/browse/niches/${encodeURIComponent(categoryId)}/rooms` as const,

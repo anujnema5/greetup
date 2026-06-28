@@ -54,5 +54,6 @@ export function toActiveSpaceItem(row: {
       name: row.hostName,
       displayName: row.hostDisplayName,
     },
+    activities: [],
   };
 }

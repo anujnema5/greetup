@@ -11,8 +11,13 @@ import {
   useDeleteScheduledSpace,
   useUpdateScheduledSpace,
 } from "@/features/spaces/api/spaces.mutations";
-import { useListSpaceCategories } from "@/features/spaces/api/spaces.queries";
+import { useListSpaceCategories, useListSpaceActivityOptions } from "@/features/spaces/api/spaces.queries";
 import { START_SPACE_COPY as C } from "@/features/spaces/constants/start-space-copy";
+import {
+  buildActivitySelectionsPayload,
+  toggleSessionActivityId,
+  validateSessionActivitySelections,
+} from "@/features/matching/utils/session-activities.utils";
 import { filterStartSpaceCategories } from "@/features/spaces/lib/start-space-categories";
 import { combineDateAndTime } from "@/features/spaces/lib/start-space-utils";
 import {
@@ -24,6 +29,8 @@ import {
 import type { ActiveSpaceItem } from "@/features/spaces/types/spaces-api.types";
 import { toApiAdvancedOptions, normalizeMeetingStartExclusivity } from "@/features/spaces/types/start-space-ui.types";
 import { getApiErrorMessage } from "@/lib/api/fetch-client";
+
+const MAX_SPACE_ACTIVITIES = 5;
 
 export type StartSpaceShellValue = {
   openModal: () => void;
@@ -60,6 +67,13 @@ export function useStartSpaceModalState() {
     refetch: refetchCategories,
   } = useListSpaceCategories(open);
 
+  const {
+    data: activityOptionsRes,
+    isFetching: activitiesLoading,
+  } = useListSpaceActivityOptions(open);
+
+  const activityOptions = activityOptionsRes?.activities ?? [];
+
   const { data: connectionsRes, isFetching: connectionsLoading } = useMyConnections(
     { filter: "accepted" },
     { enabled: open },
@@ -89,6 +103,10 @@ export function useStartSpaceModalState() {
     () => new Set(),
   );
   const [inviteDialogOpen, setInviteDialogOpen] = useState(false);
+  const [selectedActivityIds, setSelectedActivityIds] = useState<Set<string>>(
+    () => new Set(),
+  );
+  const [activityDetails, setActivityDetails] = useState<Record<string, string>>({});
 
   const advancedSectionRef = useRef<HTMLDivElement>(null);
 
@@ -161,6 +179,25 @@ export function useStartSpaceModalState() {
     toast.info(C.inviteCapacityReachedToast(maxInviteSlots));
   }, [maxInviteSlots]);
 
+  const toggleActivity = useCallback((id: string) => {
+    setSelectedActivityIds((prev) => {
+      const next = toggleSessionActivityId(prev, id, MAX_SPACE_ACTIVITIES);
+      if (next === prev) return prev;
+      if (!next.has(id)) {
+        setActivityDetails((d) => {
+          const copy = { ...d };
+          delete copy[id];
+          return copy;
+        });
+      }
+      return next;
+    });
+  }, []);
+
+  const handleActivityDetailChange = useCallback((id: string, value: string) => {
+    setActivityDetails((prev) => ({ ...prev, [id]: value }));
+  }, []);
+
   useEffect(() => {
     if (!open || !categories.length) return;
     if (isEditMode) return;
@@ -192,6 +229,8 @@ export function useStartSpaceModalState() {
     } else {
       form.reset(getDefaultStartSpaceFormValues());
       setInvitedPeerIds(new Set());
+      setSelectedActivityIds(new Set());
+      setActivityDetails({});
     }
   }, [open, form]);
 
@@ -205,6 +244,8 @@ export function useStartSpaceModalState() {
         form.reset(getDefaultStartSpaceFormValues());
         setAdvancedOpen(false);
         setInvitedPeerIds(new Set());
+        setSelectedActivityIds(new Set());
+        setActivityDetails({});
       }
     },
     [form],
@@ -272,6 +313,20 @@ export function useStartSpaceModalState() {
         toast.error(C.toastInvitesExceedSeats(inviteCap));
         return;
       }
+      const activityError = validateSessionActivitySelections(
+        activityOptions,
+        selectedActivityIds,
+        activityDetails,
+        { maxCount: MAX_SPACE_ACTIVITIES },
+      );
+      if (activityError) {
+        toast.error(activityError);
+        return;
+      }
+      const activitySelections = buildActivitySelectionsPayload(
+        selectedActivityIds,
+        activityDetails,
+      );
       try {
         const res = await createSpace({
           categoryId: data.categoryId,
@@ -290,6 +345,7 @@ export function useStartSpaceModalState() {
           advancedOptions: toApiAdvancedOptions(data.advanced),
           invitedUserIds:
             invitedPeerIds.size > 0 ? Array.from(invitedPeerIds) : undefined,
+          ...(activitySelections.length > 0 ? { activitySelections } : {}),
         });
 
         const invite = res.data.room.inviteCode;
@@ -315,6 +371,9 @@ export function useStartSpaceModalState() {
       createSpace,
       updateScheduledSpace,
       handleOpenChange,
+      activityOptions,
+      selectedActivityIds,
+      activityDetails,
     ],
   );
 
@@ -355,6 +414,12 @@ export function useStartSpaceModalState() {
     handleMaxParticipantsChange,
     handleInviteAtCapacity,
     maxInviteSlots,
+    activityOptions,
+    activitiesLoading,
+    selectedActivityIds,
+    activityDetails,
+    toggleActivity,
+    handleActivityDetailChange,
   };
 }
 

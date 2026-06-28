@@ -7,6 +7,7 @@ import {
   useRespondMatchProposalMutation,
 } from '../api/matching.mutations';
 import { getApiErrorCode, getApiErrorMessage } from '@/lib/api';
+import { toast } from 'sonner';
 import { useSocket } from '@/lib/socket';
 import {
   messageForFailedStart,
@@ -104,8 +105,10 @@ export function useFindMatch() {
         } = res;
 
         if (engineStatus === 'no_match') {
+          const message = messageForFailedStart(reason);
           setStatus('error');
-          setError(messageForFailedStart(reason));
+          setError(message);
+          toast.error(message);
           return;
         }
 
@@ -122,9 +125,11 @@ export function useFindMatch() {
           });
         }
       } catch (err) {
+        const message = getApiErrorMessage(err, 'Failed to start matchmaking');
         setStatus('error');
         setErrorCode(getApiErrorCode(err));
-        setError(getApiErrorMessage(err, 'Failed to start matchmaking'));
+        setError(message);
+        toast.error(message);
       }
     });
   }, [findMatch]);
@@ -199,7 +204,9 @@ export function useFindMatch() {
       clearMatchAttemptLocal(proposalPeerIdRef, requestIdRef);
       setWaitingForPeerConnect(false);
       setStatus('error');
-      setError(messageForNoMatch(data.reason));
+      const message = messageForNoMatch(data.reason);
+      setError(message);
+      toast.error(message);
     };
 
     const onProposalCancelled = (data: MatchProposalCancelledPayload) => {
@@ -221,7 +228,9 @@ export function useFindMatch() {
       }
 
       setStatus('error');
-      setError(messageForProposalCancelled(data.reason));
+      const message = messageForProposalCancelled(data.reason);
+      setError(message);
+      toast.error(message);
     };
 
     socket.on('match:completed', onMatchCompleted);
@@ -257,7 +266,9 @@ export function useFindMatch() {
     async (decision: 'connect' | 'skip') => {
       const attemptId = requestIdRef.current ?? readStoredMatchAttemptId();
       if (!attemptId) {
-        setError('No active match proposal.');
+        const message = 'No active match proposal.';
+        setError(message);
+        toast.error(message);
         return;
       }
       if (decision === 'skip') {
@@ -270,13 +281,13 @@ export function useFindMatch() {
           setWaitingForPeerConnect(true);
         }
       } catch (err) {
-        setErrorCode(getApiErrorCode(err));
-        setError(
-          getApiErrorMessage(
-            err,
-            decision === 'connect' ? 'Could not connect. Try again.' : 'Could not skip. Try again.',
-          ),
+        const message = getApiErrorMessage(
+          err,
+          decision === 'connect' ? 'Could not connect. Try again.' : 'Could not skip. Try again.',
         );
+        setErrorCode(getApiErrorCode(err));
+        setError(message);
+        toast.error(message);
         if (decision === 'connect') {
           setWaitingForPeerConnect(false);
         }

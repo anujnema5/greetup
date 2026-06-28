@@ -412,6 +412,30 @@
   }
 }
 
+/* Sonner — theme-aware (uses --popover, --border, --destructive from :root / .dark) */
+[data-sonner-toaster] {
+  --width: min(calc(100vw - 2rem), 22rem);
+  font-family: var(--font-plus-jakarta), system-ui, sans-serif;
+}
+
+[data-sonner-toast]:not([data-styled='false']) {
+  --toast-bg: var(--popover);
+  --toast-border: var(--border);
+  --toast-text: var(--popover-foreground);
+}
+
+[data-sonner-toast][data-type='error']:not([data-styled='false']) {
+  border-color: color-mix(in oklch, var(--destructive) 38%, var(--border));
+}
+
+[data-sonner-toast][data-type='success']:not([data-styled='false']) {
+  border-color: color-mix(in oklch, var(--success) 45%, var(--border));
+}
+
+[data-sonner-toast][data-type='warning']:not([data-styled='false']) {
+  border-color: color-mix(in oklch, var(--secondary) 50%, var(--border));
+}
+
 /* Custom Sonner toasts — no double box (wrapper stays invisible) */
 [data-sonner-toast][data-styled='false'] {
   padding: 0 !important;

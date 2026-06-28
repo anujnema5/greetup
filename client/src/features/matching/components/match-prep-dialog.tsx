@@ -2,6 +2,7 @@
 
 import { Loader2 } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -36,8 +37,30 @@ import { MatchPrepLocationSection } from "./match-prep-location-section";
 import {
   ConnectionPreferenceRow,
   InterestsBlock,
+  MatchIntentRow,
   OptionChipList,
+  SessionActivitiesBlock,
 } from "./match-prep-dialog-parts";
+import {
+  validateSessionActivitySelections,
+} from "../utils/session-activities.utils";
+import type { MatchIntentValue } from "../types/match-prep.types";
+import type { MatchPrepActivityOptionRow } from "@/features/profile-setup/types/profile-setup-api.types";
+import { getApiErrorMessage } from "@/lib/api/fetch-client";
+
+const MAX_SESSION_ACTIVITIES = 3;
+
+function validateActivitySelectionsClient(
+  rows: MatchPrepActivityOptionRow[],
+  selectedIds: Set<string>,
+  activityDetails: Record<string, string>,
+  matchIntent: MatchIntentValue,
+): string | null {
+  return validateSessionActivitySelections(rows, selectedIds, activityDetails, {
+    requireAtLeastOne: matchIntent === "activity",
+    maxCount: MAX_SESSION_ACTIVITIES,
+  });
+}
 
 export function MatchPrepDialog({
   open,
@@ -45,6 +68,7 @@ export function MatchPrepDialog({
   onStartSearch,
   clientSessionId,
   mode = "match_flow",
+  initialMatchIntent = "quick",
 }: MatchPrepDialogProps) {
   const isEdit = mode === "edit";
 
@@ -87,8 +111,16 @@ export function MatchPrepDialog({
     handleUseTypedLocation,
   } = useMatchPrepLocation();
   const [sessionGoal, setSessionGoal] = useState("");
+  const [matchIntent, setMatchIntent] = useState<MatchIntentValue>("quick");
+  const [selectedActivityIds, setSelectedActivityIds] = useState<Set<string>>(new Set());
+  const [activityDetails, setActivityDetails] = useState<Record<string, string>>({});
   const [localError, setLocalError] = useState<string | null>(null);
   const [interestsOpen, setInterestsOpen] = useState(false);
+
+  const reportError = useCallback((message: string) => {
+    setLocalError(message);
+    toast.error(message);
+  }, []);
 
   const seededRef = useRef(false);
   const formScrollRef = useRef<HTMLDivElement>(null);
@@ -129,6 +161,9 @@ export function MatchPrepDialog({
     seededRef.current = true;
     const next = deriveInitialFormState(data, saved);
     /* eslint-disable react-hooks/set-state-in-effect */
+    setMatchIntent(isEdit ? next.matchIntent : initialMatchIntent);
+    setSelectedActivityIds(next.selectedActivityIds);
+    setActivityDetails(next.activityDetails);
     setMoods(next.moods);
     setLookingFor(next.lookingFor);
     setInterests(next.interests);
@@ -138,7 +173,25 @@ export function MatchPrepDialog({
     setSelectedLocation(next.location);
     setSessionGoal(next.sessionGoal);
     /* eslint-enable react-hooks/set-state-in-effect */
-  }, [open, data, saved, savedReady, savedError, setSelectedLocation]);
+  }, [open, data, saved, savedReady, savedError, setSelectedLocation, initialMatchIntent, isEdit]);
+
+  const toggleActivity = useCallback((id: string) => {
+    setSelectedActivityIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) {
+        next.delete(id);
+        setActivityDetails((d) => {
+          const copy = { ...d };
+          delete copy[id];
+          return copy;
+        });
+        return next;
+      }
+      if (next.size >= MAX_SESSION_ACTIVITIES) return prev;
+      next.add(id);
+      return next;
+    });
+  }, []);
 
   const handleSkip = useCallback(() => {
     setLocalError(null);
@@ -150,7 +203,7 @@ export function MatchPrepDialog({
     async (startMatchAfterSave = false) => {
       setLocalError(null);
       if (moods.size === 0 || lookingFor.size === 0 || interests.size === 0) {
-        setLocalError("Choose at least one mood, one “looking for” option, and one interest.");
+        reportError("Choose at least one mood, one “looking for” option, and one interest.");
         return;
       }
       if (
@@ -159,11 +212,27 @@ export function MatchPrepDialog({
           typeof selectedLocation.latitude !== "number" ||
           typeof selectedLocation.longitude !== "number")
       ) {
-        setLocalError("Select a location (with coordinates) to enable location-based matching.");
+        reportError("Select a location (with coordinates) to enable location-based matching.");
+        return;
+      }
+      const activityRows = data?.activities ?? [];
+      const activityError = validateActivitySelectionsClient(
+        activityRows,
+        selectedActivityIds,
+        activityDetails,
+        matchIntent,
+      );
+      if (activityError) {
+        reportError(activityError);
         return;
       }
       try {
         await saveMatchPrep({
+          matchIntent,
+          activitySelections: [...selectedActivityIds].map((activityId) => ({
+            activityId,
+            detail: activityDetails[activityId]?.trim() || null,
+          })),
           moodIds: [...moods],
           lookingForIds: [...lookingFor],
           interestIds: [...interests],
@@ -187,8 +256,15 @@ export function MatchPrepDialog({
         });
         handleDialogOpenChange(false);
         if (!isEdit || startMatchAfterSave) onStartSearch();
-      } catch {
-        setLocalError(isEdit ? "Could not save. Try again." : "Could not save. Try again or skip for now.");
+      } catch (err: unknown) {
+        reportError(
+          getApiErrorMessage(
+            err,
+            isEdit
+              ? "Could not save preferences. Try again."
+              : "Could not save preferences. Try again or skip for now.",
+          ),
+        );
       }
     },
     [
@@ -202,9 +278,14 @@ export function MatchPrepDialog({
       sessionGoal,
       clientSessionId,
       isEdit,
+      matchIntent,
+      selectedActivityIds,
+      activityDetails,
+      data?.activities,
       saveMatchPrep,
       handleDialogOpenChange,
       onStartSearch,
+      reportError,
     ],
   );
 
@@ -253,6 +334,24 @@ export function MatchPrepDialog({
 
             {data && !prefsLoading && (
               <>
+                <section className="space-y-2 py-1">
+                  <p className={sectionLabelClass}>How do you want to match?</p>
+                  <MatchIntentRow value={matchIntent} onChange={setMatchIntent} />
+                </section>
+
+                {(data.activities?.length ?? 0) > 0 && (
+                  <SessionActivitiesBlock
+                    rows={data.activities}
+                    selectedIds={selectedActivityIds}
+                    activityDetails={activityDetails}
+                    onToggle={toggleActivity}
+                    onDetailChange={(id, value) =>
+                      setActivityDetails((prev) => ({ ...prev, [id]: value }))
+                    }
+                    required={matchIntent === "activity"}
+                  />
+                )}
+
                 <section className="space-y-2 py-1">
                   <p className={sectionLabelClass}>Mood right now</p>
                   <OptionChipList
@@ -382,16 +481,18 @@ export function MatchPrepDialog({
             </>
           ) : (
             <>
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                className="w-full text-xs font-medium text-muted-foreground sm:w-auto"
-                onClick={() => void handleSkip()}
-                disabled={busy}
-              >
-                Skip, just match
-              </Button>
+              {matchIntent === "quick" ? (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="w-full text-xs font-medium text-muted-foreground sm:w-auto"
+                  onClick={() => void handleSkip()}
+                  disabled={busy}
+                >
+                  Skip, just match
+                </Button>
+              ) : null}
               <Button
                 type="button"
                 size="sm"

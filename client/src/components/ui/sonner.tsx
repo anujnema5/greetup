@@ -11,39 +11,34 @@ import { useTheme } from "next-themes"
 import { Toaster as Sonner, type ToasterProps } from "sonner"
 
 const Toaster = ({ ...props }: ToasterProps) => {
-  const { theme = "system", resolvedTheme } = useTheme()
-  const isDark = resolvedTheme === "dark"
+  const { resolvedTheme } = useTheme()
+  const sonnerTheme = resolvedTheme === "light" ? "light" : "dark"
 
   return (
     <Sonner
-      theme={theme as ToasterProps["theme"]}
+      theme={sonnerTheme}
       className="toaster group"
       toastOptions={{
         classNames: {
           toast:
-            "rounded-2xl border px-3.5 py-2.5 min-h-0 shadow-[0_10px_30px_rgba(0,0,0,0.45)] backdrop-blur supports-[backdrop-filter]:bg-[var(--normal-bg)] bg-[var(--normal-bg)] border-[var(--normal-border)] text-[var(--normal-text)]",
-          title: "text-sm font-semibold leading-5 text-[var(--normal-text)]",
-          description: "text-xs text-[var(--muted-text)] mt-0.5 leading-4",
+            "group toast w-full rounded-2xl border border-border bg-popover px-4 py-3 text-popover-foreground shadow-lg backdrop-blur-sm",
+          title: "text-sm font-semibold leading-5 text-foreground",
+          description: "text-xs leading-4 text-muted-foreground",
+          actionButton:
+            "rounded-lg bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground",
+          cancelButton:
+            "rounded-lg border border-border bg-muted px-3 py-1.5 text-xs font-medium text-muted-foreground",
           closeButton:
-            "border-white/15 bg-white/5 text-white/70 hover:text-white hover:bg-white/10",
+            "absolute right-2 top-2 rounded-md border border-border bg-muted/70 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground",
         },
       }}
       icons={{
-        success: <CircleCheckIcon className="size-4" />,
-        info: <InfoIcon className="size-4" />,
-        warning: <TriangleAlertIcon className="size-4" />,
-        error: <OctagonXIcon className="size-4" />,
-        loading: <Loader2Icon className="size-4 animate-spin" />,
+        success: <CircleCheckIcon className="size-4 text-success" />,
+        info: <InfoIcon className="size-4 text-primary" />,
+        warning: <TriangleAlertIcon className="size-4 text-secondary-foreground" />,
+        error: <OctagonXIcon className="size-4 text-destructive" />,
+        loading: <Loader2Icon className="size-4 animate-spin text-muted-foreground" />,
       }}
-      style={
-        {
-          "--normal-bg": isDark ? "rgba(9, 9, 11, 0.92)" : "rgba(0, 0, 0, 0.9)",
-          "--normal-text": "rgb(255 255 255)",
-          "--muted-text": isDark ? "rgba(255, 255, 255, 0.72)" : "rgba(255, 255, 255, 0.78)",
-          "--normal-border": isDark ? "rgba(255, 255, 255, 0.12)" : "rgba(255, 255, 255, 0.16)",
-          "--border-radius": "1rem",
-        } as React.CSSProperties
-      }
       {...props}
     />
   )

@@ -17,6 +17,26 @@ export type ListSpaceCategoriesData = {
 export type ListSpaceCategoriesApiResponse =
   ApiResponse<ListSpaceCategoriesData>;
 
+export type SpaceActivityOptionRow = {
+  id: string;
+  name: string;
+  displayName: string;
+  description: string | null;
+  emoji: string | null;
+  detailMode: "none" | "language" | "topic" | "optional_topic";
+  detailLabel: string | null;
+  detailPlaceholder: string | null;
+  detailMaxLength: number;
+  detailRequired: boolean;
+};
+
+export type ListSpaceActivityOptionsData = {
+  activities: SpaceActivityOptionRow[];
+};
+
+export type ListSpaceActivityOptionsApiResponse =
+  ApiResponse<ListSpaceActivityOptionsData>;
+
 export type CreateSpaceAdvancedOptions = {
   shouldHostStartMeeting?: boolean;
   shouldMeetingAutoStart?: boolean;
@@ -39,6 +59,8 @@ export type CreateSpaceRequest = {
   advancedOptions?: CreateSpaceAdvancedOptions;
   /** Must be user IDs you share an accepted connection with */
   invitedUserIds?: string[];
+  /** Optional session activities for this space (max 5). */
+  activitySelections?: Array<{ activityId: string; detail?: string | null }>;
 };
 
 export type CreateSpaceResult = {
@@ -57,6 +79,14 @@ export type CreateSpaceResult = {
 export type CreateSpaceApiResponse = ApiResponse<CreateSpaceResult>;
 
 // ─── Active spaces ───────────────────────────────────────────────────────────
+
+export type SpaceActivityTag = {
+  activityId: string;
+  name: string;
+  displayName: string;
+  emoji: string | null;
+  detail: string | null;
+};
 
 export type ActiveSpaceItem = {
   id: string;
@@ -83,6 +113,7 @@ export type ActiveSpaceItem = {
     name: string;
     displayName: string | null;
   };
+  activities: SpaceActivityTag[];
 };
 
 export type FriendInvitedSpaceItem = ActiveSpaceItem & {
