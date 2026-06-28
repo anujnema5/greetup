@@ -18,7 +18,7 @@ const RightPanel = dynamic(
 );
 
 export function DashboardPage() {
-  const { status, error, handleFindMatch, handleCancel, noMatchSuggestionContext } = useMatchmaking();
+  const { status, error, handleFindMatch, handleCancel } = useMatchmaking();
   const clientSessionId = useMatchPrepClientSessionId();
   const {
     data: promptStatus,
@@ -134,8 +134,6 @@ export function DashboardPage() {
               onCancel={handleCancel}
               onChangePreferences={() => openMatchPrep("edit")}
               error={error}
-              showSearchSuggestions={status === "searching" || noMatchSuggestionContext}
-              searchSuggestionsImmediate={noMatchSuggestionContext}
             />
             <SpacesGrid />
             <DashboardOpenNowSection />

@@ -30,26 +30,13 @@ export function DashboardOpenNowSection() {
 
   const people = allPeople.slice(0, OPEN_NOW_HOME_PREVIEW_LIMIT);
 
-  const showSeeAll =
-
-    allPeople.length > OPEN_NOW_HOME_PREVIEW_LIMIT || Boolean(data?.nextCursor) || allPeople.length > 0;
-
-
-
   return (
-
     <section>
-
       <SectionHeader
-
         className="mb-2.5"
-
         title={DASHBOARD_SECTIONS.openNow.title}
-
-        actionLabel={showSeeAll ? DASHBOARD_SECTIONS.openNow.seeAll : undefined}
-
-        onAction={showSeeAll ? () => router.push("/open-now") : undefined}
-
+        actionLabel={DASHBOARD_SECTIONS.openNow.seeAll}
+        onAction={() => router.push("/open-now")}
       />
 
 

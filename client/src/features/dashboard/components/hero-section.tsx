@@ -12,7 +12,6 @@ import { useDashboardInsights } from "../hooks/use-dashboard-insights";
 import { HeroActionCards } from "./hero-action-cards";
 import { HeroOnlinePeopleBadge } from "./hero-online-people-badge";
 import { HeroOpenToConnectCard } from "@/features/open-to-connect/components/hero-open-to-connect-card";
-import { SearchOpenNowSuggestions } from "@/features/open-to-connect/components/search-open-now-suggestions";
 
 function HeroSectionInner({
   appState,
@@ -23,8 +22,6 @@ function HeroSectionInner({
   onCancel,
   onChangePreferences,
   error,
-  showSearchSuggestions = false,
-  searchSuggestionsImmediate = false,
 }: {
   appState: "idle" | "searching" | "proposed" | "matched" | "error";
   searchingIntent: "quick" | "activity" | null;
@@ -34,8 +31,6 @@ function HeroSectionInner({
   onCancel: () => void;
   onChangePreferences: () => void;
   error?: string | null;
-  showSearchSuggestions?: boolean;
-  searchSuggestionsImmediate?: boolean;
 }) {
   const { openModal, categoriesLoading, isOpen } = useStartSpaceModal();
   const { title } = useDashboardGreeting();
@@ -127,11 +122,6 @@ function HeroSectionInner({
               {DASHBOARD_HERO.cancelSearch}
             </Button>
           ) : null}
-
-          <SearchOpenNowSuggestions
-            active={showSearchSuggestions}
-            immediate={searchSuggestionsImmediate}
-          />
 
           {appState === "error" && error ? (
             <p className="text-center text-xs text-destructive">{error}</p>

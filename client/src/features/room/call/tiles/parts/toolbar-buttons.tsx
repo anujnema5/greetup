@@ -2,25 +2,19 @@
 
 import { type ReactNode } from "react";
 import { Button } from "@/components/ui/button";
+import {
+  CALL_TOOLBAR_CAPTION_CLASS,
+  CALL_TOOLBAR_CIRCLE_ACTIVE_CLASS,
+  CALL_TOOLBAR_CIRCLE_IDLE_CLASS,
+  CALL_TOOLBAR_GLASS_ACTIVE_CLASS,
+  CALL_TOOLBAR_GLASS_BORDER_CLASS,
+  CALL_TOOLBAR_GLASS_IDLE_CLASS,
+} from "@/features/room/constants/call/call-chrome-theme";
 import { cn } from "@/lib/utils";
 
-// ─── Shared constants ─────────────────────────────────────────────────────────
+/** Caption text class used beneath every toolbar icon. */
+export const TOOLBAR_CONTROL_CAPTION_CLASS = CALL_TOOLBAR_CAPTION_CLASS;
 
-/** Frosted-glass appearance applied to every toolbar button. */
-const GLASS_BUTTON_CLASS =
-  "border border-white/14 backdrop-blur-[10px]";
-
-/**
- * Caption text class used beneath every toolbar icon.
- * Exported so callers (e.g. the overflow "More" button) can match the style.
- */
-export const TOOLBAR_CONTROL_CAPTION_CLASS =
-  "pointer-events-none w-full max-w-none text-center text-[11px] font-medium " +
-  "leading-snug tracking-wide text-white/55";
-
-// ─── Internal layout helpers ──────────────────────────────────────────────────
-
-/** Centres caption text below a button, prevents wrapping. */
 function ToolbarCaption({
   children,
   className,
@@ -41,7 +35,6 @@ function ToolbarCaption({
   );
 }
 
-/** Fixed-width column: stacks icon + caption; `w-16` keeps more controls on-screen on phones. */
 function ToolbarButtonColumn({ children }: { children: ReactNode }) {
   return (
     <div className="flex w-16 min-w-16 shrink-0 flex-col items-center gap-1">
@@ -50,15 +43,6 @@ function ToolbarButtonColumn({ children }: { children: ReactNode }) {
   );
 }
 
-// ─── MediaControlButton ───────────────────────────────────────────────────────
-
-/**
- * Mic / camera primary toggle button.
- *
- * - Shows `iconOn` when active, `iconOff` when inactive.
- * - Slightly dimmed background when off so the state is obvious at a glance.
- * - Wraps in a caption column when `caption` is provided.
- */
 export function MediaControlButton({
   active,
   onClick,
@@ -88,8 +72,8 @@ export function MediaControlButton({
       className={cn(
         "h-11 w-11 shrink-0 rounded-full p-0 transition-all duration-150",
         "disabled:cursor-not-allowed disabled:opacity-50",
-        active ? "bg-white/14 hover:bg-white/22" : "bg-white/8 hover:bg-white/16",
-        GLASS_BUTTON_CLASS,
+        active ? CALL_TOOLBAR_GLASS_ACTIVE_CLASS : CALL_TOOLBAR_GLASS_IDLE_CLASS,
+        CALL_TOOLBAR_GLASS_BORDER_CLASS,
       )}
     >
       {active ? iconOn : iconOff}
@@ -106,15 +90,6 @@ export function MediaControlButton({
   );
 }
 
-// ─── CircleToolbarButton ──────────────────────────────────────────────────────
-
-/**
- * Secondary toolbar button — chat, activities, go live, add, next, etc.
- *
- * - Adds a subtle white ring when `isActive` is true (e.g. chat panel is open).
- * - Accepts an optional `className` override for special states (e.g. live red).
- * - Wraps in a caption column when `caption` is provided.
- */
 export function CircleToolbarButton({
   onClick,
   ariaLabel,
@@ -140,10 +115,8 @@ export function CircleToolbarButton({
       title={ariaLabel}
       className={cn(
         "h-11 w-11 shrink-0 rounded-full p-0 transition-all duration-150",
-        isActive
-          ? "bg-white/18 ring-1 ring-white/22 hover:bg-white/24"
-          : "bg-white/10 hover:bg-white/18",
-        GLASS_BUTTON_CLASS,
+        isActive ? CALL_TOOLBAR_CIRCLE_ACTIVE_CLASS : CALL_TOOLBAR_CIRCLE_IDLE_CLASS,
+        CALL_TOOLBAR_GLASS_BORDER_CLASS,
         className,
       )}
     >

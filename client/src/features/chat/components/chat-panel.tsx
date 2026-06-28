@@ -108,7 +108,7 @@ export function ChatPanel({
   return (
     <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
       {showQuickReactions ? (
-        <div className={cn('flex min-w-0 flex-wrap items-center gap-1.5 border-b border-border/70 py-2', CHAT_HORIZONTAL_PADDING)}>
+        <div className={cn('flex min-w-0 flex-wrap items-center gap-1.5 border-b border-border/70 bg-muted/30 py-2', CHAT_HORIZONTAL_PADDING)}>
           {QUICK_REACTION_EMOJIS.map((emoji) => (
             <Button
               key={emoji}

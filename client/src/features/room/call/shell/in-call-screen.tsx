@@ -30,6 +30,8 @@ import { Maximize2, Minimize2, Volume2, VolumeX } from "lucide-react";
 import { toast } from "sonner";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { DEFAULT_SPACE_DISPLAY_TITLE } from "@/features/room/constants/call/space-display";
+import { CALL_STAGE_SHELL_CLASS } from "@/features/room/constants/call/call-chrome-theme";
+import { CALL_ROOM_FORCED_DARK_CLASS } from "@/features/room/constants/call/call-chrome-theme";
 import {
   IN_CALL_DIALOG_CONTENT_Z,
   IN_CALL_DIALOG_OVERLAY_Z,
@@ -582,9 +584,9 @@ export function InCallScreen({
             <div
               ref={stageShellRef}
               className={cn(
-                "relative flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden rounded-2xl bg-black/60 shadow-xl",
+                CALL_STAGE_SHELL_CLASS,
                 stageFullscreen.isLayoutImmersive &&
-                  "fixed inset-0 z-300 m-0 max-h-dvh rounded-none shadow-none",
+                  "fixed inset-0 z-300 m-0 max-h-dvh rounded-none border-0 shadow-none",
               )}
             >
               <div className="relative min-h-0 min-w-0 flex-1 overflow-hidden">
@@ -752,6 +754,7 @@ export function InCallScreen({
               showCloseButton
               aria-describedby={undefined}
               className={cn(
+                CALL_ROOM_FORCED_DARK_CLASS,
                 /* Above InCallContainer (`z-100`) and in-room dialogs. */
                 IN_CALL_DIALOG_CONTENT_Z,
                 "gap-0 border-x-0 border-b-0 p-0",

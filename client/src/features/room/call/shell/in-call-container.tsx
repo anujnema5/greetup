@@ -47,6 +47,8 @@ import {
   isConnectionCallSession,
   isMatchSession,
 } from "@/features/room/lib/session/room-session-kind";
+import { CALL_ROOM_FORCED_DARK_CLASS } from "@/features/room/constants/call/call-chrome-theme";
+import { cn } from "@/lib/utils";
 
 export type InCallContainerProps = {
   roomId: string;
@@ -395,7 +397,7 @@ export function InCallContainer({
   ]);
 
   return (
-    <div className="fixed inset-0 z-100 flex flex-col overflow-hidden bg-background">
+    <div className={cn(CALL_ROOM_FORCED_DARK_CLASS, "fixed inset-0 z-100 flex flex-col overflow-hidden bg-background")}>
       <RoomSessionExpiryWarningsLayer roomId={roomId} enabled={mediasoupReady} />
       <SpaceNsfwModerationLayer
         roomId={roomId}

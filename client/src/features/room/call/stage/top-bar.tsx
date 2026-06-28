@@ -4,10 +4,8 @@ import { type ReactNode } from "react";
 import { PictureInPicture2 } from "lucide-react";
 import { SpaceCallTitleBadge } from "@/features/room/call/components/space-call-title-badge";
 import { DEFAULT_SPACE_DISPLAY_TITLE } from "@/features/room/constants/call/space-display";
+import { CALL_STAGE_CHROME_BTN_CLASS } from "@/features/room/constants/call/call-chrome-theme";
 import { cn } from "@/lib/utils";
-
-const STAGE_CHROME_BTN =
-  "inline-flex size-10 cursor-pointer items-center justify-center rounded-full border border-white/25 bg-black/55 text-white shadow-lg backdrop-blur-md transition-colors hover:bg-black/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40";
 
 /**
  * Top overlay: stage title (when not 1:1 tile-only layout) + **Minimize call** (dock / keep session).
@@ -91,7 +89,7 @@ export function CallTopBar({
               onClick={onMinimize}
               aria-label="Minimize to floating call"
               title="Minimize to floating call"
-              className={STAGE_CHROME_BTN}
+              className={CALL_STAGE_CHROME_BTN_CLASS}
             >
               <PictureInPicture2 size={18} className="shrink-0" aria-hidden />
             </button>
@@ -103,4 +101,4 @@ export function CallTopBar({
 }
 
 /** Shared with `InCallScreen` trailing actions so fullscreen / PiP use identical chrome. */
-export const CALL_STAGE_CHROME_BTN_CLASS = STAGE_CHROME_BTN;
+export { CALL_STAGE_CHROME_BTN_CLASS } from "@/features/room/constants/call/call-chrome-theme";

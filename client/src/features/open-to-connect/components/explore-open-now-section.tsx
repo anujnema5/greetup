@@ -30,24 +30,12 @@ export function ExploreOpenNowSection() {
 
   const people = allPeople.slice(0, OPEN_NOW_EXPLORE_PREVIEW_LIMIT);
 
-  const showSeeAll =
-
-    allPeople.length > OPEN_NOW_EXPLORE_PREVIEW_LIMIT || Boolean(data?.nextCursor) || allPeople.length > 0;
-
-
-
   return (
-
     <section>
-
       <ExploreSectionHeader
-
         title={EXPLORE.openNow.title}
-
-        actionLabel={showSeeAll ? EXPLORE.peopleToMeet.viewAll : undefined}
-
-        onAction={showSeeAll ? () => router.push("/open-now") : undefined}
-
+        actionLabel={EXPLORE.peopleToMeet.viewAll}
+        onAction={() => router.push("/open-now")}
       />
 
 

@@ -21,6 +21,7 @@ import {
   usePeersCallStatus,
 } from "@/features/connections/api/connections.queries";
 import type { ConnectionListItem } from "@/features/connections/types/connections-api.types";
+import { CALL_ROOM_FORCED_DARK_CLASS } from "@/features/room/constants/call/call-chrome-theme";
 import { cn } from "@/lib/utils";
 import {
   COMPACT_DIALOG_BODY,
@@ -129,7 +130,7 @@ export function AddToSpaceDialog({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
-        className="z-200 sm:max-w-md"
+        className={cn(CALL_ROOM_FORCED_DARK_CLASS, "z-200 sm:max-w-md")}
         overlayClassName="z-199"
         onOpenAutoFocus={(e) => e.preventDefault()}
       >

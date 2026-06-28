@@ -13,6 +13,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { useUpdateRoomTitle } from "@/features/room/api/room.mutations";
 import { getApiErrorMessage } from "@/lib/api/fetch-client";
+import { CALL_ROOM_FORCED_DARK_CLASS } from "@/features/room/constants/call/call-chrome-theme";
 import {
   IN_CALL_DIALOG_CONTENT_Z,
   IN_CALL_DIALOG_OVERLAY_Z,
@@ -73,7 +74,7 @@ export function SpaceRenameDialog({
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent
-        className={cn(IN_CALL_DIALOG_CONTENT_Z, "sm:max-w-100")}
+        className={cn(CALL_ROOM_FORCED_DARK_CLASS, IN_CALL_DIALOG_CONTENT_Z, "sm:max-w-100")}
         overlayClassName={IN_CALL_DIALOG_OVERLAY_Z}
         showCloseButton
       >

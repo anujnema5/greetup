@@ -32,6 +32,7 @@ import { canUseScreenShare } from "@/features/rtc/lib/screen-share-policy";
 import { useMobileWebRtcUi } from "@/features/rtc/hooks/use-mobile-web-rtc-ui";
 import { allowScreenShareCallControl } from "@/features/rtc/lib/rtc-mobile-profile";
 import { cn } from "@/lib/utils";
+import { CALL_ROOM_FORCED_DARK_CLASS } from "@/features/room/constants/call/call-chrome-theme";
 import {
   Mic,
   MicOff,
@@ -259,6 +260,7 @@ function MinimizedRoomDockPanel() {
   return (
     <div
       className={cn(
+        CALL_ROOM_FORCED_DARK_CLASS,
         "fixed z-200 max-md:left-1/2 max-md:-translate-x-1/2 max-md:right-auto max-md:bottom-[5.25rem]",
         "md:bottom-4 md:right-4 md:left-auto",
         "w-[min(18.5rem,calc(100vw-1rem))] md:w-[min(28rem,calc(100vw-1.25rem))]",

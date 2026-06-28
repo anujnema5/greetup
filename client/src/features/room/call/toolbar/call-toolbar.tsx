@@ -45,6 +45,16 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { buttonVariants } from "@/components/ui/button";
+import {
+  CALL_ROOM_FORCED_DARK_CLASS,
+  CALL_TOOLBAR_DIVIDER_CLASS,
+  CALL_TOOLBAR_ICON_ACTIVE_CLASS,
+  CALL_TOOLBAR_ICON_IDLE_CLASS,
+  CALL_TOOLBAR_ICON_OFF_CLASS,
+  CALL_TOOLBAR_ICON_ON_CLASS,
+  CALL_TOOLBAR_MORE_BUTTON_CLASS,
+  CALL_TOOLBAR_SHELL_CLASS,
+} from "@/features/room/constants/call/call-chrome-theme";
 import { getSessionExitCopy } from "@/features/room/constants/call/session-exit-copy";
 import {
   CircleToolbarButton,
@@ -54,9 +64,8 @@ import {
 import { cn } from "@/lib/utils";
 import type { RoomCallRightPanelTab } from "@/features/room/types/call/room-call-panel.types";
 
-/** Outer bar: reads on dark stage; safe-area padding for home indicator + caption row. */
-const TOOLBAR_SHELL_CLASS =
-  "pointer-events-auto z-30 w-full shrink-0 select-none rounded-xl border border-white/10 bg-[#0c0c0c]/88 pt-3 pb-[max(0.9rem,calc(0.5rem+env(safe-area-inset-bottom)))] shadow-[0_-10px_40px_-8px_rgb(0_0_0_/0.55)] backdrop-blur-2xl";
+/** Outer bar shell — theme-aware for light and dark stage. */
+const TOOLBAR_SHELL_CLASS = CALL_TOOLBAR_SHELL_CLASS;
 
 /** Hide scrollbars on narrow overflow row (Firefox / legacy Edge). */
 const HIDE_SCROLLBAR_CLASS =
@@ -323,7 +332,7 @@ export function RoomVideoToolbar({
           >
             <MessageCircle
               size={18}
-              className={rightPanelTab === "chat" ? "text-primary" : "text-white/75"}
+              className={rightPanelTab === "chat" ? CALL_TOOLBAR_ICON_ACTIVE_CLASS : CALL_TOOLBAR_ICON_IDLE_CLASS}
             />
           </CircleToolbarButton>
         );
@@ -338,7 +347,7 @@ export function RoomVideoToolbar({
           >
             <Users
               size={18}
-              className={rightPanelTab === "participants" ? "text-primary" : "text-white/75"}
+              className={rightPanelTab === "participants" ? CALL_TOOLBAR_ICON_ACTIVE_CLASS : CALL_TOOLBAR_ICON_IDLE_CLASS}
             />
           </CircleToolbarButton>
         );
@@ -353,7 +362,7 @@ export function RoomVideoToolbar({
           >
             <LayoutGrid
               size={18}
-              className={rightPanelTab === "activities" ? "text-primary" : "text-white/75"}
+              className={rightPanelTab === "activities" ? CALL_TOOLBAR_ICON_ACTIVE_CLASS : CALL_TOOLBAR_ICON_IDLE_CLASS}
             />
           </CircleToolbarButton>
         );
@@ -366,7 +375,7 @@ export function RoomVideoToolbar({
             caption={isLive ? "End live" : "Go live"}
             className={isLive ? "bg-red-500/80 hover:bg-red-500" : undefined}
           >
-            <Radio size={18} className={isLive ? "text-white" : "text-white/80"} />
+            <Radio size={18} className={isLive ? "text-white" : CALL_TOOLBAR_ICON_IDLE_CLASS} />
           </CircleToolbarButton>
         );
       case "add":
@@ -379,7 +388,7 @@ export function RoomVideoToolbar({
             }
             caption={isGroupRoom ? "Add people" : "Add"}
           >
-            <UserPlus size={18} className="text-white/80" />
+            <UserPlus size={18} className={CALL_TOOLBAR_ICON_IDLE_CLASS} />
           </CircleToolbarButton>
         ) : null;
       case "spaceOptions":
@@ -390,7 +399,7 @@ export function RoomVideoToolbar({
             ariaLabel="Space options"
             caption="Options"
           >
-            <MoreHorizontal size={18} className="text-white/80" />
+            <MoreHorizontal size={18} className={CALL_TOOLBAR_ICON_IDLE_CLASS} />
           </CircleToolbarButton>
         ) : null;
       case "skip":
@@ -401,7 +410,7 @@ export function RoomVideoToolbar({
             ariaLabel="Find next person"
             caption="Next"
           >
-            <SkipForward size={18} className="text-white/80" />
+            <SkipForward size={18} className={CALL_TOOLBAR_ICON_IDLE_CLASS} />
           </CircleToolbarButton>
         );
       default:
@@ -485,8 +494,8 @@ export function RoomVideoToolbar({
         disabled={!mediaTogglesReady}
         ariaLabel={micEnabled ? "Mute microphone" : "Unmute microphone"}
         caption={micEnabled ? "Mute" : "Unmute"}
-        iconOn={<Mic size={18} className="text-white/90" />}
-        iconOff={<MicOff size={18} className="text-amber-200/95" />}
+        iconOn={<Mic size={18} className={CALL_TOOLBAR_ICON_ON_CLASS} />}
+        iconOff={<MicOff size={18} className={CALL_TOOLBAR_ICON_OFF_CLASS} />}
       />
 
       <MediaControlButton
@@ -495,8 +504,8 @@ export function RoomVideoToolbar({
         disabled={!mediaTogglesReady}
         ariaLabel={cameraEnabled ? "Turn camera off" : "Turn camera on"}
         caption={cameraEnabled ? "Video" : "Camera"}
-        iconOn={<Video size={18} className="text-white/90" />}
-        iconOff={<VideoOff size={18} className="text-amber-200/95" />}
+        iconOn={<Video size={18} className={CALL_TOOLBAR_ICON_ON_CLASS} />}
+        iconOff={<VideoOff size={18} className={CALL_TOOLBAR_ICON_OFF_CLASS} />}
       />
 
       {showScreenShareAction ? (
@@ -506,8 +515,8 @@ export function RoomVideoToolbar({
           disabled={!mediaTogglesReady}
           ariaLabel={screenSharing ? "Stop sharing screen" : "Share screen"}
           caption={screenSharing ? "Sharing" : "Share"}
-          iconOn={<Monitor size={18} className="text-white/90" />}
-          iconOff={<MonitorOff size={18} className="text-amber-200/95" />}
+          iconOn={<Monitor size={18} className={CALL_TOOLBAR_ICON_ON_CLASS} />}
+          iconOff={<MonitorOff size={18} className={CALL_TOOLBAR_ICON_OFF_CLASS} />}
         />
       ) : null}
 
@@ -520,7 +529,7 @@ export function RoomVideoToolbar({
         >
           <Users
             size={18}
-            className={rightPanelTab === "participants" ? "text-primary" : "text-white/75"}
+            className={rightPanelTab === "participants" ? CALL_TOOLBAR_ICON_ACTIVE_CLASS : CALL_TOOLBAR_ICON_IDLE_CLASS}
           />
         </CircleToolbarButton>
       ) : null}
@@ -533,13 +542,13 @@ export function RoomVideoToolbar({
         >
           <LayoutGrid
             size={18}
-            className={rightPanelTab === "activities" ? "text-primary" : "text-white/75"}
+            className={rightPanelTab === "activities" ? CALL_TOOLBAR_ICON_ACTIVE_CLASS : CALL_TOOLBAR_ICON_IDLE_CLASS}
           />
         </CircleToolbarButton>
       ) : null}
 
       {showWideDivider ? (
-        <div className="hidden h-7 w-px shrink-0 self-center bg-white/20 md:block" aria-hidden />
+        <div className={CALL_TOOLBAR_DIVIDER_CLASS} aria-hidden />
       ) : null}
     </>
   );
@@ -604,13 +613,9 @@ export function RoomVideoToolbar({
                         type="button"
                         aria-label="More call actions"
                         title="More call actions"
-                        className={cn(
-                          "inline-flex size-11 shrink-0 cursor-pointer items-center justify-center rounded-full border border-white/18 bg-white/15 p-0 backdrop-blur-md",
-                          "transition-colors hover:bg-white/25 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/35",
-                          "touch-manipulation active:bg-white/20",
-                        )}
+                        className={CALL_TOOLBAR_MORE_BUTTON_CLASS}
                       >
-                        <MoreVertical size={18} className="text-white/85" />
+                        <MoreVertical size={18} className={CALL_TOOLBAR_ICON_IDLE_CLASS} />
                       </button>
                     </DropdownMenuTrigger>
                     <span
@@ -650,7 +655,7 @@ export function RoomVideoToolbar({
       </div>
 
       <AlertDialog open={hostEndForEveryoneDialogOpen} onOpenChange={setHostEndForEveryoneDialogOpen}>
-        <AlertDialogContent>
+        <AlertDialogContent className={CALL_ROOM_FORCED_DARK_CLASS}>
           <AlertDialogHeader>
             <AlertDialogTitle>{sessionExitCopy.hostEndAlertTitle}</AlertDialogTitle>
             <AlertDialogDescription>{sessionExitCopy.hostEndAlertDescription}</AlertDialogDescription>

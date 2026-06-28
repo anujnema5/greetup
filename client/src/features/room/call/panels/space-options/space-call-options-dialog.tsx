@@ -8,6 +8,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { RoomSpaceCallOptionActions } from "@/features/room/call/panels/space-options/space-call-option-actions";
+import { CALL_ROOM_FORCED_DARK_CLASS } from "@/features/room/constants/call/call-chrome-theme";
 import {
   IN_CALL_DIALOG_CONTENT_Z,
   IN_CALL_DIALOG_OVERLAY_Z,
@@ -47,7 +48,7 @@ export function RoomSpaceCallOptionsDialog({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
-        className={cn(IN_CALL_DIALOG_CONTENT_Z, "gap-0 overflow-hidden p-0 sm:max-w-md")}
+        className={cn(CALL_ROOM_FORCED_DARK_CLASS, IN_CALL_DIALOG_CONTENT_Z, "gap-0 overflow-hidden p-0 sm:max-w-md")}
         overlayClassName={IN_CALL_DIALOG_OVERLAY_Z}
       >
         <DialogHeader className="space-y-1 border-b px-4 py-4 text-left">
