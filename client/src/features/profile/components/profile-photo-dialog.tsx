@@ -18,9 +18,7 @@ import {
   useSaveProfileSetup,
 } from "@/features/profile-setup/api";
 import type { MyProfileResponse } from "@/features/profile/types/my-profile.types";
-
-const DICEBEAR_PNG = (seed: string) =>
-  `https://api.dicebear.com/9.x/avataaars-neutral/png?seed=${encodeURIComponent(seed)}&size=512`;
+import { fetchAvatarFile } from "@/lib/avatar";
 
 const MAX_BYTES = 5 * 1024 * 1024;
 const ALLOWED_CONTENT_TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);
@@ -165,17 +163,7 @@ export function ProfilePhotoDialog({
     if (busy) return;
     setIsGenerating(true);
     try {
-      const seed =
-        typeof crypto !== "undefined" && crypto.randomUUID
-          ? crypto.randomUUID()
-          : `avatar-${Date.now()}`;
-      const res = await fetch(DICEBEAR_PNG(seed));
-      if (!res.ok) {
-        toast.error("Could not generate an avatar. Try uploading instead.");
-        return;
-      }
-      const blob = await res.blob();
-      const generated = new File([blob], `avatar-${seed.slice(0, 8)}.png`, { type: "image/png" });
+      const { file: generated } = await fetchAvatarFile();
       setFile(generated);
     } catch {
       toast.error("Could not generate an avatar. Try uploading instead.");

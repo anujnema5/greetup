@@ -12,6 +12,8 @@ import {
 } from "@/components/ui/form";
 import { cn } from "@/lib/utils";
 
+import { fetchAvatarPng } from "@/lib/avatar";
+
 import {
   useEnsureProfilePhotoPublic,
   usePresignProfilePhoto,
@@ -22,10 +24,6 @@ const ALLOWED_CONTENT_TYPES = new Set(["image/jpeg", "image/png", "image/webp"])
 const ACCEPT_ATTR = "image/jpeg,image/png,image/webp";
 const MAX_SIZE_ERROR = "Image must be 5 MB or smaller.";
 const INVALID_TYPE_ERROR = "Use JPEG, PNG, or WebP.";
-
-/** DiceBear PNG — fetched as blob and uploaded like a normal photo (stored on your CDN). */
-const DICEBEAR_PNG = (seed: string) =>
-  `https://api.dicebear.com/9.x/avataaars-neutral/png?seed=${encodeURIComponent(seed)}&size=512`;
 
 export type ProfileSetupPhotoItem = {
   id?: string;
@@ -182,18 +180,12 @@ export function ProfileSetupPhotoField({
     if (disabled || busy) return;
     setPending("generate");
     try {
-      const seed = typeof crypto !== "undefined" && crypto.randomUUID
-        ? crypto.randomUUID()
-        : `greetup-${Date.now()}`;
-      const res = await fetch(DICEBEAR_PNG(seed));
-      if (!res.ok) {
-        toast.error("Could not generate an avatar. Try uploading instead.");
-        return;
-      }
-      const blob = await res.blob();
-      await uploadBlob(blob, `avatar-${seed.slice(0, 8)}.png`);
+      const { blob, filename } = await fetchAvatarPng();
+      await uploadBlob(blob, filename);
     } catch (err) {
-      toast.error(getApiErrorMessage(err, "Something went wrong"));
+      toast.error(
+        getApiErrorMessage(err, "Could not generate an avatar. Try uploading instead."),
+      );
     } finally {
       setPending(null);
     }
