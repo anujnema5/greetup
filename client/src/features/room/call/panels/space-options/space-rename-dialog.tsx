@@ -64,7 +64,7 @@ export function SpaceRenameDialog({
     }
     try {
       await updateTitle({ roomId, title: next });
-      toast.success("Circle name saved");
+      toast.success("Space name saved");
       handleOpenChange(false);
     } catch (err: unknown) {
       toast.error(getApiErrorMessage(err, "Could not save name"));

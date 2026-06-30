@@ -84,7 +84,7 @@ export function ParticipantKickMenuButton({
       >
         <DropdownMenuItem onSelect={onRequestRemove}>
           <UserMinus className="size-3.5 shrink-0" strokeWidth={2.25} />
-          Remove from circle
+          Remove from space
         </DropdownMenuItem>
         <DropdownMenuItem variant="destructive" onSelect={onRequestRestrict}>
           <Ban className="size-3.5 shrink-0" strokeWidth={2.25} />

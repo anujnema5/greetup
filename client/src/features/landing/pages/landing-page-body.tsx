@@ -161,7 +161,7 @@ const TRUST = [
   { icon: Globe,       label: "Nearby or global"    },
 ];
 
-const CIRCLE_ACTIVITY_CHIPS: ReadonlyArray<{ label: string; comingSoon?: boolean }> = [
+const SPACE_ACTIVITY_CHIPS: ReadonlyArray<{ label: string; comingSoon?: boolean }> = [
   { label: "Startup Founder Night Talk" },
   { label: "Jam Session for Musicians" },
   { label: "Chess Blitz Room" },
@@ -647,7 +647,7 @@ function LandingPageInner() {
         </div>
       </section>
 
-      {/* ══════════════════ CIRCLES IN ACTION ══════════════════ */}
+      {/* ══════════════════ SPACES IN ACTION ══════════════════ */}
       <section className="relative py-12 sm:py-20 lg:py-28 px-5 sm:px-6 overflow-hidden">
         <div className="pointer-events-none absolute inset-0 flex items-center justify-start pl-0">
           <div className="w-[400px] h-[400px] rounded-full bg-[oklch(65%_0.2_285/0.05)] blur-[48px] md:blur-[100px]" />
@@ -712,7 +712,7 @@ function LandingPageInner() {
                     <p className="text-[10px] text-[oklch(88%_0.18_105/0.7)] font-semibold tracking-wide uppercase">Group room examples</p>
                   </div>
                   <div className="flex flex-wrap gap-1.5">
-                    {CIRCLE_ACTIVITY_CHIPS.map((chip, i) => {
+                    {SPACE_ACTIVITY_CHIPS.map((chip, i) => {
                       const chipLabel = chip.comingSoon ? `${chip.label} · Soon` : chip.label;
                       const chipClass = cn(
                         "text-[10px] font-medium px-2.5 py-1 rounded-full border transition-all cursor-default",

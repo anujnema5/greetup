@@ -60,7 +60,7 @@ export type InCallContainerProps = {
   isGroupRoom: boolean;
   spaceDisplayTitle: string | null;
   spaceCanEditTitle?: boolean;
-  /** DB space host — used for “open circle for everyone” lobby control. */
+  /** DB space host — used for “open space for everyone” lobby control. */
   spaceHostUserId?: string | null;
   /** From GET `/room/:id` (`sessionKind: circle`). */
   spaceLobbyGateActive?: "0" | "1" | null;

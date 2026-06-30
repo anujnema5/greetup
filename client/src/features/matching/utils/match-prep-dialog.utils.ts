@@ -62,7 +62,7 @@ export function deriveDefaultFormValues(
   };
 }
 
-/** Mirrors Start a circle "More options" scroll-into-view behavior. */
+/** Mirrors Start a space "More options" scroll-into-view behavior. */
 export function scrollAnchoredSectionIntoView(
   scrollEl: HTMLElement,
   anchor: HTMLElement,

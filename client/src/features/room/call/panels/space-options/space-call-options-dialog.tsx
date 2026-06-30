@@ -52,7 +52,7 @@ export function RoomSpaceCallOptionsDialog({
         overlayClassName={IN_CALL_DIALOG_OVERLAY_Z}
       >
         <DialogHeader className="space-y-1 border-b px-4 py-4 text-left">
-          <DialogTitle>Circle options</DialogTitle>
+          <DialogTitle>Space options</DialogTitle>
           <DialogDescription>Invite people, copy the join link, or open chat.</DialogDescription>
         </DialogHeader>
 
