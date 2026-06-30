@@ -88,6 +88,13 @@ export type SpaceActivityTag = {
   detail: string | null;
 };
 
+export type ActiveSpaceHost = {
+  userId: string;
+  name: string;
+  displayName: string | null;
+  image: string | null;
+};
+
 export type ActiveSpaceItem = {
   id: string;
   title: string;
@@ -108,11 +115,7 @@ export type ActiveSpaceItem = {
     displayName: string;
     emoji: string | null;
   };
-  host: {
-    userId: string;
-    name: string;
-    displayName: string | null;
-  };
+  host: ActiveSpaceHost;
   activities: SpaceActivityTag[];
 };
 

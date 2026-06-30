@@ -1,5 +1,12 @@
+import type {
+  FetchAvatarFileResult,
+  FetchAvatarPngResult,
+  GenerateAvatarOptions,
+} from "./avatar.types";
+
 const DICEBEAR_VERSION = "9.x";
 const AVATAR_STYLE = "adventurer";
+export const DEFAULT_PROFILE_AVATAR_SEED = "greetup-default-profile";
 
 const AVATAR_BACKGROUND_COLORS = [
   "b6e3f4",
@@ -13,15 +20,6 @@ const AVATAR_BACKGROUND_COLORS = [
 ] as const;
 
 const DEFAULT_AVATAR_SIZE = 512;
-
-export type GenerateAvatarOptions = {
-  seed?: string;
-  size?: number;
-};
-
-function hashSeed(seed: string): number {
-  return seed.split("").reduce((acc, char) => acc + char.charCodeAt(0), 0);
-}
 
 function pickBackgroundForSeed(seed: string): string {
   const hash = seed.split("").reduce((acc, char) => acc + char.charCodeAt(0) * 31, 0);
@@ -55,11 +53,13 @@ export function buildAvatarPngUrl(options: GenerateAvatarOptions = {}): string {
   return `https://api.dicebear.com/${DICEBEAR_VERSION}/${AVATAR_STYLE}/png?${params.toString()}`;
 }
 
-export async function fetchAvatarPng(options: GenerateAvatarOptions = {}): Promise<{
-  blob: Blob;
-  seed: string;
-  filename: string;
-}> {
+export function buildDefaultProfileAvatarUrl(size = DEFAULT_AVATAR_SIZE): string {
+  return buildAvatarPngUrl({ seed: DEFAULT_PROFILE_AVATAR_SEED, size });
+}
+
+export async function fetchAvatarPng(
+  options: GenerateAvatarOptions = {},
+): Promise<FetchAvatarPngResult> {
   const seed = options.seed ?? createAvatarSeed();
   const response = await fetch(buildAvatarPngUrl({ ...options, seed }));
 
@@ -71,10 +71,9 @@ export async function fetchAvatarPng(options: GenerateAvatarOptions = {}): Promi
   return { blob, seed, filename: avatarFilenameForSeed(seed) };
 }
 
-export async function fetchAvatarFile(options: GenerateAvatarOptions = {}): Promise<{
-  file: File;
-  seed: string;
-}> {
+export async function fetchAvatarFile(
+  options: GenerateAvatarOptions = {},
+): Promise<FetchAvatarFileResult> {
   const { blob, seed, filename } = await fetchAvatarPng(options);
   return { file: new File([blob], filename, { type: "image/png" }), seed };
 }

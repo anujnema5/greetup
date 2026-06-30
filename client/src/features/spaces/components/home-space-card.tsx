@@ -8,6 +8,7 @@ import {
   activeSpaceCardShowsLiveSession,
   activeSpaceHostCanEditSchedule,
 } from "@/features/spaces/lib/active-space-card-session-display";
+import { useSpaceHostAvatarSrc } from "@/features/spaces/hooks/use-space-host-avatar-src";
 import type { ActiveSpaceItem } from "../types/spaces-api.types";
 import { SPACE_PREVIEW_DESKTOP_GRID_CLASS } from "../lib/space-preview-grid-classes";
 
@@ -21,11 +22,6 @@ const COVER_CLASSES = [
 function coverClassForSpace(id: string) {
   const n = id.split("").reduce((acc, c) => acc + c.charCodeAt(0), 0);
   return COVER_CLASSES[n % COVER_CLASSES.length];
-}
-
-function hostInitial(host: ActiveSpaceItem["host"]) {
-  const name = host.displayName?.trim() || host.name?.trim() || "H";
-  return name.charAt(0).toUpperCase();
 }
 
 export type HomeSpaceCardProps = {
@@ -49,6 +45,7 @@ export function HomeSpaceCard({
   startScheduledBusy,
   className,
 }: HomeSpaceCardProps) {
+  const hostAvatarSrc = useSpaceHostAvatarSrc(space.host, currentUserId);
   const isLive = activeSpaceCardShowsLiveSession(space);
   const scheduledLabel = formatScheduledStart(space.scheduledStartAt);
   const isHost = Boolean(currentUserId && space.host.userId === currentUserId);
@@ -127,9 +124,12 @@ export function HomeSpaceCard({
 
         <div className="mt-auto flex items-center justify-between gap-2 border-t border-border/60 pt-3">
           <div className="flex min-w-0 flex-1 items-center gap-2">
-            <span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-primary text-[11px] font-bold text-primary-foreground">
-              {hostInitial(space.host)}
-            </span>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={hostAvatarSrc}
+              alt=""
+              className="size-7 shrink-0 rounded-full object-cover ring-1 ring-border/60"
+            />
             {extraCount > 0 ? (
               <span className="-ml-2 flex size-7 shrink-0 items-center justify-center rounded-full border-2 border-card bg-muted text-[10px] font-semibold text-muted-foreground">
                 +{extraCount}

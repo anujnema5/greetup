@@ -28,6 +28,7 @@ export function toActiveSpaceItem(row: {
   hostUserId: string;
   hostName: string;
   hostDisplayName: string | null;
+  hostImage: string | null;
 }): ActiveSpaceItem {
   return {
     id: row.id,
@@ -53,6 +54,7 @@ export function toActiveSpaceItem(row: {
       userId: row.hostUserId,
       name: row.hostName,
       displayName: row.hostDisplayName,
+      image: row.hostImage,
     },
     activities: [],
   };

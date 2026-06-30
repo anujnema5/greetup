@@ -1,6 +1,13 @@
 import type { RoomAdvancedOptions } from "@/core/database/schema";
 import type { SpaceActivityTagDto } from "@/modules/session-activities";
 
+export type ActiveSpaceHost = {
+  userId: string;
+  name: string;
+  displayName: string | null;
+  image: string | null;
+};
+
 export type ActiveSpaceItem = {
   id: string;
   title: string;
@@ -21,11 +28,7 @@ export type ActiveSpaceItem = {
     displayName: string;
     emoji: string | null;
   };
-  host: {
-    userId: string;
-    name: string;
-    displayName: string | null;
-  };
+  host: ActiveSpaceHost;
   /** Session activities tagged on this space (ordered by pick priority). */
   activities: SpaceActivityTagDto[];
 };

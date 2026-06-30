@@ -63,6 +63,7 @@ function activeSpaceColumns() {
     categoryEmoji: roomCategories.emoji,
     hostName: users.name,
     hostDisplayName: users.displayName,
+    hostImage: users.image,
     participantCount: participantCountSq(),
     pendingInviteeIds: sql<
       string[] | null
