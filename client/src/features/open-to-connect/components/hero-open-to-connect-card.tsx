@@ -5,6 +5,7 @@ import { useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import { OnlinePresenceDot } from "@/features/presence";
+import { TOUR_TARGETS } from "@/features/tour-guide";
 import { OPEN_TO_CONNECT } from "@/lib/copy/user-messages";
 import { cn } from "@/lib/utils";
 
@@ -64,6 +65,7 @@ export function HeroOpenToConnectCard({ disabled, variant = "card" }: Props) {
             shellClass,
             "border border-primary/25 bg-primary/5",
           )}
+          data-tour-id={TOUR_TARGETS.openToConnect}
         >
           <button
             type="button"
@@ -133,6 +135,7 @@ export function HeroOpenToConnectCard({ disabled, variant = "card" }: Props) {
       <button
         type="button"
         disabled={disabled}
+        data-tour-id={TOUR_TARGETS.openToConnect}
         onClick={() => setDialogOpen(true)}
         className={cn(
           shellClass,

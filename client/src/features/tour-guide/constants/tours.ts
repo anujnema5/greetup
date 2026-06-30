@@ -18,6 +18,16 @@ export const TOUR_DEFINITIONS = {
         description: TOUR_GUIDE.welcome.matchOrb.description,
       },
       {
+        target: TOUR_TARGETS.activityMatch,
+        title: TOUR_GUIDE.welcome.activityMatch.title,
+        description: TOUR_GUIDE.welcome.activityMatch.description,
+      },
+      {
+        target: TOUR_TARGETS.openToConnect,
+        title: TOUR_GUIDE.welcome.openToConnect.title,
+        description: TOUR_GUIDE.welcome.openToConnect.description,
+      },
+      {
         target: TOUR_TARGETS.spaceOrb,
         title: TOUR_GUIDE.welcome.spaceOrb.title,
         description: TOUR_GUIDE.welcome.spaceOrb.description,

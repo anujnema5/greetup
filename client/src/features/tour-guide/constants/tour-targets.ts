@@ -2,6 +2,8 @@
 export const TOUR_TARGETS = {
   mainNav: "main-nav",
   matchOrb: "match-orb",
+  activityMatch: "activity-match",
+  openToConnect: "open-to-connect",
   spaceOrb: "space-orb",
   changePreferences: "change-preferences",
   spacesGrid: "spaces-grid",

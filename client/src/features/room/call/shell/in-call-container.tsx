@@ -14,7 +14,7 @@ import {
   useRoomChessInvite,
 } from "@/features/activity/api/activity.mutations";
 import { useRtcSocketContext } from "@/features/rtc";
-import { useMatchmaking } from "@/features/matching";
+import { useMatchmaking, useRoom } from "@/features/matching";
 import {
   useOpenSpaceMeeting,
   useStartScheduledSpace,
@@ -90,6 +90,7 @@ export function InCallContainer({
   spaceRoomStatus = null,
   isDbSpaceCall = false,
 }: InCallContainerProps) {
+  const { leaveAndGoHome } = useRoom();
   const setDirectCallPeerLabel = useRoomStore((s) => s.setDirectCallPeerLabel);
   const { data: session } = useSession();
   const roomPhase = useRoomStore(selectRoomPhase);
@@ -421,6 +422,7 @@ export function InCallContainer({
           hostCanStartScheduledNow={hostCanStartScheduledSpaceNow}
           hostStartScheduledBusy={startingScheduledSpace}
           onHostStartScheduledNow={() => void handleHostStartScheduledSpaceNow()}
+          onLeave={leaveAndGoHome}
         />
       ) : null}
       {isGroupRoom && isHostUser && spaceLobbyGateActive === "1" ? (

@@ -95,6 +95,7 @@ export function HeroActionCards({
 
       <button
         type="button"
+        data-tour-id={TOUR_TARGETS.activityMatch}
         disabled={matchDisabled || modeSwitchBusy}
         onClick={onActivityMatch}
         aria-busy={activityShowSpinner}
