@@ -4,7 +4,8 @@ import type {
 } from "@/features/profile-setup/types/profile-setup-api.types";
 import { cn } from "@/lib/utils";
 
-import type { MatchPrepInitialFormState } from "../types/match-prep.types";
+import type { MatchPrepFormValues } from "../schemas/match-prep-form.schema";
+import type { MatchIntentValue, MatchPrepInitialFormState } from "../types/match-prep.types";
 
 /**
  * Mobile Chrome: plain `vh` ignores the URL bar. Use `min(90svh, 90dvh)` so height tracks the
@@ -31,6 +32,34 @@ export function toggleIdInSet(id: string, prev: Set<string>): Set<string> {
   if (next.has(id)) next.delete(id);
   else next.add(id);
   return next;
+}
+
+export function toggleIdInArray(id: string, prev: string[], max?: number): string[] {
+  if (prev.includes(id)) return prev.filter((value) => value !== id);
+  if (max !== undefined && prev.length >= max) return prev;
+  return [...prev, id];
+}
+
+export function deriveDefaultFormValues(
+  options: MatchPrepOptionsData,
+  saved: MatchPrepCurrentData | undefined,
+  initialMatchIntent: MatchIntentValue,
+  isEdit: boolean,
+): MatchPrepFormValues {
+  const initial = deriveInitialFormState(options, saved);
+  return {
+    matchIntent: isEdit ? initial.matchIntent : initialMatchIntent,
+    activityIds: [...initial.selectedActivityIds],
+    activityDetails: initial.activityDetails,
+    moodIds: [...initial.moods],
+    lookingForIds: [...initial.lookingFor],
+    interestIds: [...initial.interests],
+    connectionPreference: initial.connectionPreference,
+    locationPreferenceEnabled: initial.locationPreferenceEnabled,
+    distancePreference: initial.distancePreference,
+    location: initial.location,
+    sessionGoal: initial.sessionGoal,
+  };
 }
 
 /** Mirrors Start a circle "More options" scroll-into-view behavior. */

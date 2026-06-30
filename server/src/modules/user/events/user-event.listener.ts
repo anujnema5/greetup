@@ -9,6 +9,7 @@ import {
   syncOpenToConnectIndexIfEnabled,
 } from "@/modules/open-to-connect/services/open-to-connect.service";
 import { otcRedisIndexService } from "@/modules/open-to-connect/services/otc-redis-index.service";
+import { otcFeedBroadcastService } from "@/modules/open-to-connect/services/otc-feed-broadcast.service";
 import { getUserMatchStateService, cancelMatchService } from "@/modules/matching/services/matchmaking.service";
 import { emitToUser, getSocket } from "@/core/socket/socket";
 

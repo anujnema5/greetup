@@ -1,7 +1,9 @@
 "use client";
 
+import { zodResolver } from "@hookform/resolvers/zod";
 import { Loader2 } from "lucide-react";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef } from "react";
+import { useForm } from "react-hook-form";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -13,6 +15,15 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
+import {
   OptionChipList,
   SessionActivitiesBlock,
 } from "@/features/matching/components/match-prep-dialog-parts";
@@ -21,14 +32,9 @@ import {
   dialogSectionPxClass,
   dialogShellClass,
   scrollBodyClass,
-  sectionLabelClass,
-  toggleIdInSet,
+  toggleIdInArray,
 } from "@/features/matching/utils/match-prep-dialog.utils";
-import {
-  buildActivitySelectionsPayload,
-  toggleSessionActivityId,
-  validateSessionActivitySelections,
-} from "@/features/matching/utils/session-activities.utils";
+import { buildActivitySelectionsPayload } from "@/features/matching/utils/session-activities.utils";
 import {
   useMatchPrepCurrent,
   useMatchPrepOptions,
@@ -40,8 +46,17 @@ import { cn } from "@/lib/utils";
 
 import { useEnableOpenToConnect } from "../api/open-to-connect.mutations";
 import { useOpenToConnectMe } from "../api/open-to-connect.queries";
+import {
+  createOpenToConnectEnableSchema,
+  type OpenToConnectEnableFormValues,
+} from "../schemas/open-to-connect-enable.schema";
 
-const MAX_SESSION_ACTIVITIES = 3;
+const EMPTY_OTC_FORM_VALUES: OpenToConnectEnableFormValues = {
+  headline: "",
+  lookingForIds: [],
+  activityIds: [],
+  activityDetails: {},
+};
 
 type Props = {
   open: boolean;
@@ -60,12 +75,6 @@ export function OpenToConnectEnableDialog({ open, onOpenChange }: Props) {
   const saveMatchPrep = useSaveMatchPrep();
   const enable = useEnableOpenToConnect();
 
-  const [headline, setHeadline] = useState("");
-  const [lookingFor, setLookingFor] = useState<Set<string>>(new Set());
-  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
-  const [activityDetails, setActivityDetails] = useState<Record<string, string>>({});
-  const [validationError, setValidationError] = useState<string | null>(null);
-
   const seededRef = useRef(false);
   const formScrollRef = useRef<HTMLDivElement>(null);
 
@@ -73,10 +82,22 @@ export function OpenToConnectEnableDialog({ open, onOpenChange }: Props) {
   const prefsLoading = optionsLoading || (open && !savedReady && !savedError);
   const busy = saveMatchPrep.isPending || enable.isPending;
 
+  const schema = useMemo(
+    () => createOpenToConnectEnableSchema(activityRows),
+    [activityRows],
+  );
+
+  const form = useForm<OpenToConnectEnableFormValues>({
+    resolver: zodResolver(schema),
+    defaultValues: EMPTY_OTC_FORM_VALUES,
+    mode: "onSubmit",
+  });
+
   const resetDialogUiState = useCallback(() => {
     seededRef.current = false;
-    setValidationError(null);
-  }, []);
+    form.clearErrors();
+    form.reset(EMPTY_OTC_FORM_VALUES);
+  }, [form]);
 
   const handleDialogOpenChange = useCallback(
     (nextOpen: boolean) => {
@@ -92,36 +113,23 @@ export function OpenToConnectEnableDialog({ open, onOpenChange }: Props) {
 
     seededRef.current = true;
     const next = deriveInitialFormState(options, saved);
-    /* eslint-disable react-hooks/set-state-in-effect */
-    setHeadline(me?.headline ?? "");
-    setSelectedIds(next.selectedActivityIds);
-    setActivityDetails(next.activityDetails);
-    setLookingFor(next.lookingFor);
-    setValidationError(null);
-    /* eslint-enable react-hooks/set-state-in-effect */
-  }, [open, options, saved, savedReady, savedError, me?.headline]);
+    form.reset({
+      headline: me?.headline ?? "",
+      lookingForIds: [...next.lookingFor],
+      activityIds: [...next.selectedActivityIds],
+      activityDetails: next.activityDetails,
+    });
+  }, [open, options, saved, savedReady, savedError, me?.headline, form]);
 
-  const handleToggleActivity = useCallback((id: string) => {
-    setSelectedIds((prev) => toggleSessionActivityId(prev, id, MAX_SESSION_ACTIVITIES));
-    setValidationError(null);
-  }, []);
-
-  const handleDetailChange = useCallback((id: string, value: string) => {
-    setActivityDetails((prev) => ({ ...prev, [id]: value }));
-    setValidationError(null);
-  }, []);
-
-  const handleSubmit = async () => {
-    setValidationError(null);
-
-    if (lookingFor.size === 0) {
-      setValidationError("Choose at least one “looking for” option.");
-      return;
-    }
+  const onSubmit = async (values: OpenToConnectEnableFormValues) => {
+    form.clearErrors("root");
 
     const interestIds = saved?.interestIds ?? [];
     if (interestIds.length === 0) {
-      setValidationError("Add interests in your profile or match preferences first.");
+      form.setError("root", {
+        type: "manual",
+        message: "Add interests in your profile or match preferences first.",
+      });
       return;
     }
 
@@ -132,19 +140,17 @@ export function OpenToConnectEnableDialog({ open, onOpenChange }: Props) {
           ? [options.moods[0].id]
           : [];
     if (moodIds.length === 0) {
-      setValidationError("Could not load mood options. Try again.");
+      form.setError("root", {
+        type: "manual",
+        message: "Could not load mood options. Try again.",
+      });
       return;
     }
 
-    const activityError = validateSessionActivitySelections(activityRows, selectedIds, activityDetails, {
-      maxCount: MAX_SESSION_ACTIVITIES,
-    });
-    if (activityError) {
-      setValidationError(activityError);
-      return;
-    }
-
-    const activitySelections = buildActivitySelectionsPayload(selectedIds, activityDetails);
+    const activitySelections = buildActivitySelectionsPayload(
+      new Set(values.activityIds),
+      values.activityDetails,
+    );
     const matchIntent = saved?.matchIntent ?? "quick";
 
     try {
@@ -152,35 +158,45 @@ export function OpenToConnectEnableDialog({ open, onOpenChange }: Props) {
         matchIntent,
         activitySelections,
         moodIds,
-        lookingForIds: [...lookingFor],
+        lookingForIds: values.lookingForIds,
         interestIds,
         connectionPreference: saved?.connectionPreference ?? "open_to_anyone",
         locationPreferenceEnabled: saved?.locationPreferenceEnabled ?? false,
         distancePreference: saved?.distancePreference ?? "random",
-        location: saved?.location
-          ? {
-              country: saved.location.country,
-              countryCode: saved.location.countryCode,
-              region: saved.location.region,
-              regionCode: saved.location.regionCode,
-              city: saved.location.city,
-              latitude: saved.location.latitude,
-              longitude: saved.location.longitude,
-            }
-          : undefined,
+        location:
+          saved?.location?.country &&
+          saved.location.countryCode &&
+          typeof saved.location.latitude === "number" &&
+          typeof saved.location.longitude === "number"
+            ? {
+                country: saved.location.country,
+                countryCode: saved.location.countryCode,
+                region: saved.location.region ?? undefined,
+                regionCode: saved.location.regionCode ?? undefined,
+                city: saved.location.city ?? undefined,
+                latitude: saved.location.latitude,
+                longitude: saved.location.longitude,
+              }
+            : undefined,
         sessionGoal: null,
       });
 
       await enable.mutateAsync({
-        headline: headline.trim() || null,
+        headline: values.headline.trim() || null,
       });
       handleDialogOpenChange(false);
     } catch (err: unknown) {
-      setValidationError(
-        getApiErrorMessage(err, OPEN_TO_CONNECT.toast.enableFailed),
-      );
+      form.setError("root", {
+        type: "server",
+        message: getApiErrorMessage(err, OPEN_TO_CONNECT.toast.enableFailed),
+      });
     }
   };
+
+  const rootError =
+    typeof form.formState.errors.root?.message === "string"
+      ? form.formState.errors.root.message
+      : undefined;
 
   return (
     <Dialog open={open} onOpenChange={handleDialogOpenChange}>
@@ -214,48 +230,95 @@ export function OpenToConnectEnableDialog({ open, onOpenChange }: Props) {
               </button>
             </div>
           ) : options ? (
-            <div className="space-y-4 pt-1">
-              <div className="space-y-1.5">
-                <label htmlFor="otc-headline" className={sectionLabelClass}>
-                  {OPEN_TO_CONNECT.enable.headlineLabel}
-                </label>
-                <input
-                  id="otc-headline"
-                  type="text"
-                  maxLength={120}
-                  value={headline}
-                  onChange={(e) => setHeadline(e.target.value)}
-                  placeholder={OPEN_TO_CONNECT.enable.headlinePlaceholder}
-                  className="w-full rounded-xl border border-border bg-background px-3 py-2 text-sm"
+            <Form {...form}>
+              <form
+                id="otc-enable-form"
+                onSubmit={form.handleSubmit(onSubmit)}
+                className="space-y-4 pt-4"
+              >
+                <FormField
+                  control={form.control}
+                  name="headline"
+                  render={({ field }) => (
+                    <FormItem className="gap-2.5">
+                      <FormLabel className="text-muted-foreground">
+                        {OPEN_TO_CONNECT.enable.headlineLabel}
+                      </FormLabel>
+                      <FormControl>
+                        <Input
+                          type="text"
+                          maxLength={120}
+                          placeholder={OPEN_TO_CONNECT.enable.headlinePlaceholder}
+                          className="h-10 rounded-xl"
+                          {...field}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
                 />
-              </div>
 
-              {activityRows.length > 0 ? (
-                <SessionActivitiesBlock
-                  rows={activityRows}
-                  selectedIds={selectedIds}
-                  activityDetails={activityDetails}
-                  onToggle={handleToggleActivity}
-                  onDetailChange={handleDetailChange}
-                  required={false}
+                {activityRows.length > 0 ? (
+                  <FormField
+                    control={form.control}
+                    name="activityIds"
+                    render={({ field }) => (
+                      <FormItem className="gap-2.5">
+                        <FormControl>
+                          <SessionActivitiesBlock
+                            rows={activityRows}
+                            selectedIds={new Set(field.value)}
+                            activityDetails={form.watch("activityDetails")}
+                            onToggle={(id) => {
+                              const next = toggleIdInArray(id, field.value, 3);
+                              field.onChange(next);
+                              if (!next.includes(id)) {
+                                const details = { ...form.getValues("activityDetails") };
+                                delete details[id];
+                                form.setValue("activityDetails", details, { shouldDirty: true });
+                              }
+                            }}
+                            onDetailChange={(id, value) =>
+                              form.setValue(
+                                "activityDetails",
+                                { ...form.getValues("activityDetails"), [id]: value },
+                                { shouldDirty: true },
+                              )
+                            }
+                            required={false}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                ) : null}
+
+                <FormField
+                  control={form.control}
+                  name="lookingForIds"
+                  render={({ field }) => (
+                    <FormItem className="gap-2.5">
+                      <FormLabel className="text-muted-foreground">Looking for</FormLabel>
+                      <FormControl>
+                        <OptionChipList
+                          rows={options.lookingFor}
+                          selectedIds={field.value}
+                          onToggle={(id) => field.onChange(toggleIdInArray(id, field.value))}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
                 />
-              ) : null}
 
-              <section className="space-y-2">
-                <p className={sectionLabelClass}>Looking for</p>
-                <OptionChipList
-                  rows={options.lookingFor}
-                  selected={lookingFor}
-                  onToggle={(id) => setLookingFor((p) => toggleIdInSet(id, p))}
-                />
-              </section>
-
-              {validationError ? (
-                <p className="text-sm text-destructive" role="alert">
-                  {validationError}
-                </p>
-              ) : null}
-            </div>
+                {rootError ? (
+                  <p className="text-sm text-destructive" role="alert">
+                    {rootError}
+                  </p>
+                ) : null}
+              </form>
+            </Form>
           ) : null}
         </div>
 
@@ -268,7 +331,11 @@ export function OpenToConnectEnableDialog({ open, onOpenChange }: Props) {
           <Button type="button" variant="outline" onClick={() => handleDialogOpenChange(false)} disabled={busy}>
             Cancel
           </Button>
-          <Button type="button" onClick={() => void handleSubmit()} disabled={busy || prefsLoading || !options}>
+          <Button
+            type="submit"
+            form="otc-enable-form"
+            disabled={busy || prefsLoading || !options}
+          >
             {busy ? (
               <>
                 <Loader2 className="size-4 animate-spin" aria-hidden />

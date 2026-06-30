@@ -17,6 +17,8 @@ import {
 } from "@/core/database/schema";
 import { eq, sql } from "drizzle-orm";
 
+import { openToConnectStatusRepository } from "@/modules/open-to-connect/repositories/open-to-connect-status.repository";
+
 export class UsernameTakenError extends Error {
   constructor() {
     super("USERNAME_TAKEN");
@@ -41,6 +43,7 @@ export const profileSetupRepository = {
       .values({ userId })
       .returning({ id: userProfiles.id });
     if (!inserted) throw new Error("Failed to create profile");
+    await openToConnectStatusRepository.createInitialForProfile(inserted.id, true);
     return inserted.id;
   },
 

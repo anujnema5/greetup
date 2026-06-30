@@ -1,7 +1,7 @@
 import { eq } from "drizzle-orm";
 
 import { db } from "@/core/database";
-import { userProfiles, users } from "@/core/database/schema";
+import { users } from "@/core/database/schema";
 import logger from "@/core/logging";
 import {
   activityCatalogRepository,
@@ -41,28 +41,22 @@ async function assertCanEnableOpenToConnect(userId: string): Promise<void> {
 
 async function buildTagsForUser(userId: string): Promise<OpenToConnectTags | null> {
   const row = await openToConnectStatusRepository.findByUserId(userId);
-  if (!row?.openToConnect || row.openToConnectPausedForRoom) return null;
+  if (!row?.openToConnect || row.openToConnectPausedForRoom || row.isGuest) return null;
 
-  const profile = await db.query.userProfiles.findFirst({
-    where: eq(userProfiles.userId, userId),
-    columns: { id: true },
-    with: {
-      user: {
-        columns: { displayName: true, name: true },
-      },
-    },
+  const userRow = await db.query.users.findFirst({
+    where: eq(users.id, userId),
+    columns: { displayName: true, name: true },
   });
-  if (!profile) return null;
 
-  const interestIds = await openToConnectStatusRepository.listInterestIdsForProfile(profile.id);
+  const interestIds = await openToConnectStatusRepository.listInterestIdsForProfile(row.profileId);
   const moodIds = row.moods.map((m) => m.moodId);
   const activityIds = row.activities.map((a) => a.activityId);
   const updatedAt = (row.openToConnectUpdatedAt ?? new Date()).toISOString();
 
   return {
-    profileId: profile.id,
+    profileId: row.profileId,
     userId,
-    displayName: profile.user?.displayName ?? profile.user?.name ?? null,
+    displayName: userRow?.displayName ?? userRow?.name ?? null,
     headline: row.openToConnectHeadline,
     activityIds,
     moodIds,
@@ -77,12 +71,13 @@ export async function syncOpenToConnectIndexIfEnabled(
 ): Promise<void> {
   try {
     const tags = await buildTagsForUser(userId);
-    if (!tags) return;
-    const online = await otcRedisIndexService.isUserOnline(userId);
-    if (!online) {
+    const online = tags ? await otcRedisIndexService.isUserOnline(userId) : false;
+
+    if (!tags || !online) {
       await otcRedisIndexService.removeUserFromIndex(userId);
       return;
     }
+
     await otcRedisIndexService.syncUserToIndex(tags);
     if (options?.broadcast !== false) {
       void otcFeedBroadcastService.notifyUserAvailable(userId);

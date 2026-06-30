@@ -1,6 +1,7 @@
 import type { User } from "@better-auth/core/db";
 
 import logger from "@/core/logging";
+import { openToConnectStatusRepository } from "@/modules/open-to-connect/repositories/open-to-connect-status.repository";
 import { refreshProfileSnapshotFromDatabase } from "@/modules/user/services/profile-snapshot-cache.service";
 
 import { guestProfileRepository } from "../../repositories/guest-profile.repository";
@@ -107,6 +108,15 @@ export async function upgradeGuestUserOnSignup(
 
   const convertedAt = new Date();
   await guestProfileRepository.markGuestConverted(guestUserId, convertedAt);
+
+  const statusRow = await openToConnectStatusRepository.findByUserId(guestUserId);
+  if (statusRow) {
+    await openToConnectStatusRepository.setOpenState(statusRow.profileId, {
+      openToConnect: true,
+      source: null,
+      headline: null,
+    });
+  }
 
   await logGuestTrialEvent({
     guestUserId,

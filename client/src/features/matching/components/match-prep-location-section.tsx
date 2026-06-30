@@ -4,12 +4,12 @@ import { Loader2, MapPin } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 
 import { DistancePreferenceRow } from "./match-prep-dialog-parts";
 import type { DistancePreferenceValue } from "../types/match-prep.types";
 import { getLocationLabel } from "../hooks/use-match-prep-location";
-import { sectionLabelClass } from "../utils/match-prep-dialog.utils";
 import type { MatchPrepLocation } from "../types/match-prep.types";
 import type { ResolvedLocationSuggestionData } from "@/features/profile-setup/types/profile-setup-api.types";
 
@@ -74,9 +74,7 @@ export function MatchPrepLocationSection({
   return (
     <section className="space-y-2">
       <div className="flex items-center justify-between gap-3">
-        <div>
-          <p className={sectionLabelClass}>Location-based search</p>
-        </div>
+        <Label className="text-muted-foreground">Location-based search</Label>
         <Switch
           checked={locationPreferenceEnabled}
           onCheckedChange={onLocationPreferenceEnabledChange}

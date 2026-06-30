@@ -114,7 +114,7 @@ export const DASHBOARD_SECTIONS = {
 
   openNow: {
     title: "Open now",
-    empty: "No one is open right now. Try going open yourself — recommended so the best people can find you.",
+    empty: "No one is open right now. Try going open yourself. Recommended so the best people can find you.",
     badge: "Open to connect",
     seeAll: "See all",
     sharedInterests: (count: number) =>
@@ -215,28 +215,30 @@ export const OPEN_TO_CONNECT = {
   toast: {
     requestSent: "Request sent",
     requestFailed: "Could not send request",
-    accepted: "Connected — joining room",
+    accepted: "Connected. Joining room",
     declined: "Request declined",
     incoming: "Someone wants to connect",
-    enabled: "You're open — people can find you even when you're not searching",
-    enableFailed: "Could not go open",
-    disabled: "You're no longer discoverable",
-    disableFailed: "Could not turn off discovery",
+    enabled: "You're on Open now. People can send a connect request while you're not searching",
+    enableFailed: "Couldn't turn on Open now",
+    disabled:
+      "You won't show in Open now. Matching and your profile still work as usual",
+    disableFailed: "Couldn't turn off Open now",
   },
   enable: {
     title: "Let people find me",
     recommendedBadge: "Recommended",
     subtitle:
-      "People can find you even when you're not searching — so the best matches can reach out to you.",
+      "People can find you even when you're not searching, so the best matches can reach out to you.",
     activeTitle: "You're open",
     activeSubtitle:
       "Not searching, but people can still find you and send a connect request.",
-    pausedInRoomSubtitle: "Hidden while you're in a call — you'll be discoverable again when you leave.",
+    pausedInRoomSubtitle:
+      "Hidden from Open now during your call. You'll show again when you leave.",
     turnOff: "Turn off",
     setUp: "Set up & go open",
     dialogTitle: "Let people find me",
     dialogDescription:
-      "Stay discoverable while you're online — even when you're not actively searching. Recommended to help us surface the best people for you.",
+      "Stay discoverable while you're online, even when you're not actively searching. Recommended to help us surface the best people for you.",
     dialogHighlight:
       "This is passive discovery, not a search. You won't be queued for random matching.",
     headlineLabel: "Open line (optional)",
@@ -246,11 +248,20 @@ export const OPEN_TO_CONNECT = {
     disabling: "Turning off…",
     activitiesLabel: "Activities to show (optional)",
   },
+  settings: {
+    label: "Let people find me",
+    summaryOn:
+      "You show in Open now while online. Others can send a connect request when you're not searching.",
+    summaryOff:
+      "You won't show in Open now. Matching and your profile still work as usual.",
+    summaryPaused:
+      "Hidden from Open now during your call. You'll show again when you leave.",
+  },
   postNoMatch: {
     title: "No one available right now",
     description:
-      "Recommended: let people find you even when you're not searching — the best matches often reach out to you.",
-    prefillHint: "We'll show these on your card — adjust if you like.",
+      "Recommended: let people find you even when you're not searching. The best matches often reach out to you.",
+    prefillHint: "We'll show these on your card. Adjust if you like.",
     noActivities: "You can still go open. Others will see your profile in Open now.",
     stayOpen: "Let people find me",
     notNow: "Not now",
@@ -258,7 +269,7 @@ export const OPEN_TO_CONNECT = {
   },
   searchFallback: {
     title: "These people are open",
-    subtitle: "No match yet — send a connect request. Your search keeps running.",
+    subtitle: "No match yet. Send a connect request. Your search keeps running.",
     empty: "No one open who fits right now.",
   },
 } as const;
@@ -307,7 +318,7 @@ export const CONNECTIONS = {
 
 export const OPEN_NOW_PAGE = {
   title: "Open now",
-  subtitle: "People open to connect right now — ranked for you.",
+  subtitle: "People open to connect right now, ranked for you.",
   filterAll: "All",
   filterAria: "Filter open people",
   empty: "No one is open right now. Try going open on Home so the best people can find you too.",
@@ -382,7 +393,7 @@ export const EXPLORE = {
 
     title: "Open now",
 
-    empty: "Nobody is open right now. On Home, try going open yourself — recommended so the best people can find you.",
+    empty: "Nobody is open right now. On Home, try going open yourself. Recommended so the best people can find you.",
 
     error: "Could not load open people. Try again in a moment.",
 

@@ -21,7 +21,7 @@ const Toaster = ({ ...props }: ToasterProps) => {
       toastOptions={{
         classNames: {
           toast:
-            "group toast w-full rounded-2xl border border-border bg-popover px-4 py-3 text-popover-foreground shadow-lg backdrop-blur-sm",
+            "group toast w-full rounded-2xl border-0 bg-popover px-4 py-3 text-popover-foreground !shadow-lg backdrop-blur-sm",
           title: "text-sm font-semibold leading-5 text-foreground",
           description: "text-xs leading-4 text-muted-foreground",
           actionButton:

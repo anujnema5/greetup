@@ -37,6 +37,7 @@ import { ProfilePhotoDialog } from "../components/profile-photo-dialog";
 import { ProfileRecentMatchesSection } from "../components/profile-recent-matches-section";
 import { ProfileSectionRow } from "../components/profile-section-row";
 import { RoomInviteSettingsModal } from "../components/room-invite-settings-modal";
+import { OpenToConnectSettingsToggle } from "@/features/open-to-connect";
 import type { EditableProfile, ProfileEditSectionId } from "../types/profile-editor.types";
 import {
   buildProfileSavePayload,
@@ -333,6 +334,7 @@ export function ProfilePage() {
               summary={roomInviteSummary}
               onClick={() => setRoomInviteOpen(true)}
             />
+            <OpenToConnectSettingsToggle />
             <ProfileSectionRow
               icon={<FileText className="h-4 w-4" />}
               label="Bio"

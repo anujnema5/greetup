@@ -1,12 +1,13 @@
 "use client";
 
 import { ChevronDown } from "lucide-react";
-import type { RefObject } from "react";
+import type { ReactNode, RefObject } from "react";
 
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import type { MatchPrepOptionRow, MatchPrepActivityOptionRow } from "@/features/profile-setup/types/profile-setup-api.types";
 import { cn } from "@/lib/utils";
-import { sectionLabelClass } from "../utils/match-prep-dialog.utils";
 import type {
   ConnectionPreferenceValue,
   DistancePreferenceValue,
@@ -26,6 +27,20 @@ const DISTANCE_OPTIONS: { id: DistancePreferenceValue; label: string }[] = [
   { id: "global", label: "Global" },
 ];
 
+export function MatchPrepSectionLabel({
+  children,
+  htmlFor,
+}: {
+  children: ReactNode;
+  htmlFor?: string;
+}) {
+  return (
+    <Label htmlFor={htmlFor} className="text-muted-foreground">
+      {children}
+    </Label>
+  );
+}
+
 function chipClass(selected: boolean): string {
   return cn(
     "rounded-full border px-3 py-1.5 text-xs font-medium transition-colors cursor-pointer",
@@ -35,15 +50,22 @@ function chipClass(selected: boolean): string {
   );
 }
 
+function isSelected(selected: Set<string> | string[], id: string): boolean {
+  return selected instanceof Set ? selected.has(id) : selected.includes(id);
+}
+
 export function OptionChipList({
   rows,
   selected,
+  selectedIds,
   onToggle,
 }: {
   rows: MatchPrepOptionRow[];
-  selected: Set<string>;
+  selected?: Set<string>;
+  selectedIds?: string[];
   onToggle: (id: string) => void;
 }) {
+  const selection = selectedIds ?? selected ?? [];
   return (
     <div className="flex flex-wrap gap-2">
       {rows.map((row) => (
@@ -52,7 +74,7 @@ export function OptionChipList({
           type="button"
           onClick={() => onToggle(row.id)}
           title={row.description ?? undefined}
-          className={chipClass(selected.has(row.id))}
+          className={chipClass(isSelected(selection, row.id))}
         >
           {row.displayName}
         </button>
@@ -160,11 +182,11 @@ export function SessionActivitiesBlock({
   required: boolean;
 }) {
   return (
-    <section className="space-y-2 py-1">
-      <p className={sectionLabelClass}>
+    <section className="flex flex-col gap-2.5 py-1">
+      <MatchPrepSectionLabel>
         What do you want to do?
         {required ? " (required)" : " (optional)"}
-      </p>
+      </MatchPrepSectionLabel>
       <div className="flex flex-wrap gap-2">
         {rows.map((row) => {
           const selected = selectedIds.has(row.id);
@@ -184,13 +206,18 @@ export function SessionActivitiesBlock({
       </div>
       {rows
         .filter((row) => selectedIds.has(row.id) && activityShowsDetailField(row))
-        .map((row) => (
-          <div key={`detail-${row.id}`} className="space-y-1 pt-1">
-            <label htmlFor={`activity-detail-${row.id}`} className="text-xs text-muted-foreground">
-              {row.detailLabel ?? "Details"}
-              {!row.detailRequired ? " (optional)" : ""}
-            </label>
-            <input
+        .map((row) => {
+          const label = row.detailLabel ?? "Details";
+          const showOptionalSuffix =
+            !row.detailRequired && !/\(optional\)/i.test(label);
+
+          return (
+          <div key={`detail-${row.id}`} className="flex flex-col gap-2.5 pt-1">
+            <Label htmlFor={`activity-detail-${row.id}`} className="text-muted-foreground">
+              {label}
+              {showOptionalSuffix ? " (optional)" : ""}
+            </Label>
+            <Input
               id={`activity-detail-${row.id}`}
               type="text"
               value={activityDetails[row.id] ?? ""}
@@ -200,10 +227,11 @@ export function SessionActivitiesBlock({
                 (row.detailMode === "language" ? "e.g. Spanish" : "Add a short title")
               }
               onChange={(e) => onDetailChange(row.id, e.target.value)}
-              className="w-full rounded-xl border border-border bg-background px-3 py-2 text-sm"
+              className="h-10 rounded-xl"
             />
           </div>
-        ))}
+          );
+        })}
     </section>
   );
 }
@@ -214,13 +242,15 @@ export function InterestsBlock({
   onToggleOpen,
   rows,
   selected,
+  selectedIds,
   onToggleOption,
 }: {
   sectionRef: RefObject<HTMLDivElement | null>;
   open: boolean;
   onToggleOpen: () => void;
   rows: MatchPrepOptionRow[];
-  selected: Set<string>;
+  selected?: Set<string>;
+  selectedIds?: string[];
   onToggleOption: (id: string) => void;
 }) {
   return (
@@ -248,7 +278,12 @@ export function InterestsBlock({
       </div>
       {open && (
         <div className="space-y-2 rounded-xl bg-muted/10 py-1">
-          <OptionChipList rows={rows} selected={selected} onToggle={onToggleOption} />
+          <OptionChipList
+            rows={rows}
+            selected={selected}
+            selectedIds={selectedIds}
+            onToggle={onToggleOption}
+          />
         </div>
       )}
     </div>

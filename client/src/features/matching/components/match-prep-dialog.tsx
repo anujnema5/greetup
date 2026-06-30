@@ -1,7 +1,9 @@
 "use client";
 
+import { zodResolver } from "@hookform/resolvers/zod";
 import { Loader2 } from "lucide-react";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -13,54 +15,28 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { Form } from "@/components/ui/form";
 import {
   useMatchPrepCurrent,
   useMatchPrepOptions,
   useSaveMatchPrep,
 } from "@/features/profile-setup/api";
-import type {
-  MatchPrepDialogProps,
-  ConnectionPreferenceValue,
-  DistancePreferenceValue,
-} from "../types/match-prep.types";
+import { getApiErrorMessage } from "@/lib/api/fetch-client";
+
+import type { MatchPrepDialogProps } from "../types/match-prep.types";
 import { useMatchPrepLocation } from "../hooks/use-match-prep-location";
 import {
-  deriveInitialFormState,
+  createMatchPrepFormSchema,
+  EMPTY_MATCH_PREP_FORM_VALUES,
+  type MatchPrepFormValues,
+} from "../schemas/match-prep-form.schema";
+import {
+  deriveDefaultFormValues,
   dialogShellClass,
   scrollAnchoredSectionIntoView,
   scrollBodyClass,
-  sectionLabelClass,
-  toggleIdInSet,
 } from "../utils/match-prep-dialog.utils";
-import { MatchPrepLocationSection } from "./match-prep-location-section";
-
-import {
-  ConnectionPreferenceRow,
-  InterestsBlock,
-  MatchIntentRow,
-  OptionChipList,
-  SessionActivitiesBlock,
-} from "./match-prep-dialog-parts";
-import {
-  validateSessionActivitySelections,
-} from "../utils/session-activities.utils";
-import type { MatchIntentValue } from "../types/match-prep.types";
-import type { MatchPrepActivityOptionRow } from "@/features/profile-setup/types/profile-setup-api.types";
-import { getApiErrorMessage } from "@/lib/api/fetch-client";
-
-const MAX_SESSION_ACTIVITIES = 3;
-
-function validateActivitySelectionsClient(
-  rows: MatchPrepActivityOptionRow[],
-  selectedIds: Set<string>,
-  activityDetails: Record<string, string>,
-  matchIntent: MatchIntentValue,
-): string | null {
-  return validateSessionActivitySelections(rows, selectedIds, activityDetails, {
-    requireAtLeastOne: matchIntent === "activity",
-    maxCount: MAX_SESSION_ACTIVITIES,
-  });
-}
+import { MatchPrepFormBody } from "./match-prep-form-body";
 
 export function MatchPrepDialog({
   open,
@@ -85,14 +61,6 @@ export function MatchPrepDialog({
 
   const { mutateAsync: saveMatchPrep, isPending: isSaving } = useSaveMatchPrep();
 
-  const [moods, setMoods] = useState<Set<string>>(new Set());
-  const [lookingFor, setLookingFor] = useState<Set<string>>(new Set());
-  const [interests, setInterests] = useState<Set<string>>(new Set());
-  const [connectionPreference, setConnectionPreference] =
-    useState<ConnectionPreferenceValue>("open_to_anyone");
-  const [locationPreferenceEnabled, setLocationPreferenceEnabled] = useState(false);
-  const [distancePreference, setDistancePreference] =
-    useState<DistancePreferenceValue>("random");
   const {
     selectedLocation,
     setSelectedLocation,
@@ -110,28 +78,31 @@ export function MatchPrepDialog({
     handleUseCurrentLocation,
     handleUseTypedLocation,
   } = useMatchPrepLocation();
-  const [sessionGoal, setSessionGoal] = useState("");
-  const [matchIntent, setMatchIntent] = useState<MatchIntentValue>("quick");
-  const [selectedActivityIds, setSelectedActivityIds] = useState<Set<string>>(new Set());
-  const [activityDetails, setActivityDetails] = useState<Record<string, string>>({});
-  const [localError, setLocalError] = useState<string | null>(null);
-  const [interestsOpen, setInterestsOpen] = useState(false);
 
-  const reportError = useCallback((message: string) => {
-    setLocalError(message);
-    toast.error(message);
-  }, []);
+  const [interestsOpen, setInterestsOpen] = useState(false);
 
   const seededRef = useRef(false);
   const formScrollRef = useRef<HTMLDivElement>(null);
   const interestsSectionRef = useRef<HTMLDivElement>(null);
 
+  const schema = useMemo(
+    () => createMatchPrepFormSchema(data?.activities ?? []),
+    [data?.activities],
+  );
+
+  const form = useForm<MatchPrepFormValues>({
+    resolver: zodResolver(schema),
+    defaultValues: EMPTY_MATCH_PREP_FORM_VALUES,
+    mode: "onSubmit",
+  });
+
   const resetDialogUiState = useCallback(() => {
     seededRef.current = false;
-    setLocalError(null);
     setInterestsOpen(false);
+    form.clearErrors();
+    form.reset(EMPTY_MATCH_PREP_FORM_VALUES);
     resetLocationUiState();
-  }, [resetLocationUiState]);
+  }, [form, resetLocationUiState]);
 
   const handleDialogOpenChange = useCallback(
     (nextOpen: boolean) => {
@@ -159,138 +130,103 @@ export function MatchPrepDialog({
     if (!savedReady && !savedError) return;
 
     seededRef.current = true;
-    const next = deriveInitialFormState(data, saved);
-    /* eslint-disable react-hooks/set-state-in-effect */
-    setMatchIntent(isEdit ? next.matchIntent : initialMatchIntent);
-    setSelectedActivityIds(next.selectedActivityIds);
-    setActivityDetails(next.activityDetails);
-    setMoods(next.moods);
-    setLookingFor(next.lookingFor);
-    setInterests(next.interests);
-    setConnectionPreference(next.connectionPreference);
-    setLocationPreferenceEnabled(next.locationPreferenceEnabled);
-    setDistancePreference(next.distancePreference);
-    setSelectedLocation(next.location);
-    setSessionGoal(next.sessionGoal);
-    /* eslint-enable react-hooks/set-state-in-effect */
-  }, [open, data, saved, savedReady, savedError, setSelectedLocation, initialMatchIntent, isEdit]);
+    const defaults = deriveDefaultFormValues(data, saved, initialMatchIntent, isEdit);
+    form.reset(defaults);
+    setSelectedLocation(defaults.location);
+  }, [
+    open,
+    data,
+    saved,
+    savedReady,
+    savedError,
+    setSelectedLocation,
+    initialMatchIntent,
+    isEdit,
+    form,
+  ]);
 
-  const toggleActivity = useCallback((id: string) => {
-    setSelectedActivityIds((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) {
-        next.delete(id);
-        setActivityDetails((d) => {
-          const copy = { ...d };
-          delete copy[id];
-          return copy;
-        });
-        return next;
-      }
-      if (next.size >= MAX_SESSION_ACTIVITIES) return prev;
-      next.add(id);
-      return next;
-    });
-  }, []);
+  useEffect(() => {
+    if (!open) return;
+    form.setValue("location", selectedLocation, { shouldDirty: true });
+  }, [selectedLocation, form, open]);
 
   const handleSkip = useCallback(() => {
-    setLocalError(null);
+    form.clearErrors();
     handleDialogOpenChange(false);
     onStartSearch();
-  }, [handleDialogOpenChange, onStartSearch]);
+  }, [form, handleDialogOpenChange, onStartSearch]);
 
-  const handleSave = useCallback(
-    async (startMatchAfterSave = false) => {
-      setLocalError(null);
-      if (moods.size === 0 || lookingFor.size === 0 || interests.size === 0) {
-        reportError("Choose at least one mood, one “looking for” option, and one interest.");
-        return;
-      }
-      if (
-        locationPreferenceEnabled &&
-        (!selectedLocation ||
-          typeof selectedLocation.latitude !== "number" ||
-          typeof selectedLocation.longitude !== "number")
-      ) {
-        reportError("Select a location (with coordinates) to enable location-based matching.");
-        return;
-      }
-      const activityRows = data?.activities ?? [];
-      const activityError = validateActivitySelectionsClient(
-        activityRows,
-        selectedActivityIds,
-        activityDetails,
-        matchIntent,
-      );
-      if (activityError) {
-        reportError(activityError);
-        return;
-      }
+  const onSubmit = useCallback(
+    async (values: MatchPrepFormValues, startMatch: boolean) => {
+      form.clearErrors("root");
       try {
         await saveMatchPrep({
-          matchIntent,
-          activitySelections: [...selectedActivityIds].map((activityId) => ({
+          matchIntent: values.matchIntent,
+          activitySelections: values.activityIds.map((activityId) => ({
             activityId,
-            detail: activityDetails[activityId]?.trim() || null,
+            detail: values.activityDetails[activityId]?.trim() || null,
           })),
-          moodIds: [...moods],
-          lookingForIds: [...lookingFor],
-          interestIds: [...interests],
-          connectionPreference,
-          locationPreferenceEnabled,
-          distancePreference: locationPreferenceEnabled ? distancePreference : "random",
-          location: selectedLocation
+          moodIds: values.moodIds,
+          lookingForIds: values.lookingForIds,
+          interestIds: values.interestIds,
+          connectionPreference: values.connectionPreference,
+          locationPreferenceEnabled: values.locationPreferenceEnabled,
+          distancePreference: values.locationPreferenceEnabled
+            ? values.distancePreference
+            : "random",
+          location: values.location
             ? {
-                country: selectedLocation.country,
-                countryCode: selectedLocation.countryCode,
-                region: selectedLocation.region,
-                regionCode: selectedLocation.regionCode,
-                city: selectedLocation.city,
-                latitude: selectedLocation.latitude,
-                longitude: selectedLocation.longitude,
-                source: selectedLocation.source,
+                country: values.location.country,
+                countryCode: values.location.countryCode,
+                region: values.location.region,
+                regionCode: values.location.regionCode,
+                city: values.location.city,
+                latitude: values.location.latitude,
+                longitude: values.location.longitude,
+                source: values.location.source,
               }
             : undefined,
-          sessionGoal: sessionGoal.trim() || null,
+          sessionGoal: values.sessionGoal.trim() || null,
           clientSessionId: clientSessionId ?? undefined,
         });
         handleDialogOpenChange(false);
-        if (!isEdit || startMatchAfterSave) onStartSearch();
+        if (!isEdit || startMatch) onStartSearch();
       } catch (err: unknown) {
-        reportError(
-          getApiErrorMessage(
-            err,
-            isEdit
-              ? "Could not save preferences. Try again."
-              : "Could not save preferences. Try again or skip for now.",
-          ),
+        const message = getApiErrorMessage(
+          err,
+          isEdit
+            ? "Could not save preferences. Try again."
+            : "Could not save preferences. Try again or skip for now.",
         );
+        form.setError("root", { type: "server", message });
+        toast.error(message);
       }
     },
     [
-      moods,
-      lookingFor,
-      interests,
-      connectionPreference,
-      locationPreferenceEnabled,
-      distancePreference,
-      selectedLocation,
-      sessionGoal,
-      clientSessionId,
-      isEdit,
-      matchIntent,
-      selectedActivityIds,
-      activityDetails,
-      data?.activities,
+      form,
       saveMatchPrep,
+      clientSessionId,
       handleDialogOpenChange,
+      isEdit,
       onStartSearch,
-      reportError,
     ],
+  );
+
+  const submit = useCallback(
+    (startMatch: boolean) => {
+      void form.handleSubmit((values) => onSubmit(values, startMatch))();
+    },
+    [form, onSubmit],
   );
 
   const busy = isSaving;
   const prefsLoading = isLoading || (open && !savedReady && !savedError);
+  const matchIntent = form.watch("matchIntent");
+
+  const rootError =
+    typeof form.formState.errors.root?.message === "string"
+      ? form.formState.errors.root.message
+      : undefined;
 
   return (
     <Dialog open={open} onOpenChange={handleDialogOpenChange}>
@@ -305,7 +241,7 @@ export function MatchPrepDialog({
             <DialogDescription className="text-sm text-muted-foreground leading-relaxed">
               {isEdit
                 ? "Adjust how you show up for your next matches."
-                : "Share your mood and what you want—then we’ll find someone who fits."}
+                : "Share your mood and what you want, then we'll find someone who fits."}
             </DialogDescription>
           </DialogHeader>
         </div>
@@ -333,101 +269,40 @@ export function MatchPrepDialog({
             )}
 
             {data && !prefsLoading && (
-              <>
-                <section className="space-y-2 py-1">
-                  <p className={sectionLabelClass}>How do you want to match?</p>
-                  <MatchIntentRow value={matchIntent} onChange={setMatchIntent} />
-                </section>
-
-                {(data.activities?.length ?? 0) > 0 && (
-                  <SessionActivitiesBlock
-                    rows={data.activities}
-                    selectedIds={selectedActivityIds}
-                    activityDetails={activityDetails}
-                    onToggle={toggleActivity}
-                    onDetailChange={(id, value) =>
-                      setActivityDetails((prev) => ({ ...prev, [id]: value }))
-                    }
-                    required={matchIntent === "activity"}
+              <Form {...form}>
+                <form
+                  id="match-prep-form"
+                  onSubmit={form.handleSubmit((values) => onSubmit(values, true))}
+                  className="contents"
+                >
+                  <MatchPrepFormBody
+                    data={data}
+                    interestsSectionRef={interestsSectionRef}
+                    interestsOpen={interestsOpen}
+                    onInterestsOpenChange={setInterestsOpen}
+                    selectedLocation={selectedLocation}
+                    manualLocationText={manualLocationText}
+                    onManualLocationTextChange={handleManualLocationInputChange}
+                    onManualLocationTextFocus={handleManualLocationInputFocus}
+                    locationSuggestions={locationSuggestions}
+                    isFetchingSuggestions={isFetchingSuggestions}
+                    suggestionsOpen={suggestionsOpen}
+                    onSelectLocationSuggestion={handleSelectLocationSuggestion}
+                    onUseCurrentLocation={() => void handleUseCurrentLocation()}
+                    onUseTypedLocation={() => void handleUseTypedLocation()}
+                    busy={busy}
+                    isLocatingCurrent={isLocatingCurrent}
+                    isResolvingManualLocation={isResolvingManualLocation}
+                    locationError={locationError}
                   />
-                )}
-
-                <section className="space-y-2 py-1">
-                  <p className={sectionLabelClass}>Mood right now</p>
-                  <OptionChipList
-                    rows={data.moods}
-                    selected={moods}
-                    onToggle={(id) => setMoods((p) => toggleIdInSet(id, p))}
-                  />
-                </section>
-
-                <section className="space-y-2 py-1">
-                  <p className={sectionLabelClass}>Looking for</p>
-                  <OptionChipList
-                    rows={data.lookingFor}
-                    selected={lookingFor}
-                    onToggle={(id) => setLookingFor((p) => toggleIdInSet(id, p))}
-                  />
-                </section>
-
-                <section className="space-y-2">
-                  <p className={sectionLabelClass}>Who should we prioritize?</p>
-                  <ConnectionPreferenceRow
-                    value={connectionPreference}
-                    onChange={setConnectionPreference}
-                  />
-                </section>
-
-                <MatchPrepLocationSection
-                  locationPreferenceEnabled={locationPreferenceEnabled}
-                  onLocationPreferenceEnabledChange={setLocationPreferenceEnabled}
-                  distancePreference={distancePreference}
-                  onDistancePreferenceChange={setDistancePreference}
-                  selectedLocation={selectedLocation}
-                  manualLocationText={manualLocationText}
-                  onManualLocationTextChange={handleManualLocationInputChange}
-                  onManualLocationTextFocus={handleManualLocationInputFocus}
-                  locationSuggestions={locationSuggestions}
-                  isFetchingSuggestions={isFetchingSuggestions}
-                  suggestionsOpen={suggestionsOpen}
-                  onSelectLocationSuggestion={handleSelectLocationSuggestion}
-                  onUseCurrentLocation={() => void handleUseCurrentLocation()}
-                  onUseTypedLocation={() => void handleUseTypedLocation()}
-                  busy={busy}
-                  isLocatingCurrent={isLocatingCurrent}
-                  isResolvingManualLocation={isResolvingManualLocation}
-                  locationError={locationError}
-                />
-
-                <InterestsBlock
-                  sectionRef={interestsSectionRef}
-                  open={interestsOpen}
-                  onToggleOpen={() => setInterestsOpen((o) => !o)}
-                  rows={data.interests}
-                  selected={interests}
-                  onToggleOption={(id) => setInterests((p) => toggleIdInSet(id, p))}
-                />
-
-                {/* <section className="flex flex-col space-y-2">
-                  <label htmlFor="session-goal" className={sectionLabelClass}>
-                    Optional note / specific ask
-                  </label>
-                  <Textarea
-                    id="session-goal"
-                    placeholder="e.g. Want to talk to an artist, startup founder, or someone with a different perspective…"
-                    value={sessionGoal}
-                    onChange={(e) => setSessionGoal(e.target.value)}
-                    className="min-h-[72px] resize-none rounded-xl text-sm"
-                    maxLength={280}
-                  />
-                </section> */}
-              </>
+                </form>
+              </Form>
             )}
           </div>
 
-          {localError && data && (
+          {rootError && data && (
             <p className="pt-2 text-xs text-destructive" role="alert">
-              {localError}
+              {rootError}
             </p>
           )}
         </div>
@@ -450,7 +325,7 @@ export function MatchPrepDialog({
                 variant="secondary"
                 size="default"
                 className="w-full sm:w-auto"
-                onClick={() => void handleSave(false)}
+                onClick={() => submit(false)}
                 disabled={prefsLoading || busy || !data}
               >
                 {isSaving ? (
@@ -466,7 +341,7 @@ export function MatchPrepDialog({
                 type="button"
                 size="default"
                 className="w-full sm:w-auto"
-                onClick={() => void handleSave(true)}
+                onClick={() => submit(true)}
                 disabled={prefsLoading || busy || !data}
               >
                 {isSaving ? (
@@ -484,9 +359,9 @@ export function MatchPrepDialog({
               {matchIntent === "quick" ? (
                 <Button
                   type="button"
-                  variant="ghost"
+                  variant="outline"
                   size="sm"
-                  className="w-full text-xs font-medium text-muted-foreground sm:w-auto"
+                  className="w-full text-xs font-medium sm:w-auto"
                   onClick={() => void handleSkip()}
                   disabled={busy}
                 >
@@ -497,7 +372,7 @@ export function MatchPrepDialog({
                 type="button"
                 size="sm"
                 className="w-full text-xs font-medium sm:w-auto"
-                onClick={() => void handleSave(false)}
+                onClick={() => submit(true)}
                 disabled={prefsLoading || busy || !data}
               >
                 {isSaving ? (

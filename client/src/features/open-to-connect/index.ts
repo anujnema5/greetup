@@ -19,6 +19,7 @@ export { OpenToConnectRealtimeBridge } from "./components/open-to-connect-realti
 export { OpenToConnectEnableDialog } from "./components/open-to-connect-enable-dialog";
 export { OpenToConnectPostNoMatchDialog } from "./components/open-to-connect-post-no-match-dialog";
 export { HeroOpenToConnectCard } from "./components/hero-open-to-connect-card";
+export { OpenToConnectSettingsToggle } from "./components/open-to-connect-settings-toggle";
 export { SearchOpenNowSuggestions } from "./components/search-open-now-suggestions";
 export { OpenNowPersonCard, OpenNowPersonCardSkeleton } from "./components/open-now-person-card";
 export { OpenNowRequestActions } from "./components/open-now-request-actions";

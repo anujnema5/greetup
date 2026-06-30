@@ -49,7 +49,7 @@ export const currentStatus = t.pgTable("current_status", {
     matchIntent: matchIntentEnum("match_intent").default("quick").notNull(),
     availability: availabilityEnum("availability").default("offline").notNull(),
 
-    openToConnect: t.boolean("open_to_connect").default(false).notNull(),
+    openToConnect: t.boolean("open_to_connect").default(true).notNull(),
     openToConnectUpdatedAt: t.timestamp("open_to_connect_updated_at"),
     openToConnectSource: openToConnectSourceEnum("open_to_connect_source"),
     openToConnectHeadline: t.varchar("open_to_connect_headline", { length: 120 }),

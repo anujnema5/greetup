@@ -15,11 +15,11 @@ export const openToConnectStatusRepository = {
   async findByUserId(userId: string) {
     const profile = await db.query.userProfiles.findFirst({
       where: eq(userProfiles.userId, userId),
-      columns: { id: true },
+      columns: { id: true, isGuest: true },
     });
     if (!profile) return null;
 
-    return db.query.currentStatus.findFirst({
+    const status = await db.query.currentStatus.findFirst({
       where: eq(currentStatus.profileId, profile.id),
       columns: {
         id: true,
@@ -39,6 +39,22 @@ export const openToConnectStatusRepository = {
           columns: { activityId: true },
         },
       },
+    });
+    if (!status) return null;
+
+    return { ...status, isGuest: profile.isGuest };
+  },
+
+  /** Initial current_status when a profile is first created. */
+  async createInitialForProfile(profileId: string, openToConnect: boolean): Promise<void> {
+    const now = new Date();
+    await db.insert(currentStatus).values({
+      profileId,
+      openToConnect,
+      openToConnectUpdatedAt: openToConnect ? now : null,
+      availability: "offline",
+      lastActiveAt: now,
+      updatedAt: now,
     });
   },
 
