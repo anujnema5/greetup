@@ -162,7 +162,7 @@ export function ActiveSpaceCard({
           <button
             type="button"
             disabled={startScheduledBusy}
-            className="relative z-20 mt-2 w-full cursor-pointer rounded-lg bg-primary py-1.5 text-[10px] font-semibold text-primary-foreground hover:bg-primary/90 pointer-events-auto disabled:cursor-not-allowed disabled:pointer-events-none disabled:opacity-50 dark:!text-primary-foreground"
+            className="relative z-20 mt-2 w-fit max-w-full cursor-pointer self-start rounded-lg bg-primary px-3 py-1.5 text-[10px] font-semibold text-primary-foreground hover:bg-primary/90 pointer-events-auto disabled:cursor-not-allowed disabled:pointer-events-none disabled:opacity-50 dark:!text-primary-foreground"
             onClick={(e) => {
               e.stopPropagation();
               onStartScheduledNow(space);

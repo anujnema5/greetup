@@ -1,6 +1,7 @@
 "use client";
 
 import { ChevronRight, Users } from "lucide-react";
+import { HorizontalCardCarousel } from "@/components/horizontal-card-carousel";
 import { cn } from "@/lib/utils";
 import { formatScheduledStart } from "@/lib/datetime/format-scheduled-start";
 import {
@@ -8,7 +9,7 @@ import {
   activeSpaceHostCanEditSchedule,
 } from "@/features/spaces/lib/active-space-card-session-display";
 import type { ActiveSpaceItem } from "../types/spaces-api.types";
-import { SPACE_PREVIEW_GRID_CLASS } from "../lib/space-preview-grid-classes";
+import { SPACE_PREVIEW_DESKTOP_GRID_CLASS } from "../lib/space-preview-grid-classes";
 
 const COVER_CLASSES = [
   "dash-space-cover-0",
@@ -82,7 +83,7 @@ export function HomeSpaceCard({
       <div className={cn("relative h-[84px] shrink-0", coverClassForSpace(space.id))}>
         <div className="absolute inset-0 bg-linear-to-t from-black/10 to-transparent dark:from-black/25" />
 
-        <div className="absolute inset-x-3 top-3 z-10 flex items-center justify-between gap-2">
+        <div className="absolute inset-x-3 top-3 z-10 flex flex-wrap items-center gap-1.5">
           {isLive ? (
             <span className="inline-flex items-center gap-1.5 rounded-full bg-card px-2 py-0.5 text-[10px] font-medium leading-none text-foreground">
               <span className="dash-live-dot size-1.5 rounded-full bg-destructive" aria-hidden />
@@ -94,21 +95,19 @@ export function HomeSpaceCard({
             </span>
           )}
 
-          <div className="flex shrink-0 items-center gap-1.5">
-            {badge}
-            {showEdit ? (
-              <button
-                type="button"
-                className="inline-flex cursor-pointer items-center rounded-full border border-border bg-background px-2 py-0.5 text-[10px] font-medium leading-none text-foreground hover:bg-muted"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onEditScheduled?.(space);
-                }}
-              >
-                Edit
-              </button>
-            ) : null}
-          </div>
+          {badge}
+          {showEdit ? (
+            <button
+              type="button"
+              className="inline-flex cursor-pointer items-center rounded-full border border-border bg-background px-2 py-0.5 text-[10px] font-medium leading-none text-foreground hover:bg-muted"
+              onClick={(e) => {
+                e.stopPropagation();
+                onEditScheduled?.(space);
+              }}
+            >
+              Edit
+            </button>
+          ) : null}
         </div>
 
         <span className="absolute bottom-3 left-3 text-2xl leading-none" aria-hidden>
@@ -127,7 +126,7 @@ export function HomeSpaceCard({
         </div>
 
         <div className="mt-auto flex items-center justify-between gap-2 border-t border-border/60 pt-3">
-          <div className="flex min-w-0 items-center gap-2">
+          <div className="flex min-w-0 flex-1 items-center gap-2">
             <span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-primary text-[11px] font-bold text-primary-foreground">
               {hostInitial(space.host)}
             </span>
@@ -146,7 +145,7 @@ export function HomeSpaceCard({
             <button
               type="button"
               disabled={startScheduledBusy}
-              className="shrink-0 cursor-pointer rounded-full bg-primary px-3 py-1.5 text-[11px] font-medium text-primary-foreground hover:brightness-[0.98] disabled:cursor-not-allowed disabled:opacity-50"
+              className="shrink-0 cursor-pointer whitespace-nowrap rounded-full bg-primary px-3 py-1.5 text-[11px] font-medium text-primary-foreground hover:brightness-[0.98] disabled:cursor-not-allowed disabled:opacity-50"
               onClick={(e) => {
                 e.stopPropagation();
                 onStartScheduledNow(space);
@@ -190,10 +189,16 @@ export function HomeSpaceCardSkeleton() {
 
 export function HomeSpaceCardSkeletonGrid({ count = 4 }: { count?: number }) {
   return (
-    <div className={SPACE_PREVIEW_GRID_CLASS}>
+    <HorizontalCardCarousel
+      itemCount={count}
+      gridBreakpoint="md"
+      desktopClassName={SPACE_PREVIEW_DESKTOP_GRID_CLASS}
+      mobileSlideClassName="w-[min(88%,300px)] shrink-0 snap-start"
+      ariaLabel="Active spaces"
+    >
       {Array.from({ length: count }).map((_, i) => (
         <HomeSpaceCardSkeleton key={i} />
       ))}
-    </div>
+    </HorizontalCardCarousel>
   );
 }

@@ -4,6 +4,7 @@ import { memo, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { Orbit } from "lucide-react";
 
+import { HorizontalCardCarousel } from "@/components/horizontal-card-carousel";
 import { Button } from "@/components/ui/button";
 import { SectionHeader } from "@/components/section-header";
 import { getApiErrorMessage } from "@/lib/api/fetch-client";
@@ -15,10 +16,10 @@ import { useActiveSpaceCardActions } from "../hooks/use-active-space-card-action
 import { useSpaceListBadges } from "../hooks/use-space-list-badges";
 import { dedupeSpaces } from "../lib/dedupe-spaces";
 import { SPACES_BROWSE_PATH } from "../lib/spaces-browse-path";
-import { SPACE_PREVIEW_GRID_CLASS } from "../lib/space-preview-grid-classes";
+import { SPACE_PREVIEW_DESKTOP_GRID_CLASS } from "../lib/space-preview-grid-classes";
 import {
   HomeSpaceCard,
-  HomeSpaceCardSkeletonGrid,
+  HomeSpaceCardSkeleton,
 } from "./home-space-card";
 
 const HOME_PREVIEW_LIMIT = 4;
@@ -56,7 +57,17 @@ function SpacesGridInner() {
           {getApiErrorMessage(error, "Could not load active spaces")}
         </p>
       ) : isLoading && !apiData ? (
-        <HomeSpaceCardSkeletonGrid count={HOME_PREVIEW_LIMIT} />
+        <HorizontalCardCarousel
+          itemCount={HOME_PREVIEW_LIMIT}
+          gridBreakpoint="md"
+          desktopClassName={SPACE_PREVIEW_DESKTOP_GRID_CLASS}
+          mobileSlideClassName="w-[min(88%,300px)] shrink-0 snap-start"
+          ariaLabel={SPACES_GRID_COPY.title}
+        >
+          {Array.from({ length: HOME_PREVIEW_LIMIT }).map((_, index) => (
+            <HomeSpaceCardSkeleton key={index} />
+          ))}
+        </HorizontalCardCarousel>
       ) : !hasAny ? (
         <div className="flex flex-col items-center rounded-2xl border border-dashed border-border bg-muted/20 px-6 py-10 text-center">
           <div className="mb-3 flex size-11 items-center justify-center rounded-full bg-primary/10 text-primary">
@@ -77,7 +88,13 @@ function SpacesGridInner() {
         </div>
       ) : (
         <>
-          <div className={SPACE_PREVIEW_GRID_CLASS}>
+          <HorizontalCardCarousel
+            itemCount={previewItems.length}
+            gridBreakpoint="md"
+            desktopClassName={SPACE_PREVIEW_DESKTOP_GRID_CLASS}
+            mobileSlideClassName="w-[min(88%,300px)] shrink-0 snap-start"
+            ariaLabel={SPACES_GRID_COPY.title}
+          >
             {previewItems.map((space) => (
               <HomeSpaceCard
                 key={space.id}
@@ -86,7 +103,7 @@ function SpacesGridInner() {
                 {...cardHandlers}
               />
             ))}
-          </div>
+          </HorizontalCardCarousel>
           {isFetching && !isLoading ? (
             <p className="mt-2 text-center text-[11px] text-muted-foreground">Updating…</p>
           ) : null}
