@@ -78,6 +78,38 @@ export const DASHBOARD_HERO = {
 
 
 
+export const MATCH_FOUND_DIALOG = {
+
+  compatibilityLabel: "Compatibility",
+
+  fit: {
+
+    strong: "Strong fit",
+
+    good: "Good fit",
+
+    fair: "Fair fit",
+
+  },
+
+  description: {
+
+    strong: "Aligned on mood, interests, and what you're both looking for.",
+
+    good: "Several things in common for this call — worth saying hi.",
+
+    fair: "Enough overlap to start a conversation.",
+
+  },
+
+  waitingForPeer:
+
+    "You chose Connect. The room opens when they connect too — hang tight.",
+
+} as const;
+
+
+
 export const DASHBOARD_SECTIONS = {
 
   activeNow: {

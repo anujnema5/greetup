@@ -1,6 +1,7 @@
 import logger from "@/core/logging";
 import { userConnectionsRepository } from "../repositories/user-connections.repository";
 import { emitConnectionUpdatedToPeer } from "../socket/emit-connection-updated";
+import { removeMatchingConnectionPeers } from "@/modules/matching/services/sync-matching-connection-peers.service";
 
 export type DisconnectConnectionResult =
   | { ok: true }
@@ -29,8 +30,10 @@ export async function disconnectConnectionService(
   }
 
   await userConnectionsRepository.cancelAcceptedConnectionAsPeer(connectionId, viewerId);
+  const peerUserId = row.requesterId === viewerId ? row.addresseeId : row.requesterId;
+  await removeMatchingConnectionPeers(viewerId, peerUserId);
   emitConnectionUpdatedToPeer(viewerId, row, "none");
-  logger.info("connection_disconnected", { viewerId, connectionId, peerUserId: row.requesterId === viewerId ? row.addresseeId : row.requesterId });
+  logger.info("connection_disconnected", { viewerId, connectionId, peerUserId });
   return { ok: true };
 }
 

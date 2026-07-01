@@ -24,8 +24,12 @@ export const redisKeys = {
     const [low, high] = [userA, userB].sort();
     return `mm:pair:connect:finalize:${low}:${high}`;
   },
-  /** Users this user skipped during match proposal — deprioritized in future candidate ordering */
+  /** Users this user skipped during match proposal — lowest priority in candidate ordering */
   userSkipPeers: (userId: string) => `mm:user:skip-peers:${userId}`,
+  /** Users this user completed a match room with — soft-deprioritized in candidate ordering */
+  userMatchedPeers: (userId: string) => `mm:user:matched-peers:${userId}`,
+  /** Accepted connections (maintained by main API) — soft-deprioritized in candidate ordering */
+  userConnectionPeers: (userId: string) => `mm:user:connection-peers:${userId}`,
   matchJobQueue: () => "mm:jobs:find",
   attempt: (attemptId: string) => `mm:attempt:${attemptId}`,
   userLastAttempt: (userId: string) => `mm:user:last-attempt:${userId}`,

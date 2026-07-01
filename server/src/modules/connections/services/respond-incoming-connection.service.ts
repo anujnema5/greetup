@@ -2,6 +2,7 @@ import logger from "@/core/logging";
 import { userConnectionsRepository } from "../repositories/user-connections.repository";
 import { notifyConnectionRequestAccepted } from "../notifications";
 import { emitConnectionUpdated } from "../socket/emit-connection-updated";
+import { addMatchingConnectionPeers } from "@/modules/matching/services/sync-matching-connection-peers.service";
 
 export type RespondIncomingResult =
   | { ok: true }
@@ -39,6 +40,7 @@ export async function acceptIncomingConnectionService(
   }
   await userConnectionsRepository.updateStatusById(connectionId, "accepted");
   if (row?.requesterId) {
+    await addMatchingConnectionPeers(row.requesterId, viewerId);
     await notifyConnectionRequestAccepted({
       recipientUserId: row.requesterId,
       actorUserId: viewerId,

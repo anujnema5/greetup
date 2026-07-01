@@ -10,6 +10,8 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
+import { MATCH_FOUND_DIALOG } from "@/lib/copy/user-messages";
+import { formatMatchCompatibility } from "../lib/format-match-compatibility";
 import { useMatchPeerPreview } from "../api/matching.queries";
 
 export type MatchFoundDialogProps = {
@@ -66,6 +68,7 @@ export function MatchFoundDialog({
     matchScore != null && Number.isFinite(matchScore)
       ? Math.min(100, Math.max(0, Math.round(matchScore)))
       : null;
+  const compatibility = scorePct != null ? formatMatchCompatibility(scorePct) : null;
 
   return (
     <Dialog open={open} onOpenChange={() => { }}>
@@ -131,25 +134,26 @@ export function MatchFoundDialog({
           )}
         </div>
 
-        {scorePct != null && (
+        {compatibility != null && scorePct != null && (
           <div className="mx-5 mb-3 rounded-xl border border-border bg-muted/40 px-3 py-2.5">
             <div className="mb-1.5 flex items-center justify-between gap-2">
               <span className="flex items-center gap-1 text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
                 <Zap className="size-3 shrink-0 text-primary" strokeWidth={2.2} />
-                Shared interests
+                {MATCH_FOUND_DIALOG.compatibilityLabel}
               </span>
-              <span className="text-xs font-bold tabular-nums text-primary">
-                {scorePct}%
-              </span>
+              <span className="text-xs font-bold text-primary">{compatibility.fitLabel}</span>
             </div>
             <div className="match-found-score-track">
               <ProgressBar
                 value={scorePct}
                 max={100}
-                aria-label="Shared interests score"
+                aria-label={compatibility.progressAriaLabel}
                 className="h-1.5 w-full [&::-webkit-progress-bar]:rounded-full [&::-webkit-progress-bar]:bg-muted [&::-webkit-progress-value]:rounded-full [&::-webkit-progress-value]:bg-linear-to-r [&::-webkit-progress-value]:from-primary [&::-webkit-progress-value]:to-secondary [&::-webkit-progress-value]:shadow-[0_0_12px_oklch(from_var(--primary)_l_c_h/0.35)] [&::-webkit-progress-value]:transition-all [&::-webkit-progress-value]:duration-700"
               />
             </div>
+            <p className="mt-2 text-center text-[10px] leading-snug text-muted-foreground">
+              {compatibility.description}
+            </p>
           </div>
         )}
 
@@ -184,7 +188,7 @@ export function MatchFoundDialog({
 
         {waitingForPeerConnect ? (
           <p className="mx-5 mb-2 px-1 text-center text-[10px] leading-relaxed text-muted-foreground">
-            You chose Connect. The room opens when they connect too — hang tight.
+            {MATCH_FOUND_DIALOG.waitingForPeer}
           </p>
         ) : null}
 

@@ -5,6 +5,7 @@ import { getRedis } from "@/core/redis";
 import logger from "@/core/logging";
 import { USER_PRESENCE_KEYS } from "@/core/redis/keys";
 import { ensureProfileSnapshotCached } from "@/modules/user/services/profile-snapshot-cache.service";
+import { syncMatchingConnectionPeersFromDatabase } from "@/modules/matching/services/sync-matching-connection-peers.service";
 import {
   syncOpenToConnectIndexIfEnabled,
 } from "@/modules/open-to-connect/services/open-to-connect.service";
@@ -99,6 +100,10 @@ export class UserEventListeners {
             .exec();
 
         await ensureProfileSnapshotCached(userId);
+
+        void syncMatchingConnectionPeersFromDatabase(userId).catch((error) => {
+            logger.warn(`[${this.jobName}] failed to sync matching connection peers`, { userId, error });
+        });
 
         await syncOpenToConnectIndexIfEnabled(userId);
 

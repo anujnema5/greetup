@@ -40,6 +40,11 @@ export const MATCH_KEYS = {
   IDX_AGE: "match:idx:age",
 } as const;
 
+/** Shared with matching-service — soft-deprioritize accepted connections during pool ranking. */
+export const MATCHING_PEER_KEYS = {
+  connectionPeers: (userId: string) => `mm:user:connection-peers:${userId}`,
+} as const;
+
 export const MATCH_TTL = 86400; // 24 HOURS
 
 export const ROOM_KEYS = {

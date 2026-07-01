@@ -3,6 +3,7 @@ import { userBlocksRepository } from "@/modules/blocks/repositories/user-blocks.
 import { userConnectionsRepository } from "../repositories/user-connections.repository";
 import { notifyConnectionRequestReceived } from "../notifications";
 import { emitConnectionUpdated } from "../socket/emit-connection-updated";
+import { addMatchingConnectionPeers } from "@/modules/matching/services/sync-matching-connection-peers.service";
 
 export type RequestConnectionResult =
   | { ok: true; status: "accepted" | "pending"; connectionId?: string }
@@ -64,6 +65,7 @@ export async function requestConnectionService(
       pending.requesterId === targetUserId && pending.addresseeId === viewerId;
     if (theyRequestedViewer) {
       await userConnectionsRepository.markAcceptedById(pending.id);
+      await addMatchingConnectionPeers(viewerId, targetUserId);
       emitConnectionUpdated(targetUserId, {
         peerUserId: viewerId,
         connectionId: pending.id,

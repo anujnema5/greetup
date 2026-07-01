@@ -71,3 +71,51 @@ export function sortScoredCandidatesDescending(candidates: ScoredMatchCandidate[
     return b.poolScore - a.poolScore;
   });
 }
+
+type DeprioritizedPeerPartition = {
+  known: Set<string>;
+  skipped: Set<string>;
+};
+
+/**
+ * Reorders an already score-sorted list so fresh candidates come first, then known
+ * peers (connections / prior matches), then explicit skips — preserving score order
+ * within each tier. Never mutates `matchScore`; pairing priority only.
+ */
+export function partitionDeprioritizedCandidates(
+  candidates: ScoredMatchCandidate[],
+  peerSets: DeprioritizedPeerPartition,
+): ScoredMatchCandidate[] {
+  if (peerSets.known.size === 0 && peerSets.skipped.size === 0) {
+    return candidates;
+  }
+
+  const preferred: ScoredMatchCandidate[] = [];
+  const known: ScoredMatchCandidate[] = [];
+  const skipped: ScoredMatchCandidate[] = [];
+
+  for (const row of candidates) {
+    if (peerSets.skipped.has(row.userId)) {
+      skipped.push(row);
+    } else if (peerSets.known.has(row.userId)) {
+      known.push(row);
+    } else {
+      preferred.push(row);
+    }
+  }
+
+  return [...preferred, ...known, ...skipped];
+}
+
+/**
+ * Final pairing order: genuine compatibility score first, then soft deprioritization.
+ * `matchScore` stays profile-based; known/skipped peers only move later in the try list.
+ */
+export function rankCandidatesForPairing(
+  candidates: ScoredMatchCandidate[],
+  peerSets: DeprioritizedPeerPartition,
+): ScoredMatchCandidate[] {
+  const sorted = [...candidates];
+  sortScoredCandidatesDescending(sorted);
+  return partitionDeprioritizedCandidates(sorted, peerSets);
+}
