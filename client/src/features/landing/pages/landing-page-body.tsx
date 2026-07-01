@@ -264,7 +264,7 @@ function ChatMockup() {
       </div>
       <div className="self-start max-w-[78%]">
         <div className="bg-muted border border-border landing-muted text-xs px-3.5 py-2.5 rounded-2xl rounded-bl-sm">
-          Hey! Saw you&apos;re into chess too. Do you play blitz?
+          Hey! Up for a chat after we matched?
         </div>
       </div>
       <div className="self-end max-w-[78%]">

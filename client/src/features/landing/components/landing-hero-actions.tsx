@@ -13,10 +13,10 @@ export function LandingHeroNav() {
 
   return (
     <nav className="fixed top-0 inset-x-0 z-50 border-b border-border bg-card/94 supports-[backdrop-filter]:bg-card/88 md:supports-[backdrop-filter]:backdrop-blur-md">
-      <div className="mx-auto max-w-7xl px-5 sm:px-6 py-4 sm:py-5 flex items-center justify-between">
+      <div className="mx-auto max-w-7xl px-4 sm:px-6 py-3 sm:py-5 flex items-center justify-between">
         <Logo />
-        <div className="flex items-center gap-2">
-          <ThemeToggle variant="outline" className="rounded-full" />
+        <div className="flex items-center gap-1.5 sm:gap-2">
+          <ThemeToggle variant="outline" className="rounded-full size-8 sm:size-9" />
           {isLoggedIn ? (
             <span className="hidden sm:inline-flex rounded-full border border-border bg-muted px-3 py-1 text-xs font-medium landing-muted">
               Hi, {firstName || "there"}
@@ -33,11 +33,12 @@ export function LandingHeroNav() {
           )}
           <Button
             size="sm"
-            className="rounded-full bg-primary text-primary-foreground hover:brightness-110 shadow-lg shadow-primary/30 font-semibold"
+            className="rounded-full bg-primary text-primary-foreground hover:brightness-110 shadow-md sm:shadow-lg shadow-primary/25 font-medium sm:font-semibold text-xs sm:text-sm h-8 sm:h-9 px-3 sm:px-4"
             asChild
           >
             <Link href={isLoggedIn ? "/home" : TRY_ROUTE}>
-              {isLoggedIn ? "Go to home" : "Get started"} <ChevronRight className="size-3.5" />
+              {isLoggedIn ? "Go to home" : "Get started"}{" "}
+              <ChevronRight className="size-3 sm:size-3.5" />
             </Link>
           </Button>
         </div>

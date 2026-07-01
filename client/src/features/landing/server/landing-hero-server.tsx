@@ -62,13 +62,17 @@ export function LandingHeroServer() {
               </span>
             </h1>
 
-            <p className="text-[13px] leading-[1.55] sm:text-[1.05rem] sm:leading-relaxed landing-muted max-w-[18rem] sm:max-w-lg mx-auto lg:mx-0 mb-4 sm:mb-5">
+            <p className="text-[13px] leading-[1.55] sm:text-[1.05rem] sm:leading-relaxed landing-muted w-full max-w-lg mx-auto lg:mx-0 mb-4 sm:mb-5">
               Find people by job, city, or activity — vent, yap, practice language, and more. Safe, moderated,
               and NSFW-free.
             </p>
 
-            <div className="mb-5 sm:mb-6 flex justify-center lg:justify-start">
-              <LandingActivityChips items={LANDING_HERO_ACTIVITY_HIGHLIGHTS} size="sm" />
+            <div className="mb-5 sm:mb-6 w-full flex justify-center lg:justify-start">
+              <LandingActivityChips
+                items={LANDING_HERO_ACTIVITY_HIGHLIGHTS}
+                size="sm"
+                className="max-w-full justify-center lg:justify-start"
+              />
             </div>
 
             <div className="mb-7 sm:mb-9 flex flex-wrap justify-center lg:justify-start gap-x-5 sm:gap-x-6 gap-y-2">
