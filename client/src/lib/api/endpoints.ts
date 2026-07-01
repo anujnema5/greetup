@@ -139,6 +139,7 @@ export const API_ENDPOINTS = {
     rtcToken: (roomId: string) => `/room/${roomId}/rtc-token` as const,
     invite: (roomId: string) => `/room/${roomId}/invite` as const,
     inviteRespond: (roomId: string) => `/room/${roomId}/invite/respond` as const,
+    conversationCues: (roomId: string) => `/room/${roomId}/conversation-cues` as const,
     chessInvite: (roomId: string) => `/room/${roomId}/activity/chess/invite` as const,
     chessRespond: (roomId: string) => `/room/${roomId}/activity/chess/respond` as const,
     chessEnd: (roomId: string) => `/room/${roomId}/activity/chess/end` as const,

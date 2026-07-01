@@ -16,6 +16,7 @@ import {
   handleStartRoomSession,
 } from "./controllers/room.controller";
 import { internalRoomsRoute } from "./routes/internal-rooms.route";
+import { handleGetConversationCues } from "./controllers/conversation-cues.controller";
 import { roomActivityRoute } from "./routes/room-activity.route";
 
 export { internalRoomsRoute };
@@ -35,4 +36,5 @@ roomRoute.post("/:roomId/start", handleStartRoomSession);
 roomRoute.post("/:roomId/invite", handleRoomInvite);
 roomRoute.post("/:roomId/invite/respond", handleRoomInviteRespond);
 roomRoute.get("/:roomId", handleGetRoom);
+roomRoute.get("/:roomId/conversation-cues", handleGetConversationCues);
 roomRoute.route("/", roomActivityRoute);

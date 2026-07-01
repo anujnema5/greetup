@@ -48,6 +48,7 @@ import {
   isMatchSession,
 } from "@/features/room/lib/session/room-session-kind";
 import { CALL_ROOM_FORCED_DARK_CLASS } from "@/features/room/constants/call/call-chrome-theme";
+import { useRoomConversationCues } from "@/features/room/conversation-cues/hooks/use-room-conversation-cues";
 import { cn } from "@/lib/utils";
 
 export type InCallContainerProps = {
@@ -318,6 +319,11 @@ export function InCallContainer({
   const spaceLobbyScheduledNotReady = isGroupRoom && rtcLobbyGateCode === "LOBBY_NOT_READY";
 
   const rtcLobbyWait = guestLobbyWait || spaceLobbyScheduledNotReady;
+
+  useRoomConversationCues({
+    roomId,
+    enabled: !isGroupRoom && Boolean(peerId) && mediasoupReady && !rtcLobbyWait,
+  });
 
   const lobbyPreview = useLobbyPreviewMedia(rtcLobbyWait);
 
