@@ -32,6 +32,8 @@ export const API_ENDPOINTS = {
     MATCH_PREP: "/profile/match-prep",
     public: (username: string) =>
       `/profile/public/${encodeURIComponent(username)}` as const,
+    USERNAME_CHECK: "/profile/username/check",
+    USERNAME_SUGGESTIONS: "/profile/username/suggestions",
   },
   MATCHING: {
     FIND: "/matching/find",

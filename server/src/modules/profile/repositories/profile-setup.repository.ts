@@ -52,12 +52,16 @@ export const profileSetupRepository = {
     return db.update(users).set({ displayName, name: displayName }).where(eq(users.id, userId));
   },
 
-  async setUsername(userId: string, username: string) {
+  async isUsernameTakenByOther(userId: string, username: string): Promise<boolean> {
     const taken = await db.query.users.findFirst({
       where: eq(users.username, username),
       columns: { id: true },
     });
-    if (taken && taken.id !== userId) {
+    return Boolean(taken && taken.id !== userId);
+  },
+
+  async setUsername(userId: string, username: string) {
+    if (await this.isUsernameTakenByOther(userId, username)) {
       throw new UsernameTakenError();
     }
     return db.update(users).set({ username }).where(eq(users.id, userId));

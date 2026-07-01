@@ -25,6 +25,7 @@ import type { ProfileEditorCatalog } from "../utils/profile-editor-catalog";
 import type { EditableProfile, ProfileEditSectionId } from "../types/profile-editor.types";
 import { AgeDigitsInput } from "./age-digits-input";
 import { ProfileEditShell } from "./profile-edit-shell";
+import { UsernamePickerField } from "./username-picker-field";
 
 type ProfileEditModalsProps = {
   active: ProfileEditSectionId | null;
@@ -151,24 +152,12 @@ export function ProfileEditModals({
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="pe-username">Username</Label>
-            <Input
+            <UsernamePickerField
               id="pe-username"
               value={d.username}
-              onChange={(e) =>
-                patchDraft({
-                  username: e.target.value.replace(/\s/g, "").toLowerCase(),
-                })
-              }
-              className="rounded-xl"
-              maxLength={30}
-              autoComplete="off"
-              spellCheck={false}
-              placeholder="your_handle"
+              onChange={(username) => patchDraft({ username })}
+              displayName={d.displayName}
             />
-            <p className="text-[11px] text-muted-foreground">
-              Profile link: /u/{d.username || "username"}
-            </p>
           </div>
           <div className="space-y-2">
             <Label htmlFor="pe-age">Age</Label>

@@ -49,7 +49,7 @@ export function buildProfileEditorCatalog(steps: ProfileSetupStep[]): ProfileEdi
   const s2 = steps.find((s) => s.step === 2);
   const s3 = steps.find((s) => s.step === 3);
   const s4 = steps.find((s) => s.step === 4);
-  const s6 = steps.find((s) => s.step === 6);
+  const s7 = steps.find((s) => s.step === 7);
 
   const goalsField = s2?.fields.find((f) => f.key === "goals");
   const interestsField = s3?.fields.find((f) => f.key === "interests");
@@ -86,7 +86,7 @@ export function buildProfileEditorCatalog(steps: ProfileSetupStep[]): ProfileEdi
   const goalMax = 10;
 
   const promptQuestions: Array<{ id: string; key: string; question: string }> =
-    (s6?.fields ?? [])
+    (s7?.fields ?? [])
       .filter((f) => f.id && f.type === "textarea")
       .map((f) => ({ id: f.id as string, key: f.key, question: f.label }));
 

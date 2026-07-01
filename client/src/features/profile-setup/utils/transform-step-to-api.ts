@@ -6,7 +6,7 @@
 import type { SaveProfileSetupPayload } from "../types/profile-setup-api.types";
 
 type FormValues = Record<string, unknown>;
-type StepField = { key: string; id?: string };
+type StepField = { key: string; id?: string; minLength?: number };
 
 type Step5PayloadData = Extract<SaveProfileSetupPayload, { step: 5 }>["data"];
 
@@ -25,15 +25,10 @@ export function transformStepToApiPayload(
 ): SaveProfileSetupPayload {
   switch (step) {
     case 1: {
-      const username = String(formValues.username ?? "").trim().toLowerCase();
-      if (username.length < 3) throw new Error("Username must be at least 3 characters");
-      if (!/^[a-zA-Z0-9_]+$/.test(username))
-        throw new Error("Username may only contain letters, numbers, and underscores");
       return {
         step: 1,
         data: {
           displayName: String(formValues.displayName ?? "").trim(),
-          username,
           age: Number(formValues.age),
           gender: String(formValues.gender),
         },
@@ -95,8 +90,22 @@ export function transformStepToApiPayload(
     }
 
     case 6: {
+      const username = String(formValues.username ?? "").trim().toLowerCase();
+      if (username.length < 3) throw new Error("Username must be at least 3 characters");
+      if (!/^[a-zA-Z0-9_]+$/.test(username))
+        throw new Error("Username may only contain letters, numbers, and underscores");
+      return { step: 7, data: { username } };
+    }
+
+    case 7: {
       const answers = (stepFields ?? [])
-        .filter((f) => f.id && formValues[f.key] && String(formValues[f.key]).trim())
+        .filter((f) => {
+          if (!f.id) return false;
+          const answer = String(formValues[f.key] ?? "").trim();
+          if (!answer) return false;
+          if (f.minLength && answer.length < f.minLength) return false;
+          return true;
+        })
         .map((f) => ({
           questionId: f.id!,
           answer: String(formValues[f.key]).trim(),

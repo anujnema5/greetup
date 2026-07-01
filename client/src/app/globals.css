@@ -166,8 +166,8 @@
   --destructive: oklch(55% 0.22 25);
   --destructive-foreground: oklch(96% 0.015 110);
 
-  /* INPUTS */
-  --border: oklch(29% 0.012 95);
+  /* INPUTS — visible on card without looking harsh */
+  --border: oklch(32% 0.013 95);
   --input: oklch(24% 0.012 95);
   --ring: oklch(86% 0.1 98);
 
@@ -182,7 +182,7 @@
   /* soft gold (active nav) */
   --sidebar-accent-foreground: oklch(82% 0.1 98);
 
-  --sidebar-border: oklch(29% 0.012 95);
+  --sidebar-border: oklch(32% 0.013 95);
   --sidebar-ring: oklch(86% 0.1 98);
 
   --success: oklch(72% 0.14 155);

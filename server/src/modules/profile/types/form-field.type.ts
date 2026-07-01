@@ -16,7 +16,7 @@ export interface FormField {
     /** Passed through to HTML autocomplete when relevant (e.g. `"username"`). */
     autoComplete?: string;
     type: "text" | "number" | "select" | "multi-select" | "radio" | "toggle" |
-          "range" | "textarea" | "photo-upload" | "country-select";
+          "range" | "textarea" | "photo-upload" | "country-select" | "username-picker";
     required?: boolean;
     value?: any;
     options?: string[] | any[];
@@ -29,6 +29,8 @@ export interface FormField {
 export interface FormStep {
     step: number;
     title: string;
+    /** Optional subtitle shown under the step title in onboarding. */
+    description?: string;
     fields: FormField[];
     optional?: boolean;
 }

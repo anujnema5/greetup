@@ -71,12 +71,6 @@ export const step5Schema = z.object({
 /* Step 1 – Basic Identity */
 export const saveStep1Schema = z.object({
   displayName: z.string().min(2).max(100),
-  username: z
-    .string()
-    .min(3)
-    .max(30)
-    .regex(/^[a-zA-Z0-9_]+$/, "Use only letters, numbers, and underscores")
-    .transform((s) => s.trim().toLowerCase()),
   age: z.number().int().min(18).max(99),
   gender: z.enum(["male", "female", "other"]),
   country: z
@@ -147,6 +141,16 @@ export const saveStep6Schema = z.object({
     .max(6),
 });
 
+/* Step 7 – Username (privacy-focused public link) */
+export const saveStep7Schema = z.object({
+  username: z
+    .string()
+    .min(3)
+    .max(30)
+    .regex(/^[a-zA-Z0-9_]+$/, "Use only letters, numbers, and underscores")
+    .transform((s) => s.trim().toLowerCase()),
+});
+
 const saveStepDataSchema = z.discriminatedUnion("step", [
   z.object({ step: z.literal(1), data: saveStep1Schema }),
   z.object({ step: z.literal(2), data: saveStep2Schema }),
@@ -154,6 +158,7 @@ const saveStepDataSchema = z.discriminatedUnion("step", [
   z.object({ step: z.literal(4), data: saveStep4Schema }),
   z.object({ step: z.literal(5), data: saveStep5Schema }),
   z.object({ step: z.literal(6), data: saveStep6Schema }),
+  z.object({ step: z.literal(7), data: saveStep7Schema }),
 ]);
 
 export const saveProfileSetupBodySchema = saveStepDataSchema;

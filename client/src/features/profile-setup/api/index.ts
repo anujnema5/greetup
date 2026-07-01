@@ -9,6 +9,10 @@ export {
   fetchLocationSuggestions,
 } from './profile-setup.queries';
 export {
+  checkUsernameAvailability,
+  fetchUsernameSuggestions,
+} from './username.queries';
+export {
   useSaveProfileSetup,
   useUpdateRoomInviteSettings,
   usePresignProfilePhoto,

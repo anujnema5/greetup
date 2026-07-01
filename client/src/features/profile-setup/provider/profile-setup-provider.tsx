@@ -237,14 +237,28 @@ export const ProfileSetupProvider: React.FC<ProfileSetupProviderProps> = ({
     return () => window.removeEventListener('beforeunload', onBeforeUnload)
   }, [])
 
-  const onContinue = useCallback(async () => {
+  const onContinue = useCallback(async (options?: { skipOptionalPromptValidation?: boolean }) => {
     if (!currentStepData) return
 
     methods.clearErrors('root')
 
-    const isValid = await methods.trigger(undefined, { shouldFocus: true })
-
-    if (!isValid) return
+    if (options?.skipOptionalPromptValidation) {
+      for (const field of currentStepData.fields ?? []) {
+        if (field.type !== 'textarea' || field.required) continue
+        const val = String(methods.getValues(field.key) ?? '').trim()
+        const minLength =
+          'minLength' in field && typeof field.minLength === 'number'
+            ? field.minLength
+            : undefined
+        if (val.length > 0 && minLength && val.length < minLength) {
+          methods.setValue(field.key, '', { shouldValidate: false })
+        }
+      }
+      methods.clearErrors()
+    } else {
+      const isValid = await methods.trigger(undefined, { shouldFocus: true })
+      if (!isValid) return
+    }
 
     const currentValues = methods.getValues()
     const updatedData = { ...allFormData, ...currentValues }
@@ -272,6 +286,12 @@ export const ProfileSetupProvider: React.FC<ProfileSetupProviderProps> = ({
       if (code === 'USERNAME_TAKEN') {
         methods.setError('username', { type: 'server', message })
         appliedToField = true
+        const usernameStep = steps.find((s) =>
+          s.fields?.some((f) => f.key === 'username'),
+        )
+        if (usernameStep && usernameStep.step !== currentStep) {
+          setCurrentStep(usernameStep.step)
+        }
       }
 
       if (appliedToField) {
@@ -292,6 +312,7 @@ export const ProfileSetupProvider: React.FC<ProfileSetupProviderProps> = ({
     methods,
     saveProfileSetup,
     router,
+    steps,
   ])
 
   const onBack = useCallback(() => {

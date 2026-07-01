@@ -41,6 +41,7 @@ import { OpenToConnectSettingsToggle } from "@/features/open-to-connect";
 import type { EditableProfile, ProfileEditSectionId } from "../types/profile-editor.types";
 import {
   buildProfileSavePayload,
+  buildProfileUsernamePayload,
   validateProfileSection,
 } from "../utils/build-profile-save-payload";
 import { mapMyProfileToEditable } from "../utils/map-my-profile";
@@ -86,7 +87,12 @@ export function ProfilePage() {
         throw new Error(msg);
       }
       try {
-        await saveProfileSetup(buildProfileSavePayload(section, draft));
+        if (section === "basics") {
+          await saveProfileSetup(buildProfileSavePayload(section, draft));
+          await saveProfileSetup(buildProfileUsernamePayload(draft));
+        } else {
+          await saveProfileSetup(buildProfileSavePayload(section, draft));
+        }
         toast.success("Profile updated");
       } catch (e) {
         toast.error(apiErrorMessage(e));

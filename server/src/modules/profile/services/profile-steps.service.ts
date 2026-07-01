@@ -12,9 +12,17 @@ import type {
 } from "../types";
 import type { ProfileForSteps, StepOptions } from "../repositories/profile-steps.repository";
 import { profileStepsRepository } from "../repositories/profile-steps.repository";
+import { isPlaceholderUsername } from "../lib/username";
 
 const GUEST_PLACEHOLDER_USERNAME_PREFIX = "guest_";
 const PROFILE_INTERESTS_STEP_TITLE = "Your interests";
+const USERNAME_STEP_TITLE = "Username";
+const PROFILE_PROMPTS_STEP_TITLE = "Profile prompts";
+
+function resolveUsernameFieldValue(username: string | null | undefined): string | null {
+  if (!username || isPlaceholderUsername(username)) return null;
+  return username.trim().toLowerCase();
+}
 
 /** Default and max step page size */
 export const STEP_PAGE_SIZE_DEFAULT = 6;
@@ -26,7 +34,7 @@ export const PROFILE_COMPLETE_THRESHOLD = 80;
  */
 function buildSteps(profile: ProfileForSteps | undefined, options: StepOptions): FormStep[] {
   const displayName = profile?.user?.displayName ?? profile?.user?.name ?? null;
-  const usernameValue = profile?.user?.username ?? null;
+  const usernameValue = resolveUsernameFieldValue(profile?.user?.username ?? null);
 
   const goalsOptions = options.goals.map((g) => ({
     id: g.id,
@@ -97,20 +105,6 @@ function buildSteps(profile: ProfileForSteps | undefined, options: StepOptions):
           type: "text",
           required: true,
           value: displayName,
-        },
-        {
-          key: "username",
-          name: "username",
-          label: "Username",
-          placeholder: "your_handle",
-          type: "text",
-          required: true,
-          minLength: 3,
-          maxLength: 30,
-          autoComplete: "username",
-          description:
-            "This becomes your public link. Use at least 3 characters; letters, numbers, and underscores only.",
-          value: usernameValue,
         },
         {
           key: "age",
@@ -232,8 +226,27 @@ function buildSteps(profile: ProfileForSteps | undefined, options: StepOptions):
     },
     {
       step: 6,
-      title: "A little more about you",
+      title: USERNAME_STEP_TITLE,
+      description: "Used in your profile URL.",
+      fields: [
+        {
+          key: "username",
+          name: "username",
+          label: "Your username",
+          placeholder: "yourname",
+          type: "username-picker",
+          required: true,
+          minLength: 3,
+          maxLength: 30,
+          value: usernameValue,
+        },
+      ],
+    },
+    {
+      step: 7,
+      title: PROFILE_PROMPTS_STEP_TITLE,
       optional: true,
+      description: "Optional.",
       fields: options.promptQuestions.map((q) => ({
         key: q.key,
         id: q.id,
@@ -241,7 +254,7 @@ function buildSteps(profile: ProfileForSteps | undefined, options: StepOptions):
         label: q.question,
         type: "textarea" as const,
         required: false,
-        description: "Optional—if you answer, a short line (a few words) is enough.",
+        placeholder: "Your answer",
         minLength: 10,
         maxLength: 300,
         value: answerByQuestionId.get(q.id) ?? null,
@@ -311,9 +324,54 @@ function calculateCompletion(steps: FormStep[]): number {
   return total > 0 ? Math.round((filled / total) * 100) : 0;
 }
 
+function hasRequiredFieldValue(value: unknown): boolean {
+  if (value === null || value === undefined) return false;
+  if (typeof value === "string") return value.trim().length > 0;
+  if (Array.isArray(value)) return value.length > 0;
+  if (typeof value === "object") {
+    return Object.keys(value as Record<string, unknown>).length > 0;
+  }
+  return true;
+}
+
+function areRequiredFieldsComplete(steps: FormStep[]): boolean {
+  return steps.every((step) => {
+    if (step.optional) return true;
+    return step.fields
+      .filter((field) => field.required)
+      .every((field) => hasRequiredFieldValue(field.value));
+  });
+}
+
+/** All onboarding steps with current DB values — not paginated. */
+export async function buildAllProfileStepsForUser(userId: string): Promise<FormStep[]> {
+  const [profile, options, onboardingHints] = await Promise.all([
+    profileStepsRepository.getProfileForSteps(userId),
+    profileStepsRepository.fetchStepOptions(),
+    getConvertedGuestOnboardingHints(userId),
+  ]);
+
+  return applyConvertedGuestOnboardingSteps(
+    buildSteps(profile, options),
+    profile,
+    onboardingHints.skipProfileInterestsStep,
+    onboardingHints.isConvertedGuest,
+  );
+}
+
+export function computeProfileProgressFromSteps(steps: FormStep[]): {
+  profileCompletion: number;
+  isOnboardingComplete: boolean;
+} {
+  return {
+    profileCompletion: calculateCompletion(steps),
+    isOnboardingComplete: areRequiredFieldsComplete(steps),
+  };
+}
+
 /**
  * Fetch profile steps with optional pagination.
- * Steps are ordered 1–6; page/limit slice which steps are returned.
+ * Steps are ordered 1–7; page/limit slice which steps are returned.
  */
 export async function fetchProfileStepsService(
   params: FetchProfileStepsParams

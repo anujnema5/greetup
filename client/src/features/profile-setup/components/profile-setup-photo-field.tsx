@@ -207,7 +207,7 @@ export function ProfileSetupPhotoField({
 
       <div
         className={cn(
-          "rounded-lg border border-input bg-background p-3 sm:p-4",
+          "rounded-lg border border-border bg-background p-3 sm:p-4 dark:border-white/11 dark:bg-white/[0.03]",
           "transition-colors hover:border-primary/25",
         )}
       >
@@ -215,7 +215,7 @@ export function ProfileSetupPhotoField({
           {/* Preview — left, aligns with form controls like bio / inputs */}
           <div
             className={cn(
-              "relative shrink-0 self-start overflow-hidden rounded-lg border border-border bg-muted/30",
+              "relative shrink-0 self-start overflow-hidden rounded-lg border border-border bg-muted/30 dark:border-white/11",
               "size-[120px] sm:size-[132px]",
             )}
           >
@@ -267,7 +267,7 @@ export function ProfileSetupPhotoField({
                 type="button"
                 variant="outline"
                 size="sm"
-                className="h-9 w-full gap-1.5 border-input bg-background text-xs font-medium shadow-none hover:bg-muted/60"
+                className="h-9 w-full gap-1.5 border-border bg-background text-xs font-medium shadow-none hover:bg-muted/60 dark:border-white/12 dark:bg-white/[0.03]"
                 disabled={disabled || busy}
                 onClick={() => fileRef.current?.click()}
               >
