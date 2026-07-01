@@ -46,10 +46,6 @@ function buildPhotosPayload(
   return [{ url: newUrl, order: 0 }, ...rest].slice(0, 6);
 }
 
-function truncateFilename(name: string): string {
-  return name.length > 30 ? name.slice(0, 30) + "…" : name;
-}
-
 type ProfilePhotoDialogProps = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -241,14 +237,6 @@ export function ProfilePhotoDialog({
             Generate avatar
           </button>
         </div>
-
-        {file && !isGenerating ? (
-          <p className="text-center text-[11px] text-muted-foreground">
-            <span className="font-medium text-foreground">Ready to save</span>
-            {" · "}
-            {truncateFilename(file.name)}
-          </p>
-        ) : null}
 
         <div className="flex gap-2 pt-1">
           <Button
