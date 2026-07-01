@@ -82,6 +82,7 @@ export function MessageInput({
     handleSend,
     handleTextChange,
     handleKeyDown,
+    handleBlur,
   } = useMessageComposer({
     conversationId,
     replyTo,
@@ -139,6 +140,7 @@ export function MessageInput({
           value={text}
           onChange={(e) => handleTextChange(e.target.value)}
           onKeyDown={handleKeyDown}
+          onBlur={handleBlur}
           placeholder={placeholder}
           rows={1}
           disabled={disabled}

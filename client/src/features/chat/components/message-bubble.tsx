@@ -407,7 +407,7 @@ export function MessageBubble({
   if (isOwn) {
     return (
       <div className="group flex w-full min-w-0 max-w-full justify-end overflow-hidden">
-        <div className={cn('min-w-0 max-w-full shrink', bubbleColumnMax)}>{bubble}</div>
+        <div className={cn('min-w-0 max-w-full shrink-0', bubbleColumnMax)}>{bubble}</div>
       </div>
     );
   }

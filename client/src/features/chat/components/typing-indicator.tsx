@@ -19,6 +19,7 @@ interface TypingIndicatorProps {
   conversationType?: ConversationType;
   peerMessage?: Message | null;
   senderIsOnline?: boolean;
+  className?: string;
 }
 
 function getTransitionDurationMs(): number {
@@ -52,6 +53,7 @@ export function TypingIndicator({
   conversationType,
   peerMessage = null,
   senderIsOnline,
+  className,
 }: TypingIndicatorProps) {
   const active = userIds.filter(Boolean);
   const shouldShow = active.length > 0;
@@ -94,11 +96,11 @@ export function TypingIndicator({
     active.length === 1 ? 'Someone is typing' : `${active.length} people are typing`;
 
   return (
-    <div className={cn('typing-indicator-shell', shouldShow && 'is-open')}>
+    <div className={cn('typing-indicator-shell pt-2 pb-2', shouldShow && 'is-open', className)}>
       <div className="typing-indicator-shell-inner">
         <div
           className={cn(
-            'mt-2 flex w-full min-w-0 max-w-full justify-start overflow-hidden',
+            'flex w-full min-w-0 max-w-full justify-start overflow-hidden',
             exiting ? 'animate-typing-indicator-exit' : 'animate-typing-indicator-enter',
             MESSAGE_ROW_GAP,
             showPeerColumnGutter ? 'items-end' : 'items-start',

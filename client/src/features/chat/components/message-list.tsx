@@ -77,78 +77,83 @@ export function MessageList({
   const primaryTypingUserId = typingUserIds.find(Boolean);
 
   return (
-    <div
-      ref={containerRef}
-      className={cn(
-        'min-w-0 flex-1 overflow-x-hidden overflow-y-auto pb-2 pt-3 md:pt-4',
-        CHAT_HORIZONTAL_PADDING,
-      )}
-      onScroll={handleScroll}
-    >
-      {hasMore && (
-        <Button
-          type="button"
-          variant="ghost"
-          size="sm"
-          className="h-auto w-full cursor-pointer py-2 text-xs text-muted-foreground hover:text-foreground"
-          onClick={() => onLoadMore()}
-        >
-          Load older messages
-        </Button>
-      )}
+    <div className="flex min-h-0 min-w-0 flex-1 flex-col">
+      <div
+        ref={containerRef}
+        className={cn(
+          'min-h-0 min-w-0 flex-1 overflow-x-hidden overflow-y-auto pb-2 pt-3 [scrollbar-gutter:stable] md:pt-4',
+          CHAT_HORIZONTAL_PADDING,
+        )}
+        onScroll={handleScroll}
+      >
+        {hasMore && (
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            className="h-auto w-full cursor-pointer py-2 text-xs text-muted-foreground hover:text-foreground"
+            onClick={() => onLoadMore()}
+          >
+            Load older messages
+          </Button>
+        )}
 
-      {messages.map((msg, i) => {
-        const prev = i > 0 ? messages[i - 1]! : null;
-        const next = i < messages.length - 1 ? messages[i + 1]! : null;
-        const layout = getMessageRowLayout({
-          msg,
-          index: i,
-          prev,
-          next,
-          messages,
-          currentUserId,
-          conversationType,
-          editingMessageId,
-        });
+        {messages.map((msg, i) => {
+          const prev = i > 0 ? messages[i - 1]! : null;
+          const next = i < messages.length - 1 ? messages[i + 1]! : null;
+          const layout = getMessageRowLayout({
+            msg,
+            index: i,
+            prev,
+            next,
+            messages,
+            currentUserId,
+            conversationType,
+            editingMessageId,
+          });
 
-        return (
-          <div key={msg.id} className={cn(layout.spacingClass, 'min-w-0 max-w-full')}>
-            <MessageBubble
-              message={msg}
-              isOwn={layout.isOwn}
-              currentUserId={currentUserId}
-              replyToMessage={layout.replyToMessage}
-              clusterPosition={layout.clusterPosition}
-              showPeerHeader={layout.showPeerHeader}
-              peerColumnGutter={layout.peerColumnGutter}
-              showDirectPeerAvatar={layout.showDirectPeerAvatar}
-              senderIsOnline={
-                msg.senderId && msg.senderId !== currentUserId
-                  ? isOnline(msg.senderId)
-                  : undefined
-              }
-              onToggleReaction={onToggleReaction}
-              onReply={
-                onReply
-                  ? (message) => {
-                      clearRevealedTime();
-                      onReply(message);
-                    }
-                  : undefined
-              }
-              onEditMessage={onEditMessage}
-              onDeleteMessage={onDeleteMessage}
-              onRetryFailed={onRetryFailed}
-              editingMessageId={editingMessageId}
-              onEditingChange={onEditingChange}
-              revealedTimeMessageId={revealedTimeMessageId}
-              onRevealTime={toggleRevealTime}
-            />
-          </div>
-        );
-      })}
+          return (
+            <div key={msg.id} className={cn(layout.spacingClass, 'min-w-0 max-w-full')}>
+              <MessageBubble
+                message={msg}
+                isOwn={layout.isOwn}
+                currentUserId={currentUserId}
+                replyToMessage={layout.replyToMessage}
+                clusterPosition={layout.clusterPosition}
+                showPeerHeader={layout.showPeerHeader}
+                peerColumnGutter={layout.peerColumnGutter}
+                showDirectPeerAvatar={layout.showDirectPeerAvatar}
+                senderIsOnline={
+                  msg.senderId && msg.senderId !== currentUserId
+                    ? isOnline(msg.senderId)
+                    : undefined
+                }
+                onToggleReaction={onToggleReaction}
+                onReply={
+                  onReply
+                    ? (message) => {
+                        clearRevealedTime();
+                        onReply(message);
+                      }
+                    : undefined
+                }
+                onEditMessage={onEditMessage}
+                onDeleteMessage={onDeleteMessage}
+                onRetryFailed={onRetryFailed}
+                editingMessageId={editingMessageId}
+                onEditingChange={onEditingChange}
+                revealedTimeMessageId={revealedTimeMessageId}
+                onRevealTime={toggleRevealTime}
+              />
+            </div>
+          );
+        })}
+
+        <div ref={bottomRef} />
+      </div>
 
       <TypingIndicator
+        className={CHAT_HORIZONTAL_PADDING}
         userIds={typingUserIds}
         conversationType={conversationType}
         peerMessage={typingPeerMessage}
@@ -156,7 +161,6 @@ export function MessageList({
           primaryTypingUserId ? isOnline(primaryTypingUserId) : undefined
         }
       />
-      <div ref={bottomRef} />
     </div>
   );
 }

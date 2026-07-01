@@ -127,7 +127,7 @@ export function ChatPanel({
       ) : null}
       <MessageList
         messages={messages}
-        currentUserId={currentUserId}
+        currentUserId={sessionUserId}
         conversationType={conversationType}
         typingUserIds={typingUserIds}
         hasMore={hasMore}

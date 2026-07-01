@@ -86,6 +86,12 @@ export function registerChatSocketHandlers(io: Namespace, socket: Socket) {
         mentions:       payload.mentions,
       });
 
+      await messageService.setTyping(payload.conversationId, userId, false);
+      socket.to(`conv:${payload.conversationId}`).emit('chat:typing:stop', {
+        conversationId: payload.conversationId,
+        userId,
+      });
+
       const conv = await conversationRepository.findById(payload.conversationId);
       if (conv) {
         emitToParticipantUsers(io, conv.participants, 'chat:message:new', msg);

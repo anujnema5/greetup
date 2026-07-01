@@ -32,6 +32,13 @@ export function ChatMessagesCacheBridge() {
     const onNew = (msg: Message) => {
       applySocketNewMessage(qc, msg, currentUserId);
 
+      if (msg.senderId) {
+        useChatUiStore.getState().clearTyping({
+          conversationId: msg.conversationId,
+          userId: msg.senderId,
+        });
+      }
+
       const active = activeRef.current;
       if (
         active &&
