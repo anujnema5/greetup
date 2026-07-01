@@ -7,7 +7,7 @@ import { API_ENDPOINTS } from "@/lib/api";
 import { roomApiFetch } from "@/features/room/lib/room-api-fetch";
 
 const INITIAL_DELAY_MS = 2_500;
-const DRIP_DELAY_MS = 90_000;
+const DRIP_DELAY_MS = 150_000;
 
 type ConversationCue = {
   id: string;

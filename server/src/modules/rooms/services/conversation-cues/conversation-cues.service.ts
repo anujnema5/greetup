@@ -13,7 +13,7 @@ import { generateConversationCuesWithGemini } from "@/modules/rooms/services/con
 import { parseProfileSnapshotContext } from "@/modules/rooms/services/conversation-cues/parse-profile-snapshot.util";
 import { ensureProfileSnapshotCached } from "@/modules/user/services/profile-snapshot-cache.service";
 
-export const CONVERSATION_CUES_MAX_PER_CALL = 5;
+export const CONVERSATION_CUES_MAX_PER_CALL = 2;
 
 const EMPTY_RESPONSE: ConversationCuesResponseDto = { cue: null, hasMore: false };
 
