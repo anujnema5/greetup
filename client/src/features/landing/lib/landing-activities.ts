@@ -2,6 +2,7 @@
 export const LANDING_SESSION_ACTIVITIES = [
   { emoji: "💨", label: "Vent" },
   { emoji: "🗯️", label: "Yap" },
+  { emoji: "💬", label: "Open to anything" },
   { emoji: "📚", label: "Study together" },
   { emoji: "🗣️", label: "Practice language" },
   { emoji: "🚀", label: "Discuss & validate startup ideas" },
@@ -15,6 +16,7 @@ export const LANDING_SESSION_ACTIVITIES = [
 export const LANDING_HERO_ACTIVITY_HIGHLIGHTS = [
   { emoji: "💨", label: "Vent" },
   { emoji: "🗯️", label: "Yap" },
+  { emoji: "💬", label: "Open to anything" },
   { emoji: "📚", label: "Study" },
   { emoji: "🗣️", label: "Practice language" },
   { emoji: "🚀", label: "Startup ideas" },
