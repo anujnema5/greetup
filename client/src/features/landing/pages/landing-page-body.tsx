@@ -33,6 +33,7 @@ import {
   PhoneOff,
   Volume2,
   Wind,
+  Sparkles,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { EARLY_RELEASE } from "@/lib/copy/user-messages";
@@ -40,6 +41,11 @@ import { TRY_ROUTE } from "@/features/guest-try/constants/try-routes";
 import { FOOTER_LINKS } from "@/lib/copy/marketing-pages";
 import { useLandingSession } from "../hooks/use-landing-session";
 import { LandingPerfProvider, useLandingPerf } from "../hooks/use-landing-perf";
+import { LandingActivityChips } from "../components/landing-activity-chips";
+import { LandingCuesDemo } from "../components/landing-cues-demo";
+import { LandingConversationCueToast } from "../components/landing-conversation-cue-toast";
+import { LANDING_SESSION_ACTIVITIES } from "../lib/landing-activities";
+import { LANDING_CONVERSATION_CUE_EXAMPLES } from "../lib/landing-conversation-cues";
 
 /* ─── easing ────────────────────────────────────────────────────────────────── */
 const EASE: [number, number, number, number] = [0.22, 1, 0.36, 1];
@@ -81,9 +87,9 @@ const cardIn: Variants = {
 /* ─── data ──────────────────────────────────────────────────────────────────── */
 const FEATURES = [
   {
-    icon: Zap,
-    label: "Precision Matching",
-    desc: "Match in real time by profession, interests, and the kind of person you actually want to connect with.",
+    icon: Sparkles,
+    label: "Activity match",
+    desc: "Pick chess, vent, yap, study together, language practice, or another activity — then match with someone who wants to do the same.",
     tint: "from-secondary/15 to-transparent",
     iconClass: "text-secondary bg-secondary/10 border-secondary/20",
   },
@@ -104,13 +110,18 @@ const FEATURES = [
   {
     icon: MessageCircle,
     label: "Instant Connect",
-    desc: "Chat, voice, and video instantly. Invite trusted friends into private spaces or keep it 1:1.",
+    desc: "Chat, voice, and video instantly — plus in-call chess. Invite friends into private spaces or keep it 1:1.",
     tint: "from-sky-400/15 to-transparent",
     iconClass: "text-sky-400 bg-sky-400/10 border-sky-400/20",
   },
 ];
 
 const MATCHING_SIGNALS = [
+  {
+    icon: Sparkles,
+    title: "By activity",
+    desc: "Match for chess, vent, yap, study sessions, language practice, or any activity you pick before you connect.",
+  },
   {
     icon: Users,
     title: "By person type",
@@ -141,22 +152,15 @@ const COMM_TABS = [
 type CommTab = (typeof COMM_TABS)[number]["id"];
 
 const STEPS = [
-  { n: "01", title: "Set your preferences", desc: "Answer a few quick questions about your interests, goals, and the kind of connections you want." },
-  { n: "02", title: "Get matched", desc: "Our engine finds people with real alignment, not just the same city, but the same wavelength." },
-  { n: "03", title: "Connect & grow", desc: "Chat, call, join activities, or hop into a space together. Build real relationships naturally." },
-];
-
-const BETA_HIGHLIGHTS = [
-  { value: "Beta", label: "Early access" },
-  { value: "Safe", label: "NSFW protected" },
-  { value: "1:1", label: "Match & video" },
-  { value: "Live", label: "Spaces & chat" },
+  { n: "01", title: "Pick your activity", desc: "Choose chess, vent, yap, or another activity — plus your interests and the kind of people you want to meet." },
+  { n: "02", title: "Get matched", desc: "Our engine finds people with real alignment — same activity, same wavelength, not just the same city." },
+  { n: "03", title: "Connect & grow", desc: "Chat, call, play chess in-call, or hop into a space together. Build real relationships naturally." },
 ];
 
 const TRUST = [
+  { icon: Sparkles,    label: "Activity match"      },
   { icon: ShieldCheck, label: "NSFW protected"      },
   { icon: Shield,      label: "Secure by design"    },
-  { icon: Users,       label: "Real people"         },
   { icon: Zap,         label: "Real-time matching"  },
   { icon: Globe,       label: "Nearby or global"    },
 ];
@@ -192,7 +196,7 @@ function StepRippleRings({ stepIndex }: { stepIndex: number }) {
         <div
           key={ri}
           className={cn(
-            "landing-step-ring pointer-events-none absolute inset-0 rounded-full border border-[oklch(88%_0.18_105/0.28)]",
+            "landing-step-ring pointer-events-none absolute inset-0 rounded-full border landing-step-ring-border",
             delays[ri],
           )}
         />
@@ -242,27 +246,16 @@ function RevealSection({ children, className }: { children: React.ReactNode; cla
 /* ─── Communication tab mockups ──────────────────────────────────────────────── */
 function ChatMockup() {
   const { lite } = useLandingPerf();
+  const cue = LANDING_CONVERSATION_CUE_EXAMPLES[0]!;
   return (
     <div className="flex flex-col gap-3 p-5">
       <motion.div
         initial={lite ? { opacity: 1, y: 0 } : { opacity: 0, y: -6 }}
         animate={{ opacity: 1, y: 0 }}
         transition={lite ? { duration: 0 } : { duration: 0.35, ease: EASE }}
-        className="self-start max-w-[90%] rounded-xl border border-[oklch(88%_0.18_105/0.25)] bg-[oklch(88%_0.18_105/0.08)] px-3 py-2"
+        className="self-start w-full max-w-[95%]"
       >
-        <div className="flex items-start gap-2">
-          <div className="mt-0.5 size-4 rounded-md bg-[oklch(88%_0.18_105/0.18)] flex items-center justify-center shrink-0">
-            <Lightbulb className="size-2.5 text-[oklch(88%_0.18_105)]" />
-          </div>
-          <div>
-            <p className="text-[10px] font-semibold text-[oklch(88%_0.18_105)] uppercase tracking-wide">
-              Conversation cue · Coming soon
-            </p>
-            <p className="text-[10px] text-white/70 leading-relaxed">
-              Your new match likes chess and music. Use an icebreaker suggestion, then invite them to Watch Together.
-            </p>
-          </div>
-        </div>
+        <LandingConversationCueToast cue={cue} />
       </motion.div>
       <div className="self-end max-w-[78%]">
         <div className="bg-primary text-primary-foreground text-xs font-medium px-3.5 py-2.5 rounded-2xl rounded-br-sm">
@@ -270,7 +263,7 @@ function ChatMockup() {
         </div>
       </div>
       <div className="self-start max-w-[78%]">
-        <div className="bg-white/6 border border-white/8 text-white/80 text-xs px-3.5 py-2.5 rounded-2xl rounded-bl-sm">
+        <div className="bg-muted border border-border landing-muted text-xs px-3.5 py-2.5 rounded-2xl rounded-bl-sm">
           Hey! Saw you&apos;re into chess too. Do you play blitz?
         </div>
       </div>
@@ -280,18 +273,18 @@ function ChatMockup() {
         </div>
       </div>
       {/* typing indicator */}
-      <div className="self-start flex items-center gap-1.5 bg-white/6 border border-white/8 px-3.5 py-2.5 rounded-2xl rounded-bl-sm w-fit">
+      <div className="self-start flex items-center gap-1.5 bg-muted border border-border px-3.5 py-2.5 rounded-2xl rounded-bl-sm w-fit">
         {lite
-          ? [0, 1, 2].map((k) => <div key={k} className="size-1.5 rounded-full bg-white/50" />)
+          ? [0, 1, 2].map((k) => <div key={k} className="size-1.5 rounded-full bg-foreground/40" />)
           : [0, 0.15, 0.3].map((d) => (
-              <motion.div key={d} className="size-1.5 rounded-full bg-white/50" animate={{ y: [0, -4, 0] }} transition={{ duration: 0.8, repeat: Infinity, delay: d }} />
+              <motion.div key={d} className="size-1.5 rounded-full bg-foreground/40" animate={{ y: [0, -4, 0] }} transition={{ duration: 0.8, repeat: Infinity, delay: d }} />
             ))}
       </div>
       {/* input */}
-      <div className="mt-1 flex items-center gap-2 rounded-xl bg-white/5 border border-white/8 px-3 py-2.5">
-        <p className="text-[11px] text-white/25 flex-1">Type a message…</p>
+      <div className="mt-1 flex items-center gap-2 rounded-xl bg-muted/80 border border-border px-3 py-2.5">
+        <p className="text-[11px] landing-muted flex-1">Type a message…</p>
         <div className="size-6 rounded-lg bg-[oklch(88%_0.18_105/0.15)] flex items-center justify-center">
-          <Send className="size-3 text-[oklch(88%_0.18_105/0.7)]" />
+          <Send className="size-3 landing-gold-text-muted" />
         </div>
       </div>
     </div>
@@ -303,14 +296,14 @@ function VideoMockup() {
   return (
     <div className="relative flex flex-col p-4 gap-3">
       {/* remote video */}
-      <div className="relative rounded-2xl bg-muted border border-white/8 overflow-hidden aspect-video flex items-center justify-center">
-        <div className="absolute inset-0 bg-linear-to-br from-violet-900/30 to-slate-900/60" />
+      <div className="relative rounded-2xl bg-muted border border-border overflow-hidden aspect-video flex items-center justify-center">
+        <div className="absolute inset-0 landing-mockup-panel" />
         <div className="relative flex flex-col items-center gap-2">
           <div className="size-12 rounded-full bg-linear-to-br from-violet-500 to-purple-600 flex items-center justify-center text-base font-bold text-white">M</div>
-          <p className="text-xs text-white/60">Maya L. · connected</p>
+          <p className="text-xs landing-muted">Maya L. · connected</p>
         </div>
         {/* local pip */}
-        <div className="absolute bottom-2 right-2 w-16 h-20 rounded-xl bg-linear-to-br from-violet-800/40 to-slate-800/60 border border-white/10 flex items-center justify-center">
+        <div className="absolute bottom-2 right-2 w-16 h-20 rounded-xl landing-mockup-panel border border-border flex items-center justify-center">
           <div className="size-8 rounded-full bg-linear-to-br from-violet-500 to-purple-600 flex items-center justify-center text-xs font-bold text-white">Y</div>
         </div>
         {/* live badge */}
@@ -320,14 +313,14 @@ function VideoMockup() {
           ) : (
             <motion.div className="size-1.5 rounded-full bg-red-500" animate={{ opacity: [1, 0.3, 1] }} transition={{ duration: 1.5, repeat: Infinity }} />
           )}
-          <span className="text-[10px] text-white/80 font-medium">LIVE</span>
+          <span className="text-[10px] landing-muted font-medium">LIVE</span>
         </div>
       </div>
       {/* controls */}
       <div className="flex justify-center gap-3">
         {[
-          { icon: MicOff,  bg: "bg-white/8 border border-white/10",                         color: "text-white/70" },
-          { icon: Video,   bg: "bg-white/8 border border-white/10",                         color: "text-white/70" },
+          { icon: MicOff,  bg: "bg-muted border border-border",                         color: "landing-muted" },
+          { icon: Video,   bg: "bg-muted border border-border",                         color: "landing-muted" },
           { icon: PhoneOff,bg: "bg-red-500/90",                                              color: "text-white"    },
         ].map(({ icon: Icon, bg, color }, i) =>
           lite ? (
@@ -361,7 +354,7 @@ function VoiceMockup() {
         </div>
       </div>
       <div className="text-center">
-        <p className="text-sm font-semibold text-white">Noah K.</p>
+        <p className="text-sm font-semibold landing-card-title">Noah K.</p>
         <div className="flex items-center gap-1.5 justify-center mt-1">
           {lite ? (
             <div className="size-1.5 rounded-full bg-emerald-400" />
@@ -384,9 +377,9 @@ function VoiceMockup() {
       {/* controls */}
       <div className="flex justify-center gap-3 mt-1">
         {[
-          { icon: MicOff,   bg: "bg-white/8 border border-white/10", color: "text-white/60" },
+          { icon: MicOff,   bg: "bg-muted border border-border", color: "landing-muted" },
           { icon: PhoneOff, bg: "bg-red-500/90",                     color: "text-white"    },
-          { icon: Volume2,  bg: "bg-white/8 border border-white/10", color: "text-white/60" },
+          { icon: Volume2,  bg: "bg-muted border border-border", color: "landing-muted" },
         ].map(({ icon: Icon, bg, color }, i) =>
           lite ? (
             <div key={i} className={cn("size-10 rounded-full flex items-center justify-center cursor-default", bg)}>
@@ -438,41 +431,55 @@ function LandingPageInner() {
     <>
       <AmbientBackdrop />
 
-      {/* ══════════════════ BETA HIGHLIGHTS ══════════════════ */}
-      <RevealSection className="mx-5 sm:mx-6 lg:mx-auto max-w-7xl pt-2 sm:pt-0">
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-px bg-white/5 rounded-3xl overflow-hidden border border-white/8">
-          {BETA_HIGHLIGHTS.map((s) => (
-            <motion.div key={s.label} variants={cardIn} className="bg-card px-4 py-5 sm:px-8 sm:py-7 flex flex-col items-center gap-1">
-              <span className="text-2xl sm:text-3xl font-black bg-linear-to-r from-[oklch(88%_0.18_105)] to-[oklch(94%_0.16_105)] bg-clip-text text-transparent">{s.value}</span>
-              <span className="text-xs text-white/45 font-medium tracking-wide uppercase">{s.label}</span>
-            </motion.div>
-          ))}
-        </div>
+      {/* ══════════════════ ACTIVITIES ══════════════════ */}
+      <RevealSection className="mx-5 sm:mx-6 lg:mx-auto max-w-7xl mt-8 sm:mt-12 lg:mt-14">
+        <motion.div
+          variants={fadeUp}
+          className="rounded-3xl border border-border bg-card px-5 sm:px-8 lg:px-10 py-8 sm:py-10 text-center"
+        >
+          <Badge
+            variant="outline"
+            className="landing-section-badge rounded-full mb-4 sm:mb-5 tracking-widest uppercase text-[10px]"
+          >
+            Match by activity
+          </Badge>
+          <h2 className="text-xl sm:text-3xl font-black tracking-tight leading-tight mb-3 sm:mb-4">
+            Do something together from the first hello
+          </h2>
+          <p className="text-sm sm:text-base landing-muted max-w-2xl mx-auto mb-6 sm:mb-7">
+            Pick an activity when you match — vent, yap, practice language, validate startup ideas, and more — not just small talk.
+          </p>
+          <LandingActivityChips
+            items={LANDING_SESSION_ACTIVITIES}
+            size="sm"
+            className="justify-center gap-2 sm:gap-2.5 max-w-3xl mx-auto"
+          />
+        </motion.div>
       </RevealSection>
 
       {/* ══════════════════ FEATURES ══════════════════ */}
       <section className="relative py-12 sm:py-20 lg:py-32 px-5 sm:px-6" id="features">
         <RevealSection className="mx-auto max-w-7xl">
           <motion.div variants={fadeUp} className="text-center mb-8 sm:mb-12 lg:mb-16">
-            <Badge variant="outline" className="border-[oklch(88%_0.18_105/0.3)] bg-[oklch(88%_0.18_105/0.08)] text-[oklch(88%_0.18_105/0.8)] rounded-full mb-3 sm:mb-5 tracking-widest uppercase text-[10px]">
+            <Badge variant="outline" className="landing-section-badge rounded-full mb-3 sm:mb-5 tracking-widest uppercase text-[10px]">
               Everything you need
             </Badge>
             <h2 className="text-[1.75rem] sm:text-4xl lg:text-5xl font-black tracking-tight leading-tight">Built for real connection</h2>
-            <p className="mt-3 sm:mt-4 text-sm sm:text-base text-white/50 max-w-lg mx-auto">Every feature exists for one reason: to help you meet people who feel like people, not profiles.</p>
+            <p className="mt-3 sm:mt-4 text-sm sm:text-base landing-muted max-w-lg mx-auto">Every feature exists for one reason: to help you meet people who feel like people, not profiles.</p>
           </motion.div>
 
           <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-5">
             {FEATURES.map(({ icon: Icon, label, desc, tint, iconClass }) => (
               <motion.div key={label} variants={cardIn} whileHover={lite ? undefined : { y: -6, transition: { duration: 0.25 } }}>
-                <Card className="relative overflow-hidden border-white/8 bg-card h-full shadow-xl p-0 gap-0">
+                <Card className="relative overflow-hidden border-border bg-card h-full shadow-xl p-0 gap-0">
                   <div className={`absolute inset-0 bg-linear-to-br ${tint} opacity-60 pointer-events-none`} />
                   <CardContent className="relative p-4 sm:p-6 flex flex-col gap-3 sm:gap-4">
                     <div className={cn("size-11 rounded-2xl border flex items-center justify-center", iconClass)}>
                       <Icon className="size-5" />
                     </div>
                     <div>
-                      <p className="font-bold text-base text-white mb-1.5">{label}</p>
-                      <p className="text-sm text-white/50 leading-relaxed">{desc}</p>
+                      <p className="font-bold text-base landing-card-title mb-1.5">{label}</p>
+                      <p className="text-sm landing-muted leading-relaxed">{desc}</p>
                     </div>
                   </CardContent>
                 </Card>
@@ -486,27 +493,27 @@ function LandingPageInner() {
       <section className="relative py-12 sm:py-20 lg:py-24 px-5 sm:px-6 bg-background">
         <RevealSection className="mx-auto max-w-7xl">
           <motion.div variants={fadeUp} className="text-center mb-8 sm:mb-12 lg:mb-14">
-            <Badge variant="outline" className="border-[oklch(88%_0.18_105/0.3)] bg-[oklch(88%_0.18_105/0.08)] text-[oklch(88%_0.18_105/0.8)] rounded-full mb-3 sm:mb-5 tracking-widest uppercase text-[10px]">
+            <Badge variant="outline" className="landing-section-badge rounded-full mb-3 sm:mb-5 tracking-widest uppercase text-[10px]">
               Match exactly how you want
             </Badge>
             <h2 className="text-[1.75rem] sm:text-4xl lg:text-5xl font-black tracking-tight leading-tight">Find your people with real control</h2>
-            <p className="mt-3 sm:mt-4 text-sm sm:text-base text-white/50 max-w-2xl mx-auto">
-              Filter your connections your way and discover people instantly, whether you want nearby friends,
-              city-level networking, country-wide communities, or global spaces.
+            <p className="mt-3 sm:mt-4 text-sm sm:text-base landing-muted max-w-2xl mx-auto">
+              Match by activity, profession, location, or person type — chess, vent, yap, nearby friends,
+              city-level networking, or global spaces.
             </p>
           </motion.div>
 
-          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-5">
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3 sm:gap-5">
             {MATCHING_SIGNALS.map(({ icon: Icon, title, desc }) => (
               <motion.div key={title} variants={cardIn}>
-                <Card className="border-white/8 bg-card h-full shadow-xl p-0 gap-0">
+                <Card className="border-border bg-card h-full shadow-xl p-0 gap-0">
                   <CardContent className="p-4 sm:p-6 flex flex-col gap-3 sm:gap-4">
-                    <div className="size-10 rounded-xl bg-[oklch(88%_0.18_105/0.1)] border border-[oklch(88%_0.18_105/0.2)] flex items-center justify-center">
-                      <Icon className="size-4 text-[oklch(88%_0.18_105)]" />
+                    <div className="size-10 rounded-xl landing-gold-icon-box border flex items-center justify-center">
+                      <Icon className="size-4 landing-gold-text" />
                     </div>
                     <div>
-                      <p className="text-sm font-semibold text-white mb-1.5">{title}</p>
-                      <p className="text-xs text-white/50 leading-relaxed">{desc}</p>
+                      <p className="text-sm font-semibold landing-card-title mb-1.5">{title}</p>
+                      <p className="text-xs landing-muted leading-relaxed">{desc}</p>
                     </div>
                   </CardContent>
                 </Card>
@@ -520,15 +527,15 @@ function LandingPageInner() {
       <RevealSection className="mx-5 sm:mx-6 lg:mx-auto max-w-7xl py-2 sm:py-4">
         <motion.div
           variants={fadeIn}
-          className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 sm:gap-6 rounded-2xl border border-white/8 bg-card px-4 sm:px-7 py-4 sm:py-5"
+          className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 sm:gap-6 rounded-2xl border border-border bg-card px-4 sm:px-7 py-4 sm:py-5"
         >
           <div className="flex items-start sm:items-center gap-3 sm:gap-4 w-full sm:w-auto">
-            <div className="size-10 rounded-xl bg-[oklch(88%_0.18_105/0.1)] border border-[oklch(88%_0.18_105/0.2)] flex items-center justify-center shrink-0">
-              <ShieldCheck className="size-5 text-[oklch(88%_0.18_105)]" />
+            <div className="size-10 rounded-xl landing-gold-icon-box border flex items-center justify-center shrink-0">
+              <ShieldCheck className="size-5 landing-gold-text" />
             </div>
             <div className="min-w-0">
-              <p className="text-sm font-semibold text-white">A space you can actually feel comfortable in</p>
-              <p className="text-xs text-white/45 mt-0.5 max-w-lg">
+              <p className="text-sm font-semibold landing-card-title">A space you can actually feel comfortable in</p>
+              <p className="text-xs landing-muted mt-0.5 max-w-lg">
                 We scan video for NSFW content, keep calls secure, and enforce community guidelines — so you can focus on
                 the conversation, not worrying about who&apos;s on the other side.
               </p>
@@ -540,14 +547,50 @@ function LandingPageInner() {
               { icon: Shield,      label: "Secure calls" },
               { icon: Users,       label: "Real community"  },
             ].map(({ icon: Icon, label }) => (
-              <div key={label} className="flex items-center gap-1.5 text-xs text-white/40">
-                <Icon className="size-3.5 text-[oklch(88%_0.18_105/0.6)]" />
+              <div key={label} className="flex items-center gap-1.5 text-xs landing-muted">
+                <Icon className="size-3.5 landing-gold-text-muted" />
                 {label}
               </div>
             ))}
           </div>
         </motion.div>
       </RevealSection>
+
+      {/* ══════════════════ CONVERSATION CUES ══════════════════ */}
+      <section className="relative py-12 sm:py-20 lg:py-28 px-5 sm:px-6 bg-background overflow-hidden">
+        <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
+          <div className="w-[420px] h-[420px] rounded-full bg-primary/5 blur-[80px] md:blur-[120px]" />
+        </div>
+
+        <div className="mx-auto max-w-7xl grid lg:grid-cols-2 gap-8 sm:gap-12 lg:gap-16 items-center">
+          <RevealSection className="order-2 lg:order-1 w-full">
+            <LandingCuesDemo />
+          </RevealSection>
+
+          <RevealSection className="order-1 lg:order-2 w-full">
+            <motion.div variants={fadeUp} className="mb-3 sm:mb-5">
+              <Badge variant="outline" className="landing-section-badge rounded-full tracking-widest uppercase text-[10px]">
+                Conversation cues
+              </Badge>
+            </motion.div>
+            <motion.h2 variants={fadeUp} className="text-[1.75rem] sm:text-4xl lg:text-5xl font-black tracking-tight leading-tight mb-4 sm:mb-5">
+              Never stuck on<br />
+              <span className="landing-gold-gradient">what to say first.</span>
+            </motion.h2>
+            <motion.p variants={fadeUp} className="text-sm sm:text-base landing-muted leading-relaxed max-w-lg mb-6 sm:mb-8">
+              During a 1:1 call, Greetup shows one or two short hints — shared activities, what they picked,
+              or overlapping interests — so you are not staring at a blank screen.
+            </motion.p>
+            <motion.div variants={stagger} className="flex flex-col gap-3 sm:gap-4 w-full">
+              {LANDING_CONVERSATION_CUE_EXAMPLES.map((cue) => (
+                <motion.div key={cue.title} variants={cardIn} className="w-full">
+                  <LandingConversationCueToast cue={cue} />
+                </motion.div>
+              ))}
+            </motion.div>
+          </RevealSection>
+        </div>
+      </section>
 
       {/* ══════════════════ CONNECT INSTANTLY (Chat / Video / Voice) ══════════════════ */}
       <section className="relative py-12 sm:py-20 lg:py-28 px-5 sm:px-6 bg-background overflow-hidden">
@@ -559,23 +602,24 @@ function LandingPageInner() {
           {/* copy */}
           <RevealSection className="order-1 lg:order-none">
             <motion.div variants={fadeUp} className="mb-3 sm:mb-5">
-              <Badge variant="outline" className="border-[oklch(88%_0.18_105/0.3)] bg-[oklch(88%_0.18_105/0.08)] text-[oklch(88%_0.18_105/0.8)] rounded-full tracking-widest uppercase text-[10px]">
+              <Badge variant="outline" className="landing-section-badge rounded-full tracking-widest uppercase text-[10px]">
                 Real-time networking
               </Badge>
             </motion.div>
             <motion.h2 variants={fadeUp} className="text-[1.75rem] sm:text-4xl lg:text-5xl font-black tracking-tight leading-tight mb-4 sm:mb-5">
               Chat. Call. Video.<br />
-              <span className="bg-linear-to-r from-[oklch(88%_0.18_105)] via-[oklch(94%_0.16_105)] to-[oklch(82%_0.18_106)] bg-clip-text text-transparent">
+              <span className="landing-gold-gradient">
                 Right when you match.
               </span>
             </motion.h2>
-            <motion.p variants={fadeUp} className="text-sm sm:text-base text-white/55 leading-relaxed max-w-md mb-6 sm:mb-10">
-              Once you match, move instantly between text, voice, and video. Start 1:1, bring in your friends,
-              or continue inside a public or private space without losing momentum.
+            <motion.p variants={fadeUp} className="text-sm sm:text-base landing-muted leading-relaxed max-w-md mb-6 sm:mb-10">
+              Once you match, move instantly between text, voice, and video — or launch chess right in the call.
+              Start 1:1, bring in your friends, or continue inside a public or private space.
             </motion.p>
             <motion.div variants={stagger} className="flex flex-col gap-3 sm:gap-4">
               {[
-                { icon: MessageCircle, color: "text-sky-400 bg-sky-400/10 border-sky-400/20", title: "Instant chat", desc: "Real-time messaging with conversation cues tailored to your new match. Cues coming soon." },
+                { icon: Sparkles, color: "text-secondary bg-secondary/10 border-secondary/20", title: "In-call activities", desc: "Play chess together on a video call — vent, yap, and more activities when you match." },
+                { icon: MessageCircle, color: "text-sky-400 bg-sky-400/10 border-sky-400/20", title: "Instant chat", desc: "Real-time messaging plus conversation cues when you need a nudge to break the ice." },
                 { icon: Phone, color: "text-emerald-400 bg-emerald-400/10 border-emerald-400/20", title: "Voice calls", desc: "Jump into audio to network quickly with people who share your niche." },
                 { icon: Video, color: "text-violet-400 bg-violet-400/10 border-violet-400/20", title: "Video calls", desc: "Use face-to-face calls for stronger chemistry and deeper conversations." },
               ].map(({ icon: Icon, color, title, desc }) => (
@@ -584,8 +628,8 @@ function LandingPageInner() {
                     <Icon className="size-4" />
                   </div>
                   <div>
-                    <p className="text-sm font-semibold text-white">{title}</p>
-                    <p className="text-xs text-white/50 mt-0.5 leading-relaxed">{desc}</p>
+                    <p className="text-sm font-semibold landing-card-title">{title}</p>
+                    <p className="text-xs landing-muted mt-0.5 leading-relaxed">{desc}</p>
                   </div>
                 </motion.div>
               ))}
@@ -595,19 +639,19 @@ function LandingPageInner() {
           {/* interactive tab mockup */}
           <RevealSection className="order-2 lg:order-none flex justify-center lg:justify-end">
             <motion.div variants={fadeUp} className="relative w-full max-w-xs sm:max-w-sm">
-              <Card className="border-white/10 bg-card overflow-hidden shadow-2xl shadow-black/50 p-0 gap-0">
+              <Card className="border-border bg-card overflow-hidden shadow-2xl shadow-foreground/10 p-0 gap-0">
                 {/* header */}
-                <div className="flex items-center gap-3 px-4 py-3.5 border-b border-white/6">
+                <div className="flex items-center gap-3 px-4 py-3.5 border-b border-border">
                   <div className="size-8 rounded-full bg-linear-to-br from-violet-500 to-purple-600 flex items-center justify-center text-xs font-bold text-white">S</div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-xs font-semibold text-white leading-none">Sofia L.</p>
-                    <p className="text-[10px] text-white/40 mt-0.5">Just matched · Software Engineering · Music</p>
+                    <p className="text-xs font-semibold landing-card-title leading-none">Sofia L.</p>
+                    <p className="text-[10px] landing-muted mt-0.5">Just matched · Software Engineering · Music</p>
                   </div>
                   <div className="size-2 rounded-full bg-emerald-400" />
                 </div>
 
                 {/* tab switcher */}
-                <div className="flex border-b border-white/6">
+                <div className="flex border-b border-border">
                   {COMM_TABS.map(({ id, label, icon: Icon }) => (
                     <button
                       key={id}
@@ -615,8 +659,8 @@ function LandingPageInner() {
                       className={cn(
                         "flex-1 flex items-center justify-center gap-1.5 py-2.5 text-[10px] font-semibold transition-all",
                         activeTab === id
-                          ? "text-[oklch(88%_0.18_105)] border-b-2 border-[oklch(88%_0.18_105)] bg-[oklch(88%_0.18_105/0.05)]"
-                          : "text-white/35 hover:text-white/55 border-b-2 border-transparent"
+                          ? "landing-tab-active border-b-2"
+                          : "landing-muted hover:text-foreground/70 border-b-2 border-transparent"
                       )}
                     >
                       <Icon className="size-3" />
@@ -657,15 +701,15 @@ function LandingPageInner() {
           {/* copy first on mobile */}
           <RevealSection className="order-1 lg:order-1">
             <motion.div variants={fadeUp} className="mb-3 sm:mb-5">
-              <Badge variant="outline" className="border-[oklch(88%_0.18_105/0.3)] bg-[oklch(88%_0.18_105/0.08)] text-[oklch(88%_0.18_105/0.8)] rounded-full tracking-widest uppercase text-[10px]">
+              <Badge variant="outline" className="landing-section-badge rounded-full tracking-widest uppercase text-[10px]">
                 Spaces that feel alive
               </Badge>
             </motion.div>
             <motion.h2 variants={fadeUp} className="text-[1.75rem] sm:text-4xl lg:text-5xl font-black tracking-tight leading-tight mb-4 sm:mb-6">
               Discuss your niche.<br />
-              <span className="bg-linear-to-r from-[oklch(88%_0.18_105)] via-[oklch(94%_0.16_105)] to-[oklch(82%_0.18_106)] bg-clip-text text-transparent">Build your network in spaces.</span>
+              <span className="landing-gold-gradient">Build your network in spaces.</span>
             </motion.h2>
-            <motion.p variants={fadeUp} className="text-sm sm:text-base text-white/55 leading-relaxed max-w-md mb-5 sm:mb-8">
+            <motion.p variants={fadeUp} className="text-sm sm:text-base landing-muted leading-relaxed max-w-md mb-5 sm:mb-8">
               Spaces are group rooms built around shared interests. Join rooms like Startup Founder Night Talk,
               Jam Session for Musicians, chess rooms, Watch Together, draw together, study together, debate rooms,
               truth or dare, music rooms, and live polls, then move to 1:1 when you click.
@@ -674,14 +718,14 @@ function LandingPageInner() {
               {[
                 { icon: Users, text: "Public and private spaces for open communities or close trusted groups" },
                 { icon: MessageCircle, text: "Move from space chat to 1:1 when you find someone you click with" },
-                { icon: Lightbulb, text: "Get conversation cues about that person so starting a conversation feels effortless. Coming soon." },
+                { icon: Lightbulb, text: "Conversation cues in 1:1 calls — shared activities, interests, and gentle openers when you match." },
                 { icon: Wind, text: "Invite your friend into the conversation and grow your network naturally" },
               ].map(({ icon: Icon, text }) => (
                 <motion.div key={text} variants={cardIn} className="flex items-start gap-3">
-                  <div className="size-7 rounded-lg bg-white/5 border border-white/8 flex items-center justify-center shrink-0 mt-0.5">
-                    <Icon className="size-3.5 text-[oklch(88%_0.18_105/0.8)]" />
+                  <div className="size-7 rounded-lg bg-muted/80 border border-border flex items-center justify-center shrink-0 mt-0.5">
+                    <Icon className="size-3.5 landing-gold-text" />
                   </div>
-                  <p className="text-sm text-white/55 leading-relaxed">{text}</p>
+                  <p className="text-sm landing-muted leading-relaxed">{text}</p>
                 </motion.div>
               ))}
             </motion.div>
@@ -690,26 +734,26 @@ function LandingPageInner() {
           {/* visual below copy on mobile */}
           <RevealSection className="order-2 lg:order-2 flex justify-center">
             <motion.div variants={fadeUp} className="relative w-full max-w-xs sm:max-w-sm">
-              <Card className="border-white/10 bg-card overflow-hidden shadow-2xl shadow-black/40 p-0 gap-0">
-                <div className="flex items-center gap-3 px-4 py-3.5 border-b border-white/6">
+              <Card className="border-border bg-card overflow-hidden shadow-2xl shadow-foreground/10 p-0 gap-0">
+                <div className="flex items-center gap-3 px-4 py-3.5 border-b border-border">
                   <div className="size-8 rounded-full bg-linear-to-br from-violet-500 to-purple-600 flex items-center justify-center text-xs font-bold text-white">L</div>
                   <div>
-                    <p className="text-xs font-semibold text-white leading-none">Leo B.</p>
-                    <p className="text-[10px] text-white/40 mt-0.5">Group room · Startup Founder Night Talk</p>
+                    <p className="text-xs font-semibold landing-card-title leading-none">Leo B.</p>
+                    <p className="text-[10px] landing-muted mt-0.5">Group room · Startup Founder Night Talk</p>
                   </div>
                   <div className="ml-auto size-2 rounded-full bg-emerald-400" />
                 </div>
                 <div className="px-4 py-4 flex flex-col gap-2.5 min-h-[130px]">
                   <div className="self-end bg-primary text-primary-foreground text-xs font-medium px-3 py-2 rounded-2xl rounded-br-sm max-w-[76%]">We are hosting a networking room now 👋</div>
-                  <div className="self-start bg-white/6 border border-white/8 text-white/80 text-xs px-3 py-2 rounded-2xl rounded-bl-sm max-w-[76%]">Nice, invite me. I can bring one friend too.</div>
+                  <div className="self-start bg-muted border border-border landing-muted text-xs px-3 py-2 rounded-2xl rounded-bl-sm max-w-[76%]">Nice, invite me. I can bring one friend too.</div>
                 </div>
-                <Separator className="bg-white/6" />
+                <Separator className="bg-muted" />
                 <div className="px-4 pb-3 pt-3">
                   <div className="flex items-center gap-1.5 mb-2.5">
                     <div className="size-4 rounded-md bg-[oklch(88%_0.18_105/0.12)] flex items-center justify-center">
-                      <Lightbulb className="size-2.5 text-[oklch(88%_0.18_105)]" />
+                      <Lightbulb className="size-2.5 landing-gold-text" />
                     </div>
-                    <p className="text-[10px] text-[oklch(88%_0.18_105/0.7)] font-semibold tracking-wide uppercase">Group room examples</p>
+                    <p className="text-[10px] landing-gold-text-muted font-semibold tracking-wide uppercase">Group room examples</p>
                   </div>
                   <div className="flex flex-wrap gap-1.5">
                     {SPACE_ACTIVITY_CHIPS.map((chip, i) => {
@@ -717,8 +761,8 @@ function LandingPageInner() {
                       const chipClass = cn(
                         "text-[10px] font-medium px-2.5 py-1 rounded-full border transition-all cursor-default",
                         chip.comingSoon
-                          ? "border-white/10 bg-white/4 text-white/40"
-                          : "border-[oklch(88%_0.18_105/0.25)] bg-[oklch(88%_0.18_105/0.07)] text-white/70 hover:border-[oklch(88%_0.18_105/0.5)] hover:text-white",
+                          ? "border-border bg-muted/60 landing-muted"
+                          : "border-[oklch(88%_0.18_105/0.25)] bg-[oklch(88%_0.18_105/0.07)] landing-muted hover:border-[oklch(88%_0.18_105/0.5)] hover:text-foreground",
                       );
                       return lite ? (
                         <button key={chip.label} type="button" className={chipClass}>
@@ -738,9 +782,9 @@ function LandingPageInner() {
                     })}
                   </div>
                 </div>
-                <div className="mx-4 mb-4 flex items-center gap-2 rounded-xl bg-white/5 border border-white/8 px-3 py-2.5">
-                  <p className="text-[11px] text-white/25 flex-1">Type a message…</p>
-                  <div className="size-6 rounded-lg bg-[oklch(88%_0.18_105/0.15)] flex items-center justify-center"><Send className="size-3 text-[oklch(88%_0.18_105/0.6)]" /></div>
+                <div className="mx-4 mb-4 flex items-center gap-2 rounded-xl bg-muted/80 border border-border px-3 py-2.5">
+                  <p className="text-[11px] landing-muted flex-1">Type a message…</p>
+                  <div className="size-6 rounded-lg bg-[oklch(88%_0.18_105/0.15)] flex items-center justify-center"><Send className="size-3 landing-gold-text-muted" /></div>
                 </div>
               </Card>
               <div className="absolute -bottom-2 sm:-bottom-6 left-1/2 -translate-x-1/2 w-3/4 h-10 bg-[oklch(88%_0.18_105/0.1)] blur-lg md:blur-2xl rounded-full" />
@@ -753,11 +797,11 @@ function LandingPageInner() {
       <section className="relative py-12 sm:py-20 lg:py-24 px-5 sm:px-6 bg-background">
         <RevealSection className="mx-auto max-w-7xl">
           <motion.div variants={fadeUp} className="text-center mb-8 sm:mb-12">
-            <Badge variant="outline" className="border-[oklch(88%_0.18_105/0.3)] bg-[oklch(88%_0.18_105/0.08)] text-[oklch(88%_0.18_105/0.85)] rounded-full mb-3 sm:mb-5 tracking-widest uppercase text-[10px]">
+            <Badge variant="outline" className="landing-section-badge rounded-full mb-3 sm:mb-5 tracking-widest uppercase text-[10px]">
               Live with your connections
             </Badge>
             <h2 className="text-[1.75rem] sm:text-4xl lg:text-5xl font-black tracking-tight leading-tight">Go live from your matches and spaces</h2>
-            <p className="mt-3 sm:mt-4 text-sm sm:text-base text-white/50 max-w-2xl mx-auto">
+            <p className="mt-3 sm:mt-4 text-sm sm:text-base landing-muted max-w-2xl mx-auto">
               Turn any active match or space conversation into a live session in one tap, then stream out to platforms like YouTube from the same flow. Coming soon.
             </p>
           </motion.div>
@@ -766,7 +810,7 @@ function LandingPageInner() {
             <Button
               size="sm"
               variant="outline"
-              className="rounded-full border-white/12 bg-white/6 text-white/60 px-5 cursor-default"
+              className="rounded-full border-border bg-muted landing-muted px-5 cursor-default"
               disabled
             >
               Start live session · Coming soon
@@ -774,48 +818,48 @@ function LandingPageInner() {
             <Button
               size="sm"
               variant="outline"
-              className="rounded-full border-white/12 bg-white/6 text-white/80 hover:bg-white/10 hover:text-white px-5"
+              className="rounded-full border-border bg-muted landing-muted hover:bg-muted hover:text-foreground px-5"
               asChild
             >
               <Link href={isLoggedIn ? "/home" : "/login"}>Open your connections</Link>
             </Button>
           </motion.div>
-          <motion.p variants={fadeUp} className="text-center text-xs text-white/45 mb-4 sm:mb-6">
+          <motion.p variants={fadeUp} className="text-center text-xs landing-muted mb-4 sm:mb-6">
             Live room size stays intimate: up to 15 people per room, with multi-platform streaming to YouTube and more.
           </motion.p>
 
           <div className="grid md:grid-cols-2 xl:grid-cols-4 gap-3 sm:gap-5">
             {LIVE_STREAM_EXAMPLES.map((stream) => (
               <motion.div key={stream.title} variants={cardIn}>
-                <Card className="border-white/8 bg-card shadow-xl p-0 gap-0">
+                <Card className="border-border bg-card shadow-xl p-0 gap-0">
                   <CardContent className="p-4 sm:p-6 flex flex-col gap-4 sm:gap-5">
                     <div className="flex items-start justify-between gap-2">
                       <div>
-                        <p className="text-base font-bold text-white leading-tight">{stream.title}</p>
-                        <p className="text-xs text-white/55 mt-1">{stream.topic}</p>
+                        <p className="text-base font-bold landing-card-title leading-tight">{stream.title}</p>
+                        <p className="text-xs landing-muted mt-1">{stream.topic}</p>
                       </div>
-                      <div className="inline-flex items-center gap-1 rounded-full border border-white/10 bg-white/6 px-2 py-1 text-[10px] font-semibold text-white/55">
+                      <div className="inline-flex items-center gap-1 rounded-full border border-border bg-muted px-2 py-1 text-[10px] font-semibold landing-muted">
                         Example
                       </div>
                     </div>
 
                     <div className="flex items-center gap-2.5 min-w-0">
-                      <div className="size-8 rounded-full bg-[oklch(88%_0.18_105/0.18)] border border-[oklch(88%_0.18_105/0.26)] flex items-center justify-center text-xs font-bold text-[oklch(88%_0.18_105)] shrink-0">
+                      <div className="size-8 rounded-full landing-gold-icon-box border flex items-center justify-center text-xs font-bold landing-gold-text shrink-0">
                         {stream.category.slice(0, 1)}
                       </div>
-                      <p className="text-[11px] text-white/45 truncate">{stream.category}</p>
+                      <p className="text-[11px] landing-muted truncate">{stream.category}</p>
                     </div>
 
                     <div className="flex items-center justify-between">
-                      <div className="inline-flex items-center gap-1.5 rounded-full border border-white/8 bg-white/4 px-2.5 py-1 text-[10px] text-white/55">
+                      <div className="inline-flex items-center gap-1.5 rounded-full border border-border bg-muted/60 px-2.5 py-1 text-[10px] landing-muted">
                         <Users className="size-3" />
                         Room idea
                       </div>
-                      <Button size="sm" variant="outline" className="rounded-full border-white/12 bg-white/6 text-white/50 px-4 cursor-default" disabled>
+                      <Button size="sm" variant="outline" className="rounded-full border-border bg-muted landing-muted px-4 cursor-default" disabled>
                         Go live · Soon
                       </Button>
                     </div>
-                    <p className="text-[10px] text-white/45">
+                    <p className="text-[10px] landing-muted">
                       Planned streaming: {stream.platforms.join(" · ")}
                     </p>
                   </CardContent>
@@ -830,7 +874,7 @@ function LandingPageInner() {
       <section className="relative py-12 sm:py-20 lg:py-24 px-5 sm:px-6 bg-background" id="how-it-works">
         <RevealSection className="mx-auto max-w-5xl">
           <motion.div variants={fadeUp} className="text-center mb-8 sm:mb-12 lg:mb-16">
-            <Badge variant="outline" className="border-[oklch(88%_0.18_105/0.3)] bg-[oklch(88%_0.18_105/0.08)] text-[oklch(88%_0.18_105/0.8)] rounded-full mb-3 sm:mb-5 tracking-widest uppercase text-[10px]">
+            <Badge variant="outline" className="landing-section-badge rounded-full mb-3 sm:mb-5 tracking-widest uppercase text-[10px]">
               The process
             </Badge>
             <h2 className="text-[1.75rem] sm:text-4xl lg:text-5xl font-black tracking-tight leading-tight">Three steps to<br />finding your tribe</h2>
@@ -841,14 +885,14 @@ function LandingPageInner() {
             {STEPS.map((step, i) => (
               <motion.div key={step.n} variants={cardIn} className="relative flex flex-col items-center text-center gap-4 sm:gap-5">
                 <div className="relative">
-                  <div className="size-16 sm:size-20 rounded-full border border-[oklch(88%_0.18_105/0.2)] bg-card flex items-center justify-center">
-                    <span className="text-xl sm:text-2xl font-black text-[oklch(88%_0.18_105)]">{step.n}</span>
+                  <div className="size-16 sm:size-20 rounded-full border landing-step-ring-border bg-card flex items-center justify-center">
+                    <span className="text-xl sm:text-2xl font-black landing-gold-text">{step.n}</span>
                   </div>
                   {!lite && <StepRippleRings stepIndex={i} />}
                 </div>
                 <div>
-                  <h3 className="text-lg font-bold text-white mb-2">{step.title}</h3>
-                  <p className="text-sm text-white/50 leading-relaxed">{step.desc}</p>
+                  <h3 className="text-lg font-bold landing-card-title mb-2">{step.title}</h3>
+                  <p className="text-sm landing-muted leading-relaxed">{step.desc}</p>
                 </div>
               </motion.div>
             ))}
@@ -857,11 +901,11 @@ function LandingPageInner() {
       </section>
 
       {/* ══════════════════ TRUST ══════════════════ */}
-      <div className="py-8 sm:py-12 px-5 sm:px-6 border-y border-white/5 bg-background">
+      <div className="py-8 sm:py-12 px-5 sm:px-6 border-y border-border bg-background">
         <RevealSection className="mx-auto max-w-4xl flex flex-wrap items-center justify-center gap-x-8 sm:gap-x-12 gap-y-4 sm:gap-y-5">
           {TRUST.map(({ icon: Icon, label }) => (
-            <motion.div key={label} variants={fadeIn} className="flex items-center gap-2 text-sm font-medium text-white/30">
-              <Icon className="size-4 text-[oklch(88%_0.18_105/0.5)]" />
+            <motion.div key={label} variants={fadeIn} className="flex items-center gap-2 text-sm font-medium landing-muted">
+              <Icon className="size-4 landing-gold-text-muted" />
               {label}
             </motion.div>
           ))}
@@ -882,21 +926,21 @@ function LandingPageInner() {
 
         <RevealSection className="relative mx-auto max-w-3xl text-center">
           <motion.div variants={fadeUp} className="mb-5 sm:mb-8">
-            <Badge variant="outline" className="border-white/12 bg-white/5 text-white/70 md:backdrop-blur-sm rounded-full px-4 py-1.5 text-xs gap-2">
+            <Badge variant="outline" className="border-border bg-muted/80 landing-muted md:backdrop-blur-sm rounded-full px-4 py-1.5 text-xs gap-2">
               {EARLY_RELEASE.badge}
             </Badge>
           </motion.div>
 
           <motion.h2 variants={fadeUp} className="text-[1.85rem] sm:text-5xl lg:text-7xl font-black tracking-tight leading-tight mb-4 sm:mb-6">
             Your people.<br />
-            <span className="bg-linear-to-r from-[oklch(88%_0.18_105)] via-[oklch(94%_0.16_105)] to-[oklch(82%_0.18_106)] bg-clip-text text-transparent">
+            <span className="landing-gold-gradient">
               Your spaces.
             </span>
           </motion.h2>
 
-          <motion.p variants={fadeUp} className="text-sm sm:text-lg text-white/50 mb-8 sm:mb-12 max-w-xl mx-auto">
-            Join spaces around what you care about, match with people who truly align, and connect in real time from
-            nearby to global communities.
+          <motion.p variants={fadeUp} className="text-sm sm:text-lg landing-muted mb-8 sm:mb-12 max-w-xl mx-auto">
+            Match for chess, vent, yap, or any activity — join spaces, find your people, and connect in real time
+            from nearby to global communities.
           </motion.p>
 
           <motion.div variants={fadeUp} className="flex flex-col items-center gap-3 sm:gap-4">
@@ -914,26 +958,26 @@ function LandingPageInner() {
             </motion.div>
           </motion.div>
 
-          <motion.p variants={fadeUp} className="mt-6 text-xs text-white/25">
+          <motion.p variants={fadeUp} className="mt-6 text-xs landing-muted">
             No credit card. No algorithm that sells you ads. Just people.
           </motion.p>
         </RevealSection>
       </section>
 
       {/* ══════════════════ FOOTER ══════════════════ */}
-      <footer className="border-t border-white/5 bg-background px-5 sm:px-6 py-8 sm:py-12">
+      <footer className="border-t border-border bg-background px-5 sm:px-6 py-8 sm:py-12">
         <RevealSection className="mx-auto max-w-7xl flex flex-col sm:flex-row items-center justify-between gap-6">
           <motion.div variants={fadeIn}><Logo /></motion.div>
           <motion.div variants={stagger} className="flex flex-wrap justify-center gap-x-1 gap-y-1">
             {FOOTER_LINKS.map(({ label, href }) => (
               <motion.div key={href} variants={fadeIn}>
-                <Button variant="ghost" size="sm" className="text-white/35 hover:text-white/60 hover:bg-white/5 text-xs rounded-full" asChild>
+                <Button variant="ghost" size="sm" className="landing-muted hover:text-foreground hover:bg-muted text-xs rounded-full" asChild>
                   <Link href={href}>{label}</Link>
                 </Button>
               </motion.div>
             ))}
           </motion.div>
-          <motion.p variants={fadeIn} className="text-xs text-white/25">© 2026 Greetup. All rights reserved.</motion.p>
+          <motion.p variants={fadeIn} className="text-xs landing-muted">© 2026 Greetup. All rights reserved.</motion.p>
         </RevealSection>
       </footer>
     </>

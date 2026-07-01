@@ -492,8 +492,182 @@
 }
 
 .bg-dot-grid-landing {
-  background-image: radial-gradient(circle at 1px 1px, oklch(100% 0 0 / 0.055) 1px, transparent 0);
+  background-image: radial-gradient(circle at 1px 1px, var(--surface-dot-grid) 1px, transparent 0);
   background-size: 30px 30px;
+}
+
+/* Landing page — readable body copy + gold accents in light and dark themes */
+.landing-page {
+  color: var(--foreground);
+}
+
+.landing-muted {
+  color: color-mix(in oklch, var(--foreground) 72%, var(--background));
+}
+
+.landing-card-title {
+  color: var(--card-foreground);
+}
+
+.landing-card-muted {
+  color: color-mix(in oklch, var(--card-foreground) 72%, var(--card));
+}
+
+.landing-section-badge {
+  border-color: color-mix(in oklch, var(--secondary) 35%, transparent);
+  background-color: color-mix(in oklch, var(--secondary) 10%, transparent);
+  color: var(--tertiary-foreground);
+}
+
+.dark .landing-section-badge {
+  border-color: oklch(88% 0.18 105 / 0.3);
+  background-color: oklch(88% 0.18 105 / 0.08);
+  color: oklch(88% 0.18 105 / 0.85);
+}
+
+.landing-gold-text {
+  color: var(--tertiary-foreground);
+}
+
+.dark .landing-gold-text {
+  color: oklch(88% 0.18 105);
+}
+
+.landing-gold-text-muted {
+  color: color-mix(in oklch, var(--tertiary-foreground) 80%, var(--background));
+}
+
+:is(.dark *) .landing-gold-text-muted {
+  color: oklch(88% 0.18 105 / 0.65);
+}
+
+.landing-gold-icon-box {
+  border-color: color-mix(in oklch, var(--secondary) 28%, transparent);
+  background-color: color-mix(in oklch, var(--secondary) 12%, transparent);
+}
+
+.dark .landing-gold-icon-box {
+  border-color: oklch(88% 0.18 105 / 0.2);
+  background-color: oklch(88% 0.18 105 / 0.1);
+}
+
+.landing-gold-surface {
+  border-color: color-mix(in oklch, var(--secondary) 30%, transparent);
+  background-color: color-mix(in oklch, var(--secondary) 8%, transparent);
+}
+
+.dark .landing-gold-surface {
+  border-color: oklch(88% 0.18 105 / 0.24);
+  background-color: oklch(88% 0.18 105 / 0.06);
+}
+
+.landing-gold-chip {
+  border-color: color-mix(in oklch, var(--secondary) 32%, transparent);
+  background-color: color-mix(in oklch, var(--secondary) 10%, transparent);
+  color: color-mix(in oklch, var(--card-foreground) 72%, var(--card));
+}
+
+:is(.dark *) .landing-gold-chip {
+  border-color: oklch(88% 0.18 105 / 0.25);
+  background-color: oklch(88% 0.18 105 / 0.07);
+  color: oklch(88% 0.18 105 / 0.75);
+}
+
+.landing-gold-chip:hover {
+  border-color: color-mix(in oklch, var(--secondary) 55%, transparent);
+  color: var(--foreground);
+}
+
+.dark .landing-gold-chip:hover {
+  border-color: oklch(88% 0.18 105 / 0.5);
+  color: oklch(100% 0 0);
+}
+
+.landing-gold-gradient {
+  background-image: linear-gradient(to right, oklch(52% 0.14 96), oklch(62% 0.16 105), oklch(46% 0.12 80));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.dark .landing-gold-gradient {
+  background-image: linear-gradient(to right, oklch(88% 0.18 105), oklch(94% 0.16 105), oklch(82% 0.18 106));
+}
+
+.landing-gold-gradient-sm {
+  background-image: linear-gradient(to right, var(--secondary), var(--primary));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.dark .landing-gold-gradient-sm {
+  background-image: linear-gradient(to right, oklch(88% 0.18 105), oklch(94% 0.16 105));
+}
+
+.landing-tab-active {
+  color: var(--tertiary-foreground);
+  border-bottom-width: 2px;
+  border-bottom-color: var(--secondary);
+  background-color: color-mix(in oklch, var(--secondary) 10%, transparent);
+}
+
+.dark .landing-tab-active {
+  color: oklch(88% 0.18 105);
+  border-bottom-color: oklch(88% 0.18 105);
+  background-color: oklch(88% 0.18 105 / 0.05);
+}
+
+.landing-status-live {
+  background-color: color-mix(in oklch, var(--secondary) 12%, transparent);
+  color: var(--tertiary-foreground);
+}
+
+.dark .landing-status-live {
+  background-color: oklch(88% 0.18 105 / 0.1);
+  color: oklch(88% 0.18 105 / 0.95);
+}
+
+.landing-cue-surface {
+  border-color: color-mix(in oklch, var(--secondary) 28%, transparent);
+  background-color: color-mix(in oklch, var(--secondary) 10%, transparent);
+}
+
+.dark .landing-cue-surface {
+  border-color: oklch(88% 0.18 105 / 0.25);
+  background-color: oklch(88% 0.18 105 / 0.08);
+}
+
+.landing-step-ring-border {
+  border-color: color-mix(in oklch, var(--secondary) 35%, transparent);
+}
+
+.dark .landing-step-ring-border {
+  border-color: oklch(88% 0.18 105 / 0.28);
+}
+
+.landing-mockup-panel {
+  background-image: linear-gradient(to bottom right, oklch(55% 0.14 285 / 0.12), oklch(48% 0.02 285 / 0.18));
+}
+
+.dark .landing-mockup-panel {
+  background-image: linear-gradient(to bottom right, oklch(36% 0.14 285 / 0.3), oklch(22% 0.02 285 / 0.6));
+}
+
+.landing-gold-icon-bg {
+  background-color: color-mix(in oklch, var(--secondary) 18%, transparent);
+}
+
+.dark .landing-gold-icon-bg {
+  background-color: oklch(88% 0.18 105 / 0.18);
+}
+
+.landing-gold-dot {
+  background-color: var(--secondary);
+}
+
+.dark .landing-gold-dot {
+  background-color: oklch(88% 0.18 105);
 }
 
 .bg-dot-grid-marketing {
