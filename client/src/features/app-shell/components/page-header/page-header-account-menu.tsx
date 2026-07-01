@@ -13,6 +13,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
+import { ProfilePeerAvatar } from "@/lib/ui/profile-peer-avatar";
 
 import { usePageHeaderAccount } from "../../hooks/use-page-header-account";
 
@@ -34,8 +35,12 @@ function PageHeaderAccountMenuInner({ align = "end", className }: PageHeaderAcco
           aria-label="Open account menu"
           className={cn("shrink-0 overflow-hidden rounded-xl p-0", className)}
         >
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={account.avatarSrc} alt="" className="size-full object-cover" />
+          <ProfilePeerAvatar
+            image={account.avatarImage}
+            label={account.displayName || "My Account"}
+            seed={account.avatarSeed}
+            className="size-full"
+          />
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align={align} sideOffset={8} className="w-56">

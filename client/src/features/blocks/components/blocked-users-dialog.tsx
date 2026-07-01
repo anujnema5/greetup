@@ -12,7 +12,7 @@ import {
   DialogDescription,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { getProfileImageUrl } from "@/lib/ui/profile-image";
+import { ProfilePeerAvatar } from "@/lib/ui/profile-peer-avatar";
 import { getApiErrorMessage } from "@/lib/api/fetch-client";
 
 import { useUnblockUser } from "../api/blocks.mutations";
@@ -41,14 +41,12 @@ function BlockedUserRow({
 
   return (
     <div className="flex items-center gap-3 rounded-xl border border-border bg-card px-3 py-2.5">
-      <div className="relative h-10 w-10 shrink-0 overflow-hidden rounded-full bg-muted/30">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
-          src={getProfileImageUrl(item.image)}
-          alt=""
-          className="h-full w-full object-cover"
-        />
-      </div>
+      <ProfilePeerAvatar
+        image={item.image}
+        label={label}
+        seed={item.userId}
+        className="h-10 w-10 shrink-0 rounded-full"
+      />
       <div className="min-w-0 flex-1">
         <p className="truncate text-sm font-semibold text-foreground">{label}</p>
         <p className="truncate text-xs text-muted-foreground">@{item.username}</p>

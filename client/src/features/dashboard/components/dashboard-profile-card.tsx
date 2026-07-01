@@ -10,7 +10,7 @@ import { formatProfileHandle } from "@/features/app-shell/lib/page-header-accoun
 import { useClientMounted } from "@/features/app-shell/hooks/use-client-mounted";
 import { usePageHeaderAccount } from "@/features/app-shell/hooks/use-page-header-account";
 import { useMyProfile } from "@/features/profile-setup/api";
-import { getProfileImageUrl } from "@/lib/ui/profile-image";
+import { ProfilePeerAvatar } from "@/lib/ui/profile-peer-avatar";
 import { cn } from "@/lib/utils";
 
 import { useDashboardInsights } from "../hooks/use-dashboard-insights";
@@ -26,7 +26,6 @@ function DashboardProfileCardInner() {
   const handle = mounted ? formatProfileHandle(profile?.username) : null;
   const displayName = mounted ? account.displayName || "Your profile" : "Your profile";
   const profilePhoto = mounted ? profile?.photos?.[0]?.url?.trim() : undefined;
-  const avatarSrc = profilePhoto ? getProfileImageUrl(profilePhoto) : account.avatarSrc;
   const completionRaw = heroStats.profileCompletion;
   const completion =
     completionRaw != null && Number.isFinite(completionRaw)
@@ -37,11 +36,11 @@ function DashboardProfileCardInner() {
   return (
     <div>
       <Link href="/profile" className="group flex items-center gap-3">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
-          src={avatarSrc}
-          alt=""
-          className="size-12 shrink-0 rounded-full object-cover ring-2 ring-border transition-opacity group-hover:opacity-90"
+        <ProfilePeerAvatar
+          image={profilePhoto ?? account.avatarImage}
+          label={displayName}
+          seed={account.avatarSeed}
+          className="size-12 shrink-0 rounded-full ring-2 ring-border transition-opacity group-hover:opacity-90"
         />
         <div className="min-w-0 flex-1">
           <p className="truncate text-sm font-semibold text-foreground">{displayName}</p>

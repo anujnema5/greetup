@@ -9,7 +9,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { getProfileImageUrl } from "@/lib/ui/profile-image";
+import { ProfilePeerAvatar } from "@/lib/ui/profile-peer-avatar";
 
 type WithdrawRequestDialogProps = {
   open: boolean;
@@ -41,10 +41,12 @@ export function WithdrawRequestDialog({
         </DialogHeader>
 
         <div className="flex items-center gap-3 rounded-xl border border-border bg-card px-3 py-2">
-          <div className="relative h-10 w-10 shrink-0 overflow-hidden rounded-full bg-muted/30">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={getProfileImageUrl(peer.image)} alt="" className="h-full w-full object-cover" />
-          </div>
+          <ProfilePeerAvatar
+            image={peer.image}
+            label={peer.name}
+            seed={peer.username ?? peer.name}
+            className="h-10 w-10 shrink-0 rounded-full"
+          />
           <div className="min-w-0">
             <p className="truncate text-sm font-semibold text-foreground">{peer.name}</p>
             {peer.username ? (

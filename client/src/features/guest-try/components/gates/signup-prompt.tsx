@@ -50,7 +50,7 @@ export function SignupPrompt({
         asChild
         variant="outline"
         size="default"
-        className="w-full border-white/10 bg-transparent hover:bg-white/5 sm:flex-1"
+        className="w-full sm:flex-1"
       >
         <Link href={TRY_LOGIN_ROUTE}>{GUEST_TRIAL_SIGNUP_GATE.secondaryCta}</Link>
       </Button>
@@ -70,7 +70,7 @@ export function SignupPrompt({
           {GUEST_TRIAL_SIGNUP_GATE.benefits.map((benefit) => (
             <li
               key={benefit}
-              className="flex items-start gap-3.5 rounded-xl border border-white/5 bg-white/[0.02] px-4 py-3.5 text-left text-sm leading-relaxed text-white/72 sm:text-[0.9375rem] lg:border-white/6 lg:bg-white/[0.03] lg:px-5 lg:py-4"
+              className="flex items-start gap-3.5 rounded-xl border border-border bg-muted/30 px-4 py-3.5 text-left text-sm leading-relaxed text-foreground sm:text-[0.9375rem] lg:px-5 lg:py-4"
             >
               <span className="mt-0.5 flex size-6 shrink-0 items-center justify-center rounded-full bg-primary/12">
                 <Check className="size-3.5 text-primary" strokeWidth={2.5} aria-hidden />

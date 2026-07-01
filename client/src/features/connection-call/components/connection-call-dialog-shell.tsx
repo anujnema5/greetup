@@ -9,7 +9,7 @@ import {
   DialogDescription,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { getProfileImageUrl } from '@/lib/ui/profile-image';
+import { ProfilePeerAvatar } from '@/lib/ui/profile-peer-avatar';
 import { cn } from '@/lib/utils';
 
 import type { ConnectionCallMode } from '../types/connection-call.types';
@@ -93,19 +93,18 @@ export function callModeHint(mode: ConnectionCallMode): string {
 type CallPeerRowProps = {
   displayName: string;
   image: string | null;
+  seed: string;
 };
 
-export function CallPeerRow({ displayName, image }: CallPeerRowProps) {
+export function CallPeerRow({ displayName, image, seed }: CallPeerRowProps) {
   return (
     <div className="flex items-center gap-3 rounded-xl border border-border bg-card px-3 py-2.5">
-      <div className="relative h-10 w-10 shrink-0 overflow-hidden rounded-full bg-muted/30">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
-          src={getProfileImageUrl(image)}
-          alt=""
-          className="h-full w-full object-cover"
-        />
-      </div>
+      <ProfilePeerAvatar
+        image={image}
+        label={displayName}
+        seed={seed}
+        className="h-10 w-10 shrink-0 rounded-full"
+      />
       <p className="min-w-0 flex-1 truncate text-sm font-semibold text-foreground">{displayName}</p>
     </div>
   );

@@ -42,7 +42,11 @@ export function IncomingConnectionCallDialog({
         description={callModeHint(call.mode)}
       />
 
-      <CallPeerRow displayName={call.callerDisplayName} image={call.callerImage} />
+      <CallPeerRow
+        displayName={call.callerDisplayName}
+        image={call.callerImage}
+        seed={call.callerUserId}
+      />
 
       <ConnectionCallDialogActions>
         <Button

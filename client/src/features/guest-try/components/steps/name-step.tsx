@@ -118,7 +118,7 @@ export function NameStep({ initialDisplayName, back, onForward }: NameStepProps)
                     placeholder={GUEST_TRIAL_NAME.fieldPlaceholder}
                     maxLength={30}
                     disabled={isPending}
-                    className="h-11 rounded-xl border-white/10 bg-white/[0.03] text-base"
+                    className="h-11 rounded-xl text-base"
                   />
                 </FormControl>
                 <FormMessage />

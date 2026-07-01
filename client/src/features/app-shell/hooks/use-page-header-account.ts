@@ -5,7 +5,6 @@ import { useRouter } from "next/navigation";
 
 import { useMyProfile } from "@/features/profile-setup/api";
 import { signOut, useSession } from "@/lib/auth-client";
-import { getProfileImageUrl } from "@/lib/ui/profile-image";
 
 import { useClientMounted } from "./use-client-mounted";
 import {
@@ -24,7 +23,8 @@ export function usePageHeaderAccount(): PageHeaderAccountState {
   const sessionUser = session?.user as PageHeaderSessionUser | undefined;
   const profileDisplayName = myProfileData?.displayName?.trim() || "";
   const displayName = resolvePageHeaderDisplayName(profileDisplayName, sessionUser);
-  const avatarSrc = getProfileImageUrl(mounted ? (sessionUser?.image ?? null) : null);
+  const avatarImage = mounted ? (sessionUser?.image?.trim() || null) : null;
+  const avatarSeed = sessionUser?.id ?? displayName;
   const accountSubtitle = resolvePageHeaderAccountSubtitle(sessionUser);
 
   const onGoToProfile = useCallback(() => {
@@ -49,7 +49,8 @@ export function usePageHeaderAccount(): PageHeaderAccountState {
   return {
     displayName,
     accountSubtitle,
-    avatarSrc,
+    avatarImage,
+    avatarSeed,
     isSigningOut,
     onGoToProfile,
     onGoToSettings,

@@ -35,12 +35,12 @@ function TryStepProgress({
   className?: string;
 }) {
   return (
-    <div className={cn("h-1.5 overflow-hidden rounded-full bg-white/8", className)}>
+    <div className={cn("h-1.5 overflow-hidden rounded-full bg-muted", className)}>
       <ProgressBar
         value={activeIndex + 1}
         max={STEPS.length}
         aria-label="Setup progress"
-        className="h-1.5 [&::-webkit-progress-bar]:bg-white/8"
+        className="h-1.5 [&::-webkit-progress-bar]:bg-muted"
       />
     </div>
   );
@@ -105,7 +105,7 @@ export function TryStepper({
                     "flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-[11px] font-semibold",
                     isCurrent && "bg-primary text-primary-foreground",
                     isComplete && !isCurrent && "bg-primary/15 text-tertiary-foreground",
-                    !isCurrent && !isComplete && "bg-white/6 text-muted-foreground",
+                    !isCurrent && !isComplete && "bg-muted text-muted-foreground",
                   )}
                 >
                   {isComplete ? <Check className="size-4" aria-hidden /> : index + 1}
@@ -134,7 +134,7 @@ export function TryStepper({
                     aria-label={`Go to ${step.label}`}
                     className={cn(
                       "flex w-full items-center gap-2.5 rounded-lg border px-3 py-2 text-left transition-colors",
-                      "border-white/6 bg-white/[0.02] hover:border-primary/25 hover:bg-primary/5",
+                      "border-border bg-muted/30 hover:border-primary/25 hover:bg-primary/5",
                       "cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
                     )}
                   >
@@ -145,7 +145,7 @@ export function TryStepper({
                     className={cn(
                       "flex items-center gap-2.5 rounded-lg border px-3 py-2 transition-colors",
                       isCurrent && "border-primary/30 bg-primary/8",
-                      isComplete && !isCurrent && "border-white/6 bg-white/[0.02]",
+                      isComplete && !isCurrent && "border-border bg-muted/30",
                       !isCurrent && !isComplete && "border-transparent bg-transparent",
                     )}
                   >
@@ -185,7 +185,7 @@ export function TryStepper({
                   aria-label={`Go to ${step.label}`}
                   className={cn(
                     "w-full truncate rounded-md px-1 py-1 text-center text-xs font-medium transition-colors sm:text-sm",
-                    "text-muted-foreground hover:bg-white/6 hover:text-foreground",
+                    "text-muted-foreground hover:bg-muted hover:text-foreground",
                     "cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
                   )}
                 >
