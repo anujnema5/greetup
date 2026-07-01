@@ -38,31 +38,24 @@ function formatProfileBlock(label: string, profile: ProfileSnapshotContext): str
 }
 
 function buildConversationCuesPrompt(
-  me: ProfileSnapshotContext,
-  peer: ProfileSnapshotContext,
-  alreadyShownCueIds: string[],
+  profileA: ProfileSnapshotContext,
+  profileB: ProfileSnapshotContext,
 ): string {
-  const shown =
-    alreadyShownCueIds.length > 0 ? alreadyShownCueIds.join(", ") : "none";
-
   return `You generate short in-call conversation cues for a 1:1 video chat on a social app.
-The viewer (READER) is already connected with the peer (PEER). Your cues help them start or continue conversation naturally.
+Both participants are already connected. Your cues help either person start or continue conversation naturally.
 
-${formatProfileBlock("PEER", peer)}
+${formatProfileBlock("PARTICIPANT_A", profileA)}
 
-${formatProfileBlock("READER", me)}
-
-ALREADY SHOWN CUE IDS (do not repeat these ids or near-duplicate wording):
-${shown}
+${formatProfileBlock("PARTICIPANT_B", profileB)}
 
 TASK:
 Return up to ${MAX_CUES_REQUESTED} cues as JSON. Rank by usefulness for breaking awkward silence.
-Prioritize real overlaps from the data — especially shared session activities, shared interests, matching mood, or peer-only session activities.
+Prioritize real overlaps from the data — especially shared session activities, shared interests, matching mood, or one-sided session activities.
 
 CUE TYPES (set "kind" accordingly):
 - shared_session_activity — both picked the same session activity (e.g. chess, vent)
 - shared_session_activity_detail — same activity AND same detail (e.g. both practice Spanish)
-- peer_session_activity — only PEER picked a session activity
+- peer_session_activity — only ONE participant picked a session activity (not shared)
 - shared_interest — same profile interest on both sides
 - shared_mood — same mood right now
 - shared_looking_for — same "looking for" style
@@ -86,13 +79,16 @@ OUTPUT FORMAT (JSON only, no markdown):
 RULES:
 - Only use facts present in the profile blocks above. Never invent hobbies, cities, or activities.
 - "id" must be unique, lowercase slug (letters, numbers, underscore, colon). Stable per overlap type.
+- For peer_session_activity ONLY, id MUST be "peer_session:a:<activity_slug>" when only PARTICIPANT_A selected it, or "peer_session:b:<activity_slug>" when only PARTICIPANT_B selected it.
+- Shared / symmetric cues use ids without the peer_session:a/b prefix (e.g. "shared_play_chess").
 - "title" max 12 words. Plain, warm, direct — like a mutual friend whispering a hint.
+- For peer_session_activity, write title/body for the OTHER participant (e.g. "They selected Vent" — shown only to the person who did not pick it).
 - "body" max 20 words or null. Actionable but not pushy. Never say "invite them" or "start chess automatically".
 - "emoji" optional — one emoji max, only when it fits. Can be null.
 - "priority" 0–100 (higher = show first). Shared session activity with detail ≈ 95–100; shared activity ≈ 85–95; peer-only activity ≈ 70; shared mood/looking for ≈ 55–65; shared interest ≈ 45–55.
 - Do not mention "profile snapshot", "data", or "AI".
 - Never use: passionate, loves, interested in, vibe check, synergy.
-- If there is no meaningful overlap, return 1–2 gentle openers grounded only in PEER's session activities or looking-for/mood.
+- If there is no meaningful overlap, return 1–2 gentle openers grounded in session activities or looking-for/mood from either participant.
 
 EXAMPLES (tone only — do not copy if data does not support):
 
@@ -112,10 +108,10 @@ BAD (never):
 Return JSON only.`;
 }
 
-export async function generateConversationCuesWithGemini(
-  me: ProfileSnapshotContext,
-  peer: ProfileSnapshotContext,
-  alreadyShownCueIds: string[],
+/** One Gemini call per direct room — cues are cached and filtered per participant at serve time. */
+export async function generateRoomConversationCuesWithGemini(
+  profileA: ProfileSnapshotContext,
+  profileB: ProfileSnapshotContext,
 ): Promise<ConversationCueDto[]> {
   try {
     const client = getGeminiClient();
@@ -127,19 +123,18 @@ export async function generateConversationCuesWithGemini(
       },
     });
 
-    const prompt = buildConversationCuesPrompt(me, peer, alreadyShownCueIds);
+    const prompt = buildConversationCuesPrompt(profileA, profileB);
     const result = await model.generateContent(prompt);
     const text = result.response.text().trim();
     if (!text) return [];
 
     const cues = parseGeminiCuesResponse(text);
-    logger.info("[generateConversationCuesWithGemini] generated", {
+    logger.info("[generateRoomConversationCuesWithGemini] generated", {
       count: cues.length,
-      alreadyShown: alreadyShownCueIds.length,
     });
     return cues;
   } catch (err) {
-    logger.warn("[generateConversationCuesWithGemini] failed", { err });
+    logger.warn("[generateRoomConversationCuesWithGemini] failed", { err });
     return [];
   }
 }

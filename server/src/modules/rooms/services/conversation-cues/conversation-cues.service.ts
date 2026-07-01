@@ -9,11 +9,19 @@ import type {
   ConversationCueDto,
   ConversationCuesResponseDto,
 } from "@/modules/rooms/services/conversation-cues/conversation-cues.types";
-import { generateConversationCuesWithGemini } from "@/modules/rooms/services/conversation-cues/generate-conversation-cues-gemini.service";
+import {
+  canonicalParticipants,
+  filterCuesForUser,
+} from "@/modules/rooms/services/conversation-cues/filter-room-cues.util";
+import { generateRoomConversationCuesWithGemini } from "@/modules/rooms/services/conversation-cues/generate-conversation-cues-gemini.service";
 import { parseProfileSnapshotContext } from "@/modules/rooms/services/conversation-cues/parse-profile-snapshot.util";
 import { ensureProfileSnapshotCached } from "@/modules/user/services/profile-snapshot-cache.service";
 
 export const CONVERSATION_CUES_MAX_PER_CALL = 2;
+
+const GENERATION_LOCK_TTL_SEC = 45;
+const GENERATION_WAIT_MS = 500;
+const GENERATION_MAX_WAIT_ATTEMPTS = 60;
 
 const EMPTY_RESPONSE: ConversationCuesResponseDto = { cue: null, hasMore: false };
 
@@ -21,8 +29,16 @@ function shownCuesRedisKey(roomId: string, userId: string): string {
   return `room:conversation-cues:shown:${roomId}:${userId}`;
 }
 
-function cueBatchRedisKey(roomId: string, userId: string): string {
-  return `room:conversation-cues:batch:${roomId}:${userId}`;
+function cueBatchRedisKey(roomId: string): string {
+  return `room:conversation-cues:batch:${roomId}`;
+}
+
+function cueBatchLockRedisKey(roomId: string): string {
+  return `room:conversation-cues:generating:${roomId}`;
+}
+
+function delay(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 async function loadRawSnapshot(userId: string): Promise<unknown | null> {
@@ -57,12 +73,9 @@ async function markCueShown(roomId: string, userId: string, cueId: string): Prom
     .exec();
 }
 
-async function readCachedCueBatch(
-  roomId: string,
-  userId: string,
-): Promise<ConversationCueDto[] | null> {
+async function readCachedCueBatch(roomId: string): Promise<ConversationCueDto[] | null> {
   const redis = getRedis();
-  const raw = await redis.get(cueBatchRedisKey(roomId, userId));
+  const raw = await redis.get(cueBatchRedisKey(roomId));
   if (!raw) return null;
   try {
     const parsed = JSON.parse(raw) as unknown;
@@ -73,45 +86,99 @@ async function readCachedCueBatch(
   }
 }
 
-async function writeCachedCueBatch(
-  roomId: string,
-  userId: string,
-  cues: ConversationCueDto[],
-): Promise<void> {
+async function writeCachedCueBatch(roomId: string, cues: ConversationCueDto[]): Promise<void> {
   const redis = getRedis();
-  await redis.set(cueBatchRedisKey(roomId, userId), JSON.stringify(cues), "EX", ROOM_TTL);
+  await redis.set(cueBatchRedisKey(roomId), JSON.stringify(cues), "EX", ROOM_TTL);
 }
 
-async function resolveCueCandidates(
-  roomId: string,
-  userId: string,
-  meRaw: unknown,
-  peerRaw: unknown,
-  shown: Set<string>,
-): Promise<ConversationCueDto[]> {
-  const cached = await readCachedCueBatch(roomId, userId);
-  if (cached && cached.length > 0) {
-    return cached.filter((cue) => !shown.has(cue.id));
+async function tryAcquireGenerationLock(roomId: string): Promise<boolean> {
+  const redis = getRedis();
+  const result = await redis.set(
+    cueBatchLockRedisKey(roomId),
+    "1",
+    "EX",
+    GENERATION_LOCK_TTL_SEC,
+    "NX",
+  );
+  return result === "OK";
+}
+
+async function releaseGenerationLock(roomId: string): Promise<void> {
+  await getRedis().del(cueBatchLockRedisKey(roomId));
+}
+
+async function waitForCachedCueBatch(roomId: string): Promise<ConversationCueDto[] | null> {
+  const redis = getRedis();
+  for (let attempt = 0; attempt < GENERATION_MAX_WAIT_ATTEMPTS; attempt++) {
+    const cached = await readCachedCueBatch(roomId);
+    if (cached && cached.length > 0) return cached;
+
+    const lockHeld = (await redis.exists(cueBatchLockRedisKey(roomId))) === 1;
+    if (!lockHeld) return cached;
+
+    await delay(GENERATION_WAIT_MS);
   }
 
-  const me = parseProfileSnapshotContext(meRaw);
-  const peer = parseProfileSnapshotContext(peerRaw);
-  if (!me || !peer) return [];
+  return readCachedCueBatch(roomId);
+}
 
-  const candidates = (await generateConversationCuesWithGemini(me, peer, [...shown])).filter(
-    (cue) => !shown.has(cue.id),
-  );
+async function generateAndCacheRoomCueBatch(
+  roomId: string,
+  profileARaw: unknown,
+  profileBRaw: unknown,
+): Promise<ConversationCueDto[]> {
+  const profileA = parseProfileSnapshotContext(profileARaw);
+  const profileB = parseProfileSnapshotContext(profileBRaw);
+  if (!profileA || !profileB) return [];
 
+  const candidates = await generateRoomConversationCuesWithGemini(profileA, profileB);
   if (candidates.length > 0) {
-    await writeCachedCueBatch(roomId, userId, candidates);
+    await writeCachedCueBatch(roomId, candidates);
   }
 
   return candidates;
 }
 
+async function resolveCueCandidates(
+  roomId: string,
+  userId: string,
+  peerUserId: string,
+  meRaw: unknown,
+  peerRaw: unknown,
+  shown: Set<string>,
+): Promise<ConversationCueDto[]> {
+  const participants = canonicalParticipants(userId, peerUserId);
+  const { participantA, participantB } = participants;
+
+  let batch = await readCachedCueBatch(roomId);
+  if (!batch || batch.length === 0) {
+    const lockAcquired = await tryAcquireGenerationLock(roomId);
+    if (lockAcquired) {
+      try {
+        batch = await readCachedCueBatch(roomId);
+        if (!batch || batch.length === 0) {
+          const [profileARaw, profileBRaw] =
+            participantA === userId
+              ? [meRaw, peerRaw]
+              : [peerRaw, meRaw];
+          batch = await generateAndCacheRoomCueBatch(roomId, profileARaw, profileBRaw);
+        }
+      } finally {
+        await releaseGenerationLock(roomId);
+      }
+    } else {
+      batch = await waitForCachedCueBatch(roomId);
+    }
+  }
+
+  if (!batch || batch.length === 0) return [];
+
+  return filterCuesForUser(batch, userId, participants, shown);
+}
+
 /**
  * Returns the next unseen conversation cue for a direct call participant.
- * Cues are generated once per call via Gemini, then cached in Redis.
+ * Cues are generated once per room via Gemini, then cached in Redis.
  */
 export async function getNextConversationCueService(
   userId: string,
@@ -148,7 +215,14 @@ export async function getNextConversationCueService(
     return EMPTY_RESPONSE;
   }
 
-  const candidates = await resolveCueCandidates(roomId, userId, meRaw, peerRaw, shown);
+  const candidates = await resolveCueCandidates(
+    roomId,
+    userId,
+    peerUserId,
+    meRaw,
+    peerRaw,
+    shown,
+  );
   if (candidates.length === 0) {
     return EMPTY_RESPONSE;
   }

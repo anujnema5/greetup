@@ -58,6 +58,7 @@ All paths below are from the **repository root** (`docs/...`).
 | [design/chat-system-design.md](design/chat-system-design.md) | Chat system design |
 | [design/matching-system-design.md](design/matching-system-design.md) | Matching / matchmaking (see also [matching/matching-engine.md](matching/matching-engine.md)) |
 | [design/room-activities-and-chess.md](design/room-activities-and-chess.md) | In-room chess & runtime room activities (during a call) |
+| [design/conversation-cues.md](design/conversation-cues.md) | **Conversation cues** — in-call AI hints, Redis cache, generation lock, per-user filtering |
 | [design/session-activities-and-match-modes.md](design/session-activities-and-match-modes.md) | **Session activities** catalog, Quick vs Activity match modes, spaces tagging, edge cases & test matrix |
 | [design/open-to-connect.md](design/open-to-connect.md) | **Open to Connect** — passive discovery, connect requests, searcher fallback (request-only), phased plan |
 | [design/room-session-lifecycle-hinglish.md](design/room-session-lifecycle-hinglish.md) | **Hinglish:** circle/direct call kab start/band — per-session limits, scheduled slot, host end |
