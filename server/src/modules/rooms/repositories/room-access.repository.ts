@@ -5,9 +5,9 @@ import { roomParticipantsRepository } from "@/modules/rooms/repositories/room-pa
 export const roomAccessRepository = {
   /**
    * Whether the user may load circle room metadata (GET room) when Redis has no session yet.
-   * Host, public circles, invitees with pending/accepted friend invite, or active participants.
+   * Host, public spaces, invitees with pending/accepted friend invite, or active participants.
    */
-  async canUserViewCircleRoomMetadata(
+  async canUserViewSpaceRoomMetadata(
     userId: string,
     room: {
       id: string;
@@ -16,7 +16,7 @@ export const roomAccessRepository = {
       visibility: "private" | "public";
     },
   ): Promise<boolean> {
-    if (room.roomType !== "circle") return false;
+    if (room.roomType !== "space") return false;
     if (room.hostUserId === userId) return true;
     if (room.visibility === "public") return true;
 

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "bun:test";
-import { isCircleRoomData, isDirectMatchRoom, isRoomGroupLayout, parseRoomData } from "./room.types";
+import { isSpaceRoomData, isDirectMatchRoom, isRoomGroupLayout, parseRoomData } from "./room.types";
 
 describe("parseRoomData", () => {
   it("parses match with sessionKind", () => {
@@ -29,17 +29,17 @@ describe("parseRoomData", () => {
     expect(isRoomGroupLayout(room, "direct")).toBe(false);
   });
 
-  it("parses circle", () => {
-    const fromCircle = parseRoomData({
-      sessionKind: "circle",
+  it("parses space", () => {
+    const fromSpace = parseRoomData({
+      sessionKind: "space",
       roomId: "r3",
       hostUserId: "host",
-      roomType: "circle",
-      title: "My circle",
+      roomType: "space",
+      title: "My space",
       lobbyGateActive: "1",
     });
-    expect(fromCircle.sessionKind).toBe("circle");
-    expect(isCircleRoomData(fromCircle)).toBe(true);
-    expect(isRoomGroupLayout(fromCircle, null)).toBe(true);
+    expect(fromSpace.sessionKind).toBe("space");
+    expect(isSpaceRoomData(fromSpace)).toBe(true);
+    expect(isRoomGroupLayout(fromSpace, null)).toBe(true);
   });
 });

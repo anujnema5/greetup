@@ -1,12 +1,12 @@
 "use client";
 
 /**
- * InCallScreen is the main in-call screen renderer for both direct and circle rooms.
+ * InCallScreen is the main in-call screen renderer for both direct and space rooms.
  *
  * Purpose:
  * - Owns local UI state (right panel tab, stage ratio, active activity, mobile chat sheet).
  * - Narrow viewports: bottom sheet for chat/people/activities is vertically resizable via drag handle.
- * - Circle calls: footer “Options” opens invite/link/chat; stage edit icon opens rename dialog.
+ * - Space calls: footer “Options” opens invite/link/chat; stage edit icon opens rename dialog.
  * - Delegates media-derived values to `useCallDisplayData`.
  * - Composes stage, overlays, HUD, toolbar, and right panel into a single responsive call layout.
  *
@@ -29,7 +29,9 @@ import {
 import { Maximize2, Minimize2, Volume2, VolumeX } from "lucide-react";
 import { toast } from "sonner";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
-import { DEFAULT_CIRCLE_DISPLAY_TITLE } from "@/features/room/constants/call/circle-display";
+import { DEFAULT_SPACE_DISPLAY_TITLE } from "@/features/room/constants/call/space-display";
+import { CALL_STAGE_SHELL_CLASS } from "@/features/room/constants/call/call-chrome-theme";
+import { CALL_ROOM_FORCED_DARK_CLASS } from "@/features/room/constants/call/call-chrome-theme";
 import {
   IN_CALL_DIALOG_CONTENT_Z,
   IN_CALL_DIALOG_OVERLAY_Z,
@@ -43,8 +45,8 @@ import type { RoomActivityId } from "@/features/room/types/call/room-activity.ty
 import type { RoomCallRightPanelTab } from "@/features/room/types/call/room-call-panel.types";
 import { RoomCallParticipantsPanel } from "@/features/room/call/panels/sidebar/people-panel";
 import { MainStage } from "@/features/room/call/stage/main-stage";
-import { RoomCircleCallOptionsDialog } from "@/features/room/call/panels/circle-options/circle-call-options-dialog";
-import { CircleRenameDialog } from "@/features/room/call/panels/circle-options/circle-rename-dialog";
+import { RoomSpaceCallOptionsDialog } from "@/features/room/call/panels/space-options/space-call-options-dialog";
+import { SpaceRenameDialog } from "@/features/room/call/panels/space-options/space-rename-dialog";
 import {
   CallTopBar,
   CALL_STAGE_CHROME_BTN_CLASS,
@@ -174,8 +176,8 @@ export function InCallScreen({
   remotePeers = {},
   showSkip = true,
   conversationId = null,
-  showAddToCircle = false,
-  onOpenAddToCircle,
+  showAddToSpace = false,
+  onOpenAddToSpace,
   searchingForNextCandidate = false,
   directCallMatchSearchFailed = false,
   directCallMatchSearchError = null,
@@ -186,8 +188,8 @@ export function InCallScreen({
   onEndActiveGame,
   onOfferDrawGame,
   roomId = null,
-  circleDisplayTitle = null,
-  circleCanEditTitle = false,
+  spaceDisplayTitle = null,
+  spaceCanEditTitle = false,
   screenShareTiles = [],
   focusedScreenShareKey = null,
   onSelectScreenShare,
@@ -197,10 +199,10 @@ export function InCallScreen({
   embeddedCallPolicyLookup = null,
   liveSpeakerPeerId = null,
   liveSpeakerSpeakingMs = {},
-  onHostEndCircleForEveryone,
+  onHostEndSpaceForEveryone,
   onKickParticipant,
   kickingUserId = null,
-  isCircleHost = false,
+  isSpaceHost = false,
   callCapabilities: callCapabilitiesProp,
 }: InCallScreenProps) {
   useCallRenderDebug("InCallScreen", { roomId, mediaStatus, cameraEnabled, screenSharing });
@@ -221,8 +223,8 @@ export function InCallScreen({
     isGroupRoom ? "16:9" : "1:1"
   );
   const [isLive, setIsLive] = useState(false);
-  const [circleOptionsOpen, setCircleOptionsOpen] = useState(false);
-  const [circleRenameOpen, setCircleRenameOpen] = useState(false);
+  const [spaceOptionsOpen, setSpaceOptionsOpen] = useState(false);
+  const [spaceRenameOpen, setSpaceRenameOpen] = useState(false);
   /** Per-screen-share-key local mute state for inbound audio. */
   const [screenShareAudioMutedByKey, setScreenShareAudioMutedByKey] = useState<Record<string, boolean>>({});
   const screenShareAudioMuted = focusedScreenShareKey
@@ -352,7 +354,7 @@ export function InCallScreen({
   /**
    * During screen share, `xl+` keeps a wide 16:9 stage and puts cameras in the People panel. Below
    * `xl`, participants stay on the main stage (stacked with share for direct
-   * calls; 2×2 grid under share for circles) so users are not forced into the People tab.
+   * calls; 2×2 grid under share for spaces) so users are not forced into the People tab.
    */
   const participantVideosInSidebar = false;
   const showStageFullscreenControl = showScreenShareContext;
@@ -391,8 +393,8 @@ export function InCallScreen({
   const activeActivityLabel = activeActivityMeta ? `${activeActivityMeta.label} activity` : null;
 
   /** Circle route always has `roomId` when `isGroupRoom`; narrows types for options UI. */
-  const circleRoomId = isGroupRoom && roomId ? roomId : null;
-  const circleTitle = circleDisplayTitle?.trim() || DEFAULT_CIRCLE_DISPLAY_TITLE;
+  const spaceRoomId = isGroupRoom && roomId ? roomId : null;
+  const spaceTitle = spaceDisplayTitle?.trim() || DEFAULT_SPACE_DISPLAY_TITLE;
 
   useEffect(() => {
     if (isGroupRoom) return;
@@ -512,7 +514,7 @@ export function InCallScreen({
       currentUserId={currentUserId ?? null}
       liveSpeakerPeerId={liveSpeakerPeerId}
       liveSpeakerSpeakingMs={liveSpeakerSpeakingMs}
-      isCircleHost={isCircleHost}
+      isSpaceHost={isSpaceHost}
       onKickParticipant={onKickParticipant}
       kickingUserId={kickingUserId}
     />
@@ -552,19 +554,19 @@ export function InCallScreen({
     isGroupRoom,
     isLive,
     setIsLive,
-    showAddToCircle,
-    onOpenAddToCircle,
-    showCircleOptions: Boolean(circleRoomId),
-    onOpenCircleOptions: circleRoomId ? () => setCircleOptionsOpen(true) : undefined,
+    showAddToSpace,
+    onOpenAddToSpace,
+    showSpaceOptions: Boolean(spaceRoomId),
+    onOpenSpaceOptions: spaceRoomId ? () => setSpaceOptionsOpen(true) : undefined,
     showSkip,
     onSkip,
     onEnd,
     showPeopleTab,
     showActivitiesTab,
-    onHostEndCircleForEveryone,
+    onHostEndSpaceForEveryone,
   };
 
-  const openCircleChat = useCallback(() => {
+  const openSpaceChat = useCallback(() => {
     selectRightPanelTab("chat");
   }, [selectRightPanelTab]);
 
@@ -582,9 +584,9 @@ export function InCallScreen({
             <div
               ref={stageShellRef}
               className={cn(
-                "relative flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden rounded-2xl bg-black/60 shadow-xl",
+                CALL_STAGE_SHELL_CLASS,
                 stageFullscreen.isLayoutImmersive &&
-                  "fixed inset-0 z-300 m-0 max-h-dvh rounded-none shadow-none",
+                  "fixed inset-0 z-300 m-0 max-h-dvh rounded-none border-0 shadow-none",
               )}
             >
               <div className="relative min-h-0 min-w-0 flex-1 overflow-hidden">
@@ -631,7 +633,7 @@ export function InCallScreen({
                   shareStageImmersive={shareStageImmersive}
                   liveSpeakerPeerId={liveSpeakerPeerId}
                   liveSpeakerSpeakingMs={liveSpeakerSpeakingMs}
-                  isCircleHost={isCircleHost}
+                  isSpaceHost={isSpaceHost}
                   onKickParticipant={onKickParticipant}
                   kickingUserId={kickingUserId}
                 />
@@ -668,10 +670,10 @@ export function InCallScreen({
                 <CallTopBar
                   isOneToOneStage={isOneToOneStage}
                   isGroupRoom={isGroupRoom}
-                  circleDisplayTitle={circleDisplayTitle}
-                  canEditCircleTitle={Boolean(circleCanEditTitle)}
-                  onEditCircleTitle={
-                    circleRoomId && circleCanEditTitle ? () => setCircleRenameOpen(true) : undefined
+                  spaceDisplayTitle={spaceDisplayTitle}
+                  canEditSpaceTitle={Boolean(spaceCanEditTitle)}
+                  onEditSpaceTitle={
+                    spaceRoomId && spaceCanEditTitle ? () => setSpaceRenameOpen(true) : undefined
                   }
                   activeActivityLabel={activeActivityLabel}
                   activeActivity={Boolean(stageActivity)}
@@ -752,6 +754,7 @@ export function InCallScreen({
               showCloseButton
               aria-describedby={undefined}
               className={cn(
+                CALL_ROOM_FORCED_DARK_CLASS,
                 /* Above InCallContainer (`z-100`) and in-room dialogs. */
                 IN_CALL_DIALOG_CONTENT_Z,
                 "gap-0 border-x-0 border-b-0 p-0",
@@ -789,24 +792,24 @@ export function InCallScreen({
           </Dialog>
         ) : null}
 
-        {circleRoomId && circleCanEditTitle ? (
-          <CircleRenameDialog
-            open={circleRenameOpen}
-            onOpenChange={setCircleRenameOpen}
-            roomId={circleRoomId}
-            displayTitle={circleTitle}
+        {spaceRoomId && spaceCanEditTitle ? (
+          <SpaceRenameDialog
+            open={spaceRenameOpen}
+            onOpenChange={setSpaceRenameOpen}
+            roomId={spaceRoomId}
+            displayTitle={spaceTitle}
           />
         ) : null}
 
-        {circleRoomId ? (
-          <RoomCircleCallOptionsDialog
-            open={circleOptionsOpen}
-            onOpenChange={setCircleOptionsOpen}
-            roomId={circleRoomId}
-            showInvite={showAddToCircle && Boolean(onOpenAddToCircle)}
-            onInvite={onOpenAddToCircle}
+        {spaceRoomId ? (
+          <RoomSpaceCallOptionsDialog
+            open={spaceOptionsOpen}
+            onOpenChange={setSpaceOptionsOpen}
+            roomId={spaceRoomId}
+            showInvite={showAddToSpace && Boolean(onOpenAddToSpace)}
+            onInvite={onOpenAddToSpace}
             showChat={Boolean(conversationId)}
-            onOpenChat={conversationId ? openCircleChat : undefined}
+            onOpenChat={conversationId ? openSpaceChat : undefined}
           />
         ) : null}
       </div>

@@ -1,18 +1,21 @@
-export type SessionKind = "match" | "connection_call" | "circle";
+import { isGroupRoomSessionType } from "@/shared/types/room-session";
 
-const SESSION_KINDS: readonly SessionKind[] = ["match", "connection_call", "circle"];
+export type SessionKind = "match" | "connection_call" | "space";
+
+const SESSION_KINDS: readonly SessionKind[] = ["match", "connection_call", "space"];
 
 type RoomWithSessionKind = {
   sessionKind?: unknown;
 };
 
-/** Parsed `sessionKind` when the API sent a known enum value. */
+function isKnownSessionKind(sk: unknown): sk is SessionKind {
+  return typeof sk === "string" && SESSION_KINDS.includes(sk as SessionKind);
+}
+
 export function getSessionKind(room: RoomWithSessionKind | null | undefined): SessionKind | null {
   if (!room) return null;
   const sk = room.sessionKind;
-  return typeof sk === "string" && SESSION_KINDS.includes(sk as SessionKind)
-    ? (sk as SessionKind)
-    : null;
+  return isKnownSessionKind(sk) ? sk : null;
 }
 
 export function isMatchSession(room: RoomWithSessionKind | null | undefined): boolean {
@@ -23,14 +26,14 @@ export function isConnectionCallSession(room: RoomWithSessionKind | null | undef
   return getSessionKind(room) === "connection_call";
 }
 
-export function isCircleSession(room: RoomWithSessionKind | null | undefined): boolean {
-  return getSessionKind(room) === "circle";
+export function isSpaceSession(room: RoomWithSessionKind | null | undefined): boolean {
+  return getSessionKind(room) === "space";
 }
 
-/** Circle gallery / lobby layout — not “has a Postgres row”. */
-export function isCircleGroupSession(
+/** Space gallery / lobby layout — not “has a Postgres row”. */
+export function isSpaceGroupSession(
   room: RoomWithSessionKind | null | undefined,
   rtcRoomType?: string | null,
 ): boolean {
-  return isCircleSession(room) || rtcRoomType === "circle";
+  return isSpaceSession(room) || isGroupRoomSessionType(rtcRoomType);
 }

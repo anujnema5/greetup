@@ -29,6 +29,13 @@ export function validateProfileSection(
   return null;
 }
 
+export function buildProfileUsernamePayload(d: EditableProfile): SaveProfileSetupPayload {
+  return {
+    step: 7,
+    data: { username: d.username.trim().toLowerCase() },
+  };
+}
+
 export function buildProfileSavePayload(
   section: ProfileEditSectionId,
   d: EditableProfile
@@ -39,7 +46,6 @@ export function buildProfileSavePayload(
         step: 1,
         data: {
           displayName: d.displayName.trim(),
-          username: d.username.trim().toLowerCase(),
           age: d.age,
           gender: d.gender,
           country: { code: d.country.code, name: d.country.name },

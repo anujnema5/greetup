@@ -1,7 +1,5 @@
 "use client";
 
-import Link from "next/link";
-
 import { NavSidebar, BottomNav, PageHeader } from "@/features/app-shell";
 import { PublicProfileContent } from "../components/public-profile-content";
 

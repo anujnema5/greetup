@@ -37,8 +37,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <QueryProviderShell>
             <Suspense fallback={null}>{children}</Suspense>
           </QueryProviderShell>
+          <Toaster position="bottom-right" closeButton />
         </ThemeProvider>
-        <Toaster position="bottom-right" closeButton />
       </body>
       <SiteGoogleAnalytics />
     </html>

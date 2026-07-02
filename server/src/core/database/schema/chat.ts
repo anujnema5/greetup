@@ -20,7 +20,7 @@ import { rooms } from './rooms';
 
 export const conversationTypeEnum = pgEnum('conversation_type', [
   'room_direct',
-  'room_circle',
+  'room_space',
   'connection',
 ]);
 

@@ -1,4 +1,5 @@
 import type { NotificationItem } from "../types/notifications-api.types";
+import { spaceRoomPath } from "@/features/room/lib/navigation/space-routes";
 
 export function formatNotificationTime(isoString: string): string {
   const date = new Date(isoString);
@@ -13,6 +14,10 @@ export function formatNotificationTime(isoString: string): string {
   return `${Math.floor(diffMs / day)}d ago`;
 }
 
+function isSpaceNotificationType(type: NotificationItem["type"]): boolean {
+  return type === "space_started" || type === "space_invite_received";
+}
+
 export function notificationRoute(item: NotificationItem): string {
   // Keep connection notifications deterministic so clicks always land
   // on the expected section inside Connections.
@@ -23,13 +28,13 @@ export function notificationRoute(item: NotificationItem): string {
     return "/connections?filter=accepted";
   }
 
-  if (item.type === "circle_started" || item.type === "circle_invite_received") {
+  if (isSpaceNotificationType(item.type)) {
     const roomId = item.payload?.roomId;
     if (typeof roomId === "string" && roomId.trim()) {
-      return `/circle/${roomId.trim()}`;
+      return spaceRoomPath(roomId.trim());
     }
     if (item.entityType === "room" && item.entityId.trim()) {
-      return `/circle/${item.entityId.trim()}`;
+      return spaceRoomPath(item.entityId.trim());
     }
   }
 

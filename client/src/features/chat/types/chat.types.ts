@@ -1,7 +1,7 @@
 import type { MessagingBlock } from './messaging-block.types';
 
 export type MessageType = 'text' | 'image' | 'video' | 'file' | 'voice' | 'gif' | 'system';
-export type ConversationType = 'room_direct' | 'room_circle' | 'connection';
+export type ConversationType = 'room_direct' | 'room_space' | 'connection';
 export type MessageStatus = 'sending' | 'delivered' | 'read' | 'failed';
 
 export type { MessagingBlock, MessagingBlockReason } from './messaging-block.types';

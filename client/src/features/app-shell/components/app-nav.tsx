@@ -6,16 +6,16 @@ import { ThemeToggle } from "@/components/theme-toggle";
 import { TOUR_TARGETS } from "@/features/tour-guide";
 
 import { useNavBadgeLookup } from "../hooks/use-nav-badges";
-import { NAV_ITEMS } from "../constants/nav-config";
+import { BOTTOM_NAV_ITEMS, NAV_ITEMS } from "../constants/nav-config";
 import { NavItemLink } from "./nav-item-link";
 
 export function NavSidebar({ activePath = "/home" }: { activePath?: string }) {
   const badgeLookup = useNavBadgeLookup();
 
   return (
-    <aside className="hidden md:flex flex-col items-center gap-1 w-16 min-h-screen border-r border-border bg-card py-5 px-2">
-      <Link href="/home" className="mb-6 h-10 w-10 rounded-xl bg-primary flex items-center justify-center shadow-sm shadow-primary/5">
-        <span className="text-sm font-black text-primary-foreground">C</span>
+    <aside className="hidden md:flex flex-col items-center gap-1 w-16 min-h-screen border-r border-border/80 bg-background py-5 px-2">
+      <Link href="/home" className="mb-6 flex h-10 w-10 items-center justify-center rounded-xl bg-primary">
+        <span className="text-sm font-black text-primary-foreground">G</span>
       </Link>
 
       <nav
@@ -24,7 +24,7 @@ export function NavSidebar({ activePath = "/home" }: { activePath?: string }) {
       >
         {NAV_ITEMS.map((item) => (
           <NavItemLink
-            key={item.href}
+            key={item.href ?? item.action ?? item.label}
             item={item}
             activePath={activePath}
             badgeLookup={badgeLookup}
@@ -54,16 +54,15 @@ export function NavSidebar({ activePath = "/home" }: { activePath?: string }) {
 
 export function BottomNav({ activePath = "/home" }: { activePath?: string }) {
   const badgeLookup = useNavBadgeLookup();
-
   return (
     <nav
       className="md:hidden fixed bottom-0 inset-x-0 z-20 flex items-stretch border-t border-border bg-card/95 backdrop-blur-sm"
       data-tour-id={TOUR_TARGETS.mainNav}
     >
       <div className="flex min-w-0 flex-1 items-center justify-around gap-0.5 py-2 pr-0.5">
-        {NAV_ITEMS.map((item) => (
+        {BOTTOM_NAV_ITEMS.map((item) => (
           <NavItemLink
-            key={item.href}
+            key={item.href ?? item.action ?? item.label}
             item={item}
             activePath={activePath}
             badgeLookup={badgeLookup}

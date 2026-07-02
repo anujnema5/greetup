@@ -40,7 +40,7 @@ export type ScheduledCalendarEndInput = {
 };
 
 /** Direct → circle: extend `expires_at` without shortening. */
-export type CircleUpgradeExpiryParams = {
+export type SpaceUpgradeExpiryParams = {
   currentExpiresAt: Date | null;
   liveStartedAt: Date;
   scheduledStartAt: Date | null;

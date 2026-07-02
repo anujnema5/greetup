@@ -6,9 +6,9 @@ import { ROOM_KEYS } from "@/core/redis/keys";
 import { roomsRepository } from "@/modules/rooms/repositories/rooms.repository";
 import { roomSessionsRepository } from "@/modules/rooms/repositories/room-sessions.repository";
 import { roomParticipantsRepository } from "@/modules/rooms/repositories/room-participants.repository";
-import { maybeAutoStartScheduledCircleFromDb } from "@/modules/rooms/services/session/maybe-auto-start-scheduled-circle.service";
+import { maybeAutoStartScheduledSpaceFromDb } from "@/modules/rooms/services/session/maybe-auto-start-scheduled-space.service";
 import { assertRoomSessionOpenOnAccess } from "@/modules/rooms/services/session/reconcile-room-session-on-access.service";
-import { isScheduledCircleBeforeStartTime } from "@/modules/rooms/lib/session/scheduled-circle-lobby";
+import { isScheduledSpaceBeforeStartTime } from "@/modules/rooms/lib/session/scheduled-space-lobby";
 import {
   getOrCreateRoomConversation,
   ensureRoomConversationParticipant,
@@ -104,7 +104,7 @@ async function finalizeRtcTokenIssue(
   };
 }
 
-/** RTC JWT for direct or circle; caller must be host or participant; room must be live. */
+/** RTC JWT for direct or space; caller must be host or participant; room must be live. */
 export async function issueRtcTokenService(
   userId: string,
   roomId: string,
@@ -127,16 +127,16 @@ export async function issueRtcTokenService(
     });
     logger.info("rtc_token", { step: "guest_access", userId, roomId });
 
-    if (room.roomType === "circle" && room.status === "scheduled") {
-      await maybeAutoStartScheduledCircleFromDb(roomId);
+    if (room.roomType === "space" && room.status === "scheduled") {
+      await maybeAutoStartScheduledSpaceFromDb(roomId);
       room = (await roomsRepository.findRoomById(roomId)) ?? room;
-      logger.info("rtc_token", { step: "auto_start_scheduled_circle", userId, roomId });
+      logger.info("rtc_token", { step: "auto_start_scheduled_space", userId, roomId });
       if (!room) {
         rejectIssueRtcToken(userId, roomId, "Room not found", "ROOM_NOT_FOUND", 404);
       }
     }
 
-    if (room.roomType === "direct" || room.roomType === "circle") {
+    if (room.roomType === "direct" || room.roomType === "space") {
       const access = await assertRoomSessionOpenOnAccess(roomId);
       logger.info("rtc_token", { step: "reconcile_session", userId, roomId, ok: access.ok });
       if (!access.ok) {
@@ -157,11 +157,11 @@ export async function issueRtcTokenService(
     );
   }
 
-  if (isScheduledCircleBeforeStartTime(room)) {
+  if (isScheduledSpaceBeforeStartTime(room)) {
     rejectIssueRtcToken(
       userId,
       roomId,
-      "This circle hasn’t opened yet. Try again after the scheduled start time.",
+      "This space hasn’t opened yet. Try again after the scheduled start time.",
       "LOBBY_NOT_READY",
       400,
     );
@@ -177,14 +177,14 @@ export async function issueRtcTokenService(
   const isHost = room.hostUserId === userId;
 
   if (
-    room.roomType === "circle" &&
+    room.roomType === "space" &&
     !isHost &&
     (await roomRestrictedUsersRepository.isRoomRestrictedUser(roomId, userId))
   ) {
     rejectIssueRtcToken(
       userId,
       roomId,
-      "You are not allowed to rejoin this circle",
+      "You are not allowed to rejoin this space",
       "RESTRICTED",
       403,
     );
@@ -205,7 +205,7 @@ export async function issueRtcTokenService(
     }
   }
 
-  if (room.roomType === "circle") {
+  if (room.roomType === "space") {
     const adv = mergeRoomAdvancedOptions(room.advancedOptions);
     if (adv.shouldHostStartMeeting && !isHost) {
       const redis = getRedis();
@@ -217,7 +217,7 @@ export async function issueRtcTokenService(
           rejectIssueRtcToken(
             userId,
             roomId,
-            "The host has not opened the circle yet.",
+            "The host has not opened the space yet.",
             "LOBBY_WAITING_FOR_HOST",
             403,
           );

@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { useSession } from "@/lib/auth-client";
 import { useRoomStore } from "@/features/room/state/room.store";
 import {
-  CIRCLE_HOST_END_FOR_EVERYONE_REDIRECT_PATH,
+  SPACE_HOST_END_FOR_EVERYONE_REDIRECT_PATH,
 } from "@/features/room/constants/call/call-flow";
 import { shouldGuestSkipRematch } from "@/features/guest-try/lib/try-navigation";
 import {
@@ -27,26 +27,26 @@ import {
 } from "@/features/room/lib/session/room-sync";
 import { useMatchmaking } from "@/features/matching";
 import {
-  goToCircleSearch,
+  goToSpaceSearch,
   resolveApiRoomId,
-} from "@/features/room/lib/navigation/circle-routes";
+} from "@/features/room/lib/navigation/space-routes";
 import {
-  useHostEndCircleForEveryone,
-  useKickCircleParticipant,
-  useLeaveCircleRtc,
+  useHostEndSpaceForEveryone,
+  useKickSpaceParticipant,
+  useLeaveSpaceRtc,
   useLeaveRoom,
 } from "@/features/room/api/room.mutations";
 import { getApiErrorMessage } from "@/lib/api/fetch-client";
 import { messagesDirectConversationPath } from "@/features/connection-call/lib/call-navigation";
 import { markLocalCallEndInProgress } from "@/features/room/lib/call/direct-match-leave-guard";
-import type { CircleParticipantRemoveOptions } from "@/features/room/types/call/participant-remove.types";
+import type { SpaceParticipantRemoveOptions } from "@/features/room/types/call/participant-remove.types";
 
 export type UseRoomVideoOptions = {
   skipSetup?: boolean;
   /** Native circle or 1:1 expanded to circle (same Postgres `rooms` row). */
-  isDbCircleCall?: boolean;
-  circleHostUserId?: string | null;
-  /** Match / `/circle/search` rematch only — never connection calls. */
+  isDbSpaceCall?: boolean;
+  spaceHostUserId?: string | null;
+  /** Match / `/space/search` rematch only — never connection calls. */
   canSkipAndRematch?: boolean;
   isConnectionCallSession?: boolean;
   connectionCallConversationId?: string | null;
@@ -54,8 +54,8 @@ export type UseRoomVideoOptions = {
 
 export function useRoomVideo(roomId: string, options?: UseRoomVideoOptions) {
   const skipSetup = options?.skipSetup ?? false;
-  const isDbCircleCall = options?.isDbCircleCall ?? false;
-  const circleHostUserId = options?.circleHostUserId ?? null;
+  const isDbSpaceCall = options?.isDbSpaceCall ?? false;
+  const spaceHostUserId = options?.spaceHostUserId ?? null;
   const canSkipAndRematch = options?.canSkipAndRematch ?? false;
   const isConnectionCall = options?.isConnectionCallSession ?? false;
   const connectionCallConversationId = options?.connectionCallConversationId ?? null;
@@ -67,17 +67,17 @@ export function useRoomVideo(roomId: string, options?: UseRoomVideoOptions) {
   const { data: session } = useSession();
   const matchmaking = useMatchmaking();
   const { mutateAsync: leaveRoom } = useLeaveRoom();
-  const { mutateAsync: leaveCircleRtc } = useLeaveCircleRtc();
-  const { mutateAsync: hostEndCircleForEveryone } = useHostEndCircleForEveryone();
-  const { mutateAsync: kickCircleParticipant } = useKickCircleParticipant();
+  const { mutateAsync: leaveSpaceRtc } = useLeaveSpaceRtc();
+  const { mutateAsync: hostEndSpaceForEveryone } = useHostEndSpaceForEveryone();
+  const { mutateAsync: kickSpaceParticipant } = useKickSpaceParticipant();
   const [kickingUserId, setKickingUserId] = useState<string | null>(null);
   const skipHandledRef = useRef(false);
   const endHandledRef = useRef(false);
   const hostEndHandledRef = useRef(false);
 
   const currentUserId = session?.user?.id ?? null;
-  const isCircleHost = Boolean(
-    isDbCircleCall && currentUserId && circleHostUserId && currentUserId === circleHostUserId,
+  const isSpaceHost = Boolean(
+    isDbSpaceCall && currentUserId && spaceHostUserId && currentUserId === spaceHostUserId,
   );
 
   useEffect(() => {
@@ -87,9 +87,9 @@ export function useRoomVideo(roomId: string, options?: UseRoomVideoOptions) {
     expandVideoSession();
   }, [expandVideoSession, skipSetup]);
 
-  const leaveCircleRtcOnly = useCallback(async () => {
-    await leaveCircleRtc(roomId).catch(() => {});
-  }, [leaveCircleRtc, roomId]);
+  const leaveSpaceRtcOnly = useCallback(async () => {
+    await leaveSpaceRtc(roomId).catch(() => {});
+  }, [leaveSpaceRtc, roomId]);
 
   /** After leave / END_CALL — conversation for DM calls, else pre-call return path. */
   const returnAfterCallEnd = useCallback(() => {
@@ -110,8 +110,8 @@ export function useRoomVideo(roomId: string, options?: UseRoomVideoOptions) {
   ]);
 
   /** After host “end for everyone” — home. */
-  const goHomeAfterHostEndedCircle = useCallback(() => {
-    cancelMatchmakingThenNavigate(matchmaking, router, CIRCLE_HOST_END_FOR_EVERYONE_REDIRECT_PATH);
+  const goHomeAfterHostEndedSpace = useCallback(() => {
+    cancelMatchmakingThenNavigate(matchmaking, router, SPACE_HOST_END_FOR_EVERYONE_REDIRECT_PATH);
   }, [matchmaking, router]);
 
   const dismissCallUiAndBroadcastEnd = useCallback(() => {
@@ -132,8 +132,8 @@ export function useRoomVideo(roomId: string, options?: UseRoomVideoOptions) {
 
     const run = async () => {
       try {
-        if (isDbCircleCall) {
-          await leaveCircleRtcOnly();
+        if (isDbSpaceCall) {
+          await leaveSpaceRtcOnly();
         } else if (apiRoomId) {
           await leaveRoom({ roomId: apiRoomId });
         }
@@ -141,7 +141,7 @@ export function useRoomVideo(roomId: string, options?: UseRoomVideoOptions) {
         /* best-effort — still enter search so the user is not stuck in-room */
       }
       beginSearchingNextCall();
-      goToCircleSearch(router);
+      goToSpaceSearch(router);
       await matchmaking.restartSearch().catch(() => {});
     };
 
@@ -149,8 +149,8 @@ export function useRoomVideo(roomId: string, options?: UseRoomVideoOptions) {
   }, [
     beginSearchingNextCall,
     canSkipAndRematch,
-    isDbCircleCall,
-    leaveCircleRtcOnly,
+    isDbSpaceCall,
+    leaveSpaceRtcOnly,
     leaveRoom,
     matchmaking,
     returnAfterCallEnd,
@@ -192,8 +192,8 @@ export function useRoomVideo(roomId: string, options?: UseRoomVideoOptions) {
     if (!resolveApiRoomId(roomId)) {
       return;
     }
-    if (isDbCircleCall) {
-      void leaveCircleRtcOnly().catch(() => {});
+    if (isDbSpaceCall) {
+      void leaveSpaceRtcOnly().catch(() => {});
     } else {
       const apiRoomId = resolveApiRoomId(roomId) ?? roomId;
       void leaveRoom({ roomId: apiRoomId }).catch(() => {});
@@ -203,35 +203,35 @@ export function useRoomVideo(roomId: string, options?: UseRoomVideoOptions) {
     dismissCallUiAndBroadcastEnd,
     returnAfterCallEnd,
     isConnectionCall,
-    isDbCircleCall,
-    leaveCircleRtcOnly,
+    isDbSpaceCall,
+    leaveSpaceRtcOnly,
     leaveRoom,
     roomId,
   ]);
 
-  const handleHostEndCircleForEveryone = useCallback(async () => {
-    if (!isDbCircleCall || !isCircleHost) return;
+  const handleHostEndSpaceForEveryone = useCallback(async () => {
+    if (!isDbSpaceCall || !isSpaceHost) return;
     if (hostEndHandledRef.current) return;
 
     hostEndHandledRef.current = true;
     try {
-      await hostEndCircleForEveryone(roomId);
-      toast.success("Circle ended for everyone");
+      await hostEndSpaceForEveryone(roomId);
+      toast.success("Space ended for everyone");
     } catch (e: unknown) {
       hostEndHandledRef.current = false;
-      toast.error(getApiErrorMessage(e, "Could not end the circle"));
+      toast.error(getApiErrorMessage(e, "Could not end the space"));
       return;
     }
 
     dismissCallUiAndBroadcastEnd();
-    void leaveCircleRtcOnly().catch(() => {}).finally(goHomeAfterHostEndedCircle);
+    void leaveSpaceRtcOnly().catch(() => {}).finally(goHomeAfterHostEndedSpace);
   }, [
     dismissCallUiAndBroadcastEnd,
-    goHomeAfterHostEndedCircle,
-    hostEndCircleForEveryone,
-    isCircleHost,
-    isDbCircleCall,
-    leaveCircleRtcOnly,
+    goHomeAfterHostEndedSpace,
+    hostEndSpaceForEveryone,
+    isSpaceHost,
+    isDbSpaceCall,
+    leaveSpaceRtcOnly,
     roomId,
   ]);
 
@@ -252,23 +252,23 @@ export function useRoomVideo(roomId: string, options?: UseRoomVideoOptions) {
     async (
       targetUserId: string,
       displayName: string,
-      options?: CircleParticipantRemoveOptions,
+      options?: SpaceParticipantRemoveOptions,
     ) => {
-      if (!isDbCircleCall || !isCircleHost) return;
+      if (!isDbSpaceCall || !isSpaceHost) return;
       if (kickingUserId) return;
 
       const restrict = options?.restrict === true;
       setKickingUserId(targetUserId);
       try {
-        await kickCircleParticipant({
+        await kickSpaceParticipant({
           roomId,
           userId: targetUserId,
           restrict,
         });
         toast.success(
           restrict
-            ? `${displayName} was removed and can't rejoin this circle`
-            : `${displayName} was removed from the circle`,
+            ? `${displayName} was removed and can't rejoin this space`
+            : `${displayName} was removed from the space`,
         );
       } catch (e: unknown) {
         toast.error(getApiErrorMessage(e, "Could not remove participant"));
@@ -276,15 +276,15 @@ export function useRoomVideo(roomId: string, options?: UseRoomVideoOptions) {
         setKickingUserId(null);
       }
     },
-    [isCircleHost, isDbCircleCall, kickCircleParticipant, kickingUserId, roomId],
+    [isSpaceHost, isDbSpaceCall, kickSpaceParticipant, kickingUserId, roomId],
   );
 
   return {
     handleEnd,
-    handleHostEndCircleForEveryone,
-    handleKickParticipant: isDbCircleCall && isCircleHost ? handleKickParticipant : undefined,
+    handleHostEndSpaceForEveryone,
+    handleKickParticipant: isDbSpaceCall && isSpaceHost ? handleKickParticipant : undefined,
     kickingUserId,
-    isCircleHost,
+    isSpaceHost,
     handleSkip,
     handleMinimize,
     roomId,

@@ -41,10 +41,10 @@ export function LandingHeroVisual() {
       )}
     >
       <div
-        className="pointer-events-none absolute -inset-6 rounded-[2rem] bg-[radial-gradient(circle,oklch(88%_0.18_105/0.08)_0%,transparent_72%)] blur-2xl"
+        className="pointer-events-none absolute -inset-6 rounded-[2rem] bg-primary/8 blur-2xl"
         aria-hidden
       />
-      <div className="relative rounded-[1.35rem] border border-white/6 bg-card/55 p-2 sm:p-2.5 md:backdrop-blur-sm">
+      <div className="relative rounded-[1.35rem] border border-border bg-card/55 p-2 sm:p-2.5 md:backdrop-blur-sm">
         <HeroMatchDemo lite={lite} />
       </div>
     </div>

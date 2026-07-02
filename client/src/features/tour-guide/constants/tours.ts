@@ -18,9 +18,19 @@ export const TOUR_DEFINITIONS = {
         description: TOUR_GUIDE.welcome.matchOrb.description,
       },
       {
-        target: TOUR_TARGETS.circleOrb,
-        title: TOUR_GUIDE.welcome.circleOrb.title,
-        description: TOUR_GUIDE.welcome.circleOrb.description,
+        target: TOUR_TARGETS.activityMatch,
+        title: TOUR_GUIDE.welcome.activityMatch.title,
+        description: TOUR_GUIDE.welcome.activityMatch.description,
+      },
+      {
+        target: TOUR_TARGETS.openToConnect,
+        title: TOUR_GUIDE.welcome.openToConnect.title,
+        description: TOUR_GUIDE.welcome.openToConnect.description,
+      },
+      {
+        target: TOUR_TARGETS.spaceOrb,
+        title: TOUR_GUIDE.welcome.spaceOrb.title,
+        description: TOUR_GUIDE.welcome.spaceOrb.description,
       },
       {
         target: TOUR_TARGETS.changePreferences,
@@ -28,9 +38,9 @@ export const TOUR_DEFINITIONS = {
         description: TOUR_GUIDE.welcome.preferences.description,
       },
       {
-        target: TOUR_TARGETS.circlesGrid,
-        title: TOUR_GUIDE.welcome.circlesGrid.title,
-        description: TOUR_GUIDE.welcome.circlesGrid.description,
+        target: TOUR_TARGETS.spacesGrid,
+        title: TOUR_GUIDE.welcome.spacesGrid.title,
+        description: TOUR_GUIDE.welcome.spacesGrid.description,
       },
       {
         target: TOUR_TARGETS.dashboardSidebar,

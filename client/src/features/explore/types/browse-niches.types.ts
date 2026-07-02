@@ -1,5 +1,5 @@
 import type { ApiResponse } from "@/features/profile-setup/types/profile-setup-api.types";
-import type { ActiveCircleItem } from "@/features/circles/types/circles-api.types";
+import type { ActiveSpaceItem } from "@/features/spaces/types/spaces-api.types";
 
 export type BrowseNicheItem = {
   id: string;
@@ -19,7 +19,7 @@ export type BrowseNichesData = {
 export type BrowseNichesApiResponse = ApiResponse<BrowseNichesData>;
 
 export type BrowseNicheRoomsData = {
-  items: ActiveCircleItem[];
+  items: ActiveSpaceItem[];
   nextCursor: string | null;
   hasMore: boolean;
 };

@@ -1,7 +1,7 @@
-import { eq } from "drizzle-orm";
+import { eq, asc } from "drizzle-orm";
 
 import { db } from "@/core/database";
-import { userProfiles } from "@/core/database/schema";
+import { userProfiles, currentStatusActivities } from "@/core/database/schema";
 
 export const userProfilesRepository = {
   async getOnboardingStatus(userId: string): Promise<{ isOnboarded: boolean }> {
@@ -103,6 +103,11 @@ export const userProfilesRepository = {
             availability: true,
             lastActiveAt: true,
             updatedAt: true,
+            matchIntent: true,
+            openToConnect: true,
+            openToConnectUpdatedAt: true,
+            openToConnectSource: true,
+            openToConnectHeadline: true,
           },
           with: {
             moods: {
@@ -125,6 +130,23 @@ export const userProfilesRepository = {
                     displayName: true,
                   },
                 },
+              },
+            },
+            activities: {
+              orderBy: [asc(currentStatusActivities.sortOrder)],
+              with: {
+                activity: {
+                  columns: {
+                    id: true,
+                    name: true,
+                    displayName: true,
+                    emoji: true,
+                  },
+                },
+              },
+              columns: {
+                detail: true,
+                detailNormalized: true,
               },
             },
           },

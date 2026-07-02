@@ -8,52 +8,23 @@ import type {
   SaveProfileSetupResult,
 } from "../types/profile-setup-services.types";
 import {
-  fetchProfileStepsService,
+  buildAllProfileStepsForUser,
+  computeProfileProgressFromSteps,
+  PROFILE_COMPLETE_THRESHOLD,
 } from "./profile-steps.service";
 import { refreshProfileSnapshotFromDatabase } from "@/modules/user/services/profile-snapshot-cache.service";
 import { ensureProfileImageUrlsArePublic } from "@/core/storage";
 import logger from "@/core/logging";
 
 /**
- * Calculate profile completion (0–100) from current profile state.
- * Uses forceRecalculate so we always get the computed value, not stored 0.
+ * Calculate profile completion (0–100) and required-field gate from full step list.
  */
-function hasRequiredFieldValue(value: unknown): boolean {
-  if (value === null || value === undefined) return false;
-  if (typeof value === "string") return value.trim().length > 0;
-  if (Array.isArray(value)) return value.length > 0;
-  if (typeof value === "object") {
-    // Country and similar structured values count as filled when they have at least one property.
-    return Object.keys(value as Record<string, unknown>).length > 0;
-  }
-  return true;
-}
-
-type CompletionField = { required?: boolean; value?: unknown };
-type CompletionStep = { fields: CompletionField[] };
-
-function areRequiredFieldsComplete(steps: CompletionStep[]): boolean {
-  return steps.every((step) =>
-    step.fields
-      .filter((field) => field.required)
-      .every((field) => hasRequiredFieldValue(field.value)),
-  );
-}
-
 async function recalculateCompletion(userId: string): Promise<{
   profileCompletion: number;
   isOnboardingComplete: boolean;
 }> {
-  const result = await fetchProfileStepsService({
-    userId,
-    page: 1,
-    limit: 10,
-    forceRecalculate: true,
-  });
-  return {
-    profileCompletion: result.profileCompletion,
-    isOnboardingComplete: areRequiredFieldsComplete(result.steps),
-  };
+  const steps = await buildAllProfileStepsForUser(userId);
+  return computeProfileProgressFromSteps(steps);
 }
 
 /**
@@ -67,10 +38,9 @@ export async function saveProfileSetupStepService(
 
   switch (body.step) {
     case 1: {
-      const { displayName, username, age, gender, country } = body.data;
+      const { displayName, age, gender, country } = body.data;
       const saves: Promise<unknown>[] = [
         profileSetupRepository.updateUserDisplayName(userId, displayName),
-        profileSetupRepository.setUsername(userId, username),
         profileSetupRepository.updateBasicProfile(profileId, { age, gender }),
       ];
       if (country?.code && country?.name) {
@@ -175,9 +145,21 @@ export async function saveProfileSetupStepService(
       await profileSetupRepository.replacePromptAnswers(profileId, body.data.answers);
       break;
     }
+
+    case 7: {
+      await profileSetupRepository.setUsername(userId, body.data.username);
+      break;
+    }
   }
 
-  const { profileCompletion, isOnboardingComplete } = await recalculateCompletion(userId);
+  let { profileCompletion, isOnboardingComplete } = await recalculateCompletion(userId);
+
+  // API step 6 = profile prompts = last onboarding screen (skip all or complete).
+  if (body.step === 6) {
+    isOnboardingComplete = true;
+    profileCompletion = Math.max(profileCompletion, PROFILE_COMPLETE_THRESHOLD);
+  }
+
   const isProfileComplete = isOnboardingComplete;
 
   await profileSetupRepository.updateCompletionAndOnboarded(profileId, {

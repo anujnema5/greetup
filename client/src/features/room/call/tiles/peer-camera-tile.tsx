@@ -23,7 +23,7 @@ import {
   CALL_TILE_REMOTE_CLASS,
   CALL_TILE_REMOTE_NAME_BADGE_CLASS,
 } from "@/features/room/call/tiles/tile-styles";
-import type { OnRemoveCircleParticipant } from "@/features/room/types/call/participant-remove.types";
+import type { OnRemoveSpaceParticipant } from "@/features/room/types/call/participant-remove.types";
 import { LIVE_SPEAKER_TILE_RING } from "@/features/room/lib/call/active-speaker";
 
 export function RemoteParticipantTile({
@@ -42,7 +42,7 @@ export function RemoteParticipantTile({
   avatarSizeClass?: string;
   canKick?: boolean;
   kickingUserId?: string | null;
-  onKickParticipant?: OnRemoveCircleParticipant;
+  onKickParticipant?: OnRemoveSpaceParticipant;
 }) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const { peer, stream } = participant;

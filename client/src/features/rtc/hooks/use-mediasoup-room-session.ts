@@ -201,7 +201,7 @@ export function useMediasoupRoomSession(options: MediasoupRoomSessionOptions): v
 
     const onKicked = () => {
       if (cancelled) return;
-      set.setError("removed_from_circle");
+      set.setError("removed_from_space");
       set.setStatus("error");
     };
 

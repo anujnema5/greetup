@@ -1,9 +1,9 @@
 import type { ConversationType } from '../types/chat.types';
 
-export type MessagesUrlKind = 'd' | 'c';
+export type MessagesUrlKind = 'd' | 's';
 
 export function conversationTypeToUrlKind(type: ConversationType): MessagesUrlKind {
-  return type === 'room_circle' ? 'c' : 'd';
+  return type === 'room_space' ? 's' : 'd';
 }
 
 export function messagesConversationPath(conversationId: string, type: ConversationType): string {
@@ -11,5 +11,5 @@ export function messagesConversationPath(conversationId: string, type: Conversat
 }
 
 export function isMessagesUrlKind(value: string): value is MessagesUrlKind {
-  return value === 'd' || value === 'c';
+  return value === 'd' || value === 's';
 }

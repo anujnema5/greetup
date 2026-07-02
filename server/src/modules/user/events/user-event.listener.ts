@@ -5,6 +5,12 @@ import { getRedis } from "@/core/redis";
 import logger from "@/core/logging";
 import { USER_PRESENCE_KEYS } from "@/core/redis/keys";
 import { ensureProfileSnapshotCached } from "@/modules/user/services/profile-snapshot-cache.service";
+import { syncMatchingConnectionPeersFromDatabase } from "@/modules/matching/services/sync-matching-connection-peers.service";
+import {
+  syncOpenToConnectIndexIfEnabled,
+} from "@/modules/open-to-connect/services/open-to-connect.service";
+import { otcRedisIndexService } from "@/modules/open-to-connect/services/otc-redis-index.service";
+import { otcFeedBroadcastService } from "@/modules/open-to-connect/services/otc-feed-broadcast.service";
 import { getUserMatchStateService, cancelMatchService } from "@/modules/matching/services/matchmaking.service";
 import { emitToUser, getSocket } from "@/core/socket/socket";
 
@@ -95,6 +101,12 @@ export class UserEventListeners {
 
         await ensureProfileSnapshotCached(userId);
 
+        void syncMatchingConnectionPeersFromDatabase(userId).catch((error) => {
+            logger.warn(`[${this.jobName}] failed to sync matching connection peers`, { userId, error });
+        });
+
+        await syncOpenToConnectIndexIfEnabled(userId);
+
         // Cancel any pending grace-period removal — user reconnected in time
         this.cancelGracePeriod(userId);
 
@@ -176,6 +188,7 @@ export class UserEventListeners {
         if (!exists) return;
 
         await this.redis.expire(userPresenceKey, UserEventListeners.PRESENCE_TTL_SECONDS);
+        await otcRedisIndexService.refreshUserTtlIfIndexed(userId);
         // logger.info(`[${this.jobName}] Refreshed TTL for user ${userId} via heartbeat`);
     }
 
@@ -219,6 +232,10 @@ export class UserEventListeners {
             .exec();
 
         logger.info(`[${this.jobName}] User ${userId} is now offline (ip: ${ipField}, socket: ${socketId})`);
+
+        await otcRedisIndexService.removeUserFromIndex(userId);
+
+        void otcFeedBroadcastService.notifyUserUnavailable(userId);
 
         // Start grace period — if user was searching, give them 12s to reconnect before
         // removing them from the matching pool. Handles page refresh + brief network drops.

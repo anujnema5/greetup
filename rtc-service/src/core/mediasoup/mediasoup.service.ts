@@ -30,3 +30,10 @@ export async function createRouter(): Promise<MediasoupTypes.Router> {
     mediaCodecs: RTC_CONFIG.mediasoup.mediaCodecs,
   });
 }
+
+export async function shutdownMediasoup(): Promise<void> {
+  if (!worker) return;
+
+  worker.close();
+  worker = null;
+}

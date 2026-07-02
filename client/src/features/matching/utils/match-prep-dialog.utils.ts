@@ -4,7 +4,8 @@ import type {
 } from "@/features/profile-setup/types/profile-setup-api.types";
 import { cn } from "@/lib/utils";
 
-import type { MatchPrepInitialFormState } from "../types/match-prep.types";
+import type { MatchPrepFormValues } from "../schemas/match-prep-form.schema";
+import type { MatchIntentValue, MatchPrepInitialFormState } from "../types/match-prep.types";
 
 /**
  * Mobile Chrome: plain `vh` ignores the URL bar. Use `min(90svh, 90dvh)` so height tracks the
@@ -15,14 +16,16 @@ export const dialogShellClass = cn(
   "rounded-2xl border-border bg-card p-0 shadow-xl sm:max-w-lg",
 );
 
+export const dialogSectionPxClass = "px-5 sm:px-6";
+
 export const scrollBodyClass = cn(
-  "min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 pb-2 sm:px-6",
-  "[overflow-anchor:none] [scrollbar-gutter:stable]",
-  "pr-4 sm:pr-5 [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-border [&::-webkit-scrollbar-track]:bg-transparent",
+  "min-h-0 flex-1 overflow-y-auto overscroll-contain pb-2",
+  dialogSectionPxClass,
+  "[overflow-anchor:none]",
 );
 
 export const sectionLabelClass =
-  "text-xs font-semibold uppercase tracking-wide text-muted-foreground";
+  "text-xs font-semibold text-muted-foreground";
 
 export function toggleIdInSet(id: string, prev: Set<string>): Set<string> {
   const next = new Set(prev);
@@ -31,7 +34,35 @@ export function toggleIdInSet(id: string, prev: Set<string>): Set<string> {
   return next;
 }
 
-/** Mirrors Start a circle "More options" scroll-into-view behavior. */
+export function toggleIdInArray(id: string, prev: string[], max?: number): string[] {
+  if (prev.includes(id)) return prev.filter((value) => value !== id);
+  if (max !== undefined && prev.length >= max) return prev;
+  return [...prev, id];
+}
+
+export function deriveDefaultFormValues(
+  options: MatchPrepOptionsData,
+  saved: MatchPrepCurrentData | undefined,
+  initialMatchIntent: MatchIntentValue,
+  isEdit: boolean,
+): MatchPrepFormValues {
+  const initial = deriveInitialFormState(options, saved);
+  return {
+    matchIntent: isEdit ? initial.matchIntent : initialMatchIntent,
+    activityIds: [...initial.selectedActivityIds],
+    activityDetails: initial.activityDetails,
+    moodIds: [...initial.moods],
+    lookingForIds: [...initial.lookingFor],
+    interestIds: [...initial.interests],
+    connectionPreference: initial.connectionPreference,
+    locationPreferenceEnabled: initial.locationPreferenceEnabled,
+    distancePreference: initial.distancePreference,
+    location: initial.location,
+    sessionGoal: initial.sessionGoal,
+  };
+}
+
+/** Mirrors Start a space "More options" scroll-into-view behavior. */
 export function scrollAnchoredSectionIntoView(
   scrollEl: HTMLElement,
   anchor: HTMLElement,
@@ -69,7 +100,18 @@ export function deriveInitialFormState(
         ? [options.interests[0].id]
         : [];
 
+  const selectedActivityIds = new Set(
+    saved?.activitySelections.map((a) => a.activityId) ?? [],
+  );
+  const activityDetails: Record<string, string> = {};
+  for (const row of saved?.activitySelections ?? []) {
+    if (row.detail) activityDetails[row.activityId] = row.detail;
+  }
+
   return {
+    matchIntent: saved?.matchIntent ?? "quick",
+    selectedActivityIds,
+    activityDetails,
     moods: new Set(moodIds),
     lookingFor: new Set(lookingForIds),
     interests: new Set(interestIds),

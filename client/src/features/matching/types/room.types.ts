@@ -1,13 +1,14 @@
 import type { RoomSessionType } from "@/shared/types/room-session";
+import { isGroupRoomSessionType } from "@/shared/types/room-session";
 import {
-  isCircleGroupSession,
-  isCircleSession,
+  isSpaceGroupSession,
+  isSpaceSession,
   isConnectionCallSession,
   isMatchSession,
 } from "@/features/room/lib/session/room-session-kind";
 
 export type { RoomSessionType };
-export type SessionKind = "match" | "connection_call" | "circle";
+export type SessionKind = "match" | "connection_call" | "space";
 
 /** Random match 1:1 (Redis pair or expanded in place). */
 export type MatchRoomData = {
@@ -18,7 +19,7 @@ export type MatchRoomData = {
   matchScore: string | null;
   userAName?: string | null;
   userBName?: string | null;
-  /** After an in-place 1:1 → circle expansion, Postgres `room_type` is `circle`. */
+  /** After an in-place 1:1 → space expansion, Postgres `room_type` is `space`. */
   roomType?: RoomSessionType;
   title?: string;
   hostUserId?: string;
@@ -39,9 +40,9 @@ export type ConnectionCallRoomData = {
   expiresAt?: string | null;
 };
 
-/** Hosted / scheduled circle (`session_kind = circle`). */
-export type CircleRoomData = {
-  sessionKind: "circle";
+/** Hosted / scheduled space (`session_kind = space`). */
+export type SpaceRoomData = {
+  sessionKind: "space";
   roomId: string;
   hostUserId: string;
   roomType: RoomSessionType | string;
@@ -54,9 +55,15 @@ export type CircleRoomData = {
 };
 
 /**
- * Room document from GET `/room/:roomId` (match pair, connection call, or circle).
+ * Room document from GET `/room/:roomId` (match pair, connection call, or space).
  */
-export type RoomData = MatchRoomData | ConnectionCallRoomData | CircleRoomData;
+export type RoomData = MatchRoomData | ConnectionCallRoomData | SpaceRoomData;
+
+function parseRoomSessionType(raw: unknown): RoomSessionType | undefined {
+  if (raw === "direct") return "direct";
+  if (raw === "space") return "space";
+  return undefined;
+}
 
 function parseTimingFields(d: Record<string, unknown>) {
   const startedAt =
@@ -69,10 +76,8 @@ function parseTimingFields(d: Record<string, unknown>) {
   };
 }
 
-function parseCircleSessionKindPayload(d: Record<string, unknown>): CircleRoomData {
-  const rtRaw = d.roomType;
-  const roomType: RoomSessionType | string =
-    rtRaw === "circle" || rtRaw === "direct" ? rtRaw : String(rtRaw);
+function parseSpaceSessionKindPayload(d: Record<string, unknown>): SpaceRoomData {
+  const roomType = parseRoomSessionType(d.roomType);
   const lobbyRaw = d.lobbyGateActive;
   const lobbyGateActive: "0" | "1" | undefined =
     lobbyRaw === "0" || lobbyRaw === "1" ? lobbyRaw : undefined;
@@ -84,10 +89,10 @@ function parseCircleSessionKindPayload(d: Record<string, unknown>): CircleRoomDa
     typeof statusRaw === "string" && statusRaw.length > 0 ? statusRaw : undefined;
 
   return {
-    sessionKind: "circle",
+    sessionKind: "space",
     roomId: String(d.roomId),
     hostUserId: String(d.hostUserId),
-    roomType,
+    roomType: roomType ?? (typeof d.roomType === "string" ? d.roomType : "space"),
     title: String(d.title),
     ...(status ? { status } : {}),
     ...(lobbyGateActive ? { lobbyGateActive } : {}),
@@ -123,8 +128,8 @@ export function parseRoomData(data: unknown): RoomData {
     };
   }
 
-  if (d.sessionKind === "circle") {
-    return parseCircleSessionKindPayload(d);
+  if (d.sessionKind === "space") {
+    return parseSpaceSessionKindPayload(d);
   }
 
   if (d.sessionKind === "match" || ("userA" in d && "userB" in d && "roomId" in d)) {
@@ -132,6 +137,8 @@ export function parseRoomData(data: unknown): RoomData {
     const rt = d.roomType;
     const title = d.title;
     const hostUserId = d.hostUserId;
+    const roomType =
+      rt === "space" || rt === "direct" ? parseRoomSessionType(rt) : undefined;
     return {
       sessionKind: "match",
       roomId: String(d.roomId),
@@ -140,7 +147,7 @@ export function parseRoomData(data: unknown): RoomData {
       matchScore: ms == null ? null : typeof ms === "string" ? ms : String(ms),
       userAName: typeof d.userAName === "string" ? d.userAName : null,
       userBName: typeof d.userBName === "string" ? d.userBName : null,
-      roomType: rt === "circle" || rt === "direct" ? rt : undefined,
+      roomType,
       title: typeof title === "string" ? title : undefined,
       hostUserId: typeof hostUserId === "string" ? hostUserId : undefined,
       ...parseTimingFields(d),
@@ -150,62 +157,62 @@ export function parseRoomData(data: unknown): RoomData {
   throw new Error("Unexpected room payload");
 }
 
-/** Postgres-backed circle session (`sessionKind === 'circle'`). */
-export function isCircleRoomData(
+/** Postgres-backed space session (`sessionKind === 'space'`). */
+export function isSpaceRoomData(
   room: RoomData | null | undefined,
-): room is CircleRoomData {
-  return isCircleSession(room);
+): room is SpaceRoomData {
+  return isSpaceSession(room);
 }
 
 /** Redis / API match-pair 1:1 room. */
 export function isDirectMatchRoom(room: RoomData | null | undefined): room is MatchRoomData {
   if (!room) return false;
-  return isMatchSession(room) || ("userA" in room && !isCircleSession(room) && !isConnectionCallSession(room));
+  return isMatchSession(room) || ("userA" in room && !isSpaceSession(room) && !isConnectionCallSession(room));
 }
 
-/** Use circle (gallery) layout when the session is a group room. */
+/** Use space (gallery) layout when the session is a group room. */
 export function isRoomGroupLayout(
   room: RoomData | null | undefined,
   rtcRoomType: RoomSessionType | null | undefined,
 ): boolean {
-  if (isCircleGroupSession(room, rtcRoomType)) return true;
-  if (room && "userA" in room && room.roomType === "circle") return true;
+  if (isSpaceGroupSession(room, rtcRoomType)) return true;
+  if (room && "userA" in room && isGroupRoomSessionType(room.roomType)) return true;
   return false;
 }
 
 /**
- * Postgres-backed circle session: native `circle` **or** a 1:1 match
- * promoted in place (`room_type = circle`, same `roomId`).
+ * Postgres-backed space session: native `space` **or** a 1:1 match
+ * promoted in place (`room_type = space`, same `roomId`).
  */
-export function isPersistedCircleSession(
+export function isPersistedSpaceSession(
   room: RoomData | null | undefined,
   rtcRoomType: RoomSessionType | null | undefined,
 ): boolean {
-  if (rtcRoomType === "circle") return true;
-  if (room && isCircleRoomData(room) && room.roomType === "circle") return true;
-  if (room && "userA" in room && room.roomType === "circle") return true;
+  if (isGroupRoomSessionType(rtcRoomType)) return true;
+  if (room && isSpaceRoomData(room) && isGroupRoomSessionType(room.roomType)) return true;
+  if (room && "userA" in room && isGroupRoomSessionType(room.roomType)) return true;
   return false;
 }
 
-/** `rooms.host_user_id` from GET `/room/:id` (circle or expanded match payload). */
-export function resolveCircleHostUserId(
+/** `rooms.host_user_id` from GET `/room/:id` (space or expanded match payload). */
+export function resolveSpaceHostUserId(
   room: RoomData | null | undefined,
 ): string | null {
   if (!room) return null;
-  if (isCircleRoomData(room)) return room.hostUserId;
+  if (isSpaceRoomData(room)) return room.hostUserId;
   if ("hostUserId" in room && typeof room.hostUserId === "string" && room.hostUserId.length > 0) {
     return room.hostUserId;
   }
   return null;
 }
 
-export function isCircleHostUser(
+export function isSpaceHostUser(
   room: RoomData | null | undefined,
   userId: string | null | undefined,
   rtcRoomType: RoomSessionType | null | undefined,
 ): boolean {
-  if (!userId || !isPersistedCircleSession(room, rtcRoomType)) return false;
-  const hostId = resolveCircleHostUserId(room);
+  if (!userId || !isPersistedSpaceSession(room, rtcRoomType)) return false;
+  const hostId = resolveSpaceHostUserId(room);
   return Boolean(hostId && hostId === userId);
 }
 

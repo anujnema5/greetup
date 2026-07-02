@@ -2,13 +2,13 @@
 
 const RETURN_KEY = "greetup-call-return-path";
 
-function isCircleRoomPath(path: string): boolean {
-  return path === "/circle" || /^\/circle(\/|$)/.test(path);
+function isSpaceRoomPath(path: string): boolean {
+  return path === "/space" || /^\/space(\/|$)/.test(path);
 }
 
 export function setRoomReturnPath(path: string): void {
   try {
-    if (!path || isCircleRoomPath(path)) return;
+    if (!path || isSpaceRoomPath(path)) return;
     sessionStorage.setItem(RETURN_KEY, path);
   } catch {
     /* ignore */

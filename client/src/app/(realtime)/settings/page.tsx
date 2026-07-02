@@ -10,7 +10,6 @@ import { PhoneNumberSettingsCard } from "@/features/settings/components/phone-nu
 import { ReplayTourSettingsCard } from "@/features/tour-guide";
 import { ReportProblemSettingsCard } from "@/features/problem-reports";
 
-/** ~320px tile — matches a 3-column settings row, left-aligned. */
 const SETTINGS_TILE_CLASS = "min-w-0 w-full max-w-[20rem]";
 
 function SettingsSection({
@@ -49,10 +48,6 @@ export default function SettingsPage() {
         />
 
         <div className="w-full px-4 py-5 md:px-8 md:py-6">
-          {/*
-            3-column row on large screens (like the sketch): each feature gets one column,
-            left-aligned — not centered, not full-width.
-          */}
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-[repeat(3,20rem)] xl:justify-start">
             <SettingsSection icon={Shield} title="Security" className={SETTINGS_TILE_CLASS}>
               <FirebasePhoneAuthProvider>

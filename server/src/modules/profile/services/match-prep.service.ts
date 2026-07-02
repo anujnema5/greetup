@@ -1,10 +1,22 @@
-import { eq } from "drizzle-orm";
+import { asc, eq } from "drizzle-orm";
 
 import { db } from "@/core/database";
-import { currentStatus, profileInterests, profilePreferences, userLocations } from "@/core/database/schema";
+import {
+  currentStatus,
+  currentStatusActivities,
+  profileInterests,
+  profilePreferences,
+  userLocations,
+} from "@/core/database/schema";
 import logger from "@/core/logging";
 import { getConvertedGuestOnboardingHints } from "@/modules/guest";
 import { refreshProfileSnapshotFromDatabase } from "@/modules/user/services/profile-snapshot-cache.service";
+import {
+  activityCatalogRepository,
+  ActivitySelectionValidationError,
+  MAX_MATCH_PREP_ACTIVITY_SELECTIONS,
+  toActivityOptionDtos,
+} from "@/modules/session-activities";
 import { matchPrepSessionRepository } from "../repositories/match-prep-session.repository";
 import { matchPrepStatusRepository } from "../repositories/match-prep-status.repository";
 import { profileSetupRepository } from "../repositories/profile-setup.repository";
@@ -31,7 +43,10 @@ function toDbDistancePreference(value: MatchDistancePreference): "same city" | "
 }
 
 export async function getMatchPrepOptionsService() {
-  const opts = await profileStepsRepository.fetchStepOptions();
+  const [opts, activityCatalog] = await Promise.all([
+    profileStepsRepository.fetchStepOptions(),
+    activityCatalogRepository.listActiveCatalog("match_prep"),
+  ]);
   return {
     moods: opts.moods.map((m) => ({
       id: m.id,
@@ -51,6 +66,7 @@ export async function getMatchPrepOptionsService() {
       displayName: i.displayName,
       description: null as string | null,
     })),
+    activities: toActivityOptionDtos(activityCatalog),
   };
 }
 
@@ -62,6 +78,7 @@ export async function getMatchPrepCurrentService(userId: string) {
       columns: {
         sessionGoal: true,
         connectionPreference: true,
+        matchIntent: true,
       },
       with: {
         moods: {
@@ -72,6 +89,17 @@ export async function getMatchPrepCurrentService(userId: string) {
         lookingFor: {
           with: {
             lookingForOption: { columns: { id: true } },
+          },
+        },
+        activities: {
+          orderBy: [asc(currentStatusActivities.sortOrder)],
+          columns: {
+            detail: true,
+          },
+          with: {
+            activity: {
+              columns: { id: true, name: true, displayName: true, emoji: true },
+            },
           },
         },
       },
@@ -106,44 +134,8 @@ export async function getMatchPrepCurrentService(userId: string) {
 
   const interestIds = interestRows.map((pi) => pi.interest.id);
 
-  if (!row) {
-    return {
-      moodIds: [] as string[],
-      lookingForIds: [] as string[],
-      interestIds,
-      connectionPreference: null as
-        | "same_profession"
-        | "different_profession"
-        | "open_to_anyone"
-        | null,
-      sessionGoal: null as string | null,
-      locationPreferenceEnabled: preferences?.locationPreferenceEnabled ?? false,
-      distancePreference: toClientDistancePreference(preferences?.distancePreference),
-      location: location
-        && location.source?.startsWith("match_prep")
-        ? {
-            country: location.country ?? null,
-            countryCode: location.countryCode ?? null,
-            region: location.region ?? null,
-            regionCode: location.regionCode ?? null,
-            city: location.city ?? null,
-            latitude: location.latitude ?? null,
-            longitude: location.longitude ?? null,
-          }
-        : null,
-    };
-  }
-
-  return {
-    moodIds: row.moods.map((m) => m.mood.id),
-    lookingForIds: row.lookingFor.map((l) => l.lookingForOption.id),
-    interestIds,
-    connectionPreference: row.connectionPreference ?? null,
-    sessionGoal: row.sessionGoal?.trim() || null,
-    locationPreferenceEnabled: preferences?.locationPreferenceEnabled ?? false,
-    distancePreference: toClientDistancePreference(preferences?.distancePreference),
-    location: location
-      && location.source?.startsWith("match_prep")
+  const baseLocation =
+    location && location.source?.startsWith("match_prep")
       ? {
           country: location.country ?? null,
           countryCode: location.countryCode ?? null,
@@ -153,7 +145,47 @@ export async function getMatchPrepCurrentService(userId: string) {
           latitude: location.latitude ?? null,
           longitude: location.longitude ?? null,
         }
-      : null,
+      : null;
+
+  const activitySelections =
+    row?.activities.map((a) => ({
+      activityId: a.activity.id,
+      activityName: a.activity.name,
+      displayName: a.activity.displayName,
+      emoji: a.activity.emoji,
+      detail: a.detail?.trim() || null,
+    })) ?? [];
+
+  if (!row) {
+    return {
+      moodIds: [] as string[],
+      lookingForIds: [] as string[],
+      interestIds,
+      matchIntent: "quick" as const,
+      activitySelections,
+      connectionPreference: null as
+        | "same_profession"
+        | "different_profession"
+        | "open_to_anyone"
+        | null,
+      sessionGoal: null as string | null,
+      locationPreferenceEnabled: preferences?.locationPreferenceEnabled ?? false,
+      distancePreference: toClientDistancePreference(preferences?.distancePreference),
+      location: baseLocation,
+    };
+  }
+
+  return {
+    moodIds: row.moods.map((m) => m.mood.id),
+    lookingForIds: row.lookingFor.map((l) => l.lookingForOption.id),
+    interestIds,
+    matchIntent: row.matchIntent ?? "quick",
+    activitySelections,
+    connectionPreference: row.connectionPreference ?? null,
+    sessionGoal: row.sessionGoal?.trim() || null,
+    locationPreferenceEnabled: preferences?.locationPreferenceEnabled ?? false,
+    distancePreference: toClientDistancePreference(preferences?.distancePreference),
+    location: baseLocation,
   };
 }
 
@@ -175,11 +207,13 @@ export async function getMatchPrepPromptStatusService(
     return { shouldShow: true };
   }
   const current = await getMatchPrepCurrentService(userId);
-  const hasPrep =
+  const hasBasePrep =
     current.moodIds.length > 0 &&
     current.lookingForIds.length > 0 &&
     current.interestIds.length > 0;
-  return { shouldShow: !hasPrep };
+  const hasActivityPrep =
+    current.matchIntent !== "activity" || current.activitySelections.length > 0;
+  return { shouldShow: !(hasBasePrep && hasActivityPrep) };
 }
 
 export async function saveMatchPrepService(
@@ -187,6 +221,12 @@ export async function saveMatchPrepService(
   body: MatchPrepSaveBody,
 ): Promise<void> {
   const profileId = await profileSetupRepository.getOrCreateProfile(userId);
+  const matchIntent = body.matchIntent ?? "quick";
+  const activitySelections = await activityCatalogRepository.validateSelectionsAgainstCatalog(
+    body.activitySelections,
+    { context: "match_prep", matchIntent, maxCount: MAX_MATCH_PREP_ACTIVITY_SELECTIONS },
+  );
+
   const sessionGoal =
     body.sessionGoal != null && body.sessionGoal.trim() !== ""
       ? body.sessionGoal.trim()
@@ -198,6 +238,8 @@ export async function saveMatchPrepService(
     interestIds: body.interestIds,
     sessionGoal,
     connectionPreference: body.connectionPreference ?? null,
+    matchIntent,
+    activitySelections,
   });
 
   const locationPreferenceEnabled = body.locationPreferenceEnabled ?? false;
@@ -250,5 +292,28 @@ export async function saveMatchPrepService(
       userId,
       err,
     });
+  }
+}
+
+export { ActivitySelectionValidationError };
+
+export async function assertMatchPrepReadyForSearch(userId: string): Promise<void> {
+  const current = await getMatchPrepCurrentService(userId);
+  const hasBase =
+    current.moodIds.length > 0 &&
+    current.lookingForIds.length > 0 &&
+    current.interestIds.length > 0;
+  if (!hasBase) {
+    throw new MatchPrepNotReadyError("Complete match preferences before searching");
+  }
+  if (current.matchIntent === "activity" && current.activitySelections.length === 0) {
+    throw new MatchPrepNotReadyError("Pick at least one activity for activity match");
+  }
+}
+
+export class MatchPrepNotReadyError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "MatchPrepNotReadyError";
   }
 }

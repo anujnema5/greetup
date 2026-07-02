@@ -86,17 +86,26 @@ export function RightSidebar({
         className="flex h-full min-h-0 flex-1 flex-col gap-0"
       >
         <div className="flex shrink-0 items-center justify-between border-b border-border/70 px-3 py-2">
-          <TabsList className="h-auto max-w-full flex-wrap rounded-md border border-border/60 bg-muted/70 p-0.5">
+          <TabsList className="h-auto max-w-full flex-wrap rounded-md border border-border/60 bg-muted/50 p-0.5">
             {showPeopleTab ? (
-              <TabsTrigger value="participants" className="h-7 px-2.5 text-[12px] font-semibold">
+              <TabsTrigger
+                value="participants"
+                className="h-7 px-2.5 text-[12px] font-semibold capitalize data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm"
+              >
                 people
               </TabsTrigger>
             ) : null}
-            <TabsTrigger value="chat" className="h-7 px-2.5 text-[12px] font-semibold">
+            <TabsTrigger
+              value="chat"
+              className="h-7 px-2.5 text-[12px] font-semibold capitalize data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm"
+            >
               chat
             </TabsTrigger>
             {!isGroupRoom && showActivitiesTab ? (
-              <TabsTrigger value="activities" className="h-7 px-2.5 text-[12px] font-semibold">
+              <TabsTrigger
+                value="activities"
+                className="h-7 px-2.5 text-[12px] font-semibold capitalize data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm"
+              >
                 activities
               </TabsTrigger>
             ) : null}
@@ -124,7 +133,7 @@ export function RightSidebar({
           {conversationId ? (
             <ChatPanel
               conversationId={conversationId}
-              conversationType={isGroupRoom ? "room_circle" : "room_direct"}
+              conversationType={isGroupRoom ? "room_space" : "room_direct"}
               showQuickReactions
               sendDisabled={!isGroupRoom && searchingForNextCandidate}
             />

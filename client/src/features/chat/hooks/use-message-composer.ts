@@ -70,13 +70,17 @@ export function useMessageComposer({
   };
 
   const handleTextChange = (raw: string) => {
+    let next = raw;
     if (raw.length > MAX_MESSAGE_CONTENT_LENGTH) {
       setTooLongDialogOpen(true);
-      setText(raw.slice(0, MAX_MESSAGE_CONTENT_LENGTH));
-    } else {
-      setText(raw);
+      next = raw.slice(0, MAX_MESSAGE_CONTENT_LENGTH);
     }
-    onInputChange();
+    setText(next);
+    onInputChange(next.trim().length > 0);
+  };
+
+  const handleBlur = () => {
+    stopTyping();
   };
 
   const handleKeyDown = (e: KeyboardEvent<HTMLTextAreaElement>) => {
@@ -98,5 +102,6 @@ export function useMessageComposer({
     handleSend,
     handleTextChange,
     handleKeyDown,
+    handleBlur,
   };
 }

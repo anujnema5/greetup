@@ -25,6 +25,8 @@ export const MATCH_CONFIG = {
   attemptTtlSeconds: 600,
   /** TTL for skip list keys (`mm:user:skip-peers:{userId}`) */
   skipPeerListTtlSeconds: 604_800,
+  /** TTL for prior match peer keys (`mm:user:matched-peers:{userId}`) */
+  matchedPeerListTtlSeconds: 7_776_000,
   /** NX lock TTL when racing to create the room after mutual connect */
   connectFinalizeLockTtlSeconds: 45,
 } as const;
@@ -43,6 +45,8 @@ export const MATCH_SCORE_CONFIG = {
     sessionMoods: 28,
     sessionLookingFor: 28,
     connectionPreference: 21,
+    sessionActivities: 20,
+    sessionActivityDetail: 8,
   },
   minScoreToMatch: 35,
   /**

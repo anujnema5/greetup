@@ -2,8 +2,10 @@
 export const TOUR_TARGETS = {
   mainNav: "main-nav",
   matchOrb: "match-orb",
-  circleOrb: "circle-orb",
+  activityMatch: "activity-match",
+  openToConnect: "open-to-connect",
+  spaceOrb: "space-orb",
   changePreferences: "change-preferences",
-  circlesGrid: "circles-grid",
+  spacesGrid: "spaces-grid",
   dashboardSidebar: "dashboard-sidebar",
 } as const;

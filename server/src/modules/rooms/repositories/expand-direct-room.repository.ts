@@ -104,7 +104,7 @@ export const roomInviteRepository = {
   },
 
   /**
-   * Promotes a live direct room to circle, accepts the invite, adds participant + chat side-effects.
+   * Promotes a live direct room to space, accepts the invite, adds participant + chat side-effects.
    * Rolls back on conflict (room no longer direct).
    */
   async runExpandDirectAcceptTransaction(params: {
@@ -120,8 +120,8 @@ export const roomInviteRepository = {
       const [updatedRoom] = await tx
         .update(rooms)
         .set({
-          roomType: "circle",
-          sessionKind: "circle",
+          roomType: "space",
+          sessionKind: "space",
           maxParticipants: Math.max(currentMaxParticipants, EXPANDED_MAX),
           updatedAt: new Date(),
         })
@@ -159,7 +159,7 @@ export const roomInviteRepository = {
         await tx
           .update(conversations)
           .set({
-            type: "room_circle",
+            type: "room_space",
             connectionId: null,
             isPersisted: true,
             expandedAt: new Date(),
@@ -206,7 +206,7 @@ export const roomInviteRepository = {
         const [newConv] = await tx
           .insert(conversations)
           .values({
-            type: "room_circle",
+            type: "room_space",
             roomId,
             isPersisted: true,
             expandedAt: new Date(),

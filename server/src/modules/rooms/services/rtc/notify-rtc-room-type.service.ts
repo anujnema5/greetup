@@ -2,7 +2,7 @@ import logger from "@/core/logging";
 import config from "@/shared/config/config";
 import type { RoomSessionType } from "@/shared/types/room-session";
 
-/** Pushes updated `roomType` to rtc-service so existing Socket.IO sessions pick up circle screen-share rules. */
+/** Pushes updated `roomType` to rtc-service so existing Socket.IO sessions pick up space screen-share rules. */
 export async function notifyRtcServiceRoomType(
   roomId: string,
   roomType: RoomSessionType,

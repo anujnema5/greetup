@@ -13,12 +13,12 @@ import {
   useRoomStore,
 } from "@/features/room/state/room.store";
 import {
-  CIRCLE_SEARCH_PATH,
-  circleRoomPath,
-} from "@/features/room/lib/navigation/circle-routes";
+  SPACE_SEARCH_PATH,
+  spaceRoomPath,
+} from "@/features/room/lib/navigation/space-routes";
 import {
-  isPersistedCircleSession,
-  resolveCircleHostUserId,
+  isPersistedSpaceSession,
+  resolveSpaceHostUserId,
 } from "@/features/matching/types/room.types";
 import {
   isConnectionCallSession,
@@ -32,6 +32,7 @@ import { canUseScreenShare } from "@/features/rtc/lib/screen-share-policy";
 import { useMobileWebRtcUi } from "@/features/rtc/hooks/use-mobile-web-rtc-ui";
 import { allowScreenShareCallControl } from "@/features/rtc/lib/rtc-mobile-profile";
 import { cn } from "@/lib/utils";
+import { CALL_ROOM_FORCED_DARK_CLASS } from "@/features/room/constants/call/call-chrome-theme";
 import {
   Mic,
   MicOff,
@@ -69,7 +70,7 @@ function displayInitials(name: string): string {
     .join("");
 }
 
-/** Heavy RTC + dock logic — only mounted when {@link MinimizedRoomDock} gate says minimized + off /circle. */
+/** Heavy RTC + dock logic — only mounted when {@link MinimizedRoomDock} gate says minimized + off /space. */
 function MinimizedRoomDockPanel() {
   const router = useRouter();
   const expandVideoSession = useRoomStore((s) => s.expandVideoSession);
@@ -104,13 +105,13 @@ function MinimizedRoomDockPanel() {
   const { data: dockRoomMeta } = useGetRoom(activeRoomId ?? "", {
     enabled: Boolean(activeRoomId) && isActive,
   });
-  const dockSessionIsCircle = isPersistedCircleSession(dockRoomMeta, rtcRoomType);
-  const dockCircleHostId = resolveCircleHostUserId(dockRoomMeta);
+  const dockSessionIsSpace = isPersistedSpaceSession(dockRoomMeta, rtcRoomType);
+  const dockSpaceHostId = resolveSpaceHostUserId(dockRoomMeta);
   const dockIsMatch = isMatchSession(dockRoomMeta);
   const dockIsConnectionCall = isConnectionCallSession(dockRoomMeta);
   const dockCanSkipAndRematch =
     dockIsMatch ||
-    (roomPhase === "searching" && !dockSessionIsCircle && !dockIsConnectionCall);
+    (roomPhase === "searching" && !dockSessionIsSpace && !dockIsConnectionCall);
   const dockConnectionConversationId =
     dockRoomMeta?.sessionKind === "connection_call"
       ? dockRoomMeta.conversationId ?? null
@@ -120,8 +121,8 @@ function MinimizedRoomDockPanel() {
     activeRoomId ?? "",
     {
       skipSetup: true,
-      isDbCircleCall: dockSessionIsCircle,
-      circleHostUserId: dockCircleHostId,
+      isDbSpaceCall: dockSessionIsSpace,
+      spaceHostUserId: dockSpaceHostId,
       canSkipAndRematch: dockCanSkipAndRematch,
       isConnectionCallSession: dockIsConnectionCall,
       connectionCallConversationId: dockConnectionConversationId,
@@ -210,13 +211,13 @@ function MinimizedRoomDockPanel() {
 
   const handleExpand = useCallback(() => {
     expandVideoSession();
-    // Keep `ROOM_MINIMIZED_KEY` until `/circle` mounts `InCallContainer` (`useRoomVideo` clears it).
+    // Keep `ROOM_MINIMIZED_KEY` until `/space` mounts `InCallContainer` (`useRoomVideo` clears it).
     // Clearing here runs before navigation; `useRoomPageTabLease` cleanup then thinks we fully
     // left the room and dispatches `resetRoomState()`, which tears down RTC and forces re-join.
     if (roomPhase === "searching") {
-      router.push(CIRCLE_SEARCH_PATH);
+      router.push(SPACE_SEARCH_PATH);
     } else if (activeRoomId) {
-      router.push(circleRoomPath(activeRoomId));
+      router.push(spaceRoomPath(activeRoomId));
     } else {
       clearRoomMinimized();
       router.push("/home");
@@ -259,6 +260,7 @@ function MinimizedRoomDockPanel() {
   return (
     <div
       className={cn(
+        CALL_ROOM_FORCED_DARK_CLASS,
         "fixed z-200 max-md:left-1/2 max-md:-translate-x-1/2 max-md:right-auto max-md:bottom-[5.25rem]",
         "md:bottom-4 md:right-4 md:left-auto",
         "w-[min(18.5rem,calc(100vw-1rem))] md:w-[min(28rem,calc(100vw-1.25rem))]",
@@ -534,13 +536,13 @@ function MinimizedRoomDockPanel() {
 }
 
 /**
- * Floating call UI when the session is minimized. Cheap gate: no dock hooks on `/circle/...` full room.
+ * Floating call UI when the session is minimized. Cheap gate: no dock hooks on `/space/...` full room.
  */
 export function MinimizedRoomDock() {
   const pathname = usePathname();
   const isActive = useRoomStore(selectIsVideoSessionActive);
   const isMinimized = useRoomStore(selectIsRoomMinimized);
-  const isFullRoom = pathname.startsWith("/circle/");
+  const isFullRoom = pathname.startsWith("/space/") || pathname.startsWith("/space/");
   if (!isActive || !isMinimized || isFullRoom) return null;
   return <MinimizedRoomDockPanel />;
 }

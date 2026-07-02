@@ -3,8 +3,8 @@ import { GuestNotAllowedError } from "@/shared/errors";
 import { guestProfileRepository } from "../../repositories/guest-profile.repository";
 
 export type GuestRoomAccessShape = {
-  roomType: "direct" | "circle";
-  sessionKind: "match" | "connection_call" | "circle";
+  roomType: "direct" | "space";
+  sessionKind: "match" | "connection_call" | "space";
 };
 
 /** Guests may only enter direct rooms created by matchmaking (`sessionKind = match`). */
@@ -27,7 +27,7 @@ export async function assertGuestMayAccessRoom(
 
   if (!isGuestAllowedRoomAccess(room)) {
     throw new GuestNotAllowedError(
-      "Sign up or log in to join circles and connection calls.",
+      "Sign up or log in to join spaces and connection calls.",
     );
   }
 }

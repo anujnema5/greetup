@@ -29,6 +29,7 @@ export {
   profileProfessionsRelations,
 } from "./professions";
 export * from "./current-status";
+export * from "./session-activities";
 export * from "./match-prep-session";
 export * from "./preferences";
 export * from "./behavior";
@@ -42,3 +43,4 @@ export * from "./prompts";
 export * from "./moderation";
 export * from "./guest-trial";
 export * from "./problem-reports";
+export * from "./connect-requests";

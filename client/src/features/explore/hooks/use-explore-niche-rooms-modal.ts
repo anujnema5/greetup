@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 
-import type { ActiveCircleItem } from "@/features/circles/types/circles-api.types";
+import type { ActiveSpaceItem } from "@/features/spaces/types/spaces-api.types";
 
 import { useFetchBrowseNicheRooms } from "../api/browse-niches.queries";
 import type { BrowseNicheItem } from "../types/browse-niches.types";
@@ -11,7 +11,7 @@ const ROOMS_PAGE_SIZE = 20;
 
 export function useExploreNicheRoomsModal() {
   const [selectedNiche, setSelectedNiche] = useState<BrowseNicheItem | null>(null);
-  const [rooms, setRooms] = useState<ActiveCircleItem[]>([]);
+  const [rooms, setRooms] = useState<ActiveSpaceItem[]>([]);
   const [cursor, setCursor] = useState<string | null>(null);
   const [hasMore, setHasMore] = useState(false);
 

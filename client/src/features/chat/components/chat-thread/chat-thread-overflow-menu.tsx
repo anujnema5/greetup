@@ -51,7 +51,7 @@ export function ChatThreadOverflowMenu({
   className,
 }: ChatThreadOverflowMenuProps) {
   const router = useRouter();
-  const isCircle = conversation.type === 'room_circle';
+  const isCircle = conversation.type === 'room_space';
   const isDm = !isCircle;
   const peer = isDm ? getDmPeerBlockUserPeer(conversation, currentUserId) : null;
   const profileHref = isDm ? getDmPeerProfileHref(conversation, currentUserId) : null;

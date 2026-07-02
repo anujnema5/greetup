@@ -1,25 +1,20 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { useState } from "react";
-import { SlidersHorizontal } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { NavSidebar, BottomNav } from "@/features/app-shell";
+import { useState, useCallback, useEffect } from "react";
+import { NavSidebar, BottomNav, AppSearchTopbar } from "@/features/app-shell";
 import { WelcomeTourLauncher } from "@/features/tour-guide";
-import { DASHBOARD_SECTIONS } from "@/lib/copy/user-messages";
-import { CirclesGrid, StartCircleModalProvider } from "@/features/circles";
-import { TOUR_TARGETS } from "@/features/tour-guide";
-import { DashboardHeader } from "../components/dashboard-header";
+import { SpacesGrid, StartSpaceModalProvider } from "@/features/spaces";
+import { DashboardOpenNowSection } from "@/features/open-to-connect";
 import { HeroSection } from "../components/hero-section";
-// import { DashboardMatchQualityCard } from "../components/dashboard-match-quality-card";
-import { useMatchPrepPromptStatus } from "@/features/profile-setup/api";
+import { DashboardBrowseTopicsSection } from "../components/dashboard-browse-topics-section";
+import { useMatchPrepPromptStatus, useMatchPrepCurrent } from "@/features/profile-setup/api";
 import { MatchPrepDialog, useMatchmaking } from "@/features/matching";
 import { useMatchPrepClientSessionId } from "@/features/matching/hooks/use-match-prep-client-session-id";
 
-/** Side panel is desktop-only; load it in a separate chunk to keep the main dashboard bundle smaller. */
 const RightPanel = dynamic(
   () => import("../components/right-panel").then((m) => m.RightPanel),
-  { ssr: true }
+  { ssr: true },
 );
 
 export function DashboardPage() {
@@ -39,66 +34,116 @@ export function DashboardPage() {
   );
   const openPrepOnFindMatchClick = promptStatusPending || shouldShowPrepFromServer;
 
+  const { data: matchPrepCurrent, isLoading: matchPrepCurrentLoading } = useMatchPrepCurrent({
+    enabled: true,
+  });
+  const savedMatchIntent = matchPrepCurrent?.matchIntent ?? "quick";
+
   const [prepOpen, setPrepOpen] = useState(false);
   const [matchPrepMode, setMatchPrepMode] = useState<"match_flow" | "edit">("match_flow");
+  const [pendingMatchIntent, setPendingMatchIntent] = useState<"quick" | "activity">("quick");
+  const [searchingIntent, setSearchingIntent] = useState<"quick" | "activity" | null>(null);
+  const [switchingToIntent, setSwitchingToIntent] = useState<"quick" | "activity" | null>(null);
+
+  const openMatchPrep = useCallback((mode: "match_flow" | "edit", intent: "quick" | "activity" = "quick") => {
+    setPendingMatchIntent(intent);
+    setMatchPrepMode(mode);
+    setPrepOpen(true);
+  }, []);
+
+  const beginSearch = useCallback(
+    (intent: "quick" | "activity") => {
+      setSearchingIntent(intent);
+      handleFindMatch();
+    },
+    [handleFindMatch],
+  );
+
+  useEffect(() => {
+    if (status === "idle" || status === "error" || status === "matched") {
+      setSearchingIntent(null);
+    }
+  }, [status]);
+
+  useEffect(() => {
+    if (status === "searching" && searchingIntent === null && !matchPrepCurrentLoading) {
+      setSearchingIntent(savedMatchIntent);
+    }
+  }, [status, searchingIntent, savedMatchIntent, matchPrepCurrentLoading]);
+
+  const startMatchFlow = useCallback(
+    async (intent: "quick" | "activity") => {
+      if (status === "searching" || status === "proposed") {
+        setSwitchingToIntent(intent);
+        try {
+          await handleCancel();
+          openMatchPrep("match_flow", intent);
+        } finally {
+          setSwitchingToIntent(null);
+        }
+        return;
+      }
+
+      const needsPrep =
+        matchPrepCurrentLoading ||
+        openPrepOnFindMatchClick ||
+        savedMatchIntent !== intent;
+
+      if (needsPrep) {
+        openMatchPrep("match_flow", intent);
+        return;
+      }
+
+      beginSearch(intent);
+    },
+    [
+      status,
+      handleCancel,
+      openPrepOnFindMatchClick,
+      savedMatchIntent,
+      matchPrepCurrentLoading,
+      openMatchPrep,
+      beginSearch,
+    ],
+  );
 
   return (
-    <StartCircleModalProvider>
+    <StartSpaceModalProvider>
       <MatchPrepDialog
         open={prepOpen}
         onOpenChange={setPrepOpen}
-        onStartSearch={handleFindMatch}
+        onStartSearch={() => beginSearch(pendingMatchIntent)}
         clientSessionId={clientSessionId}
         mode={matchPrepMode}
+        initialMatchIntent={pendingMatchIntent}
       />
       <WelcomeTourLauncher blocked={prepOpen} />
       <div className="flex h-screen overflow-hidden bg-background">
-        <NavSidebar activePath="/" />
+        <NavSidebar activePath="/home" />
 
-        <main className="flex flex-1 flex-col overflow-y-auto pb-16 md:pb-0">
-          <DashboardHeader />
+        <main className="app-scrollbar flex min-w-0 flex-1 flex-col overflow-y-auto pb-16 md:pb-0">
+          <AppSearchTopbar />
 
-          <div className="flex flex-col gap-4 px-4 md:px-8 py-5">
+          <div className="flex w-full flex-col gap-5 px-4 py-5 lg:px-5 lg:py-5">
             <HeroSection
               appState={status}
-              onRequestMatch={() => {
-                if (openPrepOnFindMatchClick) {
-                  setMatchPrepMode("match_flow");
-                  setPrepOpen(true);
-                } else handleFindMatch();
-              }}
+              searchingIntent={searchingIntent}
+              switchingToIntent={switchingToIntent}
+              onRequestMatch={() => void startMatchFlow("quick")}
+              onRequestActivityMatch={() => void startMatchFlow("activity")}
               onCancel={handleCancel}
+              onChangePreferences={() => openMatchPrep("edit")}
               error={error}
             />
-            <div className="flex justify-end px-0">
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                className="gap-2 rounded-full border-border text-xs"
-                data-tour-id={TOUR_TARGETS.changePreferences}
-                onClick={() => {
-                  setMatchPrepMode("edit");
-                  setPrepOpen(true);
-                }}
-              >
-                <SlidersHorizontal className="size-3.5 opacity-80" aria-hidden />
-                {DASHBOARD_SECTIONS.changePreferences}
-              </Button>
-            </div>
-            <CirclesGrid />
-
-            {/* MVP: match quality card hidden on mobile too
-            <div className="lg:hidden">
-              <DashboardMatchQualityCard />
-            </div>
-            */}
+            <SpacesGrid />
+            <DashboardOpenNowSection />
+            <DashboardBrowseTopicsSection />
           </div>
         </main>
 
         <RightPanel />
-        <BottomNav activePath="/" />
+        <BottomNav activePath="/home" />
       </div>
-    </StartCircleModalProvider>
+    </StartSpaceModalProvider>
   );
 }

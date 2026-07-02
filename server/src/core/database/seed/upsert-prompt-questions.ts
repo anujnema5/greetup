@@ -1,6 +1,6 @@
-import { sql } from "drizzle-orm";
+import { inArray, sql } from "drizzle-orm";
 import { promptQuestions } from "@/core/database/schema";
-import { PROMPT_QUESTIONS_SEED } from "./prompt-questions.data";
+import { PROMPT_QUESTIONS_SEED, RETIRED_PROMPT_QUESTION_KEYS } from "./prompt-questions.data";
 import type { SeedDb } from "./seed-db";
 
 /**
@@ -16,7 +16,15 @@ export async function upsertPromptQuestions(db: SeedDb): Promise<void> {
       set: {
         question: sql`excluded.question`,
         order: sql`excluded.order`,
+        isActive: sql`true`,
         updatedAt: sql`now()`,
       },
     });
+
+  if (RETIRED_PROMPT_QUESTION_KEYS.length > 0) {
+    await db
+      .update(promptQuestions)
+      .set({ isActive: false, updatedAt: sql`now()` })
+      .where(inArray(promptQuestions.key, [...RETIRED_PROMPT_QUESTION_KEYS]));
+  }
 }

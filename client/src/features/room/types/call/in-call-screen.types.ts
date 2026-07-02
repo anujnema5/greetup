@@ -12,11 +12,11 @@ import type { RoomActivityId, RoomActivityMeta } from "@/features/room/types/cal
 import type { CallCapabilities } from "@/features/room/contracts";
 import type { LiveSpeakerCallProps } from "@/features/room/types/call/active-speaker-props.types";
 import type {
-  CircleParticipantKickProps,
-  OnRemoveCircleParticipant,
+  SpaceParticipantKickProps,
+  OnRemoveSpaceParticipant,
 } from "@/features/room/types/call/participant-remove.types";
 
-export type { CircleParticipantKickProps };
+export type { SpaceParticipantKickProps };
 
 export type InCallScreenProps = {
   /** Built in call wiring; drives tabs, layout mode, and future feature flags. */
@@ -70,9 +70,9 @@ export type InCallScreenProps = {
   showSkip?: boolean;
   /** Chat conversation linked to this room — renders in-call chat panel when provided. */
   conversationId?: string | null;
-  /** Direct call only: show “Add to circle” in the toolbar. */
-  showAddToCircle?: boolean;
-  onOpenAddToCircle?: () => void;
+  /** Direct call only: show “Add to space” in the toolbar. */
+  showAddToSpace?: boolean;
+  onOpenAddToSpace?: () => void;
   /** Direct call only: remote peer left; show searching state instead of stale remote tile. */
   searchingForNextCandidate?: boolean;
   /** Direct call only: matchmaking reported no match / error while replacing the peer. */
@@ -84,12 +84,12 @@ export type InCallScreenProps = {
   requestChessBusy?: boolean;
   onEndActiveGame?: () => void;
   onOfferDrawGame?: () => void;
-  /** Circle call: room id for host rename API. */
+  /** Space call: room id for host rename API. */
   roomId?: string | null;
   /** Circle display name (DB-backed title or fallback). */
-  circleDisplayTitle?: string | null;
-  /** True when the signed-in user is the circle host (can rename). */
-  circleCanEditTitle?: boolean;
+  spaceDisplayTitle?: string | null;
+  /** True when the signed-in user is the space host (can rename). */
+  spaceCanEditTitle?: boolean;
   /** Active screen-share surfaces — filmstrip + main stage when non-empty. */
   screenShareTiles?: ScreenShareTileInfo[];
   focusedScreenShareKey?: string | null;
@@ -104,10 +104,10 @@ export type InCallScreenProps = {
   directRoomActivities?: RoomActivityMeta[];
   /** Full API policy map; merged with chess defaults in `resolveEmbeddedActivityCallPolicy` when thin. */
   embeddedCallPolicyLookup?: EmbeddedCallPolicyLookup | null;
-  /** When set, circle host can end the session for everyone (separate from Leave). */
-  onHostEndCircleForEveryone?: () => void;
-  /** Circle host: remove one participant from the live call (optional restrict). */
-  onKickParticipant?: OnRemoveCircleParticipant;
+  /** When set, space host can end the session for everyone (separate from Leave). */
+  onHostEndSpaceForEveryone?: () => void;
+  /** Space host: remove one participant from the live call (optional restrict). */
+  onKickParticipant?: OnRemoveSpaceParticipant;
   kickingUserId?: string | null;
-  isCircleHost?: boolean;
+  isSpaceHost?: boolean;
 } & LiveSpeakerCallProps;

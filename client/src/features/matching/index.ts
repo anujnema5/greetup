@@ -1,5 +1,5 @@
 /**
- * Matching API (find / cancel / respond / peer preview) and `/circle/[roomId]` room hook.
+ * Matching API (find / cancel / respond / peer preview) and `/space/[roomId]` room hook.
  *
  * - Types: `types/` (`matching-api.types`, `room.types` — `sessionKind` unions + layout helpers)
  * - RTC derivation: `utils/derive-room-rtc-state.ts`
@@ -22,10 +22,10 @@ export {
 export { patchMatchPeerPreviewCache } from "./lib/peer-preview-cache";
 export type * from "./types";
 export {
-  isCircleHostUser,
-  isCircleRoomData,
+  isSpaceHostUser,
+  isSpaceRoomData,
   isDirectMatchRoom,
-  isPersistedCircleSession,
+  isPersistedSpaceSession,
   isRoomGroupLayout,
-  resolveCircleHostUserId,
+  resolveSpaceHostUserId,
 } from "./types/room.types";

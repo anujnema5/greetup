@@ -50,7 +50,7 @@ export async function getOrCreateRoomConversation(
       return conversationId;
     }
 
-    const conversationId = await createCircleRoomConversation(tx, roomId);
+    const conversationId = await createSpaceRoomConversation(tx, roomId);
     logger.info("room_conversation_created", { roomId, roomType, conversationId });
     return conversationId;
   });
@@ -205,14 +205,14 @@ async function findExistingPeerConversationId(tx: DbLike, userA: string, userB: 
   return existing?.id ?? null;
 }
 
-async function createCircleRoomConversation(tx: DbLike, roomId: string): Promise<string> {
+async function createSpaceRoomConversation(tx: DbLike, roomId: string): Promise<string> {
   const participants = await tx.query.roomParticipants.findMany({
     where: eq(roomParticipants.roomId, roomId),
     columns: { userId: true },
   });
 
   const [conv] = await tx.insert(conversations).values({
-    type: "room_circle",
+    type: "room_space",
     roomId,
     isPersisted: true,
   }).returning({ id: conversations.id });

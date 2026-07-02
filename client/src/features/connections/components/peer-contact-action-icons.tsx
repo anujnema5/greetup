@@ -21,7 +21,7 @@ type PeerContactActionIconsProps = {
 };
 
 const iconButtonClass =
-  "inline-flex shrink-0 items-center justify-center rounded-md text-muted-foreground/75 transition-colors hover:bg-muted/80 hover:text-primary disabled:pointer-events-none disabled:opacity-35 cursor-pointer disabled:cursor-not-allowed";
+  "inline-flex shrink-0 items-center justify-center rounded-lg text-muted-foreground/75 transition-colors hover:bg-muted/80 hover:text-primary disabled:pointer-events-none disabled:opacity-35 cursor-pointer disabled:cursor-not-allowed";
 
 export function PeerContactActionIcons({
   disabled = false,

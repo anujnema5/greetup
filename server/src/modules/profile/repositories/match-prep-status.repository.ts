@@ -5,13 +5,17 @@ import {
   currentStatus,
   currentStatusLookingFor,
   currentStatusMoods,
+  currentStatusActivities,
   profileInterests,
 } from "@/core/database/schema";
+import type { ValidatedActivitySelection } from "@/modules/session-activities";
 
 type ConnectionPreference =
   | "same_profession"
   | "different_profession"
   | "open_to_anyone";
+
+type MatchIntent = "quick" | "activity";
 
 export const matchPrepStatusRepository = {
   async replaceMatchPrepCurrentStatus(
@@ -23,6 +27,8 @@ export const matchPrepStatusRepository = {
       interestIds: string[];
       sessionGoal: string | null;
       connectionPreference: ConnectionPreference | null;
+      matchIntent: MatchIntent;
+      activitySelections: ValidatedActivitySelection[];
     },
   ): Promise<void> {
     await db.transaction(async (tx) => {
@@ -50,6 +56,7 @@ export const matchPrepStatusRepository = {
           .set({
             sessionGoal: data.sessionGoal,
             connectionPreference: data.connectionPreference ?? null,
+            matchIntent: data.matchIntent,
             availability: "available",
             lastActiveAt: now,
             updatedAt: now,
@@ -62,6 +69,7 @@ export const matchPrepStatusRepository = {
             profileId,
             sessionGoal: data.sessionGoal,
             connectionPreference: data.connectionPreference ?? null,
+            matchIntent: data.matchIntent,
             availability: "available",
             lastActiveAt: now,
             updatedAt: now,
@@ -91,6 +99,21 @@ export const matchPrepStatusRepository = {
           data.lookingForIds.map((lookingForId) => ({
             currentStatusId: statusId,
             lookingForId,
+          })),
+        );
+      }
+
+      await tx
+        .delete(currentStatusActivities)
+        .where(eq(currentStatusActivities.currentStatusId, statusId));
+      if (data.activitySelections.length > 0) {
+        await tx.insert(currentStatusActivities).values(
+          data.activitySelections.map((row) => ({
+            currentStatusId: statusId,
+            activityId: row.activityId,
+            detail: row.detail,
+            detailNormalized: row.detailNormalized,
+            sortOrder: row.sortOrder,
           })),
         );
       }

@@ -12,7 +12,7 @@ import { toast } from "sonner";
 import { Chess, type Move, type Square } from "chess.js";
 import { Chessboard } from "react-chessboard";
 import { useRoomChessMove } from "@/features/activity/api/activity.mutations";
-import { capturedPieceKeysFromSans, type ChessPieceKey } from "@/features/activity/chess/utils/chess-captured";
+import { capturedPieceKeysFromFen, type ChessPieceKey } from "@/features/activity/chess/utils/chess-captured";
 import { playChessSound, preloadChessSounds } from "@/features/activity/chess/utils/chess-sounds";
 import {
   RoomActivityLayout,
@@ -242,9 +242,17 @@ function lastMoveFromSanList(sans: string[]): Move | null {
   if (sans.length === 0) return null;
   const board = new Chess();
   for (let i = 0; i < sans.length - 1; i++) {
-    if (!board.move(sans[i]!)) return null;
+    try {
+      if (!board.move(sans[i]!)) return null;
+    } catch {
+      return null;
+    }
   }
-  return board.move(sans[sans.length - 1]!);
+  try {
+    return board.move(sans[sans.length - 1]!);
+  } catch {
+    return null;
+  }
 }
 
 /**
@@ -297,8 +305,8 @@ export function ChessActivityStage({
   );
 
   const { capturedByWhite, capturedByBlack } = useMemo(
-    () => capturedPieceKeysFromSans(syncedMoves),
-    [syncedMoves],
+    () => capturedPieceKeysFromFen(fen),
+    [fen],
   );
 
   useEffect(() => {
@@ -330,6 +338,8 @@ export function ChessActivityStage({
     const moveNumber = chessActivity?.moveNumber ?? 0;
     setSyncedMoves((prev) => {
       if (prev.length >= moveNumber) return prev;
+      // Only append the next sequential half-move — `lastMoveSan` alone cannot fill gaps after remount.
+      if (prev.length + 1 !== moveNumber) return prev;
       return [...prev, lastSan];
     });
   });

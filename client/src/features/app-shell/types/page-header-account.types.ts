@@ -1,4 +1,5 @@
 export type PageHeaderSessionUser = {
+  id?: string;
   displayName?: string | null;
   name?: string | null;
   email?: string | null;
@@ -9,7 +10,8 @@ export type PageHeaderSessionUser = {
 export type PageHeaderAccountState = {
   displayName: string;
   accountSubtitle: string;
-  avatarSrc: string;
+  avatarImage: string | null;
+  avatarSeed: string;
   isSigningOut: boolean;
   onGoToProfile: () => void;
   onGoToSettings: () => void;

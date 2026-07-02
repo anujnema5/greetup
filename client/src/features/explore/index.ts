@@ -1,4 +1,6 @@
 export { ExplorePage } from "./pages/explore-page";
+export { AppSearchDropdown } from "./components/app-search-dropdown";
+export { useAppSearch } from "./hooks/use-app-search";
 export { useExploreSearch } from "./hooks/use-explore-search";
 export { useExploreBrowseNiches } from "./hooks/use-explore-browse-niches";
 export { useExploreNicheRoomsModal } from "./hooks/use-explore-niche-rooms-modal";

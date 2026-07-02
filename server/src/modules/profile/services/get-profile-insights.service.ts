@@ -80,14 +80,14 @@ export async function getProfileInsightsService(
   const [
     matchCount,
     connectionCount,
-    circleCount,
+    spaceCount,
     profileCompletion,
     recentSessions,
     acceptedPeers,
   ] = await Promise.all([
     profileInsightsRepository.countMatchSessions(userId),
     profileInsightsRepository.countAcceptedConnections(userId),
-    profileInsightsRepository.countJoinedCircles(userId),
+    profileInsightsRepository.countJoinedSpaces(userId),
     profileInsightsRepository.getProfileCompletion(userId),
     profileInsightsRepository.listRecentMatchSessions(userId, recentLimit * 2),
     userConnectionsRepository.findAcceptedPeerIdColumns(userId),
@@ -136,7 +136,7 @@ export async function getProfileInsightsService(
     stats: {
       matchCount,
       connectionCount,
-      circleCount,
+      spaceCount,
       profileCompletion,
     },
     recentMatches,

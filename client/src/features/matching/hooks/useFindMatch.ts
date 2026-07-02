@@ -7,12 +7,14 @@ import {
   useRespondMatchProposalMutation,
 } from '../api/matching.mutations';
 import { getApiErrorCode, getApiErrorMessage } from '@/lib/api';
+import { toast } from 'sonner';
 import { useSocket } from '@/lib/socket';
 import {
   messageForFailedStart,
   messageForNoMatch,
   messageForProposalCancelled,
 } from './find-match-messages';
+import { shouldOfferOpenToConnectAfterNoMatch } from '@/features/open-to-connect/lib/should-offer-open-after-no-match';
 import { runSerialized } from './find-match-queue';
 import {
   clearMatchAttemptLocal,
@@ -45,6 +47,10 @@ export function useFindMatch() {
   const [respondBusy, setRespondBusy] = useState(false);
   /** True after our Connect succeeded until `match:completed` or proposal ends. */
   const [waitingForPeerConnect, setWaitingForPeerConnect] = useState(false);
+  /** Set when a search ends with no_match and the Open to Connect offer should show. */
+  const [noMatchOfferReason, setNoMatchOfferReason] = useState<string | null>(null);
+  /** Keeps search suggestions visible briefly after no_match (even if offer modal is dismissed). */
+  const [noMatchSuggestionContext, setNoMatchSuggestionContext] = useState(false);
 
   const { mutateAsync: findMatch, isPending: isStarting } = useFindMatchMutation();
   const { mutateAsync: cancelMatch } = useCancelMatchMutation();
@@ -67,6 +73,31 @@ export function useFindMatch() {
       requestIdRef.current === attemptId || readStoredMatchAttemptId() === attemptId,
     [],
   );
+
+  const dismissNoMatchOffer = useCallback(() => {
+    setNoMatchOfferReason(null);
+    setStatus('idle');
+    setError(null);
+  }, []);
+
+  const applyNoMatchOutcome = useCallback((reason: string | undefined) => {
+    clearMatchAttemptLocal(proposalPeerIdRef, requestIdRef);
+    setWaitingForPeerConnect(false);
+    setResult(null);
+
+    if (shouldOfferOpenToConnectAfterNoMatch(reason)) {
+      setNoMatchOfferReason(reason ?? 'no_match');
+      setNoMatchSuggestionContext(true);
+      setStatus('idle');
+      setError(null);
+      return;
+    }
+
+    const message = messageForNoMatch(reason ?? 'no_match');
+    setStatus('error');
+    setError(message);
+    toast.error(message);
+  }, []);
 
   const applyProposedFromServer = useCallback(
     (
@@ -92,6 +123,8 @@ export function useFindMatch() {
         setError(null);
         setErrorCode(null);
         setWaitingForPeerConnect(false);
+        setNoMatchOfferReason(null);
+        setNoMatchSuggestionContext(false);
 
         const res = await findMatch();
         const {
@@ -104,8 +137,14 @@ export function useFindMatch() {
         } = res;
 
         if (engineStatus === 'no_match') {
-          setStatus('error');
-          setError(messageForFailedStart(reason));
+          if (shouldOfferOpenToConnectAfterNoMatch(reason)) {
+            applyNoMatchOutcome(reason);
+          } else {
+            const message = messageForFailedStart(reason);
+            setStatus('error');
+            setError(message);
+            toast.error(message);
+          }
           return;
         }
 
@@ -122,12 +161,14 @@ export function useFindMatch() {
           });
         }
       } catch (err) {
+        const message = getApiErrorMessage(err, 'Failed to start matchmaking');
         setStatus('error');
         setErrorCode(getApiErrorCode(err));
-        setError(getApiErrorMessage(err, 'Failed to start matchmaking'));
+        setError(message);
+        toast.error(message);
       }
     });
-  }, [findMatch]);
+  }, [findMatch, applyNoMatchOutcome]);
 
   findAMatchRef.current = findAMatch;
 
@@ -196,10 +237,7 @@ export function useFindMatch() {
       const stored = readStoredMatchAttemptId();
       if (stored === null) return;
       if (data.attemptId !== stored && requestIdRef.current !== data.attemptId) return;
-      clearMatchAttemptLocal(proposalPeerIdRef, requestIdRef);
-      setWaitingForPeerConnect(false);
-      setStatus('error');
-      setError(messageForNoMatch(data.reason));
+      applyNoMatchOutcome(data.reason);
     };
 
     const onProposalCancelled = (data: MatchProposalCancelledPayload) => {
@@ -221,7 +259,9 @@ export function useFindMatch() {
       }
 
       setStatus('error');
-      setError(messageForProposalCancelled(data.reason));
+      const message = messageForProposalCancelled(data.reason);
+      setError(message);
+      toast.error(message);
     };
 
     socket.on('match:completed', onMatchCompleted);
@@ -237,7 +277,7 @@ export function useFindMatch() {
       socket.off('match:no_match', onMatchNoMatch);
       socket.off('match:proposal_cancelled', onProposalCancelled);
     };
-  }, [socket, applies, applyProposedFromServer]);
+  }, [socket, applies, applyProposedFromServer, applyNoMatchOutcome]);
 
   const cancelSearch = async () => {
     try {
@@ -247,6 +287,8 @@ export function useFindMatch() {
     }
     clearMatchAttemptLocal(proposalPeerIdRef, requestIdRef);
     setWaitingForPeerConnect(false);
+    setNoMatchOfferReason(null);
+    setNoMatchSuggestionContext(false);
     setStatus('idle');
     setResult(null);
     setError(null);
@@ -257,7 +299,9 @@ export function useFindMatch() {
     async (decision: 'connect' | 'skip') => {
       const attemptId = requestIdRef.current ?? readStoredMatchAttemptId();
       if (!attemptId) {
-        setError('No active match proposal.');
+        const message = 'No active match proposal.';
+        setError(message);
+        toast.error(message);
         return;
       }
       if (decision === 'skip') {
@@ -270,13 +314,13 @@ export function useFindMatch() {
           setWaitingForPeerConnect(true);
         }
       } catch (err) {
-        setErrorCode(getApiErrorCode(err));
-        setError(
-          getApiErrorMessage(
-            err,
-            decision === 'connect' ? 'Could not connect. Try again.' : 'Could not skip. Try again.',
-          ),
+        const message = getApiErrorMessage(
+          err,
+          decision === 'connect' ? 'Could not connect. Try again.' : 'Could not skip. Try again.',
         );
+        setErrorCode(getApiErrorCode(err));
+        setError(message);
+        toast.error(message);
         if (decision === 'connect') {
           setWaitingForPeerConnect(false);
         }
@@ -300,5 +344,8 @@ export function useFindMatch() {
     isLoading: isStarting || status === 'searching' || respondBusy,
     respondBusy,
     waitingForPeerConnect,
+    noMatchOfferReason,
+    noMatchSuggestionContext,
+    dismissNoMatchOffer,
   };
 }

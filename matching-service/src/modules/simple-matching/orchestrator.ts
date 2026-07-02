@@ -7,12 +7,13 @@ import {
   coalesceActiveSearchOrProposal,
   releaseStartSearchLockIfHolder,
   searchingWithRequestId,
-  sortScoredCandidatesDescending,
+  rankCandidatesForPairing,
   START_SEARCH_LOCK_POLL_MS,
   START_SEARCH_LOCK_WAIT_MS,
   tryAcquireStartSearchLock,
 } from "@/modules/simple-matching/helpers";
 import { MatchValidatorService } from "@/modules/simple-matching/scoring/validator";
+import { passesActivityIntentStrictFilter } from "@/modules/simple-matching/scoring/activity-intent";
 import { MatchScoreService } from "@/modules/simple-matching/scoring/scorer";
 import type { MatchCandidate, ScoredMatchCandidate } from "@/modules/simple-matching/types";
 import { MatchLockService } from "@/modules/simple-matching/pool/lock";
@@ -23,6 +24,7 @@ import { MatchAttemptRepository } from "@/modules/simple-matching/repositories/a
 import { RoomOrchestrationService } from "@/modules/simple-matching/room";
 import { MatchProposalService } from "@/modules/simple-matching/proposal/proposal";
 import { MatchSkipPeersService } from "@/modules/simple-matching/proposal/skip-peers";
+import { MatchDeprioritizedPeersService } from "@/modules/simple-matching/peers/deprioritized-peers";
 import { MatchWebhookService } from "@/modules/simple-matching/webhook";
 import { isBlockedWithPeer } from "@/modules/simple-matching/blocks/blocked-peers";
 import {
@@ -50,6 +52,7 @@ export class MatchOrchestratorService {
     private readonly rooms = new RoomOrchestrationService(),
     private readonly proposals = new MatchProposalService(),
     private readonly skipPeers = new MatchSkipPeersService(),
+    private readonly deprioritizedPeers = new MatchDeprioritizedPeersService(),
     private readonly webhook = new MatchWebhookService(),
   ) { }
 
@@ -204,7 +207,7 @@ export class MatchOrchestratorService {
       if (candidates.length > 0) poolHadOtherSearchers = true;
       logger.debug("[processMatchRequest] retry scan", { userId: request.userId, retryIndex, candidateCount: candidates.length });
 
-      const scoredCandidates = await this.scoreCandidatesFromPool(
+      const scoredCandidates = await this.scorePoolCandidates(
         requesterSnapshot,
         candidates,
         strategy.primaryScoringMode,
@@ -212,15 +215,18 @@ export class MatchOrchestratorService {
 
       if (scoredCandidates.length > 0) foundEligibleCandidate = true;
 
+      const deprioritizedPeerSets = await this.deprioritizedPeers.getPeerSetsForRanking(request.userId);
+      const orderedCandidates = orderCandidatesForStrategy(
+        strategy,
+        rankCandidatesForPairing(scoredCandidates, deprioritizedPeerSets),
+      );
+
       logger.debug("[processMatchRequest] scored candidates", {
         userId: request.userId,
         retryIndex,
         scoredCount: scoredCandidates.length,
-        scoredCandidates: scoredCandidates.map((c) => ({ userId: c.userId, matchScore: c.matchScore, poolScore: c.poolScore })),
+        orderedCandidates: orderedCandidates.map((c) => ({ userId: c.userId, matchScore: c.matchScore, poolScore: c.poolScore })),
       });
-
-      sortScoredCandidatesDescending(scoredCandidates);
-      const orderedCandidates = orderCandidatesForStrategy(strategy, scoredCandidates);
 
       const matched = await this.tryPairWithSortedCandidates(request, orderedCandidates, false);
       if (matched) return matched;
@@ -292,13 +298,13 @@ export class MatchOrchestratorService {
     return hydrated;
   }
 
-  private async scoreCandidatesFromPool(
+  /** Profile-based scores only — deprioritization is applied later in `rankCandidatesForPairing`. */
+  private async scorePoolCandidates(
     requesterSnapshot: SnapshotUserProfile,
     poolCandidates: MatchCandidate[],
     mode: CandidateScoringMode,
   ): Promise<ScoredMatchCandidate[]> {
     const logSkips = mode === "eligible_only";
-    const skippedPeerIds = await this.skipPeers.getSkippedPeerSet(requesterSnapshot.userId);
     const guestMatchPoolPolicy = resolveGuestMatchPoolPolicy();
     const scoredMaybe = await Promise.all(
       poolCandidates.map(async (candidate): Promise<ScoredMatchCandidate | null> => {
@@ -336,6 +342,18 @@ export class MatchOrchestratorService {
           return null;
         }
 
+        if (
+          mode === "eligible_only" &&
+          !passesActivityIntentStrictFilter(requesterSnapshot, candidateSnapshot)
+        ) {
+          if (logSkips) {
+            logger.debug("[processMatchRequest] skipping candidate — activity intent filter", {
+              candidateId: candidate.userId,
+            });
+          }
+          return null;
+        }
+
         const matchScore = this.scorer.calculateBidirectionalScore(requesterSnapshot, candidateSnapshot);
         if (mode === "eligible_only" && !this.scorer.isScoreEligible(matchScore)) {
           logger.debug("[processMatchRequest] skipping candidate — score below threshold", {
@@ -352,22 +370,7 @@ export class MatchOrchestratorService {
         };
       }),
     );
-    const out = scoredMaybe.filter((row): row is ScoredMatchCandidate => row !== null);
-
-    if (skippedPeerIds.size === 0) {
-      return out;
-    }
-
-    const preferred: ScoredMatchCandidate[] = [];
-    const deprioritized: ScoredMatchCandidate[] = [];
-    for (const row of out) {
-      if (skippedPeerIds.has(row.userId)) {
-        deprioritized.push(row);
-      } else {
-        preferred.push(row);
-      }
-    }
-    return [...preferred, ...deprioritized];
+    return scoredMaybe.filter((row): row is ScoredMatchCandidate => row !== null);
   }
 
   /**
@@ -516,13 +519,16 @@ export class MatchOrchestratorService {
       poolSize: candidates.length,
     });
 
-    const scoredCandidates = await this.scoreCandidatesFromPool(
+    const scoredCandidates = await this.scorePoolCandidates(
       requesterSnapshot,
       candidates,
       strategy.fallbackScoringMode,
     );
-    sortScoredCandidatesDescending(scoredCandidates);
-    const orderedCandidates = orderCandidatesForStrategy(strategy, scoredCandidates);
+    const deprioritizedPeerSets = await this.deprioritizedPeers.getPeerSetsForRanking(request.userId);
+    const orderedCandidates = orderCandidatesForStrategy(
+      strategy,
+      rankCandidatesForPairing(scoredCandidates, deprioritizedPeerSets),
+    );
 
     if (scoredCandidates.length === 0) {
       logger.warn("[tryFallbackMatch] no all_compatible candidates after scoring — giving up fallback", {
@@ -681,6 +687,8 @@ export class MatchOrchestratorService {
       pending.matchScore,
     );
     await this.proposals.deletePending(pending.userLow, pending.userHigh);
+
+    await this.deprioritizedPeers.recordMatchedPair(pending.userLow, pending.userHigh);
 
     void this.webhook.notifyMatchCompleted({
       attemptId: pending.roomAttemptId,

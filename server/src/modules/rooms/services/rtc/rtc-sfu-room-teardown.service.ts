@@ -5,7 +5,7 @@ import config from "@/shared/config/config";
  * Best-effort: tells rtc-service to evict peers, release VoiceIQ taps, close the mediasoup Router,
  * and clear `rtc:room:*` Redis keys for this replica.
  *
- * **Callers:** host “end circle for everyone”, and when the last participant leaves a live circle
+ * **Callers:** host “end space for everyone”, and when the last participant leaves a live space
  * (so rejoin can claim a fresh SFU on the current rtc replica). Also clears stale `rtc:room:*` keys
  * when the webhook hits a different process than the recorded owner.
  */

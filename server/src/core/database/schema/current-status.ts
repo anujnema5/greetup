@@ -1,6 +1,7 @@
 import * as t from "drizzle-orm/pg-core";
 import { relations } from 'drizzle-orm';
 import { userProfiles } from "./users";
+import { currentStatusActivities } from "./session-activities";
 
 export const availabilityEnum = t.pgEnum("availability",
     ['available', 'busy', 'offline']
@@ -11,6 +12,13 @@ export const connectionPreferenceEnum = t.pgEnum("connection_preference", [
     "same_profession",
     "different_profession",
     "open_to_anyone",
+]);
+
+export const matchIntentEnum = t.pgEnum("match_intent", ["quick", "activity"]);
+
+export const openToConnectSourceEnum = t.pgEnum("open_to_connect_source", [
+    "manual",
+    "post_no_match",
 ]);
 
 export const moods = t.pgTable("moods", {
@@ -38,7 +46,15 @@ export const currentStatus = t.pgTable("current_status", {
 
     sessionGoal: t.text("session_goal"),
     connectionPreference: connectionPreferenceEnum("connection_preference"),
+    matchIntent: matchIntentEnum("match_intent").default("quick").notNull(),
     availability: availabilityEnum("availability").default("offline").notNull(),
+
+    openToConnect: t.boolean("open_to_connect").default(true).notNull(),
+    openToConnectUpdatedAt: t.timestamp("open_to_connect_updated_at"),
+    openToConnectSource: openToConnectSourceEnum("open_to_connect_source"),
+    openToConnectHeadline: t.varchar("open_to_connect_headline", { length: 120 }),
+    /** User preference stays on; discovery is hidden while in an active RTC room. */
+    openToConnectPausedForRoom: t.boolean("open_to_connect_paused_for_room").default(false).notNull(),
 
     lastActiveAt: t.timestamp("last_active_at").defaultNow().notNull(),
     updatedAt: t.timestamp("updated_at").defaultNow().notNull(),
@@ -84,6 +100,7 @@ export const currentStatusRelations = relations(currentStatus, ({ one, many }) =
     }),
     moods: many(currentStatusMoods),
     lookingFor: many(currentStatusLookingFor),
+    activities: many(currentStatusActivities),
 }));
 
 export const currentStatusMoodsRelations = relations(currentStatusMoods, ({ one }) => ({

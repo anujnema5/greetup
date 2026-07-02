@@ -174,7 +174,40 @@
 }
 
 .driver-popover.greetup-tour-popover .driver-popover-arrow {
-  border-color: var(--card) !important;
+  border-width: 6px !important;
+}
+
+/* Only fill the pointing face — a global border-color turns the arrow into a bordered box. */
+.driver-popover.greetup-tour-popover .driver-popover-arrow-side-left {
+  border-left-color: var(--card) !important;
+  border-right-color: transparent !important;
+  border-top-color: transparent !important;
+  border-bottom-color: transparent !important;
+  margin-left: -1px !important;
+}
+
+.driver-popover.greetup-tour-popover .driver-popover-arrow-side-right {
+  border-right-color: var(--card) !important;
+  border-left-color: transparent !important;
+  border-top-color: transparent !important;
+  border-bottom-color: transparent !important;
+  margin-right: -1px !important;
+}
+
+.driver-popover.greetup-tour-popover .driver-popover-arrow-side-top {
+  border-top-color: var(--card) !important;
+  border-right-color: transparent !important;
+  border-bottom-color: transparent !important;
+  border-left-color: transparent !important;
+  margin-top: -1px !important;
+}
+
+.driver-popover.greetup-tour-popover .driver-popover-arrow-side-bottom {
+  border-bottom-color: var(--card) !important;
+  border-left-color: transparent !important;
+  border-top-color: transparent !important;
+  border-right-color: transparent !important;
+  margin-bottom: -1px !important;
 }
 
 .driver-active-element {

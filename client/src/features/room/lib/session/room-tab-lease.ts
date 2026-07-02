@@ -1,5 +1,5 @@
 /**
- * Cross-tab lease for `/circle/[roomId]`: one browser tab per user per room.
+ * Cross-tab lease for `/space/[roomId]`: one browser tab per user per room.
  * Uses localStorage (shared) + timestamps; heartbeats keep the lease alive while the call runs.
  */
 

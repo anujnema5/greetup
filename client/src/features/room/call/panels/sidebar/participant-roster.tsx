@@ -8,7 +8,7 @@ import {
   ParticipantRemoveConfirmDialog,
 } from "@/features/room/call/components/participant-kick-actions";
 import type {
-  OnRemoveCircleParticipant,
+  OnRemoveSpaceParticipant,
   ParticipantRemoveTarget,
 } from "@/features/room/types/call/participant-remove.types";
 import { getProfileImageUrl } from "@/lib/ui/profile-image";
@@ -56,17 +56,17 @@ function RosterAvatar({
   );
 }
 
-type CircleParticipantRosterProps = {
+type SpaceParticipantRosterProps = {
   myName: string;
   myAvatarUrl?: string | null;
   currentUserId: string | null;
   remotePeers: Record<string, RemotePeer>;
   isHost: boolean;
   kickingUserId: string | null;
-  onKickParticipant?: OnRemoveCircleParticipant;
+  onKickParticipant?: OnRemoveSpaceParticipant;
 };
 
-export function CircleParticipantRoster({
+export function SpaceParticipantRoster({
   myName,
   myAvatarUrl,
   currentUserId,
@@ -74,7 +74,7 @@ export function CircleParticipantRoster({
   isHost,
   kickingUserId,
   onKickParticipant,
-}: CircleParticipantRosterProps) {
+}: SpaceParticipantRosterProps) {
   const [confirmTarget, setConfirmTarget] = useState<ParticipantRemoveTarget | null>(null);
 
   const rows = useMemo((): RosterRow[] => {
@@ -105,7 +105,7 @@ export function CircleParticipantRoster({
     <>
       <section className="shrink-0">
         <h3 className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
-          In circle
+          In space
         </h3>
         <ul className="flex flex-col gap-1">
           {rows.map((row) => {

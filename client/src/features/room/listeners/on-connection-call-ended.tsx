@@ -14,7 +14,7 @@ import {
 import { messagesDirectConversationPath } from "@/features/connection-call/lib/call-navigation";
 import { useMatchmaking } from "@/features/matching";
 import { useLeaveRoom } from "@/features/room/api/room.mutations";
-import { resolveApiRoomId, resolveCircleRouteRoomId } from "@/features/room/lib/navigation/circle-routes";
+import { resolveApiRoomId, resolveSpaceRouteRoomId } from "@/features/room/lib/navigation/space-routes";
 import { consumeRoomReturnPath } from "@/features/room/lib/session/room-return-path";
 import { clearRoomStorage } from "@/features/room/lib/session/room-sync";
 import { isLocalCallEndInProgress } from "@/features/room/lib/call/direct-match-leave-guard";
@@ -31,7 +31,7 @@ export function OnConnectionCallEnded() {
   const params = useParams();
   const pathname = usePathname();
   const router = useRouter();
-  const routeRoomId = resolveCircleRouteRoomId(params, pathname);
+  const routeRoomId = resolveSpaceRouteRoomId(params, pathname);
   const { socket } = useSocket();
   const matchmaking = useMatchmaking();
   const { mutateAsync: leaveRoom } = useLeaveRoom();

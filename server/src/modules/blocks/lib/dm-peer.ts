@@ -5,7 +5,7 @@ export function getDmPeerUserId(
   conversation: ConversationWithParticipants,
   viewerId: string,
 ): string | null {
-  if (conversation.type === 'room_circle') return null;
+  if (conversation.type === 'room_space') return null;
 
   const others = conversation.participants.filter((p) => p.userId !== viewerId);
   if (others.length !== 1) return null;

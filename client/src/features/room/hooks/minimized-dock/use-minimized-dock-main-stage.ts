@@ -12,6 +12,7 @@
  * Live-speaker history: {@link minimizedDockSilenceReducer} — last non-null rtc speaker (silence does
  * not clear it). Debounce stays separate (delayed `setTimeout`).
  */
+import { isGroupRoomSessionType } from "@/shared/types/room-session";
 import { useEffect, useMemo, useReducer, useState } from "react";
 import { hasLiveEnabledVideo, hasLiveMedia, hasLiveVideo } from "@/features/rtc";
 import type {
@@ -43,8 +44,8 @@ export function useMinimizedDockMainStage({
   cameraEnabled,
   directCallPeerLabel,
 }: UseMinimizedDockMainStageArgs): MinimizedDockMainStage {
-  const isCircleRoom = rtcRoomType === "circle";
-  const pinned = isCircleRoom ? null : rtcPrimaryRemoteUserId;
+  const isSpaceRoom = isGroupRoomSessionType(rtcRoomType);
+  const pinned = isSpaceRoom ? null : rtcPrimaryRemoteUserId;
   const uid = currentUserId ?? null;
 
   const [silence, dispatchSilence] = useReducer(
@@ -130,7 +131,7 @@ export function useMinimizedDockMainStage({
      * Always run {@link playbackStreamForDockVideo} so we never bind multiple video tracks to one element.
      */
     const singleRemoteParty =
-      !isCircleRoom && remoteParticipants.length <= 1 && Boolean(remoteMediaStream);
+      !isSpaceRoom && remoteParticipants.length <= 1 && Boolean(remoteMediaStream);
     const remoteSourceForMain = mainIsLocal
       ? null
       : singleRemoteParty
@@ -208,6 +209,6 @@ export function useMinimizedDockMainStage({
     uid,
     dockFocusPeerId,
     directCallPeerLabel,
-    isCircleRoom,
+    isSpaceRoom,
   ]);
 }

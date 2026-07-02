@@ -17,6 +17,8 @@ import {
 } from "@/core/database/schema";
 import { eq, sql } from "drizzle-orm";
 
+import { openToConnectStatusRepository } from "@/modules/open-to-connect/repositories/open-to-connect-status.repository";
+
 export class UsernameTakenError extends Error {
   constructor() {
     super("USERNAME_TAKEN");
@@ -41,6 +43,7 @@ export const profileSetupRepository = {
       .values({ userId })
       .returning({ id: userProfiles.id });
     if (!inserted) throw new Error("Failed to create profile");
+    await openToConnectStatusRepository.createInitialForProfile(inserted.id, true);
     return inserted.id;
   },
 
@@ -49,12 +52,16 @@ export const profileSetupRepository = {
     return db.update(users).set({ displayName, name: displayName }).where(eq(users.id, userId));
   },
 
-  async setUsername(userId: string, username: string) {
+  async isUsernameTakenByOther(userId: string, username: string): Promise<boolean> {
     const taken = await db.query.users.findFirst({
       where: eq(users.username, username),
       columns: { id: true },
     });
-    if (taken && taken.id !== userId) {
+    return Boolean(taken && taken.id !== userId);
+  },
+
+  async setUsername(userId: string, username: string) {
+    if (await this.isUsernameTakenByOther(userId, username)) {
       throw new UsernameTakenError();
     }
     return db.update(users).set({ username }).where(eq(users.id, userId));

@@ -80,12 +80,12 @@ export function MatchStep({
     >
       <div
         className={cn(
-          "relative overflow-hidden rounded-2xl border border-white/6 bg-white/[0.02]",
+          "relative overflow-hidden rounded-2xl border border-border bg-muted/30",
           "px-6 py-10 sm:px-10 sm:py-12",
         )}
       >
         <div
-          className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_42%,oklch(88%_0.11_105/0.08)_0%,transparent_58%)]"
+          className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_42%,color-mix(in_oklch,var(--primary)_8%,transparent)_0%,transparent_58%)]"
           aria-hidden
         />
 
@@ -124,7 +124,7 @@ export function MatchStep({
             <button
               type="button"
               onClick={() => void handleCancel()}
-              className="inline-flex cursor-pointer items-center justify-center gap-1.5 rounded-full border border-white/10 bg-white/4 px-4 py-2 text-xs font-medium text-foreground transition-colors hover:bg-white/8 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 sm:text-sm"
+              className="inline-flex cursor-pointer items-center justify-center gap-1.5 rounded-full border border-border bg-muted/40 px-4 py-2 text-xs font-medium text-foreground transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 sm:text-sm"
             >
               <X className="size-3.5 shrink-0 opacity-70" strokeWidth={2.5} aria-hidden />
               {GUEST_TRIAL_MATCH.cancelSearch}

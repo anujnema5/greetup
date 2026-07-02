@@ -7,7 +7,7 @@ import {
   ParticipantRemoveConfirmDialog,
 } from "@/features/room/call/components/participant-kick-actions";
 import type {
-  OnRemoveCircleParticipant,
+  OnRemoveSpaceParticipant,
   ParticipantRemoveTarget,
 } from "@/features/room/types/call/participant-remove.types";
 import { cn } from "@/lib/utils";
@@ -86,7 +86,7 @@ type ParticipantTileControlsBarProps = MediaStatusProps & {
   displayName: string;
   canKick: boolean;
   kickingUserId: string | null;
-  onKickParticipant?: OnRemoveCircleParticipant;
+  onKickParticipant?: OnRemoveSpaceParticipant;
 };
 
 /** Remote tile: media status + host remove/restrict menu. */

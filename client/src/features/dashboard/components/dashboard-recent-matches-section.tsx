@@ -2,13 +2,15 @@
 
 import Link from "next/link";
 import { useMemo, useState } from "react";
-import { Zap } from "lucide-react";
 
 import { PeerContactActionIcons } from "@/features/connections/components/peer-contact-action-icons";
 import type { PeerContactTarget } from "@/features/connections/hooks/use-peer-contact-actions";
 import { usePeerContactActions } from "@/features/connections/hooks/use-peer-contact-actions";
 import { RecentMatchesDialog } from "@/features/profile/components/recent-matches-dialog";
-import { profileAvatarGradientClass, recentMatchHistoryLabel } from "@/features/profile/lib/profile-insights-display";
+import {
+  profileAvatarGradientClass,
+  recentMatchSidebarLabel,
+} from "@/features/profile/lib/profile-insights-display";
 import type { ProfileRecentMatch } from "@/features/profile/types/profile-insights.types";
 import { OnlinePresenceDot, usePeersOnlineStatus } from "@/features/presence";
 import { getProfileImageUrl } from "@/lib/ui/profile-image";
@@ -16,6 +18,7 @@ import { cn } from "@/lib/utils";
 
 import { DASHBOARD_SECTIONS } from "@/lib/copy/user-messages";
 
+import { DashboardSectionHeader } from "./dashboard-section-header";
 import { useDashboardInsights } from "../hooks/use-dashboard-insights";
 
 const RECENT_MATCHES_PREVIEW_LIMIT = 3;
@@ -65,7 +68,7 @@ function RecentMatchRow({
 }: RecentMatchRowProps) {
   const profileHref = match.username ? `/u/${encodeURIComponent(match.username)}` : null;
   const avatarSrc = getProfileImageUrl(match.image);
-  const subtitle = recentMatchHistoryLabel(match);
+  const subtitle = recentMatchSidebarLabel(match);
   const peer = matchToPeer(match);
 
   const profileBlock = (
@@ -96,18 +99,11 @@ function RecentMatchRow({
         <p className="truncate text-xs font-semibold text-foreground">{match.displayName}</p>
         <p className="truncate text-[11px] text-muted-foreground">{subtitle}</p>
       </div>
-
-      {match.matchScore != null ? (
-        <div className="flex shrink-0 items-center gap-1 text-[11px] text-primary">
-          <Zap size={10} />
-          {match.matchScore}%
-        </div>
-      ) : null}
     </>
   );
 
   return (
-    <div className="flex items-center gap-1.5 rounded-xl px-2 py-2.5 transition-colors duration-150 hover:bg-muted/60">
+    <div className="group flex items-center gap-1 rounded-lg px-1.5 py-1.5 transition-colors hover:bg-muted/60">
       {profileHref ? (
         <Link href={profileHref} className="flex min-w-0 flex-1 items-center gap-3">
           {profileBlock}
@@ -153,34 +149,26 @@ export function DashboardRecentMatchesSection() {
 
   return (
     <>
-      <div>
-        <div className="mb-3 flex items-center justify-between">
-          <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-            {DASHBOARD_SECTIONS.recentMatches.title}
-          </h3>
-          {hasMatches ? (
-            <button
-              type="button"
-              onClick={() => setDialogOpen(true)}
-              className="cursor-pointer text-xs text-muted-foreground transition-colors hover:text-primary hover:underline"
-            >
-              {DASHBOARD_SECTIONS.recentMatches.seeAll}
-            </button>
-          ) : null}
-        </div>
+      <section>
+        <DashboardSectionHeader
+          variant="panel"
+          title={DASHBOARD_SECTIONS.recentMatches.title}
+          actionLabel={hasMatches ? DASHBOARD_SECTIONS.recentMatches.seeAll : undefined}
+          onAction={hasMatches ? () => setDialogOpen(true) : undefined}
+        />
 
         {loading ? (
-          <div className="flex flex-col gap-1">
+          <div className="flex flex-col gap-0.5">
             {Array.from({ length: 3 }).map((_, index) => (
               <MatchRowSkeleton key={index} />
             ))}
           </div>
         ) : previewMatches.length === 0 ? (
-          <p className="px-2 py-3 text-xs text-muted-foreground">
+          <p className="rounded-xl border border-dashed border-border bg-muted/30 px-3 py-4 text-center text-xs leading-relaxed text-muted-foreground">
             {DASHBOARD_SECTIONS.recentMatches.empty}
           </p>
         ) : (
-          <div className="flex flex-col gap-1">
+          <div className="flex flex-col gap-0.5">
             {previewMatches.map((match) => (
               <RecentMatchRow
                 key={`${match.peerUserId}-${match.matchedAt}`}
@@ -194,7 +182,7 @@ export function DashboardRecentMatchesSection() {
             ))}
           </div>
         )}
-      </div>
+      </section>
 
       <RecentMatchesDialog open={dialogOpen} onOpenChange={setDialogOpen} />
     </>

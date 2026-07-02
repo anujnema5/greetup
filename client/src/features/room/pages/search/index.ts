@@ -1,1 +1,1 @@
-export { CircleSearchPage } from "./circle-search-page";
+export { SpaceSearchPage } from "./space-search-page";

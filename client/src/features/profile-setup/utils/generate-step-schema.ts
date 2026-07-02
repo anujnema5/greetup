@@ -24,6 +24,7 @@ export const getStepDefaultValues = (fields: any[]): Record<string, any> => {
     switch (field.type) {
       case "text":
       case "textarea":
+      case "username-picker":
         defaults[field.key] = field.value || "";
         break;
 

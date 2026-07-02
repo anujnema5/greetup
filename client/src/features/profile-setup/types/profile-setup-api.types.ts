@@ -33,6 +33,7 @@ export type FieldType =
   | 'range'
   | 'toggle'
   | 'photo-upload'
+  | 'username-picker'
 // 💡 This unlocks perfect switch-case rendering later.
 export interface ProfileSetupFieldBase {
   key: string
@@ -95,6 +96,12 @@ export interface PhotoUploadField extends ProfileSetupFieldBase {
   max?: number
 }
 
+export interface UsernamePickerField extends ProfileSetupFieldBase {
+  type: 'username-picker'
+  minLength?: number
+  maxLength?: number
+}
+
 // Union type for all possible field types
 export type ProfileSetupField =
   | TextField
@@ -103,6 +110,7 @@ export type ProfileSetupField =
   | RangeField
   | ToggleField
   | PhotoUploadField
+  | UsernamePickerField
 
 export interface ProfileSetupStep {
   step: number
@@ -153,7 +161,6 @@ export type SaveProfileSetupPayload =
       step: 1;
       data: {
         displayName: string;
-        username: string;
         age: number;
         gender: string;
         country?: { code: string; name: string };
@@ -175,6 +182,7 @@ export type SaveProfileSetupPayload =
       };
     }
   | { step: 6; data: { answers: Array<{ questionId: string; answer: string }> } }
+  | { step: 7; data: { username: string } }
 
 /** GET /profile/match-prep/options */
 export interface MatchPrepOptionRow {
@@ -184,10 +192,28 @@ export interface MatchPrepOptionRow {
   description: string | null
 }
 
+export interface MatchPrepActivityOptionRow extends MatchPrepOptionRow {
+  emoji: string | null
+  detailMode: "none" | "language" | "topic" | "optional_topic"
+  detailLabel: string | null
+  detailPlaceholder: string | null
+  detailMaxLength: number
+  detailRequired: boolean
+}
+
+export interface MatchPrepActivitySelection {
+  activityId: string
+  activityName?: string
+  displayName?: string
+  emoji?: string | null
+  detail: string | null
+}
+
 export interface MatchPrepOptionsData {
   moods: MatchPrepOptionRow[]
   lookingFor: MatchPrepOptionRow[]
   interests: MatchPrepOptionRow[]
+  activities: MatchPrepActivityOptionRow[]
 }
 
 /** GET /profile/match-prep/current */
@@ -195,6 +221,8 @@ export interface MatchPrepCurrentData {
   moodIds: string[]
   lookingForIds: string[]
   interestIds: string[]
+  matchIntent: "quick" | "activity"
+  activitySelections: MatchPrepActivitySelection[]
   locationPreferenceEnabled: boolean
   distancePreference: "random" | "same_city" | "same_country" | "global"
   location: {

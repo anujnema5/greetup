@@ -53,7 +53,7 @@ export const updateLiveRoomTitleBodySchema = z.object({
   title: z.string().min(1).max(160).trim(),
 });
 
-export const reportCircleNsfwViolationBodySchema = z.object({
+export const reportSpaceNsfwViolationBodySchema = z.object({
   clientScores: z
     .array(
       z.object({

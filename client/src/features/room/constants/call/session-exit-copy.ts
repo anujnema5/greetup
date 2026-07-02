@@ -1,5 +1,5 @@
 /**
- * Copy for leaving a live session (1:1 conversation or circle).
+ * Copy for leaving a live session (1:1 conversation or space).
  * Primary action is always “Leave”; hosts get a separate “end for everyone” path.
  */
 
@@ -18,9 +18,9 @@ export type SessionExitCopy = {
 };
 
 export const SESSION_EXIT_HOST_END_ALERT = {
-  title: "End circle for everyone?",
+  title: "End space for everyone?",
   description:
-    "Everyone still connected will be disconnected. Scheduled circles stay on your calendar; instant circles close.",
+    "Everyone still connected will be disconnected. Scheduled spaces stay on your calendar; instant spaces close.",
   confirm: "End for everyone",
 } as const;
 
@@ -45,12 +45,12 @@ export function getSessionExitCopy(params: {
     return {
       leaveButtonLabel: "Leave",
       leaveCaption: "Leave",
-      leaveTitle: "Leave the circle — others can stay",
+      leaveTitle: "Leave the space — others can stay",
       leaveAriaLabel: "Leave — only you disconnect",
       moreOptionsAriaLabel: "More leave options",
       moreOptionsTitle: "More leave options",
       hostEndForEveryoneMenuLabel: "End for everyone",
-      hostEndForEveryoneMenuAriaLabel: "End circle for everyone",
+      hostEndForEveryoneMenuAriaLabel: "End space for everyone",
       hostEndAlertTitle: SESSION_EXIT_HOST_END_ALERT.title,
       hostEndAlertDescription: SESSION_EXIT_HOST_END_ALERT.description,
       hostEndAlertConfirmLabel: SESSION_EXIT_HOST_END_ALERT.confirm,
@@ -60,8 +60,8 @@ export function getSessionExitCopy(params: {
   return {
     leaveButtonLabel: "Leave",
     leaveCaption: "Leave",
-    leaveTitle: "Leave the circle",
-    leaveAriaLabel: "Leave circle",
+    leaveTitle: "Leave the space",
+    leaveAriaLabel: "Leave space",
     moreOptionsAriaLabel: "More options",
     moreOptionsTitle: "More options",
   };

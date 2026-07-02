@@ -7,7 +7,7 @@ export const siteConfig = {
   url: PRODUCTION_ORIGIN,
   tagline: "Meet people matched to you — chat, voice, or video.",
   description:
-    "Meet like-minded people online — matched by interests, job, or mood. Talk your way with chat, voice, or video. Join live circles around what you care about.",
+    "Meet like-minded people online — matched by interests, job, or mood. Talk your way with chat, voice, or video. Join live spaces around what you care about.",
   contactEmail: "hello@greetup.co",
   supportEmail: "support@greetup.co",
   locale: "en_US",
@@ -91,7 +91,7 @@ export function buildPageMetadata({
       "voice chat online",
       "video chat",
       "connect with new people",
-      "live circles",
+      "live spaces",
     ],
   };
 }

@@ -38,7 +38,11 @@ export function OutgoingConnectionCallDialog({
         description="Waiting for them to answer…"
       />
 
-      <CallPeerRow displayName={call.peerDisplayName} image={call.peerImage} />
+      <CallPeerRow
+        displayName={call.peerDisplayName}
+        image={call.peerImage}
+        seed={call.calleeUserId}
+      />
 
       <ConnectionCallDialogActions>
         <Button

@@ -119,11 +119,28 @@ function photoUploadSchema(field: ProfileSetupStepField): z.ZodTypeAny {
   return photos;
 }
 
+function usernamePickerSchema(field: ProfileSetupStepField): z.ZodTypeAny {
+  const base = z
+    .string()
+    .trim()
+    .transform((val) => val.toLowerCase())
+    .refine((val) => !field.required || val.length >= 3, { message: "At least 3 characters" })
+    .refine((val) => val.length <= 30, { message: "Maximum 30 characters" })
+    .refine((val) => val === "" || /^[a-z0-9_]+$/.test(val), {
+      message: "Use only letters, numbers, and underscores",
+    });
+
+  return field.required ? base : base.optional();
+}
+
 export function buildFieldSchema(field: ProfileSetupStepField): z.ZodTypeAny {
   switch (field.type) {
     case "text":
     case "textarea":
       return plainTextSchema(field);
+
+    case "username-picker":
+      return usernamePickerSchema(field);
 
     case "number":
       return numberSchema(field);

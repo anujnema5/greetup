@@ -11,6 +11,9 @@ import {
 import { getMatchPeerPreview } from "../services/match-peer-preview.service";
 import { ensureUserBlocksSyncedForMatching } from "@/modules/blocks/services/block-user.service";
 import { assertGuestReadyForMatchSearch } from "@/modules/guest";
+import { assertMatchPrepReadyForSearch,
+  MatchPrepNotReadyError,
+} from "@/modules/profile/services/match-prep.service";
 import logger from "@/core/logging";
 import { AppError } from "@/shared/errors";
 
@@ -68,6 +71,7 @@ export const handleFindMatch = async (c: Context) => {
     logger.info("[handleFindMatch] calling match engine", { userId, requestId });
 
     await assertGuestReadyForMatchSearch(userId);
+    await assertMatchPrepReadyForSearch(userId);
     await ensureUserBlocksSyncedForMatching(userId);
 
     const engineResponse = await findMatchService(userId, requestId);
@@ -88,6 +92,16 @@ export const handleFindMatch = async (c: Context) => {
   } catch (error) {
     if (error instanceof AppError) {
       throw error;
+    }
+    if (error instanceof MatchPrepNotReadyError) {
+      return c.json(
+        ApiResponse.error({
+          message: error.message,
+          statusCode: 409,
+          code: "ACTIVITY_PREP_INCOMPLETE",
+        }),
+        409,
+      );
     }
     logger.error("[handleFindMatch] failed", { error });
     return internalError(c, error, "MATCHMAKING_FAILED");

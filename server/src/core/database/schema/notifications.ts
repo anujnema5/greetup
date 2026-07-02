@@ -15,8 +15,8 @@ import { users } from "./users";
 export const notificationTypeEnum = pgEnum("notification_type", [
   "connection_request_received",
   "connection_request_accepted",
-  "circle_invite_received",
-  "circle_started",
+  "space_invite_received",
+  "space_started",
 ]);
 
 export const notificationEntityTypeEnum = pgEnum("notification_entity_type", [

@@ -44,7 +44,7 @@ export function TryBackButton({
 
   if (appearance === "link") {
     const linkClass = cn(
-      "inline-flex items-center justify-center gap-1.5 rounded-xl px-3 py-2.5 text-sm font-medium text-white/42",
+      "inline-flex items-center justify-center gap-1.5 rounded-xl px-3 py-2.5 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground",
       "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2 focus-visible:ring-offset-background",
       fullWidth && "w-full",
       className,
@@ -66,9 +66,7 @@ export function TryBackButton({
   }
 
   const buttonClass = cn(
-    appearance === "outline" &&
-      "border-white/10 bg-white/2 text-white/62 shadow-none hover:border-white/10 hover:bg-white/2 hover:text-white/62",
-    appearance === "ghost" && "text-white/55 hover:bg-transparent hover:text-white/55",
+    appearance === "ghost" && "text-muted-foreground hover:bg-transparent hover:text-muted-foreground",
     fullWidth ? "w-full" : "w-full sm:w-auto",
     className,
   );

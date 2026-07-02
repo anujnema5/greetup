@@ -155,7 +155,7 @@ export const roomCreationRepository = {
           inviteCode: params.inviteCode,
           advancedOptions: params.advancedOptions,
           roomType: params.roomType,
-          sessionKind: params.roomType === "circle" ? "circle" : "match",
+          sessionKind: params.roomType === "space" ? "space" : "match",
         })
         .returning({
           id: rooms.id,

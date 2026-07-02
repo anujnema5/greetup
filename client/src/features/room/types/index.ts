@@ -1,13 +1,13 @@
 export type { LiveSpeakerCallProps } from "./call/active-speaker-props.types";
 export type { InCallScreenProps } from "./call/in-call-screen.types";
 export type {
-  CircleParticipantKickProps,
-  CircleParticipantRemoveOptions,
-  CircleParticipantRestrictOption,
-  KickCircleParticipantApiBody,
-  KickCircleParticipantMutationResult,
-  KickCircleParticipantRequest,
-  OnRemoveCircleParticipant,
+  SpaceParticipantKickProps,
+  SpaceParticipantRemoveOptions,
+  SpaceParticipantRestrictOption,
+  KickSpaceParticipantApiBody,
+  KickSpaceParticipantMutationResult,
+  KickSpaceParticipantRequest,
+  OnRemoveSpaceParticipant,
   ParticipantRemoveTarget,
 } from "./call/participant-remove.types";
 export type { RoomCallRightPanelTab } from "./call/room-call-panel.types";

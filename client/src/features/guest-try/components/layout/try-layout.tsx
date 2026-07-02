@@ -4,6 +4,7 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 
 import { Logo } from "@/components/logo";
+import { ThemeToggle } from "@/components/theme-toggle";
 import { GUEST_TRIAL_FLOW } from "@/lib/copy/user-messages";
 import { cn } from "@/lib/utils";
 
@@ -44,7 +45,7 @@ export function TryLayout({
   return (
     <div
       className={cn(
-        "relative min-h-dvh overflow-x-hidden bg-[oklch(12%_0.012_110)] text-foreground",
+        "relative min-h-dvh overflow-x-hidden bg-background text-foreground",
         INTERACTIVE,
       )}
     >
@@ -68,15 +69,18 @@ export function TryLayout({
           >
             <Logo />
           </Link>
-          {showStepper && activeStep && stepperFurthest ? (
-            <TryStepper
-              activeStep={activeStep}
-              furthestStep={stepperFurthest}
-              onStepSelect={onStepSelect}
-              variant="badge"
-              className="lg:hidden"
-            />
-          ) : null}
+          <div className="flex items-center gap-3">
+            {showStepper && activeStep && stepperFurthest ? (
+              <TryStepper
+                activeStep={activeStep}
+                furthestStep={stepperFurthest}
+                onStepSelect={onStepSelect}
+                variant="badge"
+                className="lg:hidden"
+              />
+            ) : null}
+            <ThemeToggle />
+          </div>
         </header>
 
         {headline ? (

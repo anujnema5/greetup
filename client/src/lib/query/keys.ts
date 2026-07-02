@@ -77,12 +77,13 @@ export const queryKeys = {
   connectionCall: {
     all: ['connection-call'] as const,
   },
-  circles: {
-    all: ['circles'] as const,
-    categories: ['circles', 'categories'] as const,
+  spaces: {
+    all: ['spaces'] as const,
+    categories: ['spaces', 'categories'] as const,
+    activityOptions: ['spaces', 'activity-options'] as const,
     active: (args: { cursor?: string; limit?: number }) =>
-      ['circles', 'active', args.cursor ?? '', args.limit ?? ''] as const,
-    browseInfinite: (limit: number) => ['circles', 'browse', limit] as const,
+      ['spaces', 'active', args.cursor ?? '', args.limit ?? ''] as const,
+    browseInfinite: (limit: number) => ['spaces', 'browse', limit] as const,
   },
   room: {
     all: ['room'] as const,
@@ -93,5 +94,18 @@ export const queryKeys = {
     all: ['guest-try'] as const,
     status: ['guest-try', 'status'] as const,
     signupContext: ['guest-try', 'signup-context'] as const,
+  },
+  openToConnect: {
+    all: ['open-to-connect'] as const,
+    me: ['open-to-connect', 'me'] as const,
+    feed: (args: { activityId?: string; interestId?: string }) =>
+      ['open-to-connect', 'feed', args.activityId ?? '', args.interestId ?? ''] as const,
+    feedInfinite: (args: { activityId?: string; interestId?: string }) =>
+      ['open-to-connect', 'feed-infinite', args.activityId ?? '', args.interestId ?? ''] as const,
+    sidebar: (args: { activityId?: string; interestId?: string }) =>
+      ['open-to-connect', 'sidebar', args.activityId ?? '', args.interestId ?? ''] as const,
+    inboundRequests: ['open-to-connect', 'connect-requests', 'inbound'] as const,
+    outboundRequests: ['open-to-connect', 'connect-requests', 'outbound'] as const,
+    searchSuggestions: ['open-to-connect', 'search-suggestions'] as const,
   },
 } as const;

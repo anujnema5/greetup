@@ -84,7 +84,7 @@ const config = {
   authCookieDomain: optionalEnv("AUTH_COOKIE_DOMAIN")?.replace(/^\./, ""),
   devNotificationEmail: requiredEnv("DEV_NOTIFICATION_EMAIL"),
   internalApiKey: requiredEnv("INTERNAL_API_KEY"),
-  /** Base URL for rtc-service (mediasoup) — used to sync `roomType` on sockets after 1:1 → circle. */
+  /** Base URL for rtc-service (mediasoup) — used to sync `roomType` on sockets after 1:1 → space. */
   rtcServiceBaseUrl: normalizeUrl(optionalEnv("RTC_SERVICE_URL") ?? "http://localhost:5370"),
   rtcJwtSecret: requiredEnv("RTC_JWT_SECRET"),
   matchEngineUrl: optionalEnv("MATCH_ENGINE_URL") ?? "http://localhost:5060",

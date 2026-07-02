@@ -27,6 +27,10 @@ import {
   handleGetWelcomeTourStatus,
   handleMarkWelcomeTourSeen,
 } from "./controllers/welcome-tour.controller";
+import {
+  handleCheckUsername,
+  handleSuggestUsernames,
+} from "./controllers/username.controller";
 
 export const profileRoute = new Hono();
 
@@ -41,6 +45,8 @@ profileRoute.post("/welcome-tour-seen", handleMarkWelcomeTourSeen);
 
 /** PROFILE SETUP ROUTES */
 profileRoute.get("/setup-steps", handleFetchProfileSteps);
+profileRoute.get("/username/check", handleCheckUsername);
+profileRoute.get("/username/suggestions", handleSuggestUsernames);
 profileRoute.get("/match-prep/current", handleGetMatchPrepCurrent);
 profileRoute.get("/match-prep/options", handleGetMatchPrepOptions);
 profileRoute.get("/match-prep/prompt-status", handleGetMatchPrepPromptStatus);

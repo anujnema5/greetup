@@ -2,16 +2,14 @@
 
 import { type ReactNode } from "react";
 import { PictureInPicture2 } from "lucide-react";
-import { CircleCallTitleBadge } from "@/features/room/call/components/circle-call-title-badge";
-import { DEFAULT_CIRCLE_DISPLAY_TITLE } from "@/features/room/constants/call/circle-display";
+import { SpaceCallTitleBadge } from "@/features/room/call/components/space-call-title-badge";
+import { DEFAULT_SPACE_DISPLAY_TITLE } from "@/features/room/constants/call/space-display";
+import { CALL_STAGE_CHROME_BTN_CLASS } from "@/features/room/constants/call/call-chrome-theme";
 import { cn } from "@/lib/utils";
-
-const STAGE_CHROME_BTN =
-  "inline-flex size-10 cursor-pointer items-center justify-center rounded-full border border-white/25 bg-black/55 text-white shadow-lg backdrop-blur-md transition-colors hover:bg-black/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40";
 
 /**
  * Top overlay: stage title (when not 1:1 tile-only layout) + **Minimize call** (dock / keep session).
- * Circle rooms: compact title on stage (host edit opens rename dialog); footer “Options” for invite/link/chat.
+ * Space rooms: compact title on stage (host edit opens rename dialog); footer “Options” for invite/link/chat.
  *
  * `stageTrailingActions` (fullscreen, share audio, etc.) shares one row with minimize so controls
  * never stack in the same corner.
@@ -19,9 +17,9 @@ const STAGE_CHROME_BTN =
 export function CallTopBar({
   isOneToOneStage,
   isGroupRoom = false,
-  circleDisplayTitle = null,
-  canEditCircleTitle = false,
-  onEditCircleTitle,
+  spaceDisplayTitle = null,
+  canEditSpaceTitle = false,
+  onEditSpaceTitle,
   activeActivityLabel,
   activeActivity,
   mainStageShowsScreen,
@@ -31,9 +29,9 @@ export function CallTopBar({
 }: {
   isOneToOneStage: boolean;
   isGroupRoom?: boolean;
-  circleDisplayTitle?: string | null;
-  canEditCircleTitle?: boolean;
-  onEditCircleTitle?: () => void;
+  spaceDisplayTitle?: string | null;
+  canEditSpaceTitle?: boolean;
+  onEditSpaceTitle?: () => void;
   activeActivityLabel: string | null;
   activeActivity: boolean;
   mainStageShowsScreen: boolean;
@@ -42,7 +40,7 @@ export function CallTopBar({
   /** e.g. fullscreen + mute screen audio — rendered before minimize, same row */
   stageTrailingActions?: ReactNode;
 }) {
-  const circleTitle = circleDisplayTitle?.trim() || DEFAULT_CIRCLE_DISPLAY_TITLE;
+  const spaceTitle = spaceDisplayTitle?.trim() || DEFAULT_SPACE_DISPLAY_TITLE;
   const showRightCluster = Boolean(stageTrailingActions) || Boolean(onMinimize);
 
   return (
@@ -62,10 +60,10 @@ export function CallTopBar({
         <div className="min-w-0">
           {!isOneToOneStage && !activeActivity ? (
             isGroupRoom ? (
-              <CircleCallTitleBadge
-                title={circleTitle}
-                canEdit={canEditCircleTitle}
-                onEdit={onEditCircleTitle}
+              <SpaceCallTitleBadge
+                title={spaceTitle}
+                canEdit={canEditSpaceTitle}
+                onEdit={onEditSpaceTitle}
               />
             ) : (
               <>
@@ -91,7 +89,7 @@ export function CallTopBar({
               onClick={onMinimize}
               aria-label="Minimize to floating call"
               title="Minimize to floating call"
-              className={STAGE_CHROME_BTN}
+              className={CALL_STAGE_CHROME_BTN_CLASS}
             >
               <PictureInPicture2 size={18} className="shrink-0" aria-hidden />
             </button>
@@ -103,4 +101,4 @@ export function CallTopBar({
 }
 
 /** Shared with `InCallScreen` trailing actions so fullscreen / PiP use identical chrome. */
-export const CALL_STAGE_CHROME_BTN_CLASS = STAGE_CHROME_BTN;
+export { CALL_STAGE_CHROME_BTN_CLASS } from "@/features/room/constants/call/call-chrome-theme";

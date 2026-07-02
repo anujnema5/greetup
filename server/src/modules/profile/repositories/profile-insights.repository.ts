@@ -14,12 +14,12 @@ export const profileInsightsRepository = {
     return userConnectionsRepository.countForListFilter(userId, "accepted");
   },
 
-  async countJoinedCircles(userId: string): Promise<number> {
+  async countJoinedSpaces(userId: string): Promise<number> {
     const [{ n }] = await db
       .select({ n: count() })
       .from(roomParticipants)
       .innerJoin(rooms, eq(rooms.id, roomParticipants.roomId))
-      .where(and(eq(roomParticipants.userId, userId), eq(rooms.roomType, "circle")));
+      .where(and(eq(roomParticipants.userId, userId), eq(rooms.roomType, "space")));
     return Number(n ?? 0);
   },
 

@@ -12,7 +12,6 @@ import {
   type PublicProfileConnectionState,
 } from "@/modules/profile/lib/resolve-public-profile-connection";
 import { ensureProfileSnapshotCached } from "@/modules/user/services/profile-snapshot-cache.service";
-import { generateMatchInsight, type InsightProfileSnapshot } from "./match-insight.service";
 
 export type MatchPeerPreview = {
   displayName: string;
@@ -234,8 +233,7 @@ export async function getMatchPeerPreview(
 
   const redis = getRedis();
 
-  const [myRaw, peerRaw, isOnline, social] = await Promise.all([
-    fetchSnapshot(myUserId),
+  const [peerRaw, isOnline, social] = await Promise.all([
     fetchSnapshot(peerUserId),
     redis.sismember(USER_PRESENCE_KEYS.ONLINE_USERS_SET, peerUserId).then((v) => v === 1),
     fetchPeerSocialMeta(myUserId, peerUserId),
@@ -246,25 +244,6 @@ export async function getMatchPeerPreview(
     logger.debug("match_peer_preview_fallback", { myUserId, peerUserId, reason: "missing_snapshot" });
     return fallback(peerUserId, isOnline);
   }
-
-  const myData = parseSnapshotData(myRaw);
-
-  const meForInsight: InsightProfileSnapshot = myData
-    ? { displayName: myData.displayName, bio: myData.bio, interests: myData.interests, goals: myData.goals, professions: myData.professions }
-    : { displayName: "User", interests: [], goals: [], professions: [] };
-
-  const peerForInsight: InsightProfileSnapshot = {
-    displayName: peerData.displayName,
-    bio: peerData.bio,
-    age: peerData.age,
-    interests: peerData.interests,
-    goals: peerData.goals,
-    professions: peerData.professions,
-    moods: peerData.moods,
-    lookingFor: peerData.lookingFor,
-  };
-
-  // const insight = await generateMatchInsight(meForInsight, peerForInsight);
 
   const profession = peerData.professions[0] ?? null;
 

@@ -6,6 +6,8 @@ export type MatchPrepDialogProps = {
   onStartSearch: () => void;
   clientSessionId: string | null;
   mode?: "match_flow" | "edit";
+  /** When opening from hero, preset match intent before save. */
+  initialMatchIntent?: MatchIntentValue;
 };
 
 export type ConnectionPreferenceValue = NonNullable<
@@ -25,7 +27,12 @@ export type MatchPrepLocation = {
   source?: "current" | "manual";
 };
 
+export type MatchIntentValue = "quick" | "activity";
+
 export type MatchPrepInitialFormState = {
+  matchIntent: MatchIntentValue;
+  activityDetails: Record<string, string>;
+  selectedActivityIds: Set<string>;
   moods: Set<string>;
   lookingFor: Set<string>;
   interests: Set<string>;

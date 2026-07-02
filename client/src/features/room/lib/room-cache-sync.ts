@@ -2,6 +2,7 @@ import type { QueryClient } from '@tanstack/react-query';
 
 import type { RoomData } from '@/features/matching/types/room.types';
 import { queryKeys } from '@/lib/query/keys';
+import { isSpaceSession } from '@/features/room/lib/session/room-session-kind';
 
 import { patchCachedRoomOpenedForJoin } from './session/room-cache-patches';
 
@@ -23,7 +24,7 @@ export function patchRoomOpenedForJoinInCache(qc: QueryClient, roomId: string) {
 
 export function patchRoomTitleInCache(qc: QueryClient, roomId: string, title: string) {
   patchRoomInCache(qc, roomId, (draft) => {
-    if (draft.sessionKind === 'circle') {
+    if (isSpaceSession(draft)) {
       draft.title = title;
       return;
     }
@@ -33,14 +34,14 @@ export function patchRoomTitleInCache(qc: QueryClient, roomId: string, title: st
   });
 }
 
-export function patchRoomBecameCircleInCache(qc: QueryClient, roomId: string) {
+export function patchRoomBecameSpaceInCache(qc: QueryClient, roomId: string) {
   patchRoomInCache(qc, roomId, (draft) => {
-    if ('sessionKind' in draft && draft.sessionKind === 'circle') {
-      draft.roomType = 'circle';
+    if (isSpaceSession(draft)) {
+      draft.roomType = 'space';
       return;
     }
     if ('userA' in draft) {
-      draft.roomType = 'circle';
+      draft.roomType = 'space';
     }
   });
 }

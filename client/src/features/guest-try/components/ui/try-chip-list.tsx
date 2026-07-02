@@ -26,7 +26,7 @@ export function TryChipList({ rows, selected, onToggle }: TryChipListProps) {
               "rounded-full border px-3 py-1.5 text-xs font-medium transition-all sm:text-[13px]",
               isSelected
                 ? "border-primary bg-primary text-primary-foreground shadow-sm shadow-primary/20"
-                : "border-white/10 bg-white/4 text-foreground hover:border-white/20 hover:bg-white/8",
+                : "border-border bg-muted/40 text-foreground hover:border-border/80 hover:bg-muted",
             )}
           >
             {row.displayName}

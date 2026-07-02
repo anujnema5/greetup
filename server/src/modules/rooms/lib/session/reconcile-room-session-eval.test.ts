@@ -1,10 +1,10 @@
 import { describe, expect, it } from "bun:test";
 import {
-  CIRCLE_SESSION_MAX_MS,
+  SPACE_SESSION_MAX_MS,
   DIRECT_SESSION_MAX_MS,
   SCHEDULED_EMPTY_ROOM_GRACE_MS,
 } from "@/modules/rooms/constants/session/room-session-limits";
-import { SCHEDULED_JOIN_GRACE_AFTER_START_MINUTES } from "@/modules/rooms/constants/session/scheduled-circle-join-grace";
+import { SCHEDULED_JOIN_GRACE_AFTER_START_MINUTES } from "@/modules/rooms/constants/session/scheduled-space-join-grace";
 import {
   evaluateRoomSessionEndReason,
   roomSessionClosedMessage,
@@ -13,7 +13,7 @@ import {
 
 const baseRoom = (overrides: Partial<RoomRowForReconcile>): RoomRowForReconcile => ({
   id: "room-1",
-  roomType: "circle",
+  roomType: "space",
   status: "live",
   startedAt: new Date("2026-05-17T12:00:00.000Z"),
   scheduledStartAt: null,
@@ -68,7 +68,7 @@ describe("evaluateRoomSessionEndReason", () => {
 
   it("returns session_cap for circle after 3h live", () => {
     const startedAt = new Date("2026-05-17T10:00:00.000Z");
-    const now = new Date(startedAt.getTime() + CIRCLE_SESSION_MAX_MS + 1);
+    const now = new Date(startedAt.getTime() + SPACE_SESSION_MAX_MS + 1);
     expect(
       evaluateRoomSessionEndReason(
         baseRoom({ startedAt }),

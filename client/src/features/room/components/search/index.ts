@@ -1,1 +1,1 @@
-export { CircleRouteLoadingShell } from "./circle-route-loading-shell";
+export { SpaceRouteLoadingShell } from "./space-route-loading-shell";

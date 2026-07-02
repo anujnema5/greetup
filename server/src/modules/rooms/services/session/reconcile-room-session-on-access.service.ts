@@ -72,7 +72,7 @@ export async function reconcileRoomSessionOnAccess(
   }
 
   const endResult = await endLiveRoomSession(roomId, endReason, {
-    notifyParticipants: room.roomType === "circle",
+    notifyParticipants: room.roomType === "space",
   });
 
   if (endResult.ended) {

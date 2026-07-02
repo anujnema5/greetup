@@ -5,6 +5,7 @@ import { ApiResponse, internalError } from "@/shared/responses";
 import { zodFieldErrorsItems } from "@/shared/validation";
 import { matchPrepSaveBodySchema } from "../schemas/match-prep.schema";
 import {
+  ActivitySelectionValidationError,
   getMatchPrepCurrentService,
   getMatchPrepOptionsService,
   getMatchPrepPromptStatusService,
@@ -76,6 +77,16 @@ export const handleSaveMatchPrep = async (c: Context) => {
     await saveMatchPrepService(userId, parsed.data);
     return c.json(ApiResponse.success({ ok: true }, "Match prep saved", 200), 200);
   } catch (error: unknown) {
+    if (error instanceof ActivitySelectionValidationError) {
+      return c.json(
+        ApiResponse.error({
+          message: error.message,
+          statusCode: 400,
+          code: error.code,
+        }),
+        400,
+      );
+    }
     logger.error("Save match prep error", { error });
     return internalError(c, error, "MATCH_PREP_SAVE_FAILED");
   }

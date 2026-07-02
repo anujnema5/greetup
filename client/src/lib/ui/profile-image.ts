@@ -1,8 +1,4 @@
-const DEFAULT_PROFILE_IMAGE_URL =
-  "https://api.dicebear.com/9.x/adventurer-neutral/png?seed=greetup-default-profile";
-
-export function getProfileImageUrl(imageUrl?: string | null): string {
+export function getProfileImageUrl(imageUrl?: string | null): string | null {
   const trimmed = imageUrl?.trim();
-  return trimmed ? trimmed : DEFAULT_PROFILE_IMAGE_URL;
+  return trimmed ? trimmed : null;
 }
-

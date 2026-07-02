@@ -1,3 +1,5 @@
+import { CALL_TILE_NAME_BADGE_CLASS } from "@/features/room/constants/call/call-chrome-theme";
+
 /** Shared participant-tile styling (matches direct 1:1 in-call tiles). */
 
 export const CALL_TILE_REMOTE_CLASS =
@@ -16,5 +18,4 @@ export const CALL_TILE_AVATAR_SIZE_MAIN = "h-20 w-20 md:h-24 md:w-24";
 
 export const CALL_TILE_AVATAR_SIZE_COMPACT = "h-14 w-14 md:h-16 md:w-16";
 
-export const CALL_TILE_REMOTE_NAME_BADGE_CLASS =
-  "max-w-[calc(100%-4rem)] truncate border-white/10 bg-black/55 text-white/90";
+export const CALL_TILE_REMOTE_NAME_BADGE_CLASS = CALL_TILE_NAME_BADGE_CLASS;

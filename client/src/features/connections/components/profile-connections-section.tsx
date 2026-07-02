@@ -2,9 +2,10 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
-import { ChevronRight, Loader2, Search, UserPlus } from "lucide-react";
+import { ChevronRight, Loader2, Search, UserMinus, UserPlus } from "lucide-react";
 import { useSearchParams } from "next/navigation";
 
+import { SectionHeader } from "@/components/section-header";
 import {
   useAcceptConnection,
   useDisconnectConnection,
@@ -16,6 +17,7 @@ import {
   useMyConnections,
   usePeersCallStatus,
 } from "@/features/connections/api/connections.queries";
+import { formatProfileHandle } from "@/features/app-shell/lib/page-header-account";
 import { getApiErrorMessage } from "@/lib/api/fetch-client";
 import { PeerContactActionIcons } from "@/features/connections/components/peer-contact-action-icons";
 import type { PeerContactTarget } from "@/features/connections/hooks/use-peer-contact-actions";
@@ -24,12 +26,14 @@ import type {
   ConnectionListItem,
   PeerCallStatusEntry,
 } from "@/features/connections/types/connections-api.types";
+import { profileAvatarGradientClass } from "@/features/profile/lib/profile-insights-display";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { getProfileImageUrl } from "@/lib/ui/profile-image";
-import { UserAvatarWithPresence } from "@/features/presence";
+import { OnlinePresenceDot } from "@/features/presence";
 import { cn } from "@/lib/utils";
-import { PROFILE_SECTIONS } from "@/lib/copy/user-messages";
+import { nameInitials } from "@/lib/utils/name-initials";
+import { CONNECTIONS, PROFILE_SECTIONS } from "@/lib/copy/user-messages";
 import { DisconnectConnectionDialog } from "./disconnect-connection-dialog";
 import { WithdrawRequestDialog } from "./withdraw-request-dialog";
 import { ConnectionsListSkeleton, ConnectionRowSkeleton } from "./connections-skeletons";
@@ -116,32 +120,120 @@ function actionErrorMessage(error: unknown): string {
 
 function ConnectionPeerSummary({
   imageUrl,
+  userId,
   title,
   subtitle,
   titleExtra,
   isOnline,
 }: {
   imageUrl: string | null;
+  userId: string;
   title: string;
   subtitle: string;
   titleExtra?: ReactNode;
   isOnline?: boolean;
 }) {
+  const initials = nameInitials(title);
+
   return (
     <div className="flex min-w-0 flex-1 items-center gap-3 text-left">
-      <UserAvatarWithPresence isOnline={isOnline ?? false} borderClassName="border-card">
-        <div className="relative flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full bg-muted/30">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={getProfileImageUrl(imageUrl)} alt="" className="h-full w-full object-cover" />
-        </div>
-      </UserAvatarWithPresence>
+      <div className="relative shrink-0">
+        {imageUrl ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={getProfileImageUrl(imageUrl)}
+            alt=""
+            className="size-10 rounded-full object-cover"
+          />
+        ) : (
+          <div
+            className={cn(
+              "flex size-10 items-center justify-center rounded-full bg-linear-to-br text-[11px] font-bold text-white",
+              profileAvatarGradientClass(userId),
+            )}
+          >
+            {initials}
+          </div>
+        )}
+        <OnlinePresenceDot
+          isOnline={isOnline ?? false}
+          size="sm"
+          borderClassName="border-card"
+          className="absolute -bottom-0.5 -right-0.5"
+        />
+      </div>
       <div className="min-w-0 flex-1 text-left">
-        <div className="flex min-w-0 items-center gap-2">
-          <p className="min-w-0 truncate text-sm font-semibold text-foreground">{title}</p>
+        <div className="flex min-w-0 items-center gap-1.5">
+          <p className="min-w-0 truncate text-sm font-medium leading-tight text-foreground">
+            {title}
+          </p>
           {titleExtra}
         </div>
         <p className="truncate text-left text-xs text-muted-foreground">{subtitle}</p>
       </div>
+    </div>
+  );
+}
+
+function connectionRowSubtitle(item: ConnectionListItem): string {
+  const handle = formatProfileHandle(item.peer.username);
+  if (item.status === "pending" && item.direction) {
+    return item.direction === "incoming" ? "Wants to connect" : "Request sent";
+  }
+  return handle ?? "Connected";
+}
+
+const connectionRowShellClass =
+  "group flex flex-col gap-1.5 rounded-xl border border-border/70 bg-card px-3 py-2.5 transition-colors duration-150 hover:bg-muted/15";
+
+const connectionRowSelectedClass =
+  "border-primary/35 bg-primary/5 shadow-sm ring-1 ring-primary/15";
+
+function ConnectionsStatsBar({
+  connectedCount,
+  pendingCount,
+  connectedHasMore = false,
+}: {
+  connectedCount: number;
+  pendingCount: number;
+  connectedHasMore?: boolean;
+}) {
+  return (
+    <div className="flex flex-wrap items-center gap-2">
+      <span className="inline-flex items-center rounded-full border border-border/70 bg-muted/30 px-2.5 py-1 text-xs font-medium text-foreground">
+        {connectedHasMore ? `${connectedCount}+` : connectedCount} connected
+      </span>
+      {pendingCount > 0 ? (
+        <span className="inline-flex items-center rounded-full border border-primary/20 bg-primary/8 px-2.5 py-1 text-xs font-medium text-primary">
+          {pendingCount} pending
+        </span>
+      ) : null}
+    </div>
+  );
+}
+
+function ConnectionsSearchInput({
+  value,
+  onChange,
+}: {
+  value: string;
+  onChange: (value: string) => void;
+}) {
+  return (
+    <div className="relative w-full">
+      <Search
+        className="pointer-events-none absolute left-3 top-1/2 z-10 size-4 -translate-y-1/2 text-muted-foreground"
+        aria-hidden
+      />
+      <Input
+        type="search"
+        placeholder={CONNECTIONS.searchPlaceholder}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        className="h-10 w-full rounded-xl border-border/80 bg-background/60 pl-9 text-sm shadow-none"
+        autoComplete="off"
+        enterKeyHint="search"
+      />
     </div>
   );
 }
@@ -176,18 +268,13 @@ function ConnectionRow({
   const label = peerLabel(item);
   const peerUsername = item.peer.username?.trim() || null;
   const peer = connectionToPeer(item);
-  const sub =
-    item.status === "pending" && item.direction
-      ? item.direction === "incoming"
-        ? "Wants to connect"
-        : "Request sent"
-      : "Connected";
+  const sub = connectionRowSubtitle(item);
   const isAccepted = item.status === "accepted";
   const isPendingOutgoing = item.status === "pending" && item.direction === "outgoing";
   const inCallBadge =
     isAccepted && peerCallStatus?.inLiveRoom ? (
-      <span className="shrink-0 rounded-full bg-destructive/15 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-destructive">
-        In a call
+      <span className="shrink-0 rounded-full bg-destructive/12 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-destructive">
+        In call
       </span>
     ) : null;
 
@@ -233,14 +320,11 @@ function ConnectionRow({
   return (
     <div
       className={cn(
-        "flex flex-col gap-2 rounded-2xl border bg-card px-4 py-3",
-        "transition-colors duration-200",
-        isSelected
-          ? "border-primary/40 bg-primary/4 ring-1 ring-primary/20"
-          : "border-border",
+        connectionRowShellClass,
+        isSelected && connectionRowSelectedClass,
       )}
     >
-      <div className="flex items-center gap-3 min-w-0">
+      <div className="flex min-w-0 items-center gap-2">
         <ConnectionPeerTrigger
           username={peerUsername}
           label={label}
@@ -250,52 +334,59 @@ function ConnectionRow({
         >
           <ConnectionPeerSummary
             imageUrl={item.peer.image}
+            userId={item.peer.userId}
             title={label}
             subtitle={sub}
             titleExtra={inCallBadge}
             isOnline={peerCallStatus?.isOnline}
           />
         </ConnectionPeerTrigger>
-        {isAccepted && onPeerMessage && onPeerCall ? (
-          <PeerContactActionIcons
-            size="md"
-            isCalling={isCallingPeer}
-            isMessaging={isMessagingPeer}
-            onMessage={() => onPeerMessage(peer)}
-            onCall={(mode) => onPeerCall(peer, mode)}
-          />
-        ) : null}
-        {busy ? (
-          <Loader2
-            className="h-4 w-4 shrink-0 animate-spin text-muted-foreground"
-            aria-label="Loading"
-          />
-        ) : null}
-        {isAccepted ? (
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            className="cursor-pointer rounded-xl shrink-0"
-            disabled={busy}
-            onClick={() => setConfirmOpen(true)}
-          >
-            Remove
-          </Button>
-        ) : isPendingOutgoing ? (
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            className="cursor-pointer rounded-xl shrink-0"
-            disabled={busy}
-            onClick={() => setWithdrawConfirmOpen(true)}
-          >
-            Withdraw
-          </Button>
-        ) : (
-          <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground/60" aria-hidden />
-        )}
+
+        <div className="flex shrink-0 items-center gap-0.5">
+          {isAccepted && onPeerMessage && onPeerCall ? (
+            <PeerContactActionIcons
+              size="md"
+              isCalling={isCallingPeer}
+              isMessaging={isMessagingPeer}
+              onMessage={() => onPeerMessage(peer)}
+              onCall={(mode) => onPeerCall(peer, mode)}
+              className="opacity-80 transition-opacity group-hover:opacity-100"
+            />
+          ) : null}
+          {busy ? (
+            <Loader2
+              className="size-4 shrink-0 animate-spin text-muted-foreground"
+              aria-label="Loading"
+            />
+          ) : null}
+          {isAccepted ? (
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              className="size-8 shrink-0 rounded-lg text-muted-foreground/70 hover:bg-destructive/10 hover:text-destructive"
+              disabled={busy}
+              onClick={() => setConfirmOpen(true)}
+              aria-label={`Remove ${label}`}
+              title="Remove connection"
+            >
+              <UserMinus className="size-3.5" strokeWidth={2} />
+            </Button>
+          ) : isPendingOutgoing ? (
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="h-7 shrink-0 rounded-lg px-2.5 text-xs"
+              disabled={busy}
+              onClick={() => setWithdrawConfirmOpen(true)}
+            >
+              Withdraw
+            </Button>
+          ) : (
+            <ChevronRight className="size-4 shrink-0 text-muted-foreground/50" aria-hidden />
+          )}
+        </div>
       </div>
       {actionError ? (
         <p className="text-xs text-destructive px-0.5" role="alert">
@@ -375,6 +466,7 @@ function IncomingRequestRow({
   const summary = (
     <ConnectionPeerSummary
       imageUrl={item.peer.image}
+      userId={item.peer.userId}
       title={label}
       subtitle="Wants to connect"
     />
@@ -383,14 +475,11 @@ function IncomingRequestRow({
   return (
     <div
       className={cn(
-        "flex flex-col gap-2 rounded-2xl border bg-card px-4 py-3",
-        "transition-colors duration-200",
-        isSelected
-          ? "border-primary/40 bg-primary/4 ring-1 ring-primary/20"
-          : "border-border",
+        connectionRowShellClass,
+        isSelected && connectionRowSelectedClass,
       )}
     >
-      <div className="flex items-center gap-3 min-w-0">
+      <div className="flex min-w-0 items-center gap-2">
         <ConnectionPeerTrigger
           username={peerUsername}
           label={label}
@@ -400,10 +489,10 @@ function IncomingRequestRow({
         >
           {summary}
         </ConnectionPeerTrigger>
-        <div className="flex shrink-0 flex-wrap items-center justify-end gap-2">
+        <div className="flex shrink-0 flex-wrap items-center justify-end gap-1.5">
           {busy ? (
             <Loader2
-              className="h-4 w-4 shrink-0 animate-spin text-muted-foreground"
+              className="size-4 shrink-0 animate-spin text-muted-foreground"
               aria-label="Loading"
             />
           ) : null}
@@ -411,7 +500,7 @@ function IncomingRequestRow({
             type="button"
             variant="outline"
             size="sm"
-            className="rounded-xl"
+            className="h-7 rounded-lg px-2.5 text-xs"
             disabled={busy}
             onClick={() =>
               runRespond(reject(mutationArg), () => onPeerDisconnected?.(peerUsername))
@@ -422,7 +511,7 @@ function IncomingRequestRow({
           <Button
             type="button"
             size="sm"
-            className="rounded-xl"
+            className="h-7 rounded-lg px-2.5 text-xs"
             disabled={busy}
             onClick={() => runRespond(accept(mutationArg))}
           >
@@ -606,33 +695,26 @@ export function ProfileConnectionsSection({
 
   if (!hasAny) {
     return (
-      <div className="flex flex-col gap-3">
+      <div className="flex flex-col gap-4">
+        {isPage && (
+          <>
+            <ConnectionsStatsBar
+              connectedCount={0}
+              pendingCount={0}
+            />
+            <ConnectionsSearchInput
+              value={search}
+              onChange={setSearch}
+            />
+          </>
+        )}
         {!isPage && (
           <div>
             <h3 className="text-sm font-semibold text-foreground">Connections</h3>
-            <p className="text-[11px] text-muted-foreground mt-0.5">0 connected</p>
+            <p className="mt-0.5 text-[11px] text-muted-foreground">0 connected</p>
           </div>
         )}
-        {isPage && (
-          <p className="text-[11px] text-muted-foreground">0 connected · 0 pending</p>
-        )}
-        {isPage ? (
-          <div className="relative">
-            <Search
-              className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground pointer-events-none"
-              aria-hidden
-            />
-            <Input
-              type="search"
-              placeholder="Search connections…"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="pl-9 rounded-xl bg-card"
-              autoComplete="off"
-            />
-          </div>
-        ) : null}
-        <p className="text-sm text-muted-foreground rounded-2xl border border-dashed border-border bg-muted/20 px-4 py-6 text-center">
+        <p className="rounded-xl border border-dashed border-border/80 bg-muted/20 px-4 py-8 text-center text-sm leading-relaxed text-muted-foreground">
           {PROFILE_SECTIONS.connections.emptyLong}
         </p>
       </div>
@@ -640,59 +722,47 @@ export function ProfileConnectionsSection({
   }
 
   return (
-    <div className="flex flex-col gap-4 min-w-0">
-      <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0">
-          {!isPage && (
+    <div className="flex min-w-0 flex-col gap-4">
+      {!isPage ? (
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0">
             <h3 className="text-sm font-semibold text-foreground">Connections</h3>
+            <p className="mt-0.5 text-[11px] text-muted-foreground">
+              {!isPage && previewHasMore
+                ? `${acceptedItems.length}+`
+                : acceptedItems.length}{" "}
+              connected
+              {totalPending > 0 ? ` · ${totalPending} pending` : ""}
+            </p>
+          </div>
+          {showSeeAllLink && (
+            <Link
+              href="/connections"
+              className="shrink-0 pt-0.5 text-xs font-medium text-primary hover:underline"
+            >
+              See all
+            </Link>
           )}
-          <p
-            className={cn(
-              "text-[11px] text-muted-foreground",
-              !isPage ? "mt-0.5" : "",
-            )}
-          >
-            {!isPage && previewHasMore
-              ? `${acceptedItems.length}+`
-              : acceptedItems.length}{" "}
-            connected
-            {totalPending > 0 ? ` · ${totalPending} pending` : ""}
-          </p>
         </div>
-        {showSeeAllLink && !isPage && (
-          <Link
-            href="/connections"
-            className="shrink-0 text-xs font-medium text-primary hover:underline pt-0.5"
-          >
-            See all
-          </Link>
-        )}
-      </div>
-
-      {isPage && (
-        <div className="relative w-full">
-          <Search
-            className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground pointer-events-none z-10"
-            aria-hidden
+      ) : (
+        <>
+          <ConnectionsStatsBar
+            connectedCount={acceptedItems.length}
+            pendingCount={totalPending}
+            connectedHasMore={previewHasMore && !isPage}
           />
-          <Input
-            type="search"
-            placeholder="Search by name…"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="pl-9 rounded-xl bg-card w-full min-h-11 text-sm"
-            autoComplete="off"
-            enterKeyHint="search"
-          />
-        </div>
+          <ConnectionsSearchInput value={search} onChange={setSearch} />
+        </>
       )}
 
       {incomingItems.length > 0 && (
         <div className="flex flex-col gap-2">
-          <p className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground px-1">
-            Incoming requests
-          </p>
-          <div className="flex flex-col gap-2">
+          <SectionHeader
+            variant="panel"
+            title={CONNECTIONS.sections.incoming}
+            className="mb-1 px-0.5"
+          />
+          <div className="flex flex-col gap-1.5">
             {incomingItems.map((item) => (
               <IncomingRequestRow
                 key={item.connectionId}
@@ -708,10 +778,12 @@ export function ProfileConnectionsSection({
 
       {outgoingItems.length > 0 && (
         <div className="flex flex-col gap-2">
-          <p className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground px-1">
-            Sent requests
-          </p>
-          <div className="flex flex-col gap-2">
+          <SectionHeader
+            variant="panel"
+            title={CONNECTIONS.sections.outgoing}
+            className="mb-1 px-0.5"
+          />
+          <div className="flex flex-col gap-1.5">
             {outgoingItems.map((item) => (
               <ConnectionRow
                 key={item.connectionId}
@@ -728,11 +800,13 @@ export function ProfileConnectionsSection({
       {acceptedItems.length > 0 && (
         <div className="flex flex-col gap-2">
           {(incomingItems.length > 0 || outgoingItems.length > 0) && (
-            <p className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground px-1">
-              Your network
-            </p>
+            <SectionHeader
+              variant="panel"
+              title={CONNECTIONS.sections.network}
+              className="mb-1 px-0.5"
+            />
           )}
-          <div className="flex flex-col gap-2">
+          <div className="flex flex-col gap-1.5">
             {acceptedItems.map((item) => (
               <ConnectionRow
                 key={item.connectionId}
@@ -763,7 +837,7 @@ export function ProfileConnectionsSection({
       )}
 
       {isPage && acceptedItems.length === 0 && debouncedQ.length > 0 && (
-        <p className="text-sm text-muted-foreground text-center py-4 rounded-2xl border border-dashed border-border">
+        <p className="rounded-xl border border-dashed border-border/80 py-6 text-center text-sm text-muted-foreground">
           No connections match &ldquo;{debouncedQ}&rdquo;.
         </p>
       )}

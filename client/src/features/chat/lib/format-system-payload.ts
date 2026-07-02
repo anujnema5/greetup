@@ -12,7 +12,7 @@ export function formatSystemPayload(payload: unknown): string {
     if (typeof o.text === 'string') return o.text;
     if (typeof o.message === 'string') return o.message;
     if (typeof o.body === 'string') return o.body;
-    if (o.event === 'user_added') return 'Someone joined the circle';
+    if (o.event === 'user_added') return 'Someone joined the space';
   }
 
   try {

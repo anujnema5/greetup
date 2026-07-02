@@ -1,7 +1,7 @@
 export type ProfileInsightsStats = {
   matchCount: number;
   connectionCount: number;
-  circleCount: number;
+  spaceCount: number;
   profileCompletion: number | null;
 };
 

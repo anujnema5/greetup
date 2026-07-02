@@ -5,7 +5,7 @@ import { roomsRepository } from "@/modules/rooms/repositories/rooms.repository";
 import { roomSessionsRepository } from "@/modules/rooms/repositories/room-sessions.repository";
 import { roomParticipantsRepository } from "@/modules/rooms/repositories/room-participants.repository";
 import { roomInvitesRepository } from "@/modules/rooms/repositories/room-invites.repository";
-import { maybeAutoStartScheduledCircleFromDb } from "@/modules/rooms/services/session/maybe-auto-start-scheduled-circle.service";
+import { maybeAutoStartScheduledSpaceFromDb } from "@/modules/rooms/services/session/maybe-auto-start-scheduled-space.service";
 import { assertRoomSessionOpenOnAccess } from "@/modules/rooms/services/session/reconcile-room-session-on-access.service";
 import { roomRestrictedUsersRepository } from "@/modules/rooms/repositories/room-restricted-users.repository";
 import { assertGuestMayAccessRoom } from "@/modules/guest";
@@ -59,7 +59,7 @@ function joinRoomSuccess(
   return { roomId, rtcEligible, room };
 }
 
-/** Ensures `room_participants` row for RTC (direct + circle). */
+/** Ensures `room_participants` row for RTC (direct + space). */
 export async function joinRoomService(userId: string, roomId: string): Promise<JoinRoomServiceResult> {
   logger.info("room_join", { step: "start", userId, roomId });
 
@@ -76,16 +76,16 @@ export async function joinRoomService(userId: string, roomId: string): Promise<J
   });
   logger.info("room_join", { step: "guest_access", userId, roomId });
 
-  if (room.roomType === "circle" && room.status === "scheduled") {
-    await maybeAutoStartScheduledCircleFromDb(roomId);
+  if (room.roomType === "space" && room.status === "scheduled") {
+    await maybeAutoStartScheduledSpaceFromDb(roomId);
     room = await roomsRepository.findRoomById(roomId);
-    logger.info("room_join", { step: "auto_start_scheduled_circle", userId, roomId });
+    logger.info("room_join", { step: "auto_start_scheduled_space", userId, roomId });
     if (!room) {
       rejectJoinRoom(userId, roomId, "Room not found", "ROOM_NOT_FOUND", 404);
     }
   }
 
-  if (room.roomType === "direct" || room.roomType === "circle") {
+  if (room.roomType === "direct" || room.roomType === "space") {
     const access = await assertRoomSessionOpenOnAccess(roomId);
     logger.info("room_join", { step: "reconcile_session", userId, roomId, ok: access.ok });
     if (!access.ok) {
@@ -94,11 +94,11 @@ export async function joinRoomService(userId: string, roomId: string): Promise<J
     room = (await roomsRepository.findRoomById(roomId)) ?? room;
   }
 
-  if (room.roomType !== "direct" && room.roomType !== "circle") {
+  if (room.roomType !== "direct" && room.roomType !== "space") {
     rejectJoinRoom(userId, roomId, "Unsupported room type", "UNSUPPORTED_ROOM_TYPE", 400);
   }
 
-  if (room.roomType === "circle" && room.status !== "live") {
+  if (room.roomType === "space" && room.status !== "live") {
     if (
       userId !== room.hostUserId &&
       (await roomRestrictedUsersRepository.isRoomRestrictedUser(roomId, userId))
@@ -106,7 +106,7 @@ export async function joinRoomService(userId: string, roomId: string): Promise<J
       rejectJoinRoom(
         userId,
         roomId,
-        "You are not allowed to rejoin this circle",
+        "You are not allowed to rejoin this space",
         "RESTRICTED",
         403,
       );
@@ -117,7 +117,7 @@ export async function joinRoomService(userId: string, roomId: string): Promise<J
       logger.info("room_join_succeeded", { userId, roomId, rtcEligible: false, skipped: true, lobby: true });
       return joinRoomSuccess(roomId, room, false);
     }
-    await ensureCircleRoomParticipation(userId, roomId, room);
+    await ensureSpaceRoomParticipation(userId, roomId, room);
     logger.info("room_join_succeeded", { userId, roomId, rtcEligible: false, lobby: true, roomType: room.roomType });
     return joinRoomSuccess(roomId, room, false);
   }
@@ -139,9 +139,9 @@ export async function joinRoomService(userId: string, roomId: string): Promise<J
     return joinRoomSuccess(roomId, room, true);
   }
 
-  await ensureCircleRoomParticipation(userId, roomId, room);
-  await roomSessionsRepository.refreshLiveCircleExpiryAfterParticipantJoin(roomId);
-  logger.info("room_join_succeeded", { userId, roomId, rtcEligible: true, roomType: "circle" });
+  await ensureSpaceRoomParticipation(userId, roomId, room);
+  await roomSessionsRepository.refreshLiveSpaceExpiryAfterParticipantJoin(roomId);
+  logger.info("room_join_succeeded", { userId, roomId, rtcEligible: true, roomType: "space" });
   return joinRoomSuccess(roomId, room, true);
 }
 
@@ -189,7 +189,7 @@ async function ensureDirectRoomParticipation(
   rejectJoinRoom(userId, roomId, "You are not allowed to join this room", "NOT_ALLOWED", 403);
 }
 
-async function ensureCircleRoomParticipation(
+async function ensureSpaceRoomParticipation(
   userId: string,
   roomId: string,
   room: NonNullable<Awaited<ReturnType<typeof roomsRepository.findRoomById>>>,
@@ -203,7 +203,7 @@ async function ensureCircleRoomParticipation(
     rejectJoinRoom(
       userId,
       roomId,
-      "You are not allowed to rejoin this circle",
+      "You are not allowed to rejoin this space",
       "RESTRICTED",
       403,
     );
@@ -221,7 +221,7 @@ async function ensureCircleRoomParticipation(
     rejectJoinRoom(
       userId,
       roomId,
-      `This circle is full (${room.maxParticipants} seats including the host).`,
+      `This space is full (${room.maxParticipants} seats including the host).`,
       "ROOM_FULL",
       400,
     );

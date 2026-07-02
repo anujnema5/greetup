@@ -1,4 +1,5 @@
 'use client'
+import { useEffect, useState } from 'react'
 import { useFormContext, useFormState } from 'react-hook-form'
 import { useRouter } from 'next/navigation'
 
@@ -39,13 +40,23 @@ import { Badge } from '@/components/ui/badge'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { useProfileSetup, clearProfileSetupProgress } from '../provider'
 import { firstLetterCapital } from '@/shared/utils/general'
-import { LogOut } from 'lucide-react'
+import { Loader2, LogOut, SkipForward } from 'lucide-react'
 import { signOut } from '@/lib/auth-client'
 import { ThemeToggle } from '@/components/theme-toggle'
 import { CountryDropdown, type Country } from '@/components/ui/country-dropdown'
 import { AgeDigitsInput } from '@/features/profile/components/age-digits-input'
 import { generateKey } from '../utils'
 import { ProfileSetupPhotoField } from '../components/profile-setup-photo-field'
+import { UsernamePickerField } from '@/features/profile/components/username-picker-field'
+
+/** Shared field chrome — `border-input` used the input fill token and vanished on dark cards. */
+const SETUP_FIELD_CLASS =
+  "rounded-xl border border-border bg-background shadow-xs transition-all hover:border-primary/50 focus-visible:border-primary focus-visible:ring-primary/20 dark:border-white/12 dark:bg-white/[0.03] dark:hover:border-primary/40"
+
+const SETUP_CARD_BORDER_CLASS = "border-border dark:border-white/10"
+
+const SETUP_OPTION_CARD_CLASS =
+  "border-border hover:border-primary/50 hover:bg-muted/40 dark:border-white/11 dark:hover:border-primary/40 dark:hover:bg-white/[0.03]"
 
 /** Fallback emoji when backend doesn't send one (e.g. legacy data). */
 const DEFAULT_OPTION_EMOJI = '✨'
@@ -67,6 +78,8 @@ const Logo = ({ className }: { className?: string }) => {
   )
 }
 
+const PROFILE_PROMPTS_STEP_TITLE = 'Profile prompts'
+
 const ProfileSetupStep = () => {
   const router = useRouter()
   const {
@@ -79,12 +92,72 @@ const ProfileSetupStep = () => {
     totalSteps,
     isLoading,
     isSaving,
+    allFormData,
   } = useProfileSetup()
 
   const form = useFormContext()
   const { errors: formErrors } = useFormState({ control: form.control })
   const rootErrorMessage =
     typeof formErrors.root?.message === 'string' ? formErrors.root.message : undefined
+
+  const promptFields =
+    currentStepData?.title === PROFILE_PROMPTS_STEP_TITLE
+      ? (currentStepData.fields ?? [])
+      : []
+  const isPromptCarouselStep = promptFields.length > 1
+  const [promptIndex, setPromptIndex] = useState(0)
+
+  useEffect(() => {
+    setPromptIndex(0)
+  }, [currentStep])
+
+  const visibleFields = isPromptCarouselStep
+    ? promptFields[promptIndex]
+      ? [promptFields[promptIndex]]
+      : []
+    : (currentStepData?.fields ?? [])
+
+  const isLastPromptQuestion =
+    !isPromptCarouselStep || promptIndex >= promptFields.length - 1
+
+  const handleBack = () => {
+    if (isPromptCarouselStep && promptIndex > 0) {
+      setPromptIndex((i) => i - 1)
+      return
+    }
+    onBack()
+  }
+
+  const handleContinue = async () => {
+    if (isPromptCarouselStep) {
+      const field = promptFields[promptIndex]
+      if (field) {
+        const val = String(form.getValues(field.key) ?? '').trim()
+        if (val.length > 0 && field.minLength && val.length < field.minLength) {
+          await form.trigger(field.key)
+          return
+        }
+      }
+      if (!isLastPromptQuestion) {
+        setPromptIndex((i) => i + 1)
+        return
+      }
+    }
+    await onContinue()
+  }
+
+  const handleSkipAll = async () => {
+    if (isPromptCarouselStep) {
+      for (const field of promptFields) {
+        const val = String(form.getValues(field.key) ?? '').trim()
+        if (val.length > 0 && field.minLength && val.length < field.minLength) {
+          form.setValue(field.key, '', { shouldValidate: false })
+        }
+      }
+      form.clearErrors()
+    }
+    await onContinue({ skipOptionalPromptValidation: true })
+  }
 
   const handleLogout = async () => {
     clearProfileSetupProgress()
@@ -127,7 +200,7 @@ const ProfileSetupStep = () => {
                     {...(field.autoComplete
                       ? { autoComplete: field.autoComplete }
                       : {})}
-                    className="border-input bg-background transition-all hover:border-primary/50 focus-visible:border-primary focus-visible:ring-primary/20 "
+                    className={SETUP_FIELD_CLASS}
                   />
                 </FormControl>
                 {field.description ? (
@@ -172,7 +245,7 @@ const ProfileSetupStep = () => {
                         value={v}
                         onChange={(n) => formField.onChange(n)}
                         onBlur={formField.onBlur}
-                        className="border-input bg-background transition-all hover:border-primary/50 focus-visible:border-primary focus-visible:ring-primary/20"
+                        className={SETUP_FIELD_CLASS}
                       />
                     </FormControl>
                     <FormMessage className="text-xs" />
@@ -206,7 +279,7 @@ const ProfileSetupStep = () => {
                       const value = e.target.value
                       formField.onChange(value === '' ? '' : Number(value))
                     }}
-                    className="border-input  bg-background transition-all hover:border-primary/50 focus-visible:border-primary focus-visible:ring-primary/20"
+                    className={SETUP_FIELD_CLASS}
                   />
                 </FormControl>
                 <FormMessage className="text-xs" />
@@ -246,7 +319,7 @@ const ProfileSetupStep = () => {
                     value={formField.value || ''}
                   >
                     <FormControl>
-                      <SelectTrigger className="border-input w-full bg-background   transition-all hover:border-primary/50 focus:ring-primary/20">
+                      <SelectTrigger className={cn("w-full", SETUP_FIELD_CLASS, "focus:ring-primary/20")}>
                         <SelectValue placeholder={field.placeholder} />
                       </SelectTrigger>
                     </FormControl>
@@ -349,7 +422,7 @@ const ProfileSetupStep = () => {
                             'relative flex flex-col items-center justify-center gap-3 rounded-xl border p-5 text-center transition-all cursor-pointer',
                             checked
                               ? 'border-primary bg-accent shadow-sm'
-                              : 'border-border hover:border-primary/50 hover:bg-muted/40',
+                              : SETUP_OPTION_CARD_CLASS,
                             field.max &&
                               !checked &&
                               formField.value?.length >= field.max &&
@@ -425,7 +498,7 @@ const ProfileSetupStep = () => {
                       value={formField.value || ''}
                       maxLength={field.maxLength}
                       onInput={(e) => autoResize(e.currentTarget)}
-                      className="min-h-13 resize-none overflow-hidden border-input bg-background transition-all hover:border-primary/50 focus-visible:border-primary focus-visible:ring-primary/20"
+                      className={cn("min-h-13 resize-none overflow-hidden", SETUP_FIELD_CLASS)}
                     />
                   </FormControl>
                   {field.maxLength && (
@@ -472,7 +545,10 @@ const ProfileSetupStep = () => {
                       return (
                         <div
                           key={value}
-                          className="flex items-center space-x-3 rounded-lg border border-input bg-background p-4 transition-all hover:border-primary/50 hover:bg-accent/50 cursor-pointer"
+                          className={cn(
+                            "flex items-center space-x-3 rounded-lg border p-4 transition-all hover:border-primary/50 hover:bg-accent/50 cursor-pointer",
+                            SETUP_OPTION_CARD_CLASS,
+                          )}
                         >
                           <RadioGroupItem
                             value={value}
@@ -502,7 +578,10 @@ const ProfileSetupStep = () => {
             control={form.control}
             name={field.key}
             render={({ field: formField }) => (
-              <FormItem className="flex items-center justify-between rounded-lg border border-input bg-background p-4 transition-all hover:border-primary/50 hover:bg-accent/30">
+              <FormItem className={cn(
+                "flex items-center justify-between rounded-lg border p-4 transition-all hover:border-primary/50 hover:bg-accent/30",
+                SETUP_OPTION_CARD_CLASS,
+              )}>
                 <div className="space-y-1 pr-4">
                   <FormLabel className="text-sm font-semibold text-foreground">
                     {field.label}
@@ -582,13 +661,40 @@ const ProfileSetupStep = () => {
           />
         )
 
+      case 'username-picker':
+        return (
+          <FormField
+            control={form.control}
+            name={field.key}
+            render={({ field: formField }) => (
+              <FormItem>
+                <FormControl>
+                  <UsernamePickerField
+                    id={`setup-${field.key}`}
+                    value={String(formField.value ?? '')}
+                    onChange={formField.onChange}
+                    onBlur={formField.onBlur}
+                    disabled={isSaving}
+                    displayName={
+                      typeof allFormData.displayName === 'string'
+                        ? allFormData.displayName
+                        : null
+                    }
+                  />
+                </FormControl>
+                <FormMessage className="text-xs" />
+              </FormItem>
+            )}
+          />
+        )
+
       default:
         return null
     }
   }
 
   const getFieldGridClass = (field: any) => {
-    if (['multi-select', 'textarea', 'radio', 'toggle', 'photo-upload'].includes(field.type)) {
+    if (['multi-select', 'textarea', 'radio', 'toggle', 'photo-upload', 'username-picker'].includes(field.type)) {
       return 'col-span-full'
     }
     return 'col-span-full md:col-span-1'
@@ -600,7 +706,7 @@ const ProfileSetupStep = () => {
     <div className="min-h-screen flex items-center justify-center bg-muted/30 px-4 py-6 sm:py-8">
       <div className="w-full max-w-2xl">
         {/* Card container */}
-        <div className="rounded-2xl border border-border bg-card shadow-sm overflow-hidden">
+        <div className={cn("rounded-2xl border bg-card shadow-sm overflow-hidden", SETUP_CARD_BORDER_CLASS)}>
           {/* Progress bar - top of card */}
           <div className="h-1 w-full bg-muted">
             <ProgressBar
@@ -622,7 +728,7 @@ const ProfileSetupStep = () => {
             </div>
 
             {/* Step label */}
-            <p className="text-center text-xs font-medium text-muted-foreground uppercase tracking-wider">
+            <p className="text-center text-xs text-muted-foreground">
               Step {currentStep} of {totalSteps}
             </p>
 
@@ -631,17 +737,22 @@ const ProfileSetupStep = () => {
               <h1 className="text-2xl sm:text-3xl font-semibold text-foreground tracking-tight">
                 {currentStepData.title}
               </h1>
-              {currentStepData.description && (
+              {currentStepData.description ? (
                 <p className="text-muted-foreground text-sm max-w-md mx-auto">
                   {currentStepData.description}
                 </p>
-              )}
+              ) : null}
             </div>
 
             {/* Form */}
             <Form {...form}>
+              {isPromptCarouselStep ? (
+                <p className="mb-4 text-center text-xs text-muted-foreground">
+                  {promptIndex + 1} of {promptFields.length}
+                </p>
+              ) : null}
               <div className="space-y-5 sm:space-y-6">
-                {currentStepData.fields.map((field: any) => (
+                {visibleFields.map((field: any) => (
                   <div key={field.key}>{renderField(field)}</div>
                 ))}
               </div>
@@ -656,21 +767,45 @@ const ProfileSetupStep = () => {
             {/* Actions */}
             <div className="flex items-center justify-between gap-3 pt-2">
               <Button
-                variant="ghost"
-                onClick={onBack}
+                type="button"
+                variant="outline"
+                onClick={handleBack}
                 disabled={isFirstStep || isSaving}
-                className="text-muted-foreground min-w-0"
+                className="min-w-[100px] sm:min-w-[120px] rounded-xl text-muted-foreground"
               >
                 Back
               </Button>
               <Button
-                onClick={onContinue}
+                type="button"
+                onClick={handleContinue}
                 disabled={isSaving}
-                className="min-w-[120px] sm:min-w-[140px]"
+                className="min-w-[120px] sm:min-w-[140px] rounded-xl gap-1.5"
               >
-                {isSaving ? 'Saving...' : isLastStep ? 'Complete' : 'Next'}
+                {isSaving ? (
+                  <span className="inline-flex items-center gap-1.5">
+                    <Loader2 className="size-3.5 shrink-0 animate-spin" aria-hidden />
+                    Saving…
+                  </span>
+                ) : isLastStep && isLastPromptQuestion ? (
+                  'Complete'
+                ) : (
+                  'Next'
+                )}
               </Button>
             </div>
+            {isPromptCarouselStep ? (
+              <div className="mt-3 flex justify-center">
+                <button
+                  type="button"
+                  onClick={() => void handleSkipAll()}
+                  disabled={isSaving}
+                  className="inline-flex items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground disabled:opacity-50 cursor-pointer"
+                >
+                  <SkipForward className="size-3.5 shrink-0" aria-hidden />
+                  Skip all
+                </button>
+              </div>
+            ) : null}
           </div>
         </div>
 
@@ -694,9 +829,6 @@ const ProfileSetupStep = () => {
 
         {/* Footer */}
         <div className="flex flex-col items-center gap-3 mt-4 pb-2">
-          <p className="text-center text-xs text-muted-foreground">
-            All your information is secure and private
-          </p>
           <Button
             variant="ghost"
             size="sm"

@@ -1,7 +1,7 @@
 "use client";
 
 /**
- * Camera tiles under the shared screen (circle calls, viewports below `xl` only).
+ * Camera tiles under the shared screen (space calls, viewports below `xl` only).
  * On desktop, cameras live in the People panel on the right.
  */
 import { CALL_TILE_AVATAR_SIZE_COMPACT } from "@/features/room/call/tiles/tile-styles";
@@ -19,7 +19,7 @@ import type { CamerasUnderScreenShareProps } from "./types";
 
 function remoteKickProps(p: CamerasUnderScreenShareProps) {
   return {
-    canKick: Boolean(p.isCircleHost && p.onKickParticipant),
+    canKick: Boolean(p.isSpaceHost && p.onKickParticipant),
     onKickParticipant: p.onKickParticipant,
     kickingUserId: p.kickingUserId ?? null,
   };

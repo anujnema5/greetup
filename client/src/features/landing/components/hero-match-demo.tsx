@@ -2,6 +2,7 @@
 
 import { useEffect, useReducer } from "react";
 import { AnimatePresence, motion } from "framer-motion";
+import { Loader2, Video } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const EASE: [number, number, number, number] = [0.22, 1, 0.36, 1];
@@ -26,47 +27,63 @@ type StoryStep = {
 
 const STORY: StoryStep[] = [
   {
-    id: "profession",
-    filter: "By profession",
-    preference: "Backend engineers",
-    scanLabel: "Finding backend engineers…",
-    you: { name: "You", tag: "Backend · Node", letter: "Y", avatarClass: "bg-[oklch(58%_0.14_285)]" },
+    id: "activity-vent",
+    filter: "By activity",
+    preference: "Vent",
+    scanLabel: "Looking for someone to vent with…",
+    switchLabel: "Vent",
+    you: { name: "You", tag: "Vent", letter: "Y", avatarClass: "bg-[oklch(58%_0.14_285)]" },
     peer: {
-      name: "Aarav",
-      tag: "Backend · Go",
-      letter: "A",
+      name: "Sofia",
+      tag: "Vent",
+      letter: "S",
       avatarClass: "bg-[oklch(52%_0.12_295)]",
-      note: "Hey, saw you're on Node too",
+      note: "Hey — want to get something off your chest?",
     },
   },
   {
-    id: "interest",
-    filter: "By interests",
-    preference: "Artists",
-    scanLabel: "Finding artists…",
-    switchLabel: "Switched to interests",
-    you: { name: "You", tag: "Illustrator · SF", letter: "Y", avatarClass: "bg-[oklch(62%_0.16_15)]" },
+    id: "activity-chess",
+    filter: "By activity",
+    preference: "Play chess",
+    scanLabel: "Looking for a chess partner…",
+    switchLabel: "Play chess",
+    you: { name: "You", tag: "Play chess", letter: "Y", avatarClass: "bg-[oklch(58%_0.14_285)]" },
     peer: {
-      name: "Mei",
-      tag: "Visual artist · NYC",
-      letter: "M",
-      avatarClass: "bg-[oklch(58%_0.14_10)]",
-      note: "Love your sketch style!",
+      name: "Riya",
+      tag: "Play chess",
+      letter: "R",
+      avatarClass: "bg-[oklch(52%_0.12_295)]",
+      note: "Hey! Up for a game once we've said hi?",
     },
   },
   {
-    id: "open",
-    filter: "Open match",
-    preference: "Anyone",
-    scanLabel: "Finding someone new…",
-    switchLabel: "Open to anyone",
-    you: { name: "You", tag: "Open to anyone", letter: "Y", avatarClass: "bg-[oklch(68%_0.12_75)]" },
+    id: "quick-match",
+    filter: "Quick match",
+    preference: "Yap",
+    scanLabel: "Looking for someone to talk with…",
+    switchLabel: "Quick match",
+    you: { name: "You", tag: "Yap", letter: "Y", avatarClass: "bg-[oklch(62%_0.16_15)]" },
     peer: {
       name: "James",
-      tag: "Jazz · Berlin",
+      tag: "Movies & sports",
       letter: "J",
       avatarClass: "bg-[oklch(62%_0.11_65)]",
-      note: "Want to jam sometime?",
+      note: "Hey! Just matched with you 👋",
+    },
+  },
+  {
+    id: "activity-language",
+    filter: "By activity",
+    preference: "Practice language",
+    scanLabel: "Looking for a practice partner…",
+    switchLabel: "Practice language",
+    you: { name: "You", tag: "Spanish", letter: "Y", avatarClass: "bg-[oklch(68%_0.12_75)]" },
+    peer: {
+      name: "Mei",
+      tag: "Spanish",
+      letter: "M",
+      avatarClass: "bg-[oklch(58%_0.14_10)]",
+      note: "Want to practice speaking together?",
     },
   },
 ];
@@ -111,96 +128,84 @@ function useDemoLoop(active: boolean) {
   return state;
 }
 
-function PersonCard({
-  person,
-  highlight,
+function DemoSearchingState({
   lite,
+  filter,
+  preference,
+}: {
+  lite: boolean;
+  filter: string;
+  preference: string;
+}) {
+  const matchMode = filter === "By activity" ? "Match by activity" : "Quick match";
+
+  return (
+    <div className="relative mx-auto w-full max-w-[17rem] py-1">
+      <div className="relative flex items-center gap-3 rounded-2xl border border-primary/20 bg-primary/5 px-3.5 py-3">
+        <span className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-primary/18 text-primary">
+          {lite ? (
+            <Video className="size-[18px]" strokeWidth={2} aria-hidden />
+          ) : (
+            <Loader2 className="size-[18px] animate-spin" aria-hidden />
+          )}
+        </span>
+        <span className="min-w-0 flex-1 text-left">
+          <span className="block text-sm font-semibold landing-card-title">{matchMode}</span>
+          <span className="mt-0.5 block text-xs leading-snug landing-card-muted">
+            Finding someone for you
+          </span>
+          <span className="mt-1 block truncate text-[10px] landing-card-muted/80">{preference}</span>
+        </span>
+      </div>
+    </div>
+  );
+}
+
+function MatchedPeerCard({
+  person,
+  lite,
+  linked,
+  showNote,
 }: {
   person: Person;
-  highlight?: boolean;
   lite: boolean;
+  linked: boolean;
+  showNote?: boolean;
 }) {
   return (
-    <div
-      className={cn(
-        "flex flex-1 flex-col items-center gap-2.5 rounded-xl border px-3 py-4 text-center transition-colors duration-300",
-        highlight
-          ? "border-[oklch(88%_0.18_105/0.24)] bg-[oklch(88%_0.18_105/0.06)]"
-          : "border-white/8 bg-card/50",
-      )}
-    >
-      <div
-        className={cn(
-          "flex size-12 items-center justify-center rounded-full text-sm font-medium text-white/90 ring-2 ring-white/6",
-          person.avatarClass,
-        )}
-      >
-        {person.letter}
-      </div>
-      <div className="min-w-0 w-full">
-        <p className="truncate text-sm font-medium text-white/92">{person.name}</p>
-        <p className="mt-0.5 truncate text-[11px] text-white/44">{person.tag}</p>
-      </div>
-      {highlight && !lite && (
-        <motion.span
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          className="rounded-full bg-[oklch(88%_0.18_105/0.12)] px-2 py-0.5 text-[10px] font-medium text-[oklch(88%_0.18_105/0.9)]"
+    <div className="flex w-full flex-col items-center gap-3 py-1">
+      <span className="match-found-badge">Match found</span>
+
+      <div className="flex flex-col items-center gap-2 text-center">
+        <div
+          className={cn(
+            "match-found-avatar-fallback flex size-16 items-center justify-center rounded-full text-lg font-bold sm:size-[4.5rem]",
+            person.avatarClass,
+          )}
         >
-          matched
-        </motion.span>
-      )}
-    </div>
-  );
-}
-
-function EmptySlot({ scanning, lite }: { scanning: boolean; lite: boolean }) {
-  return (
-    <div className="relative flex flex-1 flex-col items-center justify-center gap-2.5 rounded-xl border border-dashed border-white/10 bg-card/35 px-3 py-4">
-      {scanning && !lite && (
-        <motion.div
-          className="pointer-events-none absolute inset-2 rounded-lg border border-[oklch(88%_0.18_105/0.18)]"
-          animate={{ opacity: [0.4, 0, 0.4] }}
-          transition={{ duration: 1.8, repeat: Infinity, ease: "easeOut" }}
-        />
-      )}
-      <div className="size-12 rounded-full bg-white/6 ring-2 ring-white/4" />
-      <p className="text-[11px] text-white/34">{scanning ? "Searching…" : "..."}</p>
-    </div>
-  );
-}
-
-function Connector({
-  active,
-  lite,
-  scanning,
-}: {
-  active: boolean;
-  lite: boolean;
-  scanning?: boolean;
-}) {
-  if (scanning && !lite) {
-    return (
-      <div className="relative flex w-7 shrink-0 items-center self-center">
-        <div className="h-px w-full bg-white/8" />
-        <motion.div
-          className="absolute left-1/2 size-1.5 -translate-x-1/2 rounded-full bg-[oklch(88%_0.18_105)] shadow-[0_0_8px_oklch(88%_0.18_105/0.55)]"
-          animate={{ x: [-9, 9, -9] }}
-          transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }}
-        />
+          {person.letter}
+        </div>
+        <div className="min-w-0">
+          <p className="text-sm font-bold landing-card-title sm:text-base">{person.name}</p>
+          <p className="mt-0.5 text-[11px] landing-card-muted">{person.tag}</p>
+        </div>
+        {linked && !lite && (
+          <span className="rounded-full landing-status-live px-2 py-0.5 text-[10px] font-medium">
+            Ready to connect
+          </span>
+        )}
       </div>
-    );
-  }
 
-  return (
-    <div className="flex w-7 shrink-0 items-center self-center">
-      <div className="h-px flex-1 bg-white/8" />
-      <motion.div
-        className={cn("mx-1 size-1.5 shrink-0 rounded-full", active ? "bg-[oklch(88%_0.18_105)]" : "bg-white/15")}
-        animate={active && !lite ? { scale: [1, 1.3, 1] } : undefined}
-        transition={{ duration: 1.4, repeat: Infinity, ease: "easeInOut" }}
-      />
-      <div className="h-px flex-1 bg-white/8" />
+      {showNote && person.note ? (
+        <motion.div
+          initial={lite ? false : { opacity: 0, y: 6 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.3, ease: EASE }}
+          className="w-full rounded-2xl rounded-tl-md border border-border bg-muted/60 px-3.5 py-2.5 text-center"
+        >
+          <p className="text-xs leading-relaxed landing-card-muted">{person.note}</p>
+        </motion.div>
+      ) : null}
     </div>
   );
 }
@@ -210,9 +215,8 @@ export function HeroMatchDemo({ lite }: { lite: boolean }) {
   const beat = STORY[step] ?? STORY[0]!;
   const linked = lite || phase === "link" || phase === "live";
   const peerVisible = lite || phase === "meet" || phase === "link" || phase === "live";
-  const scanning = !lite && phase === "scan";
+  const scanning = !lite && (phase === "scan" || phase === "shift");
   const switching = !lite && phase === "shift";
-  const connectorActive = linked || phase === "meet";
 
   const statusLabel = linked
     ? null
@@ -221,14 +225,16 @@ export function HeroMatchDemo({ lite }: { lite: boolean }) {
       : scanning
         ? beat.scanLabel
         : phase === "meet"
-          ? `${beat.peer.name} looks like a fit`
+          ? `${beat.peer.name} is a match`
           : null;
 
   return (
-    <div className="w-full overflow-hidden rounded-xl border border-white/7 bg-card">
-      <div className="flex items-start justify-between gap-3 border-b border-white/6 px-4 py-4 sm:px-5">
+    <div className="w-full overflow-hidden rounded-xl border border-border bg-card">
+      <div className="flex items-start justify-between gap-3 border-b border-border px-4 py-4 sm:px-5">
         <div className="min-w-0">
-          <p className="text-[11px] text-white/36">{beat.filter}</p>
+          <p className="text-[11px] landing-card-muted">
+            {beat.filter === "By activity" ? "Match by activity" : "Quick match"}
+          </p>
           <AnimatePresence mode="wait">
             <motion.h3
               key={`${step}-${beat.preference}`}
@@ -236,7 +242,7 @@ export function HeroMatchDemo({ lite }: { lite: boolean }) {
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -4 }}
               transition={{ duration: 0.25, ease: EASE }}
-              className="mt-1 text-lg font-semibold leading-tight text-white sm:text-[1.35rem]"
+              className="mt-1 text-lg font-semibold leading-tight landing-card-title sm:text-[1.35rem]"
             >
               {beat.preference}
             </motion.h3>
@@ -246,16 +252,16 @@ export function HeroMatchDemo({ lite }: { lite: boolean }) {
           className={cn(
             "mt-0.5 flex shrink-0 items-center gap-1.5 rounded-full px-2 py-0.5 text-[10px] font-medium",
             linked
-              ? "bg-[oklch(88%_0.18_105/0.1)] text-[oklch(88%_0.18_105/0.95)]"
-              : "bg-white/4 text-white/38",
+              ? "landing-status-live"
+              : "bg-muted/60 landing-card-muted",
           )}
         >
           {linked && (
             <span className="relative flex size-1.5">
               {!lite && (
-                <span className="absolute inline-flex size-full animate-ping rounded-full bg-[oklch(88%_0.18_105/0.45)]" />
+                <span className="absolute inline-flex size-full animate-ping rounded-full bg-secondary/45 dark:bg-[oklch(88%_0.18_105/0.45)]" />
               )}
-              <span className="relative inline-flex size-1.5 rounded-full bg-[oklch(88%_0.18_105)]" />
+              <span className="relative inline-flex size-1.5 rounded-full landing-gold-dot" />
             </span>
           )}
           {linked ? "Live" : "Searching"}
@@ -263,65 +269,46 @@ export function HeroMatchDemo({ lite }: { lite: boolean }) {
       </div>
 
       <div className="px-4 py-4 sm:px-5 sm:py-5">
-        <div className="rounded-xl bg-card/55 p-2.5 ring-1 ring-white/4 ring-inset">
-          <div className="flex items-stretch gap-1.5">
-            <AnimatePresence mode="wait">
-              <motion.div key={`you-${step}`} className="flex flex-1" initial={false} animate={{ opacity: 1 }}>
-                <PersonCard person={beat.you} lite={lite} />
-              </motion.div>
-            </AnimatePresence>
-
-            <Connector active={connectorActive} lite={lite} scanning={scanning} />
-
-            <AnimatePresence mode="wait">
-              {peerVisible ? (
-                <motion.div
-                  key={`${step}-${beat.peer.name}`}
-                  className="flex flex-1"
-                  initial={lite ? false : { opacity: 0, x: 10 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  exit={{ opacity: 0, x: 10 }}
-                  transition={{ duration: 0.32, ease: EASE }}
-                >
-                  <PersonCard person={beat.peer} highlight={linked} lite={lite} />
-                </motion.div>
-              ) : (
-                <motion.div key="slot" className="flex flex-1">
-                  <EmptySlot scanning={scanning} lite={lite} />
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </div>
-        </div>
-
-        <AnimatePresence mode="wait">
-          {linked && beat.peer.note && (
-            <motion.div
-              key={`msg-${step}`}
-              initial={lite ? false : { opacity: 0, y: 8 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.32, delay: 0.08, ease: EASE }}
-              className="mt-3.5 flex gap-2.5"
-            >
-              <div
-                className={cn(
-                  "mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-full text-[11px] font-medium text-white/90",
-                  beat.peer.avatarClass,
-                )}
+        <div className="rounded-xl bg-card/55 p-3 ring-1 ring-border/60 ring-inset min-h-[11.5rem] flex items-center justify-center">
+          <AnimatePresence mode="wait">
+            {scanning ? (
+              <motion.div
+                key={`search-${step}`}
+                initial={lite ? false : { opacity: 0, scale: 0.96 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.98 }}
+                transition={{ duration: 0.28, ease: EASE }}
+                className="flex w-full flex-col items-center gap-3 py-2"
               >
-                {beat.peer.letter}
-              </div>
-              <div className="min-w-0 flex-1 rounded-2xl rounded-tl-md border border-white/7 bg-white/4 px-3.5 py-2.5">
-                <p className="text-xs leading-relaxed text-white/75">{beat.peer.note}</p>
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
+                <DemoSearchingState
+                  lite={lite}
+                  filter={beat.filter}
+                  preference={beat.preference}
+                />
+              </motion.div>
+            ) : peerVisible ? (
+              <motion.div
+                key={`match-${step}-${beat.peer.name}`}
+                className="w-full"
+                initial={lite ? false : { opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -6 }}
+                transition={{ duration: 0.32, ease: EASE }}
+              >
+                <MatchedPeerCard
+                  person={beat.peer}
+                  lite={lite}
+                  linked={linked}
+                  showNote={linked && Boolean(beat.peer.note)}
+                />
+              </motion.div>
+            ) : null}
+          </AnimatePresence>
+        </div>
       </div>
 
       {(statusLabel || !lite) && (
-        <div className="flex items-center justify-between border-t border-white/6 px-4 py-3 sm:px-5">
+        <div className="flex items-center justify-between border-t border-border px-4 py-3 sm:px-5">
           <AnimatePresence mode="wait">
             {statusLabel && (
               <motion.p
@@ -329,7 +316,7 @@ export function HeroMatchDemo({ lite }: { lite: boolean }) {
                 initial={lite ? false : { opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
-                className="text-xs text-white/36"
+                className="text-xs landing-card-muted"
               >
                 {statusLabel}
               </motion.p>
@@ -343,7 +330,7 @@ export function HeroMatchDemo({ lite }: { lite: boolean }) {
                   key={s.id}
                   className={cn(
                     "h-1 rounded-full transition-all duration-400",
-                    i === step ? "w-4 bg-[oklch(88%_0.18_105/0.7)]" : "w-1 bg-white/14",
+                    i === step ? "w-4 bg-secondary/70 dark:bg-[oklch(88%_0.18_105/0.7)]" : "w-1 bg-foreground/14",
                   )}
                 />
               ))}

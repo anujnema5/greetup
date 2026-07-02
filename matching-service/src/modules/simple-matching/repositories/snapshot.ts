@@ -53,21 +53,63 @@ const buildMatchIds = (interestIds: string[], goalIds: string[], professionIds: 
   ]);
 };
 
+type SessionActivityFromSnapshot = {
+  activityId: string;
+  name: string;
+  detailNormalized: string | null;
+};
+
 type SessionPrepFromSnapshot = {
   moodIds: string[];
   lookingForIds: string[];
   connectionPreference: string | null;
+  matchIntent: string;
+  sessionActivityIds: string[];
+  sessionActivities: SessionActivityFromSnapshot[];
+};
+
+const parseSessionActivitiesFromSnapshot = (cs: JsonRecord): SessionActivityFromSnapshot[] => {
+  const rows = cs.activities;
+  if (!Array.isArray(rows)) return [];
+  const out: SessionActivityFromSnapshot[] = [];
+  for (const item of rows) {
+    if (!isRecord(item)) continue;
+    const activity = isRecord(item.activity) ? item.activity : item;
+    const activityId = toStringOrNull(activity.id);
+    const name = toStringOrNull(activity.name);
+    if (!activityId || !name) continue;
+    const detailNormalized =
+      toStringOrNull(item.detailNormalized) ??
+      (() => {
+        const d = toStringOrNull(item.detail);
+        return d ? d.toLowerCase() : null;
+      })();
+    out.push({ activityId, name, detailNormalized });
+  }
+  return out;
 };
 
 const parseSessionPrepFromSnapshot = (raw: JsonRecord): SessionPrepFromSnapshot => {
   const cs = raw.currentStatus;
   if (!isRecord(cs)) {
-    return { moodIds: [], lookingForIds: [], connectionPreference: null };
+    return {
+      moodIds: [],
+      lookingForIds: [],
+      connectionPreference: null,
+      matchIntent: "quick",
+      sessionActivityIds: [],
+      sessionActivities: [],
+    };
   }
+  const sessionActivities = parseSessionActivitiesFromSnapshot(cs);
+  const matchIntentRaw = toStringOrNull(cs.matchIntent);
   return {
     moodIds: collectNestedIds(cs.moods, "mood"),
     lookingForIds: collectNestedIds(cs.lookingFor, "lookingForOption"),
     connectionPreference: toStringOrNull(cs.connectionPreference),
+    matchIntent: matchIntentRaw === "activity" ? "activity" : "quick",
+    sessionActivityIds: sessionActivities.map((a) => a.activityId),
+    sessionActivities,
   };
 };
 
@@ -123,6 +165,9 @@ const parseSnapshot = (raw: JsonRecord, fallbackUserId: string): SnapshotUserPro
       sessionMoodIds: prep.moodIds,
       sessionLookingForIds: prep.lookingForIds,
       connectionPreference: prep.connectionPreference,
+      matchIntent: prep.matchIntent,
+      sessionActivityIds: prep.sessionActivityIds,
+      sessionActivities: prep.sessionActivities,
       isGuest,
     },
   };

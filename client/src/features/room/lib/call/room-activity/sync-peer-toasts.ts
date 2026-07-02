@@ -2,6 +2,7 @@ import { toast } from "sonner";
 import { remotePeerIdsStableKey } from "@/features/rtc";
 import type { RemotePeer } from "@/features/rtc";
 import type { RoomSessionType } from "@/shared/types/room-session";
+import { isGroupRoomSessionType } from "@/shared/types/room-session";
 import { ROOM_ACTIVITY_TOAST } from "@/features/room/constants/call/room-activity-toast-copy";
 import { peerDisplayLabel, peerDisplayLabelById } from "./peer-label";
 import { peerIdsFromStableKey, type RoomActivityToastTracker } from "./tracker";
@@ -37,7 +38,7 @@ export function syncPeerActivityToasts(
   const currIds = peerIdsFromStableKey(peerKey);
   const prevSet = new Set(prevIds);
   const currSet = new Set(currIds);
-  const isDirectCall = rtcRoomType !== "circle";
+  const isDirectCall = !isGroupRoomSessionType(rtcRoomType);
 
   for (const id of currIds) {
     if (prevSet.has(id)) continue;

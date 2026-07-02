@@ -1,3 +1,3 @@
-export { circleRoomNotificationDeepLink } from "./circle-room-deep-link";
-export { notifyCircleStarted } from "./notify-circle-started.notification";
-export { notifyCircleStartedToAssociatedUsers } from "./notify-circle-started-to-associated-users.service";
+export { spaceRoomNotificationDeepLink } from "./space-room-deep-link";
+export { notifySpaceStarted } from "./notify-space-started.notification";
+export { notifySpaceStartedToAssociatedUsers } from "./notify-space-started-to-associated-users.service";

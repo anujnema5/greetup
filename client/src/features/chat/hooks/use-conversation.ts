@@ -7,7 +7,7 @@ import { useSocket } from '@/lib/socket/provider';
 import { useMessages } from '../api/chat.queries';
 import { markOwnMessagesReadInCache } from '../lib/message-cache-sync';
 import { bindChatConversationSocket } from '../lib/chat-conversation-socket-membership';
-import { useChatUiStore } from '../state/chat-ui.store';
+import { TYPING_INDICATOR_TTL_MS, useChatUiStore } from '../state/chat-ui.store';
 import type {
   ConversationType,
   Message,
@@ -70,22 +70,39 @@ export function useConversation(
   useEffect(() => {
     if (!socket) return;
 
-    const { setTyping } = useChatUiStore.getState();
+    const { setTyping, clearTyping } = useChatUiStore.getState();
+    const expiryTimers = new Map<string, ReturnType<typeof window.setTimeout>>();
+
+    const clearExpiry = (userId: string) => {
+      const existing = expiryTimers.get(userId);
+      if (existing) {
+        clearTimeout(existing);
+        expiryTimers.delete(userId);
+      }
+    };
 
     const onTypingStart = (p: TypingPayload) => {
       if (p.conversationId !== conversationId) return;
       setTyping({ conversationId, userId: p.userId, isTyping: true });
+
+      clearExpiry(p.userId);
+      const timer = window.setTimeout(() => {
+        expiryTimers.delete(p.userId);
+        clearTyping({ conversationId, userId: p.userId });
+      }, TYPING_INDICATOR_TTL_MS);
+      expiryTimers.set(p.userId, timer);
     };
 
     const onTypingStop = (p: TypingPayload) => {
       if (p.conversationId !== conversationId) return;
-      setTyping({ conversationId, userId: p.userId, isTyping: false });
+      clearExpiry(p.userId);
+      clearTyping({ conversationId, userId: p.userId });
     };
 
     const onPeerRead = (p: ReadPayload) => {
       if (p.conversationId !== conversationId) return;
       if (!currentUserId || p.userId === currentUserId) return;
-      if (conversationType === 'room_circle') return;
+      if (conversationType === 'room_space') return;
 
       markOwnMessagesReadInCache(qc, conversationId, currentUserId);
     };
@@ -95,6 +112,10 @@ export function useConversation(
     socket.on('chat:message:read', onPeerRead);
 
     return () => {
+      for (const timer of expiryTimers.values()) {
+        window.clearTimeout(timer);
+      }
+      expiryTimers.clear();
       socket.off('chat:typing:start', onTypingStart);
       socket.off('chat:typing:stop', onTypingStop);
       socket.off('chat:message:read', onPeerRead);

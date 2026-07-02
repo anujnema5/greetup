@@ -10,6 +10,8 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
+import { MATCH_FOUND_DIALOG } from "@/lib/copy/user-messages";
+import { formatMatchCompatibility } from "../lib/format-match-compatibility";
 import { useMatchPeerPreview } from "../api/matching.queries";
 
 export type MatchFoundDialogProps = {
@@ -66,6 +68,7 @@ export function MatchFoundDialog({
     matchScore != null && Number.isFinite(matchScore)
       ? Math.min(100, Math.max(0, Math.round(matchScore)))
       : null;
+  const compatibility = scorePct != null ? formatMatchCompatibility(scorePct) : null;
 
   return (
     <Dialog open={open} onOpenChange={() => { }}>
@@ -76,8 +79,7 @@ export function MatchFoundDialog({
         onEscapeKeyDown={(e) => e.preventDefault()}
         className={cn(
           "z-220",
-          "max-w-[min(100%-1.5rem,360px)] gap-0 overflow-hidden rounded-2xl border border-zinc-800/90 p-0 shadow-2xl",
-          "bg-[#121210] text-zinc-100 sm:max-w-[360px]",
+          "max-w-[min(100%-1.5rem,360px)] gap-0 overflow-hidden rounded-2xl border border-border bg-card p-0 text-foreground shadow-2xl sm:max-w-[360px]",
         )}
         aria-describedby={undefined}
       >
@@ -90,11 +92,11 @@ export function MatchFoundDialog({
             <div
               className={cn(
                 image ? "match-found-avatar-image" : "match-found-avatar-fallback",
-                "flex size-20 items-center justify-center overflow-hidden rounded-full text-lg font-bold text-white shadow-lg sm:size-21 sm:text-xl",
+                "flex size-20 items-center justify-center overflow-hidden rounded-full text-lg font-bold shadow-lg sm:size-21 sm:text-xl",
               )}
             >
               {isFetching ? (
-                <span className="size-6 animate-pulse rounded-md bg-white/20" />
+                <span className="size-6 animate-pulse rounded-md bg-muted-foreground/20" />
               ) : image ? (
                 <Image
                   src={image}
@@ -110,55 +112,56 @@ export function MatchFoundDialog({
             </div>
             {online && (
               <span
-                className="absolute bottom-0.5 right-0.5 size-3.5 rounded-full border-2 border-[#121210] bg-emerald-500"
+                className="absolute bottom-0.5 right-0.5 size-3.5 rounded-full border-2 border-card bg-emerald-500"
                 title="Online"
               />
             )}
           </div>
 
-          <h2 className="max-w-full truncate px-1 text-center text-base font-bold tracking-tight text-white sm:text-[1.05rem]">
+          <h2 className="max-w-full truncate px-1 text-center text-base font-bold tracking-tight text-foreground sm:text-[1.05rem]">
             {displayName}
           </h2>
           {headline ? (
-            <p className="mt-1 max-w-[280px] text-center text-[12px] leading-snug text-zinc-500">{headline}</p>
+            <p className="mt-1 max-w-[280px] text-center text-[12px] leading-snug text-muted-foreground">{headline}</p>
           ) : (
-            <p className="mt-1 text-center text-[12px] text-zinc-600">New connection</p>
+            <p className="mt-1 text-center text-[12px] text-muted-foreground">New connection</p>
           )}
 
           {isFallbackMatch && (
-            <p className="mt-2 text-center text-[10px] text-zinc-500">
+            <p className="mt-2 text-center text-[10px] text-muted-foreground">
               Relaxed match — fewer filters than usual.
             </p>
           )}
         </div>
 
-        {scorePct != null && (
-          <div className="mx-5 mb-3 rounded-xl border border-zinc-800/80 bg-zinc-900/50 px-3 py-2.5">
+        {compatibility != null && scorePct != null && (
+          <div className="mx-5 mb-3 rounded-xl border border-border bg-muted/40 px-3 py-2.5">
             <div className="mb-1.5 flex items-center justify-between gap-2">
-              <span className="flex items-center gap-1 text-[10px] font-medium uppercase tracking-wide text-zinc-500">
-                <Zap className="size-3 shrink-0 text-[oklch(86%_0.11_105)]" strokeWidth={2.2} />
-                Shared interests
+              <span className="flex items-center gap-1 text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
+                <Zap className="size-3 shrink-0 text-primary" strokeWidth={2.2} />
+                {MATCH_FOUND_DIALOG.compatibilityLabel}
               </span>
-              <span className="text-xs font-bold tabular-nums text-[oklch(86%_0.11_105)]">
-                {scorePct}%
-              </span>
+              <span className="text-xs font-bold text-primary">{compatibility.fitLabel}</span>
             </div>
             <div className="match-found-score-track">
               <ProgressBar
                 value={scorePct}
                 max={100}
-                aria-label="Shared interests score"
-                className="h-1.5 match-found-score-fill [&::-webkit-progress-bar]:bg-zinc-800 [&::-webkit-progress-value]:rounded-full [&::-webkit-progress-value]:bg-linear-to-r [&::-webkit-progress-value]:from-[oklch(86%_0.11_105)] [&::-webkit-progress-value]:to-[oklch(90%_0.14_95)] [&::-webkit-progress-value]:shadow-[0_0_12px_oklch(86%_0.11_105/0.4)] [&::-webkit-progress-value]:transition-all [&::-webkit-progress-value]:duration-700"
+                aria-label={compatibility.progressAriaLabel}
+                className="h-1.5 w-full [&::-webkit-progress-bar]:rounded-full [&::-webkit-progress-bar]:bg-muted [&::-webkit-progress-value]:rounded-full [&::-webkit-progress-value]:bg-linear-to-r [&::-webkit-progress-value]:from-primary [&::-webkit-progress-value]:to-secondary [&::-webkit-progress-value]:shadow-[0_0_12px_oklch(from_var(--primary)_l_c_h/0.35)] [&::-webkit-progress-value]:transition-all [&::-webkit-progress-value]:duration-700"
               />
             </div>
+            <p className="mt-2 text-center text-[10px] leading-snug text-muted-foreground">
+              {compatibility.description}
+            </p>
           </div>
         )}
 
         {insight && (
           <div
             className={cn(
-              "mx-5 mb-3 rounded-xl border border-zinc-700/60 bg-zinc-900/60 px-3 py-2 text-center text-[11px] leading-snug text-zinc-300 transition-all duration-500",
-              showInsight ? "opacity-100 translate-y-0" : "opacity-0 translate-y-1 pointer-events-none",
+              "mx-5 mb-3 rounded-xl border border-border bg-muted/50 px-3 py-2 text-center text-[11px] leading-snug text-foreground/90 transition-all duration-500",
+              showInsight ? "opacity-100 translate-y-0" : "pointer-events-none translate-y-1 opacity-0",
             )}
           >
             {insight}
@@ -170,13 +173,13 @@ export function MatchFoundDialog({
             {tags.map((t) => (
               <span
                 key={t}
-                className="rounded-md border border-zinc-700/80 bg-zinc-900/80 px-2 py-0.5 text-[10px] font-medium text-zinc-400"
+                className="rounded-md border border-border bg-muted/60 px-2 py-0.5 text-[10px] font-medium text-muted-foreground"
               >
                 {t}
               </span>
             ))}
             {moreCount > 0 && (
-              <span className="rounded-md border border-zinc-700/80 bg-zinc-900/80 px-2 py-0.5 text-[10px] font-medium text-zinc-500">
+              <span className="rounded-md border border-border bg-muted/60 px-2 py-0.5 text-[10px] font-medium text-muted-foreground">
                 +{moreCount} more
               </span>
             )}
@@ -184,17 +187,17 @@ export function MatchFoundDialog({
         )}
 
         {waitingForPeerConnect ? (
-          <p className="mx-5 mb-2 px-1 text-center text-[10px] leading-relaxed text-zinc-500">
-            You chose Connect. The room opens when they connect too — hang tight.
+          <p className="mx-5 mb-2 px-1 text-center text-[10px] leading-relaxed text-muted-foreground">
+            {MATCH_FOUND_DIALOG.waitingForPeer}
           </p>
         ) : null}
 
-        <div className="flex gap-2 border-t border-zinc-800/80 bg-zinc-950/30 px-4 py-3 sm:px-5">
+        <div className="flex gap-2 border-t border-border bg-muted/30 px-4 py-3 sm:px-5">
           <button
             type="button"
             onClick={onSkip}
             disabled={busy}
-            className="min-h-10 w-[30%] shrink-0 cursor-pointer rounded-lg border border-zinc-600/70 bg-zinc-900/40 px-2 text-[11px] font-medium text-zinc-400 transition-colors hover:bg-zinc-800/60 disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50"
+            className="min-h-10 w-[30%] shrink-0 cursor-pointer rounded-lg border border-border bg-background px-2 text-[11px] font-medium text-muted-foreground transition-colors hover:bg-muted disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50"
           >
             Skip
           </button>
@@ -207,12 +210,12 @@ export function MatchFoundDialog({
           >
             {waitingForPeerConnect ? (
               <span className="inline-flex max-w-full items-center justify-center gap-1.5">
-                <Loader2 className="size-3.5 shrink-0 animate-spin text-zinc-950/80" strokeWidth={2.5} aria-hidden />
+                <Loader2 className="size-3.5 shrink-0 animate-spin text-primary-foreground/80" strokeWidth={2.5} aria-hidden />
                 <span className="truncate">Waiting for them</span>
               </span>
             ) : busy ? (
               <span className="inline-flex items-center gap-1.5">
-                <Loader2 className="size-3.5 shrink-0 animate-spin text-zinc-950/80" strokeWidth={2.5} aria-hidden />
+                <Loader2 className="size-3.5 shrink-0 animate-spin text-primary-foreground/80" strokeWidth={2.5} aria-hidden />
                 Connect
               </span>
             ) : (
@@ -228,7 +231,7 @@ export function MatchFoundDialog({
           type="button"
           onClick={onCancelSearch}
           disabled={busy}
-          className="mx-auto mb-3 block cursor-pointer text-[10px] text-zinc-500 underline-offset-2 hover:text-zinc-400 hover:underline disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50"
+          className="mx-auto mb-3 block cursor-pointer text-[10px] text-muted-foreground underline-offset-2 hover:text-foreground hover:underline disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50"
         >
           Cancel search
         </button>

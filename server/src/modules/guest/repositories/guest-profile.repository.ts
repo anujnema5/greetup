@@ -3,6 +3,7 @@ import { and, eq, inArray, isNull, ne } from "drizzle-orm";
 import { db } from "@/core/database";
 import { currentStatus, profileInterests, userProfiles, users } from "@/core/database/schema";
 
+import { openToConnectStatusRepository } from "@/modules/open-to-connect/repositories/open-to-connect-status.repository";
 import { isGuestMatchPrepReady } from "../lib/guest-match-prep-ready";
 
 export type GuestProfileRow = {
@@ -94,13 +95,18 @@ export const guestProfileRepository = {
     userId: string,
     tracking: { deviceHash?: string | null; ipHash?: string | null },
   ): Promise<void> {
-    await db.insert(userProfiles).values({
-      userId,
-      isGuest: true,
-      isOnboarded: false,
-      guestDeviceHash: tracking.deviceHash ?? null,
-      guestCreatedIpHash: tracking.ipHash ?? null,
-    });
+    const [inserted] = await db
+      .insert(userProfiles)
+      .values({
+        userId,
+        isGuest: true,
+        isOnboarded: false,
+        guestDeviceHash: tracking.deviceHash ?? null,
+        guestCreatedIpHash: tracking.ipHash ?? null,
+      })
+      .returning({ id: userProfiles.id });
+    if (!inserted) throw new Error("Failed to create guest profile");
+    await openToConnectStatusRepository.createInitialForProfile(inserted.id, false);
   },
 
   async updateDisplayName(userId: string, displayName: string): Promise<void> {

@@ -3,12 +3,12 @@
 import { useCallback, useEffect, useMemo, useRef } from "react";
 import { Loader2 } from "lucide-react";
 
-import { useJoinCircle } from "@/features/circles/hooks/use-join-circle";
+import { useJoinSpace } from "@/features/spaces/hooks/use-join-space";
 import { ProfileEditShell } from "@/features/profile/components/profile-edit-shell";
 import { Button } from "@/components/ui/button";
 import { EXPLORE } from "@/lib/copy/user-messages";
 
-import type { ActiveCircleItem } from "@/features/circles/types/circles-api.types";
+import type { ActiveSpaceItem } from "@/features/spaces/types/spaces-api.types";
 import { partitionNicheRooms } from "../lib/browse-niche-display";
 import type { BrowseNicheItem } from "../types/browse-niches.types";
 import { ExploreNicheRoomRow } from "./explore-niche-room-row";
@@ -17,7 +17,7 @@ type Props = {
   niche: BrowseNicheItem | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  rooms: readonly ActiveCircleItem[];
+  rooms: readonly ActiveSpaceItem[];
   isLoading: boolean;
   isLoadingMore: boolean;
   isError: boolean;
@@ -31,8 +31,8 @@ function NicheRoomSection({
   onJoin,
 }: {
   title: string;
-  rooms: readonly ActiveCircleItem[];
-  onJoin: (circle: ActiveCircleItem) => void;
+  rooms: readonly ActiveSpaceItem[];
+  onJoin: (space: ActiveSpaceItem) => void;
 }) {
   if (rooms.length === 0) return null;
 
@@ -42,8 +42,8 @@ function NicheRoomSection({
         {title}
       </h3>
       <ul className="flex flex-col gap-2">
-        {rooms.map((circle) => (
-          <ExploreNicheRoomRow key={circle.id} circle={circle} onJoin={onJoin} />
+        {rooms.map((space) => (
+          <ExploreNicheRoomRow key={space.id} space={space} onJoin={onJoin} />
         ))}
       </ul>
     </div>
@@ -61,7 +61,7 @@ export function ExploreNicheRoomsModal({
   hasMore,
   onLoadMore,
 }: Props) {
-  const onJoinCircle = useJoinCircle();
+  const onJoinSpace = useJoinSpace();
   const loadMoreRef = useRef<HTMLDivElement | null>(null);
 
   const { live, scheduled } = useMemo(() => partitionNicheRooms(rooms), [rooms]);
@@ -135,12 +135,12 @@ export function ExploreNicheRoomsModal({
           <NicheRoomSection
             title={EXPLORE.browseNiches.modalSectionLive}
             rooms={live}
-            onJoin={onJoinCircle}
+            onJoin={onJoinSpace}
           />
           <NicheRoomSection
             title={EXPLORE.browseNiches.modalSectionScheduled}
             rooms={scheduled}
-            onJoin={onJoinCircle}
+            onJoin={onJoinSpace}
           />
           <div ref={loadMoreRef} className="h-2 w-full shrink-0" aria-hidden />
           {isLoadingMore ? (

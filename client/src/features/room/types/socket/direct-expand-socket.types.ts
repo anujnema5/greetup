@@ -1,11 +1,9 @@
 /**
- * Socket.IO events for 1:1 → circle expansion (server emits; client listens globally).
+ * Socket.IO events for 1:1 → space expansion (server emits; client listens globally).
  */
 export const DIRECT_EXPAND_SOCKET_EVENTS = {
   invite: "room:direct_expand_invite",
-  /** Backward-compatible alias for older server payloads/events. */
-  inviteLegacy: "room:expand_direct_invite",
-  becameCircle: "room:became_circle",
+  becameSpace: "room:became_space",
   declined: "room:direct_expand_declined",
 } as const;
 
@@ -40,7 +38,7 @@ export function parseDirectExpandInvitePayload(raw: unknown): DirectExpandInvite
   };
 }
 
-export function parseBecameCircleRoomId(raw: unknown): string | null {
+export function parseBecameSpaceRoomId(raw: unknown): string | null {
   if (!raw || typeof raw !== "object" || !("roomId" in raw)) return null;
   const id = (raw as { roomId?: unknown }).roomId;
   return typeof id === "string" && id.length > 0 ? id : null;

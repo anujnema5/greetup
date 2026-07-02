@@ -2,34 +2,32 @@ import {
   MessageCircle,
   Shield,
   ShieldCheck,
+  Sparkles,
   Users,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { EARLY_RELEASE } from "@/lib/copy/user-messages";
 import { LandingHeroVisual } from "../components/landing-hero-visual";
 import { LandingHeroNav, LandingHeroPrimaryCta } from "../components/landing-hero-actions";
+import { LandingActivityChips } from "../components/landing-activity-chips";
+import { LANDING_HERO_ACTIVITY_HIGHLIGHTS } from "../lib/landing-activities";
 
 const HERO_SIGNALS = [
+  { icon: Sparkles, label: "Activity match" },
   { icon: ShieldCheck, label: "NSFW protected" },
   { icon: Shield, label: "Secure calls" },
-  { icon: Users, label: "Real people" },
   { icon: MessageCircle, label: "Chat & video" },
 ] as const;
 
 function HeroBackdropStatic() {
   return (
     <div className="pointer-events-none absolute inset-0 overflow-hidden" aria-hidden>
-      <div className="absolute inset-0 bg-[radial-gradient(ellipse_90%_70%_at_50%_-10%,oklch(26%_0.06_285/0.5),transparent_72%)]" />
-      <div className="absolute -top-28 -left-36 h-[400px] w-[400px] rounded-full bg-[oklch(88%_0.18_105/0.06)] blur-[96px]" />
-      <div className="absolute top-[16%] -right-20 h-[340px] w-[340px] rounded-full bg-[oklch(88%_0.18_105/0.09)] blur-[88px]" />
-      <div className="absolute bottom-[8%] left-[22%] h-[260px] w-[260px] rounded-full bg-[oklch(62%_0.2_285/0.06)] blur-[72px]" />
-      <div
-        className="absolute inset-0 opacity-70 [mask-image:radial-gradient(ellipse_88%_82%_at_68%_50%,#000_28%,transparent_80%)] bg-dot-grid-landing"
-      />
-      <div className="absolute inset-0 bg-[radial-gradient(ellipse_50%_58%_at_84%_44%,oklch(88%_0.18_105/0.11),transparent_72%)]" />
-      <div className="absolute inset-0 bg-[radial-gradient(ellipse_38%_42%_at_14%_32%,oklch(88%_0.18_105/0.045),transparent_70%)]" />
-      <div className="absolute inset-0 bg-[radial-gradient(ellipse_120%_100%_at_50%_50%,transparent_44%,oklch(10%_0.02_285)_94%)]" />
-      <div className="absolute inset-x-0 top-0 h-px bg-linear-to-r from-transparent via-white/8 to-transparent" />
+      <div className="absolute inset-0 bg-[radial-gradient(ellipse_90%_70%_at_50%_-10%,oklch(76%_0.14_96/0.18),transparent_72%)] dark:bg-[radial-gradient(ellipse_90%_70%_at_50%_-10%,oklch(26%_0.06_285/0.5),transparent_72%)]" />
+      <div className="absolute -top-28 -left-36 h-[400px] w-[400px] rounded-full bg-primary/8 blur-[96px]" />
+      <div className="absolute top-[16%] -right-20 h-[340px] w-[340px] rounded-full bg-secondary/10 blur-[88px]" />
+      <div className="absolute bottom-[8%] left-[22%] h-[260px] w-[260px] rounded-full bg-secondary/6 blur-[72px]" />
+      <div className="absolute inset-0 bg-[radial-gradient(ellipse_120%_100%_at_50%_50%,transparent_44%,oklch(96%_0.01_95/0.9)_94%)] dark:bg-[radial-gradient(ellipse_120%_100%_at_50%_50%,transparent_44%,oklch(10%_0.02_285)_94%)]" />
+      <div className="absolute inset-x-0 top-0 h-px bg-linear-to-r from-transparent via-border to-transparent" />
     </div>
   );
 }
@@ -47,7 +45,7 @@ export function LandingHeroServer() {
             <div className="mb-5 sm:mb-6 flex justify-center lg:justify-start">
               <Badge
                 variant="outline"
-                className="border-white/10 bg-white/3 text-white/55 rounded-full px-3.5 py-1 text-xs font-normal"
+                className="border-border bg-muted/60 landing-muted rounded-full px-3.5 py-1 text-xs font-normal"
               >
                 Beta · Free to join
               </Badge>
@@ -55,25 +53,33 @@ export function LandingHeroServer() {
 
             <h1 className="text-[1.95rem] leading-[1.1] sm:text-[2.85rem] lg:text-[3.75rem] xl:text-[4.15rem] font-semibold tracking-[-0.025em] mb-4 sm:mb-6">
               Instantly <span className="text-secondary">connect</span>
-              <span className="mt-1 sm:mt-1.5 block text-white/92">with the people you want.</span>
-              <span className="mt-4 sm:mt-6 block text-[0.82em] sm:text-[0.78em] font-medium text-white/58">
+              <span className="mt-1 sm:mt-1.5 block text-foreground">with the people you want.</span>
+              <span className="mt-4 sm:mt-6 block text-[0.82em] sm:text-[0.78em] font-medium landing-muted">
                 Chat, voice, or video.
               </span>
-              <span className="mt-1 sm:mt-1.5 block text-[0.72em] sm:text-[0.65em] font-normal text-white/40">
+              <span className="mt-1 sm:mt-1.5 block text-[0.72em] sm:text-[0.65em] font-normal text-muted-foreground">
                 It&apos;s up to you.
               </span>
             </h1>
 
-            <p className="text-[13px] leading-[1.55] sm:text-[1.05rem] sm:leading-relaxed text-white/42 max-w-[18rem] sm:max-w-lg mx-auto lg:mx-0 mb-4 sm:mb-7">
-              Find people by job, city, or what you&apos;re into — then start talking. Safe, moderated,
+            <p className="text-[13px] leading-[1.55] sm:text-[1.05rem] sm:leading-relaxed landing-muted w-full max-w-lg mx-auto lg:mx-0 mb-4 sm:mb-5">
+              Find people by job, city, or activity — vent, yap, practice language, and more. Safe, moderated,
               and NSFW-free.
             </p>
+
+            <div className="mb-5 sm:mb-6 w-full flex justify-center lg:justify-start">
+              <LandingActivityChips
+                items={LANDING_HERO_ACTIVITY_HIGHLIGHTS}
+                size="sm"
+                className="max-w-full justify-center lg:justify-start"
+              />
+            </div>
 
             <div className="mb-7 sm:mb-9 flex flex-wrap justify-center lg:justify-start gap-x-5 sm:gap-x-6 gap-y-2">
               {HERO_SIGNALS.map(({ icon: Icon, label }) => (
                 <span
                   key={label}
-                  className="inline-flex items-center gap-1.5 text-[12px] sm:text-sm text-white/38"
+                  className="inline-flex items-center gap-1.5 text-[12px] sm:text-sm landing-muted"
                 >
                   <Icon
                     className="size-3 sm:size-3.5 text-secondary/65"
@@ -86,8 +92,8 @@ export function LandingHeroServer() {
 
             <LandingHeroPrimaryCta />
 
-            <div className="mt-5 sm:mt-9 pt-4 sm:pt-7 border-t border-white/6">
-              <p className="text-xs text-white/32 max-w-md mx-auto lg:mx-0 leading-relaxed">
+            <div className="mt-5 sm:mt-9 pt-4 sm:pt-7 border-t border-border">
+              <p className="text-xs landing-muted max-w-md mx-auto lg:mx-0 leading-relaxed">
                 {EARLY_RELEASE.noticeShort}
               </p>
             </div>

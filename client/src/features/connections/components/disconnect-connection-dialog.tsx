@@ -9,7 +9,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { getProfileImageUrl } from "@/lib/ui/profile-image";
+import { ProfilePeerAvatar } from "@/lib/ui/profile-peer-avatar";
 
 type DisconnectConnectionDialogProps = {
   open: boolean;
