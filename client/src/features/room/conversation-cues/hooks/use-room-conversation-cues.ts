@@ -7,7 +7,6 @@ import { API_ENDPOINTS } from "@/lib/api";
 import { roomApiFetch } from "@/features/room/lib/room-api-fetch";
 
 const INITIAL_DELAY_MS = 2_500;
-const DRIP_DELAY_MS = 150_000;
 
 type ConversationCue = {
   id: string;
@@ -49,51 +48,38 @@ type UseRoomConversationCuesOptions = {
 };
 
 /**
- * Fetches overlap hints once after join, then optionally one more after a pause.
- * Server dedupes shown cues per user per room.
+ * Fetches one overlap hint after join and shows it once. No polling or follow-up fetches.
  */
 export function useRoomConversationCues({
   roomId,
   enabled,
 }: UseRoomConversationCuesOptions): void {
-  const sessionKeyRef = useRef<string | null>(null);
+  const fetchedForRoomRef = useRef<string | null>(null);
 
   useEffect(() => {
     if (!enabled || !roomId) return;
+    if (fetchedForRoomRef.current === roomId) return;
 
-    const sessionKey = roomId;
-    sessionKeyRef.current = sessionKey;
+    fetchedForRoomRef.current = roomId;
     let cancelled = false;
-    let dripTimer: ReturnType<typeof setTimeout> | null = null;
 
-    const pullCue = async (): Promise<boolean> => {
-      try {
-        const result = await fetchNextConversationCue(roomId);
-        if (cancelled || sessionKeyRef.current !== sessionKey) return false;
-        if (result.cue) {
-          showConversationCueToast(roomId, result.cue);
-        }
-        return result.hasMore;
-      } catch {
-        return false;
-      }
-    };
-
-    const initialTimer = setTimeout(() => {
+    const timer = setTimeout(() => {
       void (async () => {
-        const hasMore = await pullCue();
-        if (cancelled || !hasMore) return;
-
-        dripTimer = setTimeout(() => {
-          void pullCue();
-        }, DRIP_DELAY_MS);
+        try {
+          const result = await fetchNextConversationCue(roomId);
+          if (cancelled || fetchedForRoomRef.current !== roomId) return;
+          if (result.cue) {
+            showConversationCueToast(roomId, result.cue);
+          }
+        } catch {
+          // swallow — cues are optional UX
+        }
       })();
     }, INITIAL_DELAY_MS);
 
     return () => {
       cancelled = true;
-      clearTimeout(initialTimer);
-      if (dripTimer) clearTimeout(dripTimer);
+      clearTimeout(timer);
     };
   }, [enabled, roomId]);
 }
