@@ -315,7 +315,7 @@ Build blockers fixed before images could deploy:
 
 ## Step 10 — Still TODO
 
-- [ ] GitHub Actions CI/CD (replace GCP Cloud Build)
+- [x] GitHub Actions CI/CD (`.github/workflows/ci.yml`, `deploy-prod.yml`)
 - [ ] DO Spaces for profile photos (`DO_SPACES_*`)
 - [ ] Deploy Caddy on droplet if only redis + rtc running (no `caddy` service yet)
 - [ ] Decommission GCP after stable

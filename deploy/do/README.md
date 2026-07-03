@@ -351,14 +351,58 @@ Production cutover only after staging passes. Lower DNS TTL 24–48h before swit
 
 ---
 
-## Phase 7 — CI/CD (TODO)
+## Phase 7 — CI/CD (GitHub Actions)
 
-Replace GCP Cloud Build with GitHub Actions:
+Workflows in `.github/workflows/`:
+
+| Workflow | Trigger | Purpose |
+|----------|---------|---------|
+| `ci.yml` | Pull requests to `main` | Typecheck, lint, tests |
+| `deploy-prod.yml` | Push to `main` | Build → DO registry → App Platform + rtc droplet |
+
+### One-time GitHub setup
+
+**Secrets** (Settings → Secrets and variables → Actions → Secrets):
+
+| Secret | Purpose |
+|--------|---------|
+| `DIGITALOCEAN_ACCESS_TOKEN` | DO API token — registry login + `doctl` |
+| `RTC_SSH_PRIVATE_KEY` | Private key for `root@greetup-rtc` |
+| `NEXT_PUBLIC_FIREBASE_API_KEY` | Client Docker build |
+| `NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN` | Client Docker build |
+| `NEXT_PUBLIC_FIREBASE_PROJECT_ID` | Client Docker build |
+| `NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID` | Client Docker build |
+| `NEXT_PUBLIC_FIREBASE_APP_ID` | Client Docker build |
+| `DATABASE_URL` | Managed Postgres URL (when migrations enabled) |
+
+**Variables** (Settings → Secrets and variables → Actions → Variables):
+
+| Variable | Example / notes |
+|----------|-----------------|
+| `DO_APP_ID_CLIENT` | App Platform app UUID for client |
+| `DO_APP_ID_SERVER` | App Platform app UUID for server |
+| `DO_APP_ID_MATCHING` | App Platform app UUID for matching-service |
+| `RTC_DROPLET_HOST` | Public IPv4 of `greetup-rtc` |
+| `RUN_DB_MIGRATIONS` | `true` to run `bun run db:migrate` on each deploy |
+
+Find App Platform IDs:
+
+```powershell
+doctl apps list --format ID,Spec.Name
+```
+
+Ensure each App Platform app uses images from `registry.digitalocean.com/greetup/<service>:latest` with **Autodeploy** enabled (or rely on `doctl apps create-deployment` in the workflow).
+
+Grant the DO API token **read/write** on Container Registry and App Platform.
+
+### Deploy flow
 
 1. Push to `main`
-2. Build images → `registry.digitalocean.com/greetup/*`
-3. App Platform auto-deploy (or API trigger)
-4. Rtc: SSH to droplet → `docker compose pull && up -d`
+2. CI checks pass (typecheck, lint, tests)
+3. Build all four images → push `:latest` and `:<git-sha>` to `registry.digitalocean.com/greetup`
+4. Trigger App Platform redeploy for client, server, matching-service
+5. SSH to rtc droplet → `docker compose pull && up -d`
+6. Optional: run DB migrations when `RUN_DB_MIGRATIONS=true`
 
 ---
 

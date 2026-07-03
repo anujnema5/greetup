@@ -1,0 +1,228 @@
+name: Deploy to production
+
+# Push to main → build images → push to DO registry → deploy App Platform + rtc droplet.
+#
+# Required GitHub secrets (Settings → Secrets and variables → Actions):
+#   DIGITALOCEAN_ACCESS_TOKEN   DO API token (registry + doctl)
+#   RTC_SSH_PRIVATE_KEY           Private key for greetup-rtc droplet (root@)
+#   NEXT_PUBLIC_FIREBASE_API_KEY
+#   NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN
+#   NEXT_PUBLIC_FIREBASE_PROJECT_ID
+#   NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID
+#   NEXT_PUBLIC_FIREBASE_APP_ID
+#   DATABASE_URL                    Required when RUN_DB_MIGRATIONS is enabled
+#
+# Required GitHub variables (Settings → Secrets and variables → Actions → Variables):
+#   DO_APP_ID_CLIENT
+#   DO_APP_ID_SERVER
+#   DO_APP_ID_MATCHING
+#   RTC_DROPLET_HOST                Public IPv4 of greetup-rtc droplet
+#   RUN_DB_MIGRATIONS               Set to "true" to run server migrations on deploy
+
+on:
+  push:
+    branches: [main]
+
+concurrency:
+  group: production-deploy
+  cancel-in-progress: false
+
+env:
+  REGISTRY: registry.digitalocean.com/greetup
+  NEXT_PUBLIC_API_BASE_URL: https://api.greetup.co/api
+  NEXT_PUBLIC_SOCKET_SERVER_URL: https://api.greetup.co
+  NEXT_PUBLIC_RTC_SOCKET_URL: https://rtc.greetup.co
+  NEXT_PUBLIC_APP_URL: https://greetup.co
+  NEXT_PUBLIC_GA_MEASUREMENT_ID: G-CK6WRFYXTS
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - service: client
+            directory: client
+            commands: bun run typecheck && bun run lint
+          - service: server
+            directory: server
+            commands: bun run typecheck && bun test
+          - service: matching-service
+            directory: matching-service
+            commands: bun run typecheck && bun test
+          - service: rtc-service
+            directory: rtc-service
+            commands: bun run typecheck
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.3.11
+
+      - name: Install dependencies
+        working-directory: ${{ matrix.directory }}
+        run: bun install --frozen-lockfile
+
+      - name: Run checks
+        working-directory: ${{ matrix.directory }}
+        run: ${{ matrix.commands }}
+
+  build-push:
+    name: build ${{ matrix.service }}
+    needs: validate
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - service: server
+            context: server
+            dockerfile: server/Dockerfile
+          - service: matching-service
+            context: matching-service
+            dockerfile: matching-service/Dockerfile
+          - service: rtc-service
+            context: rtc-service
+            dockerfile: rtc-service/Dockerfile
+          - service: client
+            context: client
+            dockerfile: client/Dockerfile
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Verify Firebase client config
+        if: matrix.service == 'client'
+        env:
+          NEXT_PUBLIC_FIREBASE_API_KEY: ${{ secrets.NEXT_PUBLIC_FIREBASE_API_KEY }}
+          NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN: ${{ secrets.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN }}
+          NEXT_PUBLIC_FIREBASE_PROJECT_ID: ${{ secrets.NEXT_PUBLIC_FIREBASE_PROJECT_ID }}
+        run: |
+          set -euo pipefail
+          if [ -z "$NEXT_PUBLIC_FIREBASE_API_KEY" ] || [ -z "$NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN" ] || [ -z "$NEXT_PUBLIC_FIREBASE_PROJECT_ID" ]; then
+            echo "ERROR: Firebase client secrets are missing."
+            echo "Add NEXT_PUBLIC_FIREBASE_API_KEY, NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN, and NEXT_PUBLIC_FIREBASE_PROJECT_ID to GitHub Actions secrets."
+            exit 1
+          fi
+
+      - uses: docker/setup-buildx-action@v3
+
+      - uses: docker/login-action@v3
+        with:
+          registry: registry.digitalocean.com
+          username: ${{ secrets.DIGITALOCEAN_ACCESS_TOKEN }}
+          password: ${{ secrets.DIGITALOCEAN_ACCESS_TOKEN }}
+
+      - name: Build and push backend image
+        if: matrix.service != 'client'
+        uses: docker/build-push-action@v6
+        with:
+          context: ${{ matrix.context }}
+          file: ${{ matrix.dockerfile }}
+          push: true
+          tags: |
+            ${{ env.REGISTRY }}/${{ matrix.service }}:latest
+            ${{ env.REGISTRY }}/${{ matrix.service }}:${{ github.sha }}
+          cache-from: type=gha,scope=${{ matrix.service }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.service }}
+
+      - name: Build and push client image
+        if: matrix.service == 'client'
+        uses: docker/build-push-action@v6
+        with:
+          context: client
+          file: client/Dockerfile
+          push: true
+          tags: |
+            ${{ env.REGISTRY }}/client:latest
+            ${{ env.REGISTRY }}/client:${{ github.sha }}
+          build-args: |
+            NEXT_PUBLIC_API_BASE_URL=${{ env.NEXT_PUBLIC_API_BASE_URL }}
+            NEXT_PUBLIC_SOCKET_SERVER_URL=${{ env.NEXT_PUBLIC_SOCKET_SERVER_URL }}
+            NEXT_PUBLIC_RTC_SOCKET_URL=${{ env.NEXT_PUBLIC_RTC_SOCKET_URL }}
+            NEXT_PUBLIC_APP_URL=${{ env.NEXT_PUBLIC_APP_URL }}
+            NEXT_PUBLIC_FIREBASE_API_KEY=${{ secrets.NEXT_PUBLIC_FIREBASE_API_KEY }}
+            NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=${{ secrets.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN }}
+            NEXT_PUBLIC_FIREBASE_PROJECT_ID=${{ secrets.NEXT_PUBLIC_FIREBASE_PROJECT_ID }}
+            NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=${{ secrets.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID }}
+            NEXT_PUBLIC_FIREBASE_APP_ID=${{ secrets.NEXT_PUBLIC_FIREBASE_APP_ID }}
+            NEXT_PUBLIC_GA_MEASUREMENT_ID=${{ env.NEXT_PUBLIC_GA_MEASUREMENT_ID }}
+          cache-from: type=gha,scope=client
+          cache-to: type=gha,mode=max,scope=client
+
+  migrate:
+    name: database migrations
+    needs: build-push
+    if: vars.RUN_DB_MIGRATIONS == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.3.11
+
+      - name: Install dependencies
+        working-directory: server
+        run: bun install --frozen-lockfile
+
+      - name: Run migrations
+        working-directory: server
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: bun run db:migrate
+
+  deploy-app-platform:
+    name: deploy ${{ matrix.app }}
+    needs: [build-push, migrate]
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        app: [client, server, matching]
+    steps:
+      - uses: digitalocean/action-doctl@v2
+        with:
+          token: ${{ secrets.DIGITALOCEAN_ACCESS_TOKEN }}
+
+      - name: Trigger App Platform deployment
+        env:
+          DO_APP_ID_CLIENT: ${{ vars.DO_APP_ID_CLIENT }}
+          DO_APP_ID_SERVER: ${{ vars.DO_APP_ID_SERVER }}
+          DO_APP_ID_MATCHING: ${{ vars.DO_APP_ID_MATCHING }}
+        run: |
+          set -euo pipefail
+          case "${{ matrix.app }}" in
+            client)   APP_ID="$DO_APP_ID_CLIENT" ;;
+            server)   APP_ID="$DO_APP_ID_SERVER" ;;
+            matching) APP_ID="$DO_APP_ID_MATCHING" ;;
+          esac
+
+          if [ -z "$APP_ID" ]; then
+            echo "ERROR: DO_APP_ID_${{ matrix.app }} is not set in GitHub repository variables."
+            exit 1
+          fi
+
+          echo "Creating deployment for ${{ matrix.app }} (app id: $APP_ID)..."
+          doctl apps create-deployment "$APP_ID" --wait
+
+  deploy-rtc:
+    name: deploy rtc droplet
+    needs: [build-push, migrate]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Redeploy rtc stack on droplet
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ vars.RTC_DROPLET_HOST }}
+          username: root
+          key: ${{ secrets.RTC_SSH_PRIVATE_KEY }}
+          script_stop: true
+          script: |
+            set -euo pipefail
+            cd ~/greetup
+            docker compose --env-file .env pull
+            docker compose --env-file .env up -d
+            docker compose ps

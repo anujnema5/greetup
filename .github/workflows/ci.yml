@@ -1,0 +1,45 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.head_ref || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    name: ${{ matrix.service }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - service: client
+            directory: client
+            commands: bun run typecheck && bun run lint
+          - service: server
+            directory: server
+            commands: bun run typecheck && bun test
+          - service: matching-service
+            directory: matching-service
+            commands: bun run typecheck && bun test
+          - service: rtc-service
+            directory: rtc-service
+            commands: bun run typecheck
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.3.11
+
+      - name: Install dependencies
+        working-directory: ${{ matrix.directory }}
+        run: bun install --frozen-lockfile
+
+      - name: Run checks
+        working-directory: ${{ matrix.directory }}
+        run: ${{ matrix.commands }}
