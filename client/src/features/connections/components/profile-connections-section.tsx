@@ -29,7 +29,6 @@ import type {
 import { profileAvatarGradientClass } from "@/features/profile/lib/profile-insights-display";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { getProfileImageUrl } from "@/lib/ui/profile-image";
 import { OnlinePresenceDot } from "@/features/presence";
 import { cn } from "@/lib/utils";
 import { nameInitials } from "@/lib/utils/name-initials";
@@ -141,7 +140,7 @@ function ConnectionPeerSummary({
         {imageUrl ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img
-            src={getProfileImageUrl(imageUrl)}
+            src={imageUrl.trim()}
             alt=""
             className="size-10 rounded-full object-cover"
           />

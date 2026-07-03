@@ -6,6 +6,7 @@ import {
   currentStatusActivities,
   interests,
   profileInterests,
+  profileProfessions,
   userProfiles,
   users,
 } from "@/core/database/schema";
@@ -147,22 +148,31 @@ export const openToConnectDiscoveryRepository = {
     const out = new Map<string, string | null>();
     if (profileIds.length === 0) return out;
 
-    const profiles = await db.query.userProfiles.findMany({
-      where: inArray(userProfiles.id, profileIds),
-      columns: { id: true, profession: true },
-      with: {
-        professions: {
-          with: {
-            profession: {
-              columns: { displayName: true },
-            },
+    const [catalogRows, profiles] = await Promise.all([
+      db.query.profileProfessions.findMany({
+        where: inArray(profileProfessions.profileId, profileIds),
+        with: {
+          profession: {
+            columns: { displayName: true },
           },
         },
-      },
-    });
+      }),
+      db.query.userProfiles.findMany({
+        where: inArray(userProfiles.id, profileIds),
+        columns: { id: true, profession: true },
+      }),
+    ]);
+
+    const catalogByProfile = new Map<string, string>();
+    for (const row of catalogRows) {
+      const label = row.profession.displayName?.trim();
+      if (label && !catalogByProfile.has(row.profileId)) {
+        catalogByProfile.set(row.profileId, label);
+      }
+    }
 
     for (const profile of profiles) {
-      const fromCatalog = profile.professions[0]?.profession?.displayName?.trim();
+      const fromCatalog = catalogByProfile.get(profile.id);
       const legacy = profile.profession?.trim();
       out.set(profile.id, fromCatalog || legacy || null);
     }

@@ -52,18 +52,21 @@ export function OpenNowPersonMeta({ person, className }: MetaProps) {
   const profession = person.profession?.trim();
   const sharedInterests = person.sharedInterests?.filter(Boolean) ?? [];
 
-  const hasMeta = headline || lookingFor.length > 0 || profession || sharedInterests.length > 0;
+  const hasChips =
+    lookingFor.length > 0 || Boolean(profession) || sharedInterests.length > 0;
+
+  const hasMeta = headline || hasChips;
   if (!hasMeta) return null;
 
   return (
-    <div className={cn("space-y-2", className)}>
+    <div className={cn("space-y-3", className)}>
       {headline ? (
         <p className="border-l-2 border-primary/35 pl-2.5 text-sm font-medium leading-snug text-foreground">
           {headline}
         </p>
       ) : null}
 
-      {(lookingFor.length > 0 || profession || sharedInterests.length > 0) ? (
+      {hasChips ? (
         <div className="flex flex-wrap gap-1.5">
           {lookingFor.map((label) => (
             <OpenNowMetaChip key={`lf-${label}`} icon={Heart} tone="warm">

@@ -123,7 +123,7 @@ export function OpenNowPersonCard({
         </div>
       </div>
 
-      <div className="flex flex-1 flex-col px-3.5 pb-3.5">
+      <div className="flex flex-1 flex-col px-3.5 pb-3.5 pt-1.5">
         <OpenNowPersonMeta person={person} />
 
         {person.activities.length > 0 ? (
@@ -173,7 +173,7 @@ export function OpenNowPersonCardSkeleton({ variant = "card" }: { variant?: "car
           </div>
         </div>
       </div>
-      <div className="space-y-3 px-3.5 pb-3.5">
+      <div className="space-y-3 px-3.5 pb-3.5 pt-1.5">
         <div className="h-10 w-full animate-pulse rounded-lg bg-muted/70" />
         <div className="flex gap-1.5">
           <div className="h-5 w-16 animate-pulse rounded-full bg-muted" />

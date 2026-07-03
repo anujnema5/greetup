@@ -1,0 +1,25 @@
+# greetup-rtc droplet — Redis + rtc-service only
+# On VM: ~/greetup/docker-compose.yml
+
+services:
+  redis:
+    image: redis:7-alpine
+    restart: always
+    command: redis-server --bind 0.0.0.0 --protected-mode yes --requirepass ${REDIS_PASSWORD} --maxmemory 512mb --appendonly yes
+    network_mode: host
+
+  rtc-service:
+    image: ${RTC_IMAGE}
+    restart: always
+    network_mode: host
+    environment:
+      NODE_ENV: production
+      RTC_HOST: 0.0.0.0
+      RTC_PORT: 5370
+      RTC_MIN_PORT: 40000
+      RTC_MAX_PORT: 49999
+      WEBRTC_LISTEN_IP: 0.0.0.0
+      WEBRTC_ANNOUNCED_IP: ${VM_PUBLIC_IP}
+      INTERNAL_API_KEY: ${INTERNAL_API_KEY}
+      RTC_JWT_SECRET: ${RTC_JWT_SECRET}
+      REDIS_URL: redis://:${REDIS_PASSWORD}@127.0.0.1:6379

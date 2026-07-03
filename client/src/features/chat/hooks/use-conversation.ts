@@ -71,7 +71,7 @@ export function useConversation(
     if (!socket) return;
 
     const { setTyping, clearTyping } = useChatUiStore.getState();
-    const expiryTimers = new Map<string, ReturnType<typeof window.setTimeout>>();
+    const expiryTimers = new Map<string, number>();
 
     const clearExpiry = (userId: string) => {
       const existing = expiryTimers.get(userId);

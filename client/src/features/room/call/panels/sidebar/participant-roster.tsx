@@ -11,8 +11,6 @@ import type {
   OnRemoveSpaceParticipant,
   ParticipantRemoveTarget,
 } from "@/features/room/types/call/participant-remove.types";
-import { getProfileImageUrl } from "@/lib/ui/profile-image";
-
 type RosterRow = {
   userId: string;
   label: string;
@@ -40,7 +38,7 @@ function RosterAvatar({
     <div className="relative h-8 w-8 shrink-0 overflow-hidden rounded-full border border-border bg-muted">
       {imageUrl?.trim() ? (
         <Image
-          src={getProfileImageUrl(imageUrl)}
+          src={imageUrl.trim()}
           alt=""
           fill
           className="object-cover"

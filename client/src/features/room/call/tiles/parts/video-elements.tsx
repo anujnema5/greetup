@@ -7,7 +7,6 @@
 import { useEffect, useRef, type RefObject } from "react";
 import Image from "next/image";
 import { cn } from "@/lib/utils";
-import { getProfileImageUrl } from "@/lib/ui/profile-image";
 import { isMobileRtcCaptureProfile } from "@/features/rtc/lib/rtc-mobile-profile";
 
 // ─── VideoMirror ──────────────────────────────────────────────────────────────
@@ -86,7 +85,7 @@ export function CameraOffAvatar({
     >
       {hasImage ? (
         <Image
-          src={getProfileImageUrl(imageUrl)}
+          src={imageUrl!.trim()}
           alt={`${name} profile`}
           fill
           sizes="(max-width: 768px) 96px, 144px"

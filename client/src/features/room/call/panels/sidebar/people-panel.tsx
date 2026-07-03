@@ -40,7 +40,6 @@ import { SpaceParticipantRoster } from "@/features/room/call/panels/sidebar/part
 import { CameraTilePageButtons } from "@/features/room/call/components/pagination/camera-tile-page-buttons";
 import { useTileGridPage } from "@/features/room/hooks/call/use-tile-grid-page";
 import { usePeoplePanelCameraOrder } from "@/features/room/hooks/call/use-people-panel-camera-order";
-import { getProfileImageUrl } from "@/lib/ui/profile-image";
 import { cn } from "@/lib/utils";
 
 /** Tiles per page when roster is in 2-column grid mode (2×2). */
@@ -163,7 +162,7 @@ function ParticipantVideoTile({
             <div className="relative h-16 w-16 overflow-hidden rounded-full border border-border bg-muted shadow-sm">
               {imageUrl?.trim() ? (
                 <Image
-                  src={getProfileImageUrl(imageUrl)}
+                  src={imageUrl.trim()}
                   alt=""
                   fill
                   className="object-cover"
