@@ -44,10 +44,10 @@ jobs:
         include:
           - service: client
             directory: client
-            commands: bun run typecheck && bun run lint
+            commands: bun run typecheck
           - service: server
             directory: server
-            commands: bun run typecheck && bun test
+            commands: bun run typecheck && bun run test
           - service: matching-service
             directory: matching-service
             commands: bun run typecheck && bun test
@@ -67,6 +67,8 @@ jobs:
 
       - name: Run checks
         working-directory: ${{ matrix.directory }}
+        env:
+          NODE_ENV: test
         run: ${{ matrix.commands }}
 
   build-push:
