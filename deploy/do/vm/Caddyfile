@@ -1,0 +1,6 @@
+# TLS termination for browser Socket.IO (rtc-service stays on localhost:5370).
+# WebRTC media (UDP 40000–49999) still goes directly to the droplet public IP.
+
+rtc.greetup.co {
+	reverse_proxy 127.0.0.1:5370
+}
