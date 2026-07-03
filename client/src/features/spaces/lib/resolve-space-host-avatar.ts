@@ -15,5 +15,5 @@ export function resolveSpaceHostAvatarSrc({
     ? viewerPrimaryPhotoUrl?.trim() || hostImage
     : hostImage;
 
-  return getProfileImageUrl(image);
+  return getProfileImageUrl(image) ?? "";
 }

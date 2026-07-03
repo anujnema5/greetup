@@ -7,7 +7,6 @@ import {
   useOpenPeerProfileFromCall,
   usePeerProfileHoverConnectionPanel,
 } from "@/features/room/hooks/call/peer-profile-hover";
-import { getProfileImageUrl } from "@/lib/ui/profile-image";
 import { cn } from "@/lib/utils";
 import { PeerProfileHoverConnectionActions } from "./peer-profile-hover-connection-actions";
 
@@ -71,9 +70,9 @@ export function PeerProfileHoverCard({
           <div className="flex size-14 items-center justify-center overflow-hidden rounded-full border border-border/80 bg-muted text-base font-bold text-foreground shadow-sm">
             {isFetching ? (
               <span className="size-5 animate-pulse rounded-md bg-muted-foreground/25" />
-            ) : imageUrl ? (
+            ) : imageUrl?.trim() ? (
               <Image
-                src={getProfileImageUrl(imageUrl)}
+                src={imageUrl.trim()}
                 alt=""
                 width={56}
                 height={56}

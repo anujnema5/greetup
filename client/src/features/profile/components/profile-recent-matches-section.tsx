@@ -8,7 +8,6 @@ import { PeerContactActionIcons } from "@/features/connections/components/peer-c
 import type { PeerContactTarget } from "@/features/connections/hooks/use-peer-contact-actions";
 import { usePeerContactActions } from "@/features/connections/hooks/use-peer-contact-actions";
 import { OnlinePresenceDot, usePeersOnlineStatus } from "@/features/presence";
-import { getProfileImageUrl } from "@/lib/ui/profile-image";
 import { PROFILE_SECTIONS, RECENT_MATCHES } from "@/lib/copy/user-messages";
 import { cn } from "@/lib/utils";
 
@@ -70,16 +69,15 @@ function RecentMatchRow({
   onCall,
 }: RecentMatchRowProps) {
   const profileHref = match.username ? `/u/${match.username}` : null;
-  const avatarSrc = getProfileImageUrl(match.image);
   const peer = matchToPeer(match);
 
   const profileBlock = (
     <>
       <div className="relative shrink-0">
-        {match.image ? (
+        {match.image?.trim() ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img
-            src={avatarSrc}
+            src={match.image.trim()}
             alt=""
             className="h-10 w-10 rounded-full object-cover"
           />

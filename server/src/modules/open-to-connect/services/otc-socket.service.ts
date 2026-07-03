@@ -2,8 +2,6 @@ import { emitToUser } from "@/core/socket/socket";
 
 import type { OpenToConnectActivityTagDto } from "../types";
 
-import type { OpenToConnectActivityTagDto } from "../types";
-
 export type OtcRequestReceivedPayload = {
   requestId: string;
   requesterUserId: string;

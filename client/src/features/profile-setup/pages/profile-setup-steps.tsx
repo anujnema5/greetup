@@ -133,7 +133,11 @@ const ProfileSetupStep = () => {
       const field = promptFields[promptIndex]
       if (field) {
         const val = String(form.getValues(field.key) ?? '').trim()
-        if (val.length > 0 && field.minLength && val.length < field.minLength) {
+        const minLength =
+          'minLength' in field && typeof field.minLength === 'number'
+            ? field.minLength
+            : undefined
+        if (val.length > 0 && minLength && val.length < minLength) {
           await form.trigger(field.key)
           return
         }
@@ -150,7 +154,11 @@ const ProfileSetupStep = () => {
     if (isPromptCarouselStep) {
       for (const field of promptFields) {
         const val = String(form.getValues(field.key) ?? '').trim()
-        if (val.length > 0 && field.minLength && val.length < field.minLength) {
+        const minLength =
+          'minLength' in field && typeof field.minLength === 'number'
+            ? field.minLength
+            : undefined
+        if (val.length > 0 && minLength && val.length < minLength) {
           form.setValue(field.key, '', { shouldValidate: false })
         }
       }
