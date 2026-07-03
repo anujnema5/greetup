@@ -12,7 +12,7 @@ export const metadata: Metadata = buildPageMetadata({
   description: "Complete your Greetup profile to start matching and joining spaces.",
   path: "/profile-setup",
   noIndex: true,
-});
+}); 
 
 const page = () => {
     return (
