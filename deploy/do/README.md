@@ -185,7 +185,9 @@ Get-Content $env:USERPROFILE\.ssh\greetup_do.pub   # paste into DO → New SSH K
 | Type | Protocol | Port | Sources |
 |------|----------|------|---------|
 | SSH | TCP | 22 | Home public IP only (`curl ifconfig.me` on laptop) |
-| Custom | TCP | 5370 | All IPv4, All IPv6 |
+| Custom | TCP | 80 | All IPv4, All IPv6 *(Let's Encrypt)* |
+| Custom | TCP | 443 | All IPv4, All IPv6 *(HTTPS → Caddy → rtc)* |
+| Custom | TCP | 5370 | VPC CIDR only *(server via private IP; browsers use 443)* |
 | Custom | UDP | 40000–49999 | All IPv4, All IPv6 |
 | Custom | TCP | 6379 | VPC CIDR only *(add before App Platform)* |
 
@@ -205,6 +207,7 @@ mkdir -p ~/greetup
 Copy files from repo (or create on VM):
 
 - `deploy/do/vm/docker-compose.yml` → `~/greetup/docker-compose.yml`
+- `deploy/do/vm/Caddyfile` → `~/greetup/Caddyfile`
 - `deploy/do/vm/.env.example` → `~/greetup/.env` (fill values)
 
 ```bash
@@ -242,6 +245,9 @@ docker compose logs rtc-service --tail 30
 - `Redis connected`
 - `mediasoup Worker created`
 - `rtc-service listening on http://0.0.0.0:5370`
+- Caddy obtains a Let's Encrypt cert for `rtc.greetup.co` (ports 80 + 443 open)
+
+Browsers use **`https://rtc.greetup.co`** (port 443, TLS). Server still calls **`http://<VPC_PRIVATE_IP>:5370`** internally.
 
 ### Redeploy after code change
 
