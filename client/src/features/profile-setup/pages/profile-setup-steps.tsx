@@ -1,5 +1,5 @@
 'use client'
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { useFormContext, useFormState } from 'react-hook-form'
 import { useRouter } from 'next/navigation'
 
@@ -106,10 +106,12 @@ const ProfileSetupStep = () => {
       : []
   const isPromptCarouselStep = promptFields.length > 1
   const [promptIndex, setPromptIndex] = useState(0)
+  const [prevStep, setPrevStep] = useState(currentStep)
 
-  useEffect(() => {
+  if (currentStep !== prevStep) {
+    setPrevStep(currentStep)
     setPromptIndex(0)
-  }, [currentStep])
+  }
 
   const visibleFields = isPromptCarouselStep
     ? promptFields[promptIndex]

@@ -37,7 +37,7 @@ function VerifyEmailContent() {
         try {
             const { error } = await authClient.sendVerificationEmail({
                 email,
-                callbackURL: `${CURRENT_HOST}`,
+                callbackURL: `${CURRENT_HOST}/home`,
             });
 
             if (error) {

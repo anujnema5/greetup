@@ -29,7 +29,7 @@ export function useEmailLogin() {
                     email: values.email,
                     password: values.password,
                     rememberMe: true,
-                    callbackURL: CURRENT_HOST,
+                    callbackURL: `${CURRENT_HOST}/home`,
                 })
 
                 if (res.error?.code === 'EMAIL_NOT_VERIFIED') {
