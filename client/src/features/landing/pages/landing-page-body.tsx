@@ -34,6 +34,7 @@ import {
   Volume2,
   Wind,
   Sparkles,
+  Target,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { EARLY_RELEASE } from "@/lib/copy/user-messages";
@@ -86,34 +87,46 @@ const cardIn: Variants = {
 /* ─── data ──────────────────────────────────────────────────────────────────── */
 const FEATURES = [
   {
-    icon: Sparkles,
+    icon: Target,
     label: "Activity match",
     desc: "Pick chess, vent, yap, study together, language practice, or another activity — then match with someone who wants to do the same.",
-    tint: "from-secondary/15 to-transparent",
-    iconClass: "text-secondary bg-secondary/10 border-secondary/20",
+    wash: "bg-gradient-to-br from-secondary/12 via-secondary/[0.04] to-transparent",
+    orb: "bg-secondary/14",
+    iconBox: "bg-secondary/16 border-secondary/28",
+    iconColor: "text-secondary-foreground",
+    hoverBorder: "hover:border-secondary/40",
   },
   {
     icon: Users,
     label: "Spaces",
     desc: "Spaces are group rooms where people meet around shared interests and talk live.",
-    tint: "from-violet-400/15 to-transparent",
-    iconClass: "text-violet-400 bg-violet-400/10 border-violet-400/20",
+    wash: "bg-gradient-to-br from-tertiary/70 via-tertiary/20 to-transparent",
+    orb: "bg-tertiary/50",
+    iconBox: "bg-tertiary/80 border-secondary/22",
+    iconColor: "text-tertiary-foreground",
+    hoverBorder: "hover:border-secondary/35",
   },
   {
     icon: ShieldCheck,
     label: "Safe & Secure",
     desc: "AI checks video for NSFW content, we moderate actively, and the community is full of people who actually want to connect.",
-    tint: "from-emerald-400/15 to-transparent",
-    iconClass: "text-emerald-400 bg-emerald-400/10 border-emerald-400/20",
+    wash: "bg-gradient-to-br from-success-muted/90 via-success-muted/25 to-transparent",
+    orb: "bg-success-muted/70",
+    iconBox: "bg-success-muted border-success-border/70",
+    iconColor: "text-success-foreground",
+    hoverBorder: "hover:border-success-border",
   },
   {
     icon: MessageCircle,
     label: "Instant Connect",
     desc: "Chat, voice, and video instantly — plus in-call chess. Invite friends into private spaces or keep it 1:1.",
-    tint: "from-sky-400/15 to-transparent",
-    iconClass: "text-sky-400 bg-sky-400/10 border-sky-400/20",
+    wash: "bg-gradient-to-br from-primary/14 via-primary/[0.05] to-transparent",
+    orb: "bg-primary/12",
+    iconBox: "bg-primary/18 border-primary/30",
+    iconColor: "text-primary-foreground",
+    hoverBorder: "hover:border-primary/40",
   },
-];
+] as const;
 
 const MATCHING_SIGNALS = [
   {
@@ -467,19 +480,42 @@ function LandingPageInner() {
             <p className="mt-3 sm:mt-4 text-sm sm:text-base landing-muted max-w-lg mx-auto">Every feature exists for one reason: to help you meet people who feel like people, not profiles.</p>
           </motion.div>
 
-          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-5">
-            {FEATURES.map(({ icon: Icon, label, desc, tint, iconClass }) => (
-              <motion.div key={label} variants={cardIn} whileHover={lite ? undefined : { y: -6, transition: { duration: 0.25 } }}>
-                <Card className="relative overflow-hidden border-border bg-card h-full shadow-xl p-0 gap-0">
-                  <div className={`absolute inset-0 bg-linear-to-br ${tint} opacity-60 pointer-events-none`} />
-                  <CardContent className="relative p-4 sm:p-6 flex flex-col gap-3 sm:gap-4">
-                    <div className={cn("size-11 rounded-2xl border flex items-center justify-center", iconClass)}>
-                      <Icon className="size-5" />
+          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5">
+            {FEATURES.map(({ icon: Icon, label, desc, wash, orb, iconBox, iconColor, hoverBorder }) => (
+              <motion.div
+                key={label}
+                variants={cardIn}
+                whileHover={lite ? undefined : { y: -2, transition: { duration: 0.2 } }}
+              >
+                <Card
+                  className={cn(
+                    "group relative h-full overflow-hidden border-border bg-card p-0 gap-0 shadow-sm transition-[border-color,box-shadow] duration-200 hover:shadow-md",
+                    hoverBorder,
+                  )}
+                >
+                  <div className={cn("pointer-events-none absolute inset-0", wash)} aria-hidden />
+                  <div
+                    className={cn(
+                      "pointer-events-none absolute -right-6 -top-6 size-28 rounded-full blur-2xl sm:size-32",
+                      orb,
+                    )}
+                    aria-hidden
+                  />
+                  <CardContent className="relative flex h-full flex-col gap-4 p-5 sm:p-6">
+                    <div className="flex items-center gap-3">
+                      <div
+                        className={cn(
+                          "flex size-10 shrink-0 items-center justify-center rounded-lg border transition-transform duration-200 group-hover:scale-[1.03]",
+                          iconBox,
+                        )}
+                      >
+                        <Icon className={cn("size-[1.125rem]", iconColor)} strokeWidth={1.75} />
+                      </div>
+                      <p className="font-semibold text-[0.9375rem] leading-snug landing-card-title sm:text-base">
+                        {label}
+                      </p>
                     </div>
-                    <div>
-                      <p className="font-bold text-base landing-card-title mb-1.5">{label}</p>
-                      <p className="text-sm landing-muted leading-relaxed">{desc}</p>
-                    </div>
+                    <p className="text-[13px] leading-relaxed landing-muted sm:text-sm">{desc}</p>
                   </CardContent>
                 </Card>
               </motion.div>
