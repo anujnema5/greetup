@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Loader2, Search, UserPlus } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -15,6 +15,12 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
+import {
+  formDialogFooterClass,
+  formDialogScrollBodyClass,
+  formDialogShellClass,
+} from "@/lib/ui/form-dialog-shell";
+import { useDialogScrollOnFocus } from "@/lib/ui/use-dialog-scroll-on-focus";
 import {
   COMPACT_DIALOG_BODY,
   COMPACT_DIALOG_CAPTION,
@@ -55,6 +61,8 @@ export function InviteFriendsDialog({
 }: InviteFriendsDialogProps) {
   const [search, setSearch] = useState("");
   const [draft, setDraft] = useState<Set<string>>(() => new Set());
+  const listScrollRef = useRef<HTMLDivElement>(null);
+  useDialogScrollOnFocus(listScrollRef, open);
 
   useEffect(() => {
     if (!open) return;
@@ -106,8 +114,8 @@ export function InviteFriendsDialog({
       <DialogContent
         showCloseButton
         className={cn(
-          "flex max-h-[min(85vh,560px)] flex-col gap-0 overflow-hidden p-0 sm:max-w-md",
-          "z-100 rounded-2xl border-border/60 shadow-2xl",
+          formDialogShellClass({ maxWidthClass: "sm:max-w-md" }),
+          "z-100 border-border/60 shadow-2xl",
         )}
       >
         <DialogHeader className="shrink-0 space-y-1 border-b border-border/40 px-5 pt-5 pb-4 text-left">
@@ -138,7 +146,10 @@ export function InviteFriendsDialog({
           </div>
         </div>
 
-        <div className="min-h-0 flex-1 overflow-y-auto px-2 py-2">
+        <div
+          ref={listScrollRef}
+          className={cn(formDialogScrollBodyClass, "px-2 py-2")}
+        >
           {connectionsLoading ? (
             <div className={cn("flex items-center justify-center gap-2 py-12", COMPACT_DIALOG_BODY)}>
               <Loader2 className="size-5 animate-spin" />
@@ -194,7 +205,7 @@ export function InviteFriendsDialog({
           )}
         </div>
 
-        <DialogFooter className="shrink-0 gap-2 border-t border-border/40 px-5 py-4">
+        <DialogFooter className={cn(formDialogFooterClass, "gap-2 px-5 py-4")}>
           <Button
             type="button"
             variant="outline"

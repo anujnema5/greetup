@@ -7,9 +7,9 @@ import { XIcon } from "lucide-react"
 import { cn } from "@/lib/utils"
 import {
   dialogContentHasPixelCenterOffset,
-  dialogContentIsBottomAnchored,
   dialogContentKeyboardBottomPx,
   dialogViewportStyleForInlineMerge,
+  useDialogContentAnchor,
   useDialogVisualViewportStyle,
 } from "@/components/ui/use-dialog-visual-viewport-style"
 
@@ -68,7 +68,7 @@ function DialogContent({
   /** When true (default), reposition / inset for `visualViewport` (mobile keyboard, iOS Safari). Set false to opt out. */
   adaptVisualViewport?: boolean
 }) {
-  const anchor = dialogContentIsBottomAnchored(className) ? "bottom" : "center"
+  const anchor = useDialogContentAnchor(className)
   const visualViewportStyle = useDialogVisualViewportStyle(adaptVisualViewport, anchor)
   const viewportRef = React.useRef<HTMLDivElement | null>(null)
 

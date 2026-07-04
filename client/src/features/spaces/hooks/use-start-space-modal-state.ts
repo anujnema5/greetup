@@ -207,17 +207,6 @@ export function useStartSpaceModalState() {
     }
   }, [open, categories, form, isEditMode]);
 
-  useEffect(() => {
-    if (!open || !advancedOpen) return;
-    const id = window.requestAnimationFrame(() => {
-      advancedSectionRef.current?.scrollIntoView({
-        behavior: "smooth",
-        block: "nearest",
-      });
-    });
-    return () => window.cancelAnimationFrame(id);
-  }, [open, advancedOpen]);
-
   /** Whenever the sheet opens, reset form for create vs edit (stable snapshot for edit). */
   useEffect(() => {
     if (!open) return;

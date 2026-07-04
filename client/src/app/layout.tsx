@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Suspense } from "react";
 import { Plus_Jakarta_Sans } from "next/font/google";
 // @ts-ignore: side-effect CSS import without module declarations
@@ -19,6 +19,14 @@ const plusJakartaSans = Plus_Jakarta_Sans({
 });
 
 export const metadata: Metadata = rootMetadata;
+
+/** Resize layout with the virtual keyboard (Chrome/Android) instead of overlaying it. */
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  viewportFit: "cover",
+  interactiveWidget: "resizes-content",
+};
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (

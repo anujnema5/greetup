@@ -2,6 +2,7 @@
 
 import { format, startOfDay } from "date-fns";
 import { CalendarIcon, ChevronDown, Loader2, Lock, Globe2, UsersRound } from "lucide-react";
+import { useRef, useEffect } from "react";
 import { useWatch } from "react-hook-form";
 
 import { Button } from "@/components/ui/button";
@@ -38,6 +39,13 @@ import {
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
+import {
+  formDialogFooterClass,
+  formDialogScrollBodyClass,
+  formDialogShellClass,
+} from "@/lib/ui/form-dialog-shell";
+import { useDialogScrollOnFocus } from "@/lib/ui/use-dialog-scroll-on-focus";
+import { scrollAnchoredSectionIntoView } from "@/features/matching/utils/match-prep-dialog.utils";
 import {
   COMPACT_DIALOG_CAPTION,
   COMPACT_DIALOG_DESCRIPTION,
@@ -97,6 +105,19 @@ export function StartSpaceModalDialog(props: StartSpaceModalDialogProps) {
   });
   const categoryId = useWatch({ control: form.control, name: "categoryId" });
 
+  const formScrollRef = useRef<HTMLDivElement>(null);
+  useDialogScrollOnFocus(formScrollRef, open);
+
+  useEffect(() => {
+    if (!open || !advancedOpen) return;
+    const frame = window.requestAnimationFrame(() => {
+      const scrollEl = formScrollRef.current;
+      const anchor = advancedSectionRef.current;
+      if (scrollEl && anchor) scrollAnchoredSectionIntoView(scrollEl, anchor);
+    });
+    return () => window.cancelAnimationFrame(frame);
+  }, [open, advancedOpen, advancedSectionRef]);
+
   const busy = creating || updating;
 
   return (
@@ -105,9 +126,8 @@ export function StartSpaceModalDialog(props: StartSpaceModalDialogProps) {
         showCloseButton
         onOpenAutoFocus={(e) => e.preventDefault()}
         className={cn(
-          "flex max-h-[min(90dvh,760px)] flex-col gap-0 overflow-hidden p-0",
-          "border-border/60 bg-card shadow-2xl sm:max-w-2xl",
-          "rounded-2xl",
+          formDialogShellClass({ maxWidthClass: "sm:max-w-2xl" }),
+          "border-border/60 bg-card shadow-2xl",
         )}
       >
         <div className="shrink-0 px-6 pt-6 sm:px-8 sm:pt-8">
@@ -126,7 +146,10 @@ export function StartSpaceModalDialog(props: StartSpaceModalDialogProps) {
             onSubmit={form.handleSubmit(submitSpaceForm)}
             className="flex min-h-0 flex-1 flex-col"
           >
-            <div className="app-scrollbar min-h-0 flex-1 overflow-y-auto overscroll-contain px-6 sm:px-8">
+            <div
+              ref={formScrollRef}
+              className={cn(formDialogScrollBodyClass, "px-6 sm:px-8")}
+            >
               <div className="flex flex-col gap-5 pb-4 pt-4 sm:gap-6">
             <FormField
               control={form.control}
@@ -662,7 +685,12 @@ export function StartSpaceModalDialog(props: StartSpaceModalDialogProps) {
               </div>
             </div>
 
-            <DialogFooter className="shrink-0 flex w-full flex-col gap-2 border-t border-border/60 bg-card/95 px-6 pt-4 pb-6 backdrop-blur-sm sm:flex-row sm:items-center sm:justify-between sm:px-8">
+            <DialogFooter
+              className={cn(
+                formDialogFooterClass,
+                "flex w-full flex-col gap-2 px-6 pt-4 sm:flex-row sm:items-center sm:justify-between sm:px-8",
+              )}
+            >
               {isEditMode ? (
                 <>
                   {/* Mobile: Cancel → Delete scheduled space → Save changes */}
