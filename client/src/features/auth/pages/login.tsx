@@ -13,7 +13,7 @@ import AuthPageLayout from "@/features/auth/components/auth-page-layout";
 import { AuthFormDivider } from "@/features/auth/components/auth-form-divider";
 import { AuthGuestContinueButton } from "@/features/auth/components/auth-guest-continue-button";
 import { FirebasePhoneAuthProvider } from "@/features/auth/context/firebase-phone-auth-context";
-import { CURRENT_HOST } from "@/shared/constants";
+import { getAuthCallbackUrl } from "@/features/auth/lib/auth-callback-url";
 
 type View = "phone" | "email" | "otp";
 
@@ -70,7 +70,7 @@ function LoginPageContent() {
         footerLinkText="Create account"
         onFooterLinkClick={handleCreateAccount}
       >
-        <SocialLoginButtons callbackURL={`${CURRENT_HOST}/home`} />
+        <SocialLoginButtons callbackURL={getAuthCallbackUrl()} />
 
         {view !== "otp" && (
           <LoginToggleButtons
