@@ -47,6 +47,15 @@ export type OtcFeedUserUnavailablePayload = {
   userId: string;
 };
 
+export type OtcCallEndedPayload = {
+  roomId: string;
+  endedByUserId: string;
+};
+
+export const OTC_SOCKET_EVENTS = {
+  callEnded: "otc:call_ended",
+} as const;
+
 export const otcSocketService = {
   emitRequestReceived(targetUserId: string, payload: OtcRequestReceivedPayload) {
     emitToUser(targetUserId, "otc:request_received", payload);
@@ -66,5 +75,9 @@ export const otcSocketService = {
 
   emitFeedUserUnavailable(viewerId: string, payload: OtcFeedUserUnavailablePayload) {
     emitToUser(viewerId, "otc:feed_user_unavailable", payload);
+  },
+
+  emitCallEnded(peerUserId: string, payload: OtcCallEndedPayload) {
+    emitToUser(peerUserId, OTC_SOCKET_EVENTS.callEnded, payload);
   },
 };

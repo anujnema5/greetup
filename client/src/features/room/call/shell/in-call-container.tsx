@@ -46,6 +46,7 @@ import type { RoomData } from "@/features/matching/types/room.types";
 import {
   isConnectionCallSession,
   isMatchSession,
+  isOpenToConnectMatchSession,
 } from "@/features/room/lib/session/room-session-kind";
 import { CALL_ROOM_FORCED_DARK_CLASS } from "@/features/room/constants/call/call-chrome-theme";
 import { useRoomConversationCues } from "@/features/room/conversation-cues/hooks/use-room-conversation-cues";
@@ -109,14 +110,17 @@ export function InCallContainer({
     useStartScheduledSpace();
   const isMatch = isMatchSession(room);
   const isConnectionCall = isConnectionCallSession(room);
+  const isOtcMatch = isOpenToConnectMatchSession(room);
   const canSkipAndRematch =
-    isMatch || (roomPhase === "searching" && !isGroupRoom && !isConnectionCall);
+    (isMatch && !isOtcMatch) ||
+    (roomPhase === "searching" && !isGroupRoom && !isConnectionCall && !isOtcMatch);
 
   const video = useRoomVideo(roomId, {
     isDbSpaceCall,
     spaceHostUserId,
     canSkipAndRematch,
     isConnectionCallSession: isConnectionCall,
+    isOpenToConnectCall: isOtcMatch,
     connectionCallConversationId:
       room?.sessionKind === "connection_call" ? room.conversationId ?? null : null,
   });

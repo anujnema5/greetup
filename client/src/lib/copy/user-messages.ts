@@ -255,6 +255,7 @@ export const OPEN_TO_CONNECT = {
     disabled:
       "You won't show in Open now. Matching and your profile still work as usual",
     disableFailed: "Couldn't turn off Open now",
+    callDisconnected: "The call was disconnected — check your connection and try again",
   },
   enable: {
     title: "Let people find me",

@@ -4,7 +4,8 @@ import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { useRoomStore } from "@/features/room/state/room.store";
 import { useJoinRoom } from "@/features/room/api/room.mutations";
-import { getApiErrorMessage } from "@/lib/api/fetch-client";
+import { getApiErrorCode, getApiErrorMessage } from "@/lib/api/fetch-client";
+import { isLocalCallEndInProgress } from "@/features/room/lib/call/direct-match-leave-guard";
 import { resetRtcConnectTiming, rtcMark } from "@/features/rtc/lib/rtc-connect-timing";
 import { prefetchRtcLiveSessionChunk } from "@/features/rtc/lib/prefetch-rtc-live-session-chunk";
 import { joinRoomOnce } from "@/features/room/lib/session/join-room-once";
@@ -51,7 +52,11 @@ export function useRoomJoinAndStartVideo({
       })
       .catch((err: unknown) => {
         if (cancelled) return;
+        if (isLocalCallEndInProgress()) return;
+        const code = getApiErrorCode(err);
+        if (code === "ROOM_NOT_LIVE" || code === "ROOM_EXPIRED") return;
         const message = getApiErrorMessage(err, "Could not join this room");
+        if (/not live yet/i.test(message)) return;
         if (joinWhileSessionActive) return;
         setJoinRoomErrorState({ roomId, message });
         toast.error(message, { id: `join-room-${roomId}` });

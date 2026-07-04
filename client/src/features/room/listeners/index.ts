@@ -4,6 +4,7 @@ export { OnSpaceOpenedForJoin } from "./on-space-opened-for-join";
 export { OnHostEndedSpace } from "./on-host-ended-space";
 export { OnParticipantRemovedFromSpace } from "./on-participant-removed-from-space";
 export { OnConnectionCallEnded } from "./on-connection-call-ended";
+export { OnOtcCallEnded } from "./on-otc-call-ended";
 export { OnDirectExpandedToSpace } from "./on-direct-expanded-to-space";
 export { OnPartnerDisconnected } from "./on-partner-disconnected";
 export { OnRoomActivityToasts } from "./on-room-activity-toasts";

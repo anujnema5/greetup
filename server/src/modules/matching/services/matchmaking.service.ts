@@ -1,6 +1,9 @@
 import config from "@/shared/config/config";
 import logger from "@/core/logging";
+import { getRedis } from "@/core/redis";
+import { ROOM_KEYS } from "@/core/redis/keys";
 import { emitToUser } from "@/core/socket/socket";
+import { otcSocketService } from "@/modules/open-to-connect/services/otc-socket.service";
 import { emitConnectionCallEnded } from "@/modules/connections/socket/connection-call-socket.handler";
 import { resolveConnectionCallConversationId } from "@/modules/rooms/lib/session/resolve-connection-call-conversation-id";
 import { clearUserActiveRtcRoom, getUserActiveRtcRoomId } from "@/modules/rooms/services/rtc/user-active-rtc-room-redis.service";
@@ -176,6 +179,12 @@ async function directRoomIdForExplicitLeave(
   return getUserActiveRtcRoomId(userId);
 }
 
+async function isOpenToConnectMatchRoom(roomId: string): Promise<boolean> {
+  const redis = getRedis();
+  const room = await redis.hgetall(`${ROOM_KEYS.ROOM}${roomId}`);
+  return room?.openToConnectOrigin === "true";
+}
+
 /** Tells the remaining 1:1 match peer to rematch when the other user skips or leaves. */
 async function notifyDirectMatchPeerSkipped(roomId: string, skippingUserId: string): Promise<void> {
   const room = await roomsRepository.findRoomById(roomId);
@@ -186,6 +195,16 @@ async function notifyDirectMatchPeerSkipped(roomId: string, skippingUserId: stri
   const participantIds = await roomParticipantsRepository.listAllParticipantUserIds(roomId);
   const peerUserId = participantIds.find((id) => id !== skippingUserId);
   if (!peerUserId) {
+    return;
+  }
+
+  if (await isOpenToConnectMatchRoom(roomId)) {
+    logger.info("[leaveRoom] notifying peer open-to-connect call ended", {
+      roomId,
+      skippingUserId,
+      peerUserId,
+    });
+    otcSocketService.emitCallEnded(peerUserId, { roomId, endedByUserId: skippingUserId });
     return;
   }
 

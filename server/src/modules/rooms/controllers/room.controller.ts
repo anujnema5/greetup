@@ -915,6 +915,7 @@ export const handleGetRoom = async (c: Context) => {
       userA: room.userA,
       userB: room.userB,
       matchScore: room.matchScore ?? null,
+      ...(room.openToConnectOrigin === "true" ? { openToConnectOrigin: true } : {}),
     };
     if (dbRoom?.roomType === "space") {
       matchPayload.roomType = "space";
