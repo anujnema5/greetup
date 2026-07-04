@@ -556,9 +556,37 @@ export const GUEST_TRIAL_API_ERRORS = {
 
 export const AUTH_PAGES = {
 
-  continueAsGuest: "Continue as guest",
+  continueAsGuest: "Try as a guest",
 
-  guestSectionLabel: "Continue without an account",
+  guestSectionLabel: "Or try without an account",
+
+} as const;
+
+
+
+export const REGISTER_PAGE = {
+
+  title: "Create your account",
+
+  subtitle: "Sign up free — or try one match as a guest.",
+
+} as const;
+
+
+
+export const LANDING_ENTRY = {
+
+  getStarted: "Get started",
+
+  goToHome: "Go to home",
+
+  continueTry: "Continue your try",
+
+  tryAsGuest: "Try as a guest",
+
+  welcome: (firstName: string) => `Welcome, ${firstName}`,
+
+  greeting: (firstName: string) => `Hi, ${firstName}`,
 
 } as const;
 

@@ -37,9 +37,8 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { EARLY_RELEASE } from "@/lib/copy/user-messages";
-import { TRY_ROUTE } from "@/features/guest-try/constants/try-routes";
 import { FOOTER_LINKS } from "@/lib/copy/marketing-pages";
-import { useLandingSession } from "../hooks/use-landing-session";
+import { useLandingEntryCta } from "../hooks/use-landing-entry-cta";
 import { LandingPerfProvider, useLandingPerf } from "../hooks/use-landing-perf";
 import { LandingActivityChips } from "../components/landing-activity-chips";
 import { LandingCuesDemo } from "../components/landing-cues-demo";
@@ -425,7 +424,7 @@ function AmbientBackdrop() {
 function LandingPageInner() {
   const { lite } = useLandingPerf();
   const [activeTab, setActiveTab] = useState<CommTab>("chat");
-  const { isLoggedIn, firstName } = useLandingSession();
+  const { navPrimaryHref, navPrimaryLabel, appHref } = useLandingEntryCta();
 
   return (
     <>
@@ -821,7 +820,7 @@ function LandingPageInner() {
               className="rounded-full border-border bg-muted landing-muted hover:bg-muted hover:text-foreground px-5"
               asChild
             >
-              <Link href={isLoggedIn ? "/home" : "/login"}>Open your connections</Link>
+              <Link href={appHref}>Open your connections</Link>
             </Button>
           </motion.div>
           <motion.p variants={fadeUp} className="text-center text-xs landing-muted mb-4 sm:mb-6">
@@ -950,8 +949,8 @@ function LandingPageInner() {
                 className="rounded-full bg-primary text-primary-foreground hover:brightness-110 shadow-2xl shadow-primary/35 font-black text-base px-10 py-6"
                 asChild
               >
-                <Link href={isLoggedIn ? "/home" : TRY_ROUTE}>
-                  {isLoggedIn ? `Continue${firstName ? `, ${firstName}` : ""}` : "Find your people"}{" "}
+                <Link href={navPrimaryHref}>
+                  {navPrimaryLabel}{" "}
                   <ArrowRight className="size-5" />
                 </Link>
               </Button>
