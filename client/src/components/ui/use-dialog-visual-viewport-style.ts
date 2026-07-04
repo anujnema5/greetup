@@ -43,6 +43,11 @@ function keyboardBottomInsetPx(): number {
   return Math.max(1, Math.round(raw));
 }
 
+/** Public helper for scroll-into-view and other dialog keyboard utilities. */
+export function getDialogKeyboardBottomInsetPx(): number {
+  return keyboardBottomInsetPx();
+}
+
 function shouldUsePixelCentering(): boolean {
   if (typeof window === "undefined" || !window.visualViewport) return false;
   const vv = window.visualViewport;
@@ -97,11 +102,27 @@ function centeredDialogStyle(): CSSProperties {
   } as CSSProperties;
 }
 
+const BOTTOM_SHEET_TOP_CLEARANCE_PX = 16;
+
 function bottomAnchoredInsetStyle(): CSSProperties {
   if (typeof window === "undefined" || !window.visualViewport) return EMPTY_STYLE;
+  const vv = window.visualViewport;
+  if (vv.width < MIN_VV_AXIS_PX || vv.height < MIN_VV_AXIS_PX) return EMPTY_STYLE;
+
   const inset = keyboardBottomInsetPx();
-  if (inset === 0) return EMPTY_STYLE;
-  return { bottom: inset + DIALOG_VISUAL_VIEWPORT_KEYBOARD_GAP_PX };
+  const maxHeight = Math.max(
+    120,
+    Math.round(vv.height - BOTTOM_SHEET_TOP_CLEARANCE_PX),
+  );
+
+  if (inset === 0) {
+    return { maxHeight };
+  }
+
+  return {
+    bottom: inset + DIALOG_VISUAL_VIEWPORT_KEYBOARD_GAP_PX,
+    maxHeight,
+  };
 }
 
 // ─── Module-level store (updates only from viewport events, never in getSnapshot) ───
@@ -155,6 +176,42 @@ function subscribeToViewportStore(onStoreChange: () => void): () => void {
     storeListeners.delete(onStoreChange);
     if (storeListeners.size === 0) detachGlobalViewportListeners();
   };
+}
+
+// ─── Responsive anchor (`dialog-form-sheet` = bottom sheet on phones only) ───
+
+let maxSmMatches = false;
+const maxSmMqListeners = new Set<() => void>();
+let maxSmMqAttached = false;
+
+function subscribeMaxSmMq(onChange: () => void): () => void {
+  if (typeof window === "undefined") return () => {};
+  if (!maxSmMqAttached) {
+    const mq = window.matchMedia("(max-width: 639px)");
+    maxSmMatches = mq.matches;
+    const handler = () => {
+      maxSmMatches = mq.matches;
+      maxSmMqListeners.forEach((notify) => notify());
+    };
+    mq.addEventListener("change", handler);
+    maxSmMqAttached = true;
+  }
+  maxSmMqListeners.add(onChange);
+  return () => {
+    maxSmMqListeners.delete(onChange);
+  };
+}
+
+function getMaxSmMatches(): boolean {
+  return maxSmMatches;
+}
+
+export function useDialogContentAnchor(className: string | undefined): "center" | "bottom" {
+  const isMaxSm = useSyncExternalStore(subscribeMaxSmMq, getMaxSmMatches, () => false);
+  if (className?.includes("dialog-form-sheet")) {
+    return isMaxSm ? "bottom" : "center";
+  }
+  return dialogContentIsBottomAnchored(className) ? "bottom" : "center";
 }
 
 // ─── Public API ───────────────────────────────────────────────────────────────
