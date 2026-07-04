@@ -88,11 +88,6 @@ const config = {
   rtcServiceBaseUrl: normalizeUrl(optionalEnv("RTC_SERVICE_URL") ?? "http://localhost:5370"),
   rtcJwtSecret: requiredEnv("RTC_JWT_SECRET"),
   matchEngineUrl: optionalEnv("MATCH_ENGINE_URL") ?? "http://localhost:5060",
-  /**
-   * Optional audience override for Cloud Run ID token when calling matching-service.
-   * Defaults to `MATCH_ENGINE_URL`.
-   */
-  matchEngineAuthAudience: optionalEnv("MATCH_ENGINE_AUTH_AUDIENCE"),
   logLevel: optionalEnv("LOG_LEVEL"),
 
   /** DigitalOcean Spaces (S3-compatible). All required for profile photo presigned uploads. */
