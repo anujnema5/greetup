@@ -1,13 +1,13 @@
 name: Deploy to production
 
-# Push to main → build images → push to DO registry → deploy App Platform + rtc droplet.
+# Push to main → build images → push to DO registry → deploy App Platform.
+# rtc-service on the droplet auto-updates via Watchtower (polls registry every 5 min).
 #
 # DB migrations run on server container startup (see deploy/do/server-migrations.md).
 # Do not run migrations from this workflow — GHA cannot reach VPC Postgres.
 #
 # Required GitHub secrets (Settings → Secrets and variables → Actions):
 #   DIGITALOCEAN_ACCESS_TOKEN   DO API token (registry + doctl)
-#   RTC_SSH_PRIVATE_KEY           Private key for greetup-rtc droplet (root@)
 #   NEXT_PUBLIC_FIREBASE_API_KEY
 #   NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN
 #   NEXT_PUBLIC_FIREBASE_PROJECT_ID
@@ -18,7 +18,6 @@ name: Deploy to production
 #   DO_APP_ID_CLIENT
 #   DO_APP_ID_SERVER
 #   DO_APP_ID_MATCHING
-#   RTC_DROPLET_HOST                Public IPv4 of greetup-rtc droplet
 
 on:
   push:
@@ -189,32 +188,6 @@ jobs:
           echo "Creating deployment for ${{ matrix.app }} (app id: $APP_ID)..."
           doctl apps create-deployment "$APP_ID" --wait
 
-  deploy-rtc:
-    name: deploy rtc droplet
-    needs: build-push
-    runs-on: ubuntu-latest
-    steps:
-      - name: Verify rtc droplet host
-        env:
-          RTC_DROPLET_HOST: ${{ vars.RTC_DROPLET_HOST }}
-        run: |
-          set -euo pipefail
-          if [ -z "$RTC_DROPLET_HOST" ]; then
-            echo "ERROR: RTC_DROPLET_HOST is not set in GitHub repository variables."
-            echo "Add the greetup-rtc droplet public IPv4 (Settings → Secrets and variables → Actions → Variables)."
-            exit 1
-          fi
-
-      - name: Redeploy rtc stack on droplet
-        uses: appleboy/ssh-action@v1.2.0
-        with:
-          host: ${{ vars.RTC_DROPLET_HOST }}
-          username: root
-          key: ${{ secrets.RTC_SSH_PRIVATE_KEY }}
-          script_stop: true
-          script: |
-            set -euo pipefail
-            cd ~/greetup
-            docker compose --env-file .env pull
-            docker compose --env-file .env up -d
-            docker compose ps
+  # rtc-service: Watchtower on greetup-rtc droplet pulls registry.digitalocean.com/greetup/rtc-service:latest
+  # after build-push. No SSH from GHA — droplet firewall allows SSH from home IP only.
+  # One-time on droplet: copy deploy/do/vm/docker-compose.yml, then `docker compose up -d`.

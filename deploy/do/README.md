@@ -367,7 +367,6 @@ Workflows in `.github/workflows/`:
 | Secret | Purpose |
 |--------|---------|
 | `DIGITALOCEAN_ACCESS_TOKEN` | DO API token — registry login + `doctl` |
-| `RTC_SSH_PRIVATE_KEY` | Private key for `root@greetup-rtc` |
 | `NEXT_PUBLIC_FIREBASE_API_KEY` | Client Docker build |
 | `NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN` | Client Docker build |
 | `NEXT_PUBLIC_FIREBASE_PROJECT_ID` | Client Docker build |
@@ -381,7 +380,8 @@ Workflows in `.github/workflows/`:
 | `DO_APP_ID_CLIENT` | App Platform app UUID for client |
 | `DO_APP_ID_SERVER` | App Platform app UUID for server |
 | `DO_APP_ID_MATCHING` | App Platform app UUID for matching-service |
-| `RTC_DROPLET_HOST` | Public IPv4 of `greetup-rtc` |
+
+**rtc droplet:** no GitHub SSH secrets required. `deploy/do/vm/docker-compose.yml` includes **Watchtower** (polls registry every 5 min). One-time on VM: `docker login registry.digitalocean.com`, then `docker compose up -d`.
 
 **Database migrations on deploy:** automatic when the **server** container starts (`runMigrations()` in `server/src/index.ts`). See [server-migrations.md](./server-migrations.md). Do **not** run migrations from GitHub Actions or add a paid extra component.
 
@@ -401,7 +401,7 @@ Grant the DO API token **read/write** on Container Registry and App Platform.
 2. CI checks pass (typecheck, lint, tests)
 3. Build all four images → push `:latest` and `:<git-sha>` to `registry.digitalocean.com/greetup`
 4. Trigger App Platform redeploy for client, server, matching-service (server runs migrations on startup — see [server-migrations.md](./server-migrations.md))
-5. SSH to rtc droplet → `docker compose pull && up -d`
+5. **rtc-service** — Watchtower on `greetup-rtc` polls the registry every 5 minutes and recreates `rtc-service` when `:latest` changes (no SSH from GitHub Actions; droplet firewall blocks GHA runners on port 22)
 
 ---
 
@@ -417,6 +417,7 @@ Grant the DO API token **read/write** on Container Registry and App Platform.
 | `rtc-service:latest1 not found` | Fix tag to `:latest` in `.env` |
 | App can't reach Redis | Firewall TCP 6379 from VPC only; Redis `--bind 0.0.0.0`; use private IP in `REDIS_URL` |
 | SSH fails after IP change | Update firewall SSH rule with new home IP, or use DO web console |
+| GHA `ssh-action` timeout / passphrase | Expected — firewall allows home IP only; use Watchtower on droplet instead of SSH from CI |
 
 ---
 

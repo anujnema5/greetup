@@ -33,6 +33,19 @@ services:
       - caddy_data:/data
       - caddy_config:/config
 
+  # Polls DO registry and recreates rtc-service when :latest changes (no SSH from GitHub Actions).
+  # Requires `docker login registry.digitalocean.com` on the droplet once.
+  watchtower:
+    image: containrrr/watchtower:1.7.1
+    restart: always
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - /root/.docker/config.json:/config.json:ro
+    environment:
+      WATCHTOWER_POLL_INTERVAL: 300
+      WATCHTOWER_CLEANUP: "true"
+    command: --interval 300 rtc-service
+
 volumes:
   caddy_data:
   caddy_config:

@@ -87,7 +87,15 @@ docker compose --env-file .env up -d
 docker compose ps
 ```
 
-Expected containers: `redis`, `rtc-service`, `caddy` (after Caddyfile deployed).
+**CI/CD:** GitHub Actions pushes `rtc-service:latest` to the registry. **Watchtower** (in `docker-compose.yml`) polls every 5 minutes and recreates `rtc-service` — no SSH from GHA (firewall blocks port 22 except your home IP).
+
+Ensure registry auth exists on the VM:
+
+```bash
+docker login registry.digitalocean.com   # API token as username + password
+```
+
+Expected containers: `redis`, `rtc-service`, `caddy`, `watchtower`.
 
 - RTC health (internal): `http://127.0.0.1:5370/health`
 - Public HTTPS (after Caddy + DNS): `https://rtc.greetup.co/health`
