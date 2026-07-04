@@ -13,6 +13,7 @@ import AuthPageLayout from "@/features/auth/components/auth-page-layout";
 import { AuthFormDivider } from "@/features/auth/components/auth-form-divider";
 import { AuthGuestContinueButton } from "@/features/auth/components/auth-guest-continue-button";
 import { FirebasePhoneAuthProvider } from "@/features/auth/context/firebase-phone-auth-context";
+import { getAuthCallbackUrl } from "@/features/auth/lib/auth-callback-url";
 
 type View = "phone" | "email" | "otp";
 
@@ -29,7 +30,7 @@ function LoginPageContent() {
   };
 
   const handleOTPVerified = () => {
-    router.push("/");
+    router.push("/home");
   };
 
   const handleEditPhone = () => {
@@ -69,7 +70,7 @@ function LoginPageContent() {
         footerLinkText="Create account"
         onFooterLinkClick={handleCreateAccount}
       >
-        <SocialLoginButtons />
+        <SocialLoginButtons callbackURL={getAuthCallbackUrl()} />
 
         {view !== "otp" && (
           <LoginToggleButtons

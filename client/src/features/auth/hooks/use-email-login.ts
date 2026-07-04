@@ -5,8 +5,8 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { EmailLoginInput, emailLoginSchema } from "../schemas/auth.schemas";
 import { authClient } from "@/lib/auth-client";
 import { toast } from "sonner";
+import { getAuthCallbackUrl } from "../lib/auth-callback-url";
 import { getAuthErrorMessage } from "../utils/auth-error";
-import { CURRENT_HOST } from "@/shared/constants";
 import { useRouter } from "next/navigation";
 
 export function useEmailLogin() {
@@ -29,7 +29,7 @@ export function useEmailLogin() {
                     email: values.email,
                     password: values.password,
                     rememberMe: true,
-                    callbackURL: CURRENT_HOST,
+                    callbackURL: getAuthCallbackUrl(),
                 })
 
                 if (res.error?.code === 'EMAIL_NOT_VERIFIED') {

@@ -7,7 +7,7 @@
 
 import { randomUUID } from "node:crypto";
 import { hashPassword } from "better-auth/crypto";
-import { inArray } from "drizzle-orm";
+import { inArray, or } from "drizzle-orm";
 import { db } from "@/core/database";
 import {
   account,
@@ -22,6 +22,12 @@ import {
   profileProfessions,
   profilePreferences,
   userConnections,
+  conversations,
+  conversationParticipants,
+  messages,
+  messageReactions,
+  messageReadReceipts,
+  pinnedMessages,
 } from "@/core/database/schema";
 
 const DEV_EMAIL_DOMAIN = "greetup.local";
@@ -92,6 +98,62 @@ function pick<T>(arr: readonly T[], i: number): T {
 
 async function removeExistingDevUsers() {
   const emails = SEED_USERS.map((u) => u.email);
+  const existing = await db
+    .select({ id: users.id })
+    .from(users)
+    .where(inArray(users.email, emails));
+
+  const userIds = existing.map((u) => u.id);
+  if (userIds.length === 0) return;
+
+  const participantRows = await db
+    .select({ conversationId: conversationParticipants.conversationId })
+    .from(conversationParticipants)
+    .where(inArray(conversationParticipants.userId, userIds));
+
+  const connectionRows = await db
+    .select({ id: userConnections.id })
+    .from(userConnections)
+    .where(
+      or(
+        inArray(userConnections.requesterId, userIds),
+        inArray(userConnections.addresseeId, userIds),
+      ),
+    );
+
+  const connectionIds = connectionRows.map((r) => r.id);
+  const connectionConversationRows =
+    connectionIds.length > 0
+      ? await db
+          .select({ id: conversations.id })
+          .from(conversations)
+          .where(inArray(conversations.connectionId, connectionIds))
+      : [];
+
+  const conversationIds = [
+    ...new Set([
+      ...participantRows.map((r) => r.conversationId),
+      ...connectionConversationRows.map((r) => r.id),
+    ]),
+  ];
+
+  if (conversationIds.length > 0) {
+    await db.delete(conversations).where(inArray(conversations.id, conversationIds));
+  }
+
+  await db.delete(messageReactions).where(inArray(messageReactions.userId, userIds));
+  await db.delete(messageReadReceipts).where(inArray(messageReadReceipts.userId, userIds));
+  await db.delete(pinnedMessages).where(inArray(pinnedMessages.pinnedBy, userIds));
+  await db.delete(messages).where(inArray(messages.senderId, userIds));
+  await db
+    .delete(conversationParticipants)
+    .where(inArray(conversationParticipants.userId, userIds));
+
+  await db
+    .update(conversations)
+    .set({ expandedByUserId: null })
+    .where(inArray(conversations.expandedByUserId, userIds));
+
   await db.delete(users).where(inArray(users.email, emails));
 }
 

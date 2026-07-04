@@ -7,8 +7,7 @@ import { authClient } from '@/lib/auth-client';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Mail, ArrowLeft, Loader2 } from 'lucide-react';
-import { CURRENT_HOST } from '@/shared/constants';
-import { toast } from 'sonner';
+import { getAuthCallbackUrl } from '../lib/auth-callback-url';
 import { getAuthErrorMessage } from '../utils/auth-error';
 
 function VerifyEmailContent() {
@@ -37,7 +36,7 @@ function VerifyEmailContent() {
         try {
             const { error } = await authClient.sendVerificationEmail({
                 email,
-                callbackURL: `${CURRENT_HOST}`,
+                callbackURL: getAuthCallbackUrl(),
             });
 
             if (error) {

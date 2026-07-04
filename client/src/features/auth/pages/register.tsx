@@ -66,9 +66,7 @@ function RegisterPageContent() {
   };
 
   const title = fromGuestIntent ? GUEST_TRIAL_REGISTER.title : "Create your account";
-  const subtitle = fromGuestIntent
-    ? GUEST_TRIAL_REGISTER.subtitle
-    : "Join Greetup and start connecting";
+  const subtitle = fromGuestIntent ? GUEST_TRIAL_REGISTER.subtitle : undefined;
 
   const renderForm = () => {
     switch (view) {
