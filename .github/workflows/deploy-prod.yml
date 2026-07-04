@@ -194,6 +194,17 @@ jobs:
     needs: build-push
     runs-on: ubuntu-latest
     steps:
+      - name: Verify rtc droplet host
+        env:
+          RTC_DROPLET_HOST: ${{ vars.RTC_DROPLET_HOST }}
+        run: |
+          set -euo pipefail
+          if [ -z "$RTC_DROPLET_HOST" ]; then
+            echo "ERROR: RTC_DROPLET_HOST is not set in GitHub repository variables."
+            echo "Add the greetup-rtc droplet public IPv4 (Settings → Secrets and variables → Actions → Variables)."
+            exit 1
+          fi
+
       - name: Redeploy rtc stack on droplet
         uses: appleboy/ssh-action@v1.2.0
         with:
