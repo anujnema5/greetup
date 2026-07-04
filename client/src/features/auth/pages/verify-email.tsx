@@ -7,6 +7,7 @@ import { authClient } from '@/lib/auth-client';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Mail, ArrowLeft, Loader2 } from 'lucide-react';
+import { toast } from 'sonner';
 import { getAuthCallbackUrl } from '../lib/auth-callback-url';
 import { getAuthErrorMessage } from '../utils/auth-error';
 
