@@ -20,7 +20,7 @@ import {
 import { FirebasePhoneAuthProvider } from "@/features/auth/context/firebase-phone-auth-context";
 import { useSignupMergeContext } from "@/features/guest-try/hooks/use-signup-merge-context";
 import { useGuestTryStatus } from "@/features/guest-try/hooks/use-guest-try-status";
-import { GUEST_TRIAL_REGISTER } from "@/lib/copy/user-messages";
+import { GUEST_TRIAL_REGISTER, REGISTER_PAGE } from "@/lib/copy/user-messages";
 
 type View = "phone" | "email" | "otp";
 
@@ -65,8 +65,8 @@ function RegisterPageContent() {
     router.push(fromGuestIntent ? "/login?from=guest" : "/login");
   };
 
-  const title = fromGuestIntent ? GUEST_TRIAL_REGISTER.title : "Create your account";
-  const subtitle = fromGuestIntent ? GUEST_TRIAL_REGISTER.subtitle : undefined;
+  const title = fromGuestIntent ? GUEST_TRIAL_REGISTER.title : REGISTER_PAGE.title;
+  const subtitle = fromGuestIntent ? GUEST_TRIAL_REGISTER.subtitle : REGISTER_PAGE.subtitle;
 
   const renderForm = () => {
     switch (view) {
