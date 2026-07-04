@@ -16,12 +16,6 @@ export interface ApiResponse<T = any> {
   timestamp: string
 }
 
-/** GET /profile/onboarding-status */
-export interface OnboardingStatusResponse {
-  success: boolean
-  data: { isOnboarded: boolean }
-}
-
 export type FieldType =
   | 'text'
   | 'textarea'

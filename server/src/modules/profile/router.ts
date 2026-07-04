@@ -2,7 +2,6 @@ import { Hono } from "hono";
 import {
   handleFetchProfileSteps,
   handleGetMyProfile,
-  handleGetOnboardingStatus,
   handleSaveProfileSetup,
   handleUpdateRoomInviteSettings,
 } from "./controllers/profile-setup.controller";
@@ -39,7 +38,6 @@ profileRoute.get("/me", handleGetMyProfile);
 profileRoute.get("/me/insights", handleGetProfileInsights);
 profileRoute.get("/public/:username", handleGetPublicProfile);
 profileRoute.put("/room-invite-settings", handleUpdateRoomInviteSettings);
-profileRoute.get("/onboarding-status", handleGetOnboardingStatus);
 profileRoute.get("/welcome-tour-status", handleGetWelcomeTourStatus);
 profileRoute.post("/welcome-tour-seen", handleMarkWelcomeTourSeen);
 

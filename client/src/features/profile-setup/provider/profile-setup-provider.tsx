@@ -13,6 +13,8 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import type { Resolver, FieldValues } from 'react-hook-form'
 import type { ProfileSetupProvider as TProfileSetupProvider } from '../types'
 import type { ProfileSetupField, ProfileSetupStep } from '../types/profile-setup-api.types'
+import { getSessionIsOnboarded } from '@/features/auth/lib/session-user'
+import { useSession } from '@/lib/auth-client'
 import {
   useProfileSetupSteps,
   useSaveProfileSetup,
@@ -104,14 +106,22 @@ export const ProfileSetupProvider: React.FC<ProfileSetupProviderProps> = ({
   children,
 }) => {
   const searchParams = useSearchParams()
+  const router = useRouter()
   const { data, isLoading } = useProfileSetupSteps()
+  const { data: session, isPending: sessionPending } = useSession()
   const { mutateAsync: saveProfileSetup, isPending: isSaving } = useSaveProfileSetup()
+
+  useEffect(() => {
+    if (sessionPending) return
+    if (getSessionIsOnboarded(session)) {
+      router.replace('/home')
+    }
+  }, [session, sessionPending, router])
 
   const [currentStep, setCurrentStep] = useState(1)
   const [steps, setSteps] = useState<ProfileSetupStep[]>([])
   const [allFormData, setAllFormData] = useState<Record<string, unknown>>({})
   const [isInitialized, setIsInitialized] = useState(false)
-  const router = useRouter()
   const persistRef = useRef<() => void>(() => {})
 
   // Get current step data

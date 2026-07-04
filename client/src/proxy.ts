@@ -99,8 +99,13 @@ interface CacheEntry {
   isOnboarded?: boolean;
   guestStatus?: GuestStatusSnapshot;
   timestamp: number;
-  inProgress?: Promise<boolean>;
+  inProgress?: Promise<AuthCheckResult>;
   guestStatusInProgress?: Promise<GuestStatusSnapshot | null>;
+}
+
+interface AuthCheckResult {
+  isLoggedIn: boolean;
+  isOnboarded?: boolean;
 }
 
 const sessionCache = new Map<string, CacheEntry>();
@@ -170,7 +175,7 @@ export async function proxy(req: NextRequest) {
 
   // Redirect full accounts away from marketing home (guests may browse landing)
   if (isLoggedIn && pathname === "/" && !guestStatus?.isGuest) {
-    const isOnboarded = await checkOnboardingWithCache(req, pathname);
+    const isOnboarded = await resolveIsOnboarded(req, pathname);
     const redirectUrl = isOnboarded ? "/home" : ONBOARDING_ROUTE;
     return NextResponse.redirect(new URL(redirectUrl, req.url));
   }
@@ -183,7 +188,7 @@ export async function proxy(req: NextRequest) {
       return response;
     }
 
-    const isOnboarded = await checkOnboardingWithCache(req, pathname);
+    const isOnboarded = await resolveIsOnboarded(req, pathname);
     const redirectUrl = isOnboarded ? "/home" : ONBOARDING_ROUTE;
     return NextResponse.redirect(new URL(redirectUrl, req.url));
   }
@@ -197,7 +202,7 @@ export async function proxy(req: NextRequest) {
 
   // Redirect onboarded users away from profile-setup (they're done)
   if (isLoggedIn && isOnboardingRoute(pathname)) {
-    const isOnboarded = await checkOnboardingWithCache(req, pathname);
+    const isOnboarded = await resolveIsOnboarded(req, pathname);
     if (isOnboarded) {
       return NextResponse.redirect(new URL("/home", req.url));
     }
@@ -209,7 +214,7 @@ export async function proxy(req: NextRequest) {
     isOnboardingRequiredRoute(pathname) &&
     !isOnboardingRoute(pathname)
   ) {
-    const isOnboarded = await checkOnboardingWithCache(req, pathname);
+    const isOnboarded = await resolveIsOnboarded(req, pathname);
     if (!isOnboarded) {
       return NextResponse.redirect(new URL(ONBOARDING_ROUTE, req.url));
     }
@@ -458,7 +463,8 @@ async function checkAuthWithCache(req: NextRequest): Promise<boolean> {
   if (cached && now - cached.timestamp < CACHE_TTL) {
     if (cached.inProgress) {
       try {
-        return await cached.inProgress;
+        const result = await cached.inProgress;
+        return result.isLoggedIn;
       } catch {
         console.warn("[Auth] In-progress request failed, retrying");
       }
@@ -479,14 +485,11 @@ async function checkAuthWithCache(req: NextRequest): Promise<boolean> {
   }
 
   try {
-    const isLoggedIn = await authCheckPromise;
+    const result = await authCheckPromise;
 
-    sessionCache.set(sessionToken, {
-      isLoggedIn,
-      timestamp: now,
-    });
+    writeSessionCache(sessionToken, result, now);
 
-    return isLoggedIn;
+    return result.isLoggedIn;
   } catch (error) {
     console.error("[Auth] Check failed:", error);
     sessionCache.delete(sessionToken);
@@ -494,7 +497,7 @@ async function checkAuthWithCache(req: NextRequest): Promise<boolean> {
   }
 }
 
-async function performAuthCheck(req: NextRequest): Promise<boolean> {
+async function performAuthCheck(req: NextRequest): Promise<AuthCheckResult> {
   const apiBaseUrl = middlewareApiBase(req);
 
   const controller = new AbortController();
@@ -515,7 +518,7 @@ async function performAuthCheck(req: NextRequest): Promise<boolean> {
 
     if (!res.ok) {
       if (res.status === 401 || res.status === 403) {
-        return false;
+        return { isLoggedIn: false };
       }
 
       console.error(`[Auth] API returned status ${res.status}`);
@@ -524,12 +527,13 @@ async function performAuthCheck(req: NextRequest): Promise<boolean> {
 
     const data = await res.json();
     const isLoggedIn = !!data?.user;
+    const isOnboarded = isLoggedIn && data.user.isOnboarded === true;
 
     if (isLoggedIn) {
       console.log(`[Auth] User authenticated: ${data.user.id || data.user.email || "unknown"}`);
     }
 
-    return isLoggedIn;
+    return { isLoggedIn, isOnboarded };
   } catch (error) {
     clearTimeout(timeoutId);
 
@@ -543,6 +547,18 @@ async function performAuthCheck(req: NextRequest): Promise<boolean> {
 
     throw error;
   }
+}
+
+function writeSessionCache(
+  sessionToken: string,
+  result: AuthCheckResult,
+  timestamp: number,
+): void {
+  sessionCache.set(sessionToken, {
+    isLoggedIn: result.isLoggedIn,
+    isOnboarded: result.isLoggedIn ? result.isOnboarded === true : false,
+    timestamp,
+  });
 }
 
 // ==================== GUEST STATUS CHECK ====================
@@ -643,49 +659,32 @@ async function performGuestStatusCheck(
   }
 }
 
-// ==================== ONBOARDING CHECK ====================
+// ==================== ONBOARDING (from get-session cache) ====================
 
-async function checkOnboardingWithCache(
+/**
+ * `isOnboarded` is loaded with get-session in checkAuthWithCache.
+ * Re-fetches only when cache is stale or user may have just completed setup.
+ */
+async function resolveIsOnboarded(
   req: NextRequest,
-  pathname?: string
+  pathname?: string,
 ): Promise<boolean> {
   const sessionToken = getSessionToken(req);
   if (!sessionToken) return false;
 
   const cached = sessionCache.get(sessionToken);
   const now = Date.now();
-  // Skip cache when navigating to dashboard with cached false – user may have just completed onboarding
-  const skipCacheForFreshCheck =
-    pathname === "/home" && cached?.isOnboarded === false;
-  if (
-    !skipCacheForFreshCheck &&
-    cached?.isOnboarded !== undefined &&
-    now - cached.timestamp < CACHE_TTL
-  ) {
+  const cacheFresh = Boolean(cached && now - cached.timestamp < CACHE_TTL);
+  const bypassCache = pathname === "/home" && cached?.isOnboarded === false;
+
+  if (cacheFresh && !bypassCache && cached?.isOnboarded !== undefined) {
     return cached.isOnboarded;
   }
 
-  const apiBaseUrl = middlewareApiBase(req);
-
   try {
-    const res = await fetch(`${apiBaseUrl}/profile/onboarding-status`, {
-      method: "GET",
-      headers: {
-        cookie: req.headers.get("cookie") ?? "",
-        "Content-Type": "application/json",
-      },
-      credentials: "include",
-    });
-
-    if (!res.ok) return false;
-    const data = await res.json();
-    const isOnboarded = !!data?.data?.isOnboarded;
-
-    const entry = cached ?? { isLoggedIn: true, timestamp: now };
-    entry.isOnboarded = isOnboarded;
-    entry.timestamp = now;
-    sessionCache.set(sessionToken, entry);
-    return isOnboarded;
+    const result = await performAuthCheck(req);
+    writeSessionCache(sessionToken, result, now);
+    return result.isLoggedIn ? result.isOnboarded === true : false;
   } catch {
     return false;
   }

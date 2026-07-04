@@ -1,13 +1,14 @@
 import logger from "@/core/logging";
 import {
   sessionUserRepository,
-  type SessionUserIdentityRow,
+  type SessionUserContextRow,
 } from "../repositories/session-user.repository";
 
 type SessionUserLike = {
   id?: string;
   name?: string | null;
   displayName?: string | null;
+  phoneNumber?: string | null;
   [key: string]: unknown;
 };
 
@@ -18,7 +19,7 @@ export type AuthSessionLike = {
 
 function resolveDisplayName(
   sessionUser: SessionUserLike,
-  dbUser: Pick<SessionUserIdentityRow, "name" | "displayName"> | null,
+  dbUser: Pick<SessionUserContextRow, "name" | "displayName"> | null,
 ): string {
   return (
     dbUser?.displayName?.trim() ||
@@ -34,22 +35,31 @@ export async function getNormalizedSessionService(
 ): Promise<AuthSessionLike | null> {
   if (!session?.user) return session;
 
-  const dbUser = session.user.id
-    ? await sessionUserRepository.findIdentityByUserId(session.user.id)
+  const userId = session.user.id;
+  const dbUser = userId
+    ? await sessionUserRepository.findSessionContextByUserId(userId)
     : null;
 
   const displayName = resolveDisplayName(session.user, dbUser);
+  const isOnboarded = dbUser?.isOnboarded ?? false;
+
   logger.debug("session_normalized", {
-    userId: session.user.id,
+    userId,
     hasDbUser: !!dbUser,
+    isOnboarded,
   });
+
   return {
     ...session,
     user: {
       ...session.user,
       name: displayName,
       displayName: displayName || null,
-      phoneNumber: dbUser?.phoneNumber ?? (session.user as { phoneNumber?: string | null }).phoneNumber ?? null,
+      phoneNumber:
+        dbUser?.phoneNumber ??
+        (session.user as { phoneNumber?: string | null }).phoneNumber ??
+        null,
+      isOnboarded,
     },
   };
 }

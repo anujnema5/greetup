@@ -30,7 +30,7 @@ function LoginPageContent() {
   };
 
   const handleOTPVerified = () => {
-    router.push("/home");
+    router.push(getAuthCallbackUrl());
   };
 
   const handleEditPhone = () => {
