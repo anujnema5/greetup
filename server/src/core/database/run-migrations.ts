@@ -12,6 +12,8 @@ import { readdir, readFile } from "node:fs/promises";
 import { join, resolve } from "node:path";
 import pg from "pg";
 
+import { pgPoolConfig } from "@/core/database/pg-pool-config";
+
 const SERVER_ROOT = process.cwd();
 const MIGRATION_DIR = join(SERVER_ROOT, "src/core/database/migration");
 
@@ -185,7 +187,7 @@ export async function runMigrations(): Promise<void> {
     return;
   }
 
-  const pool = new pg.Pool({ connectionString: databaseUrl, max: 1 });
+  const pool = new pg.Pool(pgPoolConfig(databaseUrl, { max: 1 }));
   const client = await pool.connect();
 
   try {
