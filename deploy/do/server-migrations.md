@@ -23,7 +23,7 @@ No extra App Platform component (Job / Web Service) is required.
 
 ### Requirements
 
-- **server** App Platform component has `DATABASE_URL` (VPC private URL from attached `greetup-db`).
+- **server** App Platform component has `DATABASE_URL` with `?sslmode=no-verify` (private host from `greetup-db`). Do **not** set a component override `${greetup-db.DATABASE_URL}` — it injects `sslmode=require` and breaks Node `pg`.
 - Do **not** add a duplicate web service for migrations.
 
 ## Manual migrations (laptop)
