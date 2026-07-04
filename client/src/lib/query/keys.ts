@@ -60,7 +60,6 @@ export const queryKeys = {
   },
   profileSetup: {
     all: ['profile-setup'] as const,
-    onboardingStatus: ['profile-setup', 'onboarding-status'] as const,
     steps: ['profile-setup', 'steps'] as const,
     myProfile: ['profile-setup', 'my-profile'] as const,
     matchPrepCurrent: ['profile-setup', 'match-prep-current'] as const,

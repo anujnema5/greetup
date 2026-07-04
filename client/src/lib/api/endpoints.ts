@@ -15,7 +15,6 @@ export const API_ENDPOINTS = {
     ME_INSIGHTS: "/profile/me/insights",
     SETUP_STEPS: "/profile/setup-steps",
     PROFILE_SETUP: "/profile/profile-setup",
-    ONBOARDING_STATUS: "/profile/onboarding-status",
     WELCOME_TOUR_STATUS: "/profile/welcome-tour-status",
     WELCOME_TOUR_SEEN: "/profile/welcome-tour-seen",
     /** Who can add you when creating a room with friend invites */

@@ -16,26 +16,10 @@ import type {
 
 const { PROFILE } = API_ENDPOINTS;
 
-type OnboardingStatusData = {
-  isOnboarded: boolean;
-};
-
 type UseMyProfileOptions = {
   enabled?: boolean;
   refetchOnMount?: boolean | 'always';
 };
-
-export function useOnboardingStatus() {
-  return useQuery({
-    queryKey: queryKeys.profileSetup.onboardingStatus,
-    queryFn: async () => {
-      const data = await apiFetch<OnboardingStatusData | null | undefined>(
-        PROFILE.ONBOARDING_STATUS,
-      );
-      return data ?? { isOnboarded: false };
-    },
-  });
-}
 
 export function useProfileSetupSteps() {
   return useQuery({

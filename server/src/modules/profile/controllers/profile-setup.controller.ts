@@ -5,7 +5,6 @@ import { ApiResponse, internalError } from "@/shared/responses";
 import { zodFieldErrorsItems } from "@/shared/validation";
 import { fetchProfileStepsService } from "../services/profile-steps.service";
 import { saveProfileSetupStepService } from "../services/profile-setup-save.service";
-import { getOnboardingStatusService } from "../services/onboarding-status.service";
 import {
   fetchProfileStepsQuerySchema,
   saveProfileSetupBodySchema,
@@ -36,20 +35,6 @@ export const handleGetMyProfile = async (c: Context) => {
   } catch (error: unknown) {
     logger.error("Get my profile error", { error });
     return internalError(c, error, "GET_PROFILE_FAILED");
-  }
-};
-
-export const handleGetOnboardingStatus = async (c: Context) => {
-  try {
-    const userId = c.get("userId") as string;
-    const result = await getOnboardingStatusService(userId);
-    return c.json(
-      ApiResponse.success(result, "Onboarding status retrieved", 200),
-      200
-    );
-  } catch (error: unknown) {
-    logger.error("Get onboarding status error", { error });
-    return internalError(c, error, "ONBOARDING_STATUS_FAILED");
   }
 };
 

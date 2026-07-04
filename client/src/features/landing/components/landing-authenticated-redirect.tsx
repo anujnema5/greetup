@@ -3,6 +3,8 @@
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 
+import { POST_AUTH_PATH } from "@/features/auth/lib/auth-callback-url";
+import { useOnboardingGate } from "@/features/auth/hooks/use-onboarding-gate";
 import { useGuestTryStatus } from "@/features/guest-try/hooks/use-guest-try-status";
 
 import { useLandingSession } from "../hooks/use-landing-session";
@@ -11,16 +13,28 @@ import { useLandingSession } from "../hooks/use-landing-session";
 export function LandingAuthenticatedRedirect() {
   const router = useRouter();
   const { isLoggedIn, ready } = useLandingSession();
-  const { data: guestStatus, isPending } = useGuestTryStatus({
+  const { data: guestStatus, isPending: guestPending } = useGuestTryStatus({
     enabled: ready && isLoggedIn,
+  });
+  const { isOnboarded, isReady: onboardingReady } = useOnboardingGate({
+    enabled: ready && isLoggedIn && !guestStatus?.isGuest,
   });
 
   useEffect(() => {
-    if (!ready || !isLoggedIn || isPending) return;
+    if (!ready || !isLoggedIn || guestPending) return;
     if (guestStatus?.isGuest) return;
+    if (!onboardingReady) return;
 
-    router.replace("/home");
-  }, [ready, isLoggedIn, isPending, guestStatus?.isGuest, router]);
+    router.replace(isOnboarded ? "/home" : POST_AUTH_PATH);
+  }, [
+    ready,
+    isLoggedIn,
+    guestPending,
+    onboardingReady,
+    guestStatus?.isGuest,
+    isOnboarded,
+    router,
+  ]);
 
   return null;
 }

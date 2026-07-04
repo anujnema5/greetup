@@ -43,7 +43,7 @@ export function useEmailLogin() {
                 }
 
                 if (res.data) {
-                    router.push('/home');
+                    router.push(getAuthCallbackUrl());
                 }
             } catch {
                 return { success: false };

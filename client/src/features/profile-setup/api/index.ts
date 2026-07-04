@@ -1,5 +1,4 @@
 export {
-  useOnboardingStatus,
   useProfileSetupSteps,
   useMyProfile,
   useMatchPrepCurrent,
