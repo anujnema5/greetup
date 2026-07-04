@@ -373,7 +373,6 @@ Workflows in `.github/workflows/`:
 | `NEXT_PUBLIC_FIREBASE_PROJECT_ID` | Client Docker build |
 | `NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID` | Client Docker build |
 | `NEXT_PUBLIC_FIREBASE_APP_ID` | Client Docker build |
-| `DATABASE_URL` | Managed Postgres URL (when migrations enabled) |
 
 **Variables** (Settings → Secrets and variables → Actions → Variables):
 
@@ -383,7 +382,8 @@ Workflows in `.github/workflows/`:
 | `DO_APP_ID_SERVER` | App Platform app UUID for server |
 | `DO_APP_ID_MATCHING` | App Platform app UUID for matching-service |
 | `RTC_DROPLET_HOST` | Public IPv4 of `greetup-rtc` |
-| `RUN_DB_MIGRATIONS` | `true` to run `bun run db:migrate` on each deploy |
+
+**Database migrations on deploy:** automatic when the **server** container starts (`runMigrations()` in `server/src/index.ts`). See [server-migrations.md](./server-migrations.md). Do **not** run migrations from GitHub Actions or add a paid extra component.
 
 Find App Platform IDs:
 
@@ -400,9 +400,8 @@ Grant the DO API token **read/write** on Container Registry and App Platform.
 1. Push to `main`
 2. CI checks pass (typecheck, lint, tests)
 3. Build all four images → push `:latest` and `:<git-sha>` to `registry.digitalocean.com/greetup`
-4. Trigger App Platform redeploy for client, server, matching-service
+4. Trigger App Platform redeploy for client, server, matching-service (server runs migrations on startup — see [server-migrations.md](./server-migrations.md))
 5. SSH to rtc droplet → `docker compose pull && up -d`
-6. Optional: run DB migrations when `RUN_DB_MIGRATIONS=true`
 
 ---
 
@@ -413,6 +412,7 @@ Grant the DO API token **read/write** on Container Registry and App Platform.
 | `doctl` not found after winget | Use full path or reopen PowerShell; add to PATH |
 | pgAdmin `database greetup-db does not exist` | Use `defaultdb` or `greetup_db`, not cluster name |
 | Migration `SELF_SIGNED_CERT_IN_CHAIN` | `?sslmode=no-verify` from laptop, or download DO CA cert |
+| GHA `db:migrate` `ECONNREFUSED` on port 25060 | Expected — use server startup migrations instead; see [server-migrations.md](./server-migrations.md) |
 | `VM_PUBLIC_IP variable is not set` | Create `~/greetup/.env`; check no `latest1` typo |
 | `rtc-service:latest1 not found` | Fix tag to `:latest` in `.env` |
 | App can't reach Redis | Firewall TCP 6379 from VPC only; Redis `--bind 0.0.0.0`; use private IP in `REDIS_URL` |
