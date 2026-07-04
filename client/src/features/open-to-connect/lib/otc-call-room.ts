@@ -10,6 +10,6 @@ type RoomWithOtcFlag = {
 export function isOtcCallRoom(
   room: RoomWithOtcFlag | RoomData | null | undefined,
 ): boolean {
-  if (!isMatchSession(room)) return false;
-  return room?.openToConnectOrigin === true;
+  if (!room || !isMatchSession(room)) return false;
+  return "openToConnectOrigin" in room && room.openToConnectOrigin === true;
 }
