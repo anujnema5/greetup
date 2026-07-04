@@ -418,6 +418,7 @@ Grant the DO API token **read/write** on Container Registry and App Platform.
 | App can't reach Redis | Firewall TCP 6379 from VPC only; Redis `--bind 0.0.0.0`; use private IP in `REDIS_URL` |
 | SSH fails after IP change | Update firewall SSH rule with new home IP, or use DO web console |
 | GHA `ssh-action` timeout / passphrase | Expected — firewall allows home IP only; use Watchtower on droplet instead of SSH from CI |
+| Watchtower `client version 1.25 is too old` | Use `nickfedor/watchtower` (not `containrrr/watchtower`) — Docker 29+ requires API 1.40+ |
 
 ---
 
