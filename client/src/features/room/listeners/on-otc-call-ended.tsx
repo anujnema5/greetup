@@ -10,12 +10,11 @@ import {
 import {
   OTC_CALL_SOCKET_EVENTS,
   parseOtcCallEndedPayload,
-} from "@/features/open-to-connect/types/otc-call-socket.types";
+} from "@/features/open-to-connect/types/open-to-connect-socket.types";
+import { endOtcCallForPeer } from "@/features/open-to-connect/lib/end-otc-call";
 import { useMatchmaking } from "@/features/matching";
 import { useLeaveRoom } from "@/features/room/api/room.mutations";
 import { resolveApiRoomId, resolveSpaceRouteRoomId } from "@/features/room/lib/navigation/space-routes";
-import { navigateAfterCallEnd } from "@/features/room/lib/navigation/after-call-navigation";
-import { clearRoomStorage } from "@/features/room/lib/session/room-sync";
 import {
   isLocalCallEndInProgress,
   markDirectMatchPartnerSignalHandled,
@@ -40,17 +39,14 @@ export function OnOtcCallEnded() {
   const handledRef = useRef(false);
 
   const endCallForRemotePeer = useCallback(() => {
-    if (handledRef.current) return;
-    handledRef.current = true;
-    clearRoomStorage();
-    endVideoSession();
-    const roomIdToLeave = activeRoomId ?? resolveApiRoomId(routeRoomId);
-    void matchmaking.handleCancel().catch(() => {});
-    const leavePromise = roomIdToLeave
-      ? leaveRoom({ roomId: roomIdToLeave })
-      : Promise.resolve();
-    void leavePromise.catch(() => {}).finally(() => {
-      navigateAfterCallEnd(matchmaking, router);
+    endOtcCallForPeer({
+      reason: "peer_ended",
+      roomIdToLeave: activeRoomId ?? resolveApiRoomId(routeRoomId),
+      endVideoSession,
+      leaveRoom,
+      matchmaking,
+      router,
+      handledRef,
     });
   }, [activeRoomId, endVideoSession, leaveRoom, matchmaking, routeRoomId, router]);
 

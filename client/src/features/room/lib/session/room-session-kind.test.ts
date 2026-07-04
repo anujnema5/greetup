@@ -5,7 +5,6 @@ import {
   isSpaceSession,
   isConnectionCallSession,
   isMatchSession,
-  isOpenToConnectMatchSession,
 } from "./room-session-kind";
 
 describe("room-session-kind", () => {
@@ -37,13 +36,6 @@ describe("room-session-kind", () => {
   it("uses rtcRoomType space for group layout without sessionKind", () => {
     expect(isSpaceGroupSession({}, "space")).toBe(true);
     expect(isSpaceGroupSession({ sessionKind: "match" }, "space")).toBe(true);
-  });
-
-  it("classifies open-to-connect match", () => {
-    const room = { sessionKind: "match" as const, openToConnectOrigin: true };
-    expect(isOpenToConnectMatchSession(room)).toBe(true);
-    expect(isMatchSession(room)).toBe(true);
-    expect(isOpenToConnectMatchSession({ sessionKind: "match" })).toBe(false);
   });
 
   it("returns null for unknown or missing sessionKind", () => {

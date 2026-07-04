@@ -23,8 +23,8 @@ import {
 import {
   isConnectionCallSession,
   isMatchSession,
-  isOpenToConnectMatchSession,
 } from "@/features/room/lib/session/room-session-kind";
+import { isOtcCallRoom } from "@/features/open-to-connect/lib/otc-call-room";
 import { useGetRoom } from "@/features/room/api/room.queries";
 import { useRoomVideo } from "@/features/room/hooks/session/use-room-video";
 import { useMinimizedDockMainStage } from "@/features/room/hooks/minimized-dock/use-minimized-dock-main-stage";
@@ -110,7 +110,7 @@ function MinimizedRoomDockPanel() {
   const dockSpaceHostId = resolveSpaceHostUserId(dockRoomMeta);
   const dockIsMatch = isMatchSession(dockRoomMeta);
   const dockIsConnectionCall = isConnectionCallSession(dockRoomMeta);
-  const dockIsOtcMatch = isOpenToConnectMatchSession(dockRoomMeta);
+  const dockIsOtcMatch = isOtcCallRoom(dockRoomMeta);
   const dockCanSkipAndRematch =
     (dockIsMatch && !dockIsOtcMatch) ||
     (roomPhase === "searching" && !dockSessionIsSpace && !dockIsConnectionCall && !dockIsOtcMatch);

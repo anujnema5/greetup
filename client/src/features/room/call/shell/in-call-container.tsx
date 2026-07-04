@@ -46,8 +46,8 @@ import type { RoomData } from "@/features/matching/types/room.types";
 import {
   isConnectionCallSession,
   isMatchSession,
-  isOpenToConnectMatchSession,
 } from "@/features/room/lib/session/room-session-kind";
+import { isOtcCallRoom } from "@/features/open-to-connect/lib/otc-call-room";
 import { CALL_ROOM_FORCED_DARK_CLASS } from "@/features/room/constants/call/call-chrome-theme";
 import { useRoomConversationCues } from "@/features/room/conversation-cues/hooks/use-room-conversation-cues";
 import { cn } from "@/lib/utils";
@@ -110,7 +110,7 @@ export function InCallContainer({
     useStartScheduledSpace();
   const isMatch = isMatchSession(room);
   const isConnectionCall = isConnectionCallSession(room);
-  const isOtcMatch = isOpenToConnectMatchSession(room);
+  const isOtcMatch = isOtcCallRoom(room);
   const canSkipAndRematch =
     (isMatch && !isOtcMatch) ||
     (roomPhase === "searching" && !isGroupRoom && !isConnectionCall && !isOtcMatch);

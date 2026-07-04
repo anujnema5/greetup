@@ -22,18 +22,6 @@ export function isMatchSession(room: RoomWithSessionKind | null | undefined): bo
   return getSessionKind(room) === "match";
 }
 
-type RoomWithOpenToConnectOrigin = RoomWithSessionKind & {
-  openToConnectOrigin?: unknown;
-};
-
-/** Open-to-connect 1:1 call — match sessionKind but must not rematch on peer leave. */
-export function isOpenToConnectMatchSession(
-  room: RoomWithOpenToConnectOrigin | null | undefined,
-): boolean {
-  if (!isMatchSession(room)) return false;
-  return room?.openToConnectOrigin === true;
-}
-
 export function isConnectionCallSession(room: RoomWithSessionKind | null | undefined): boolean {
   return getSessionKind(room) === "connection_call";
 }

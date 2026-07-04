@@ -34,10 +34,10 @@ import {
   isSpaceSession,
   isConnectionCallSession,
   isMatchSession,
-  isOpenToConnectMatchSession,
 } from "@/features/room/lib/session/room-session-kind";
-import { showOtcRemoteCallEndToast } from "@/features/open-to-connect/lib/otc-remote-call-end";
-import { navigateAfterCallEnd } from "@/features/room/lib/navigation/after-call-navigation";
+import { isOtcCallRoom } from "@/features/open-to-connect/lib/otc-call-room";
+import { endOtcCallForPeer } from "@/features/open-to-connect/lib/end-otc-call";
+import type { OtcCallEndReason } from "@/features/open-to-connect/types/otc-call.types";
 import {
   isLocalCallEndInProgress,
   markDirectMatchPartnerSignalHandled,
@@ -194,22 +194,20 @@ export function OnPartnerDisconnected() {
   ]);
 
   const endOtcCallAfterPeerLeft = useCallback(
-    (reason: "peer_ended" | "network") => {
-      if (handledRef.current) return;
-      handledRef.current = true;
-      clearPartnerLeftTimer();
-      clearNetworkRecoveryTimer();
-      clearSearchRetryTimer();
-      showOtcRemoteCallEndToast(reason);
-      clearRoomStorage();
-      endVideoSession();
-      const roomIdToLeave = activeRoomId ?? resolveApiRoomId(routeRoomId);
-      void matchmaking.handleCancel().catch(() => {});
-      const leavePromise = roomIdToLeave
-        ? leaveRoom({ roomId: roomIdToLeave })
-        : Promise.resolve();
-      void leavePromise.catch(() => {}).finally(() => {
-        navigateAfterCallEnd(matchmaking, router);
+    (reason: OtcCallEndReason) => {
+      endOtcCallForPeer({
+        reason,
+        roomIdToLeave: activeRoomId ?? resolveApiRoomId(routeRoomId),
+        endVideoSession,
+        leaveRoom,
+        matchmaking,
+        router,
+        handledRef,
+        beforeTeardown: () => {
+          clearPartnerLeftTimer();
+          clearNetworkRecoveryTimer();
+          clearSearchRetryTimer();
+        },
       });
     },
     [
@@ -269,7 +267,7 @@ export function OnPartnerDisconnected() {
 
     const isConnectionCall = isConnectionCallSession(roomData);
     const isMatch = isMatchSession(roomData);
-    const isOtcMatch = isOpenToConnectMatchSession(roomData);
+    const isOtcMatch = isOtcCallRoom(roomData);
 
     if (!isConnectionCall && !isMatch) return;
 
@@ -341,7 +339,7 @@ export function OnPartnerDisconnected() {
       const ourRoomId = activeRoomId ?? resolveApiRoomId(routeRoomId);
       if (!data?.roomId || !ourRoomId || data.roomId !== ourRoomId) return;
       if (!markDirectMatchPartnerSignalHandled(data.roomId)) return;
-      if (isOpenToConnectMatchSession(roomData)) {
+      if (isOtcCallRoom(roomData)) {
         endOtcCallAfterPeerLeft("peer_ended");
         return;
       }
@@ -376,7 +374,7 @@ export function OnPartnerDisconnected() {
       clearSearchRetryTimer();
       return;
     }
-    if (isOpenToConnectMatchSession(roomData)) {
+    if (isOtcCallRoom(roomData)) {
       clearSearchRetryTimer();
       return;
     }
