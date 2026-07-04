@@ -6,7 +6,7 @@ import { ThemeToggle } from "@/components/theme-toggle";
 interface AuthPageLayoutProps {
   children: ReactNode;
   title: string;
-  subtitle: string;
+  subtitle?: string;
   footerText: string;
   footerLinkText: string;
   onFooterLinkClick: () => void;
@@ -30,7 +30,9 @@ export default function AuthPageLayout({
 
               <div className="space-y-1.5 text-center">
                 <h1 className="text-xl font-bold tracking-tight sm:text-[1.35rem]">{title}</h1>
-                <p className="text-[13px] leading-snug text-muted-foreground">{subtitle}</p>
+                {subtitle ? (
+                  <p className="text-[13px] leading-snug text-muted-foreground">{subtitle}</p>
+                ) : null}
               </div>
             </div>
 

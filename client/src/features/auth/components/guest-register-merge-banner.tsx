@@ -16,7 +16,7 @@ export function GuestRegisterMergeBanner({
   signupContext,
   isLoading = false,
 }: GuestRegisterMergeBannerProps) {
-  if (isLoading) {
+  if (fromGuestIntent && isLoading) {
     return (
       <div
         className="h-14 animate-pulse rounded-lg border border-border/60 bg-muted/40"
