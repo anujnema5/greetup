@@ -46,9 +46,10 @@ export type UseRoomVideoOptions = {
   /** Native circle or 1:1 expanded to circle (same Postgres `rooms` row). */
   isDbSpaceCall?: boolean;
   spaceHostUserId?: string | null;
-  /** Match / `/space/search` rematch only — never connection calls. */
+  /** Match / `/space/search` rematch only — never connection or open-to-connect calls. */
   canSkipAndRematch?: boolean;
   isConnectionCallSession?: boolean;
+  isOpenToConnectCall?: boolean;
   connectionCallConversationId?: string | null;
 };
 
@@ -58,6 +59,7 @@ export function useRoomVideo(roomId: string, options?: UseRoomVideoOptions) {
   const spaceHostUserId = options?.spaceHostUserId ?? null;
   const canSkipAndRematch = options?.canSkipAndRematch ?? false;
   const isConnectionCall = options?.isConnectionCallSession ?? false;
+  const isOpenToConnectCall = options?.isOpenToConnectCall ?? false;
   const connectionCallConversationId = options?.connectionCallConversationId ?? null;
   const router = useRouter();
   const beginSearchingNextCall = useRoomStore((s) => s.beginSearchingNextCall);
@@ -184,7 +186,7 @@ export function useRoomVideo(roomId: string, options?: UseRoomVideoOptions) {
   const handleEnd = useCallback(() => {
     if (endHandledRef.current) return;
     endHandledRef.current = true;
-    if (canSkipAndRematch || isConnectionCall) {
+    if (canSkipAndRematch || isConnectionCall || isOpenToConnectCall) {
       markLocalCallEndInProgress();
     }
     dismissCallUiAndBroadcastEnd();
@@ -203,6 +205,7 @@ export function useRoomVideo(roomId: string, options?: UseRoomVideoOptions) {
     dismissCallUiAndBroadcastEnd,
     returnAfterCallEnd,
     isConnectionCall,
+    isOpenToConnectCall,
     isDbSpaceCall,
     leaveSpaceRtcOnly,
     leaveRoom,

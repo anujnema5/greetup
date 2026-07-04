@@ -5,9 +5,9 @@ import {
   findMatchService,
   getUserMatchStateService,
   cancelMatchService,
-  leaveRoomService,
   respondMatchProposalService,
 } from "../services/matchmaking.service";
+import { leaveDirectRoomService } from "@/modules/rooms/services/participation/leave-direct-room.service";
 import { getMatchPeerPreview } from "../services/match-peer-preview.service";
 import { ensureUserBlocksSyncedForMatching } from "@/modules/blocks/services/block-user.service";
 import { assertGuestReadyForMatchSearch } from "@/modules/guest";
@@ -170,7 +170,7 @@ export const handleLeaveRoom = async (c: Context) => {
       /* empty body is fine — falls back to active RTC room id */
     }
     logger.info("[handleLeaveRoom] request received", { userId, explicitRoomId: explicitRoomId ?? null });
-    await leaveRoomService(userId, explicitRoomId);
+    await leaveDirectRoomService(userId, explicitRoomId);
     return c.json(ApiResponse.success(null, "Left room", 200), 200);
   } catch (error) {
     logger.error("[handleLeaveRoom] failed", { error });

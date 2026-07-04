@@ -25,6 +25,8 @@ export type MatchRoomData = {
   hostUserId?: string;
   startedAt?: string | null;
   expiresAt?: string | null;
+  /** Open-to-connect connect-request call — do not rematch when the peer leaves. */
+  openToConnectOrigin?: boolean;
 };
 
 /** Connection DM call (`room_type = direct`, `session_kind = connection_call`). */
@@ -139,6 +141,7 @@ export function parseRoomData(data: unknown): RoomData {
     const hostUserId = d.hostUserId;
     const roomType =
       rt === "space" || rt === "direct" ? parseRoomSessionType(rt) : undefined;
+    const openToConnectOrigin = d.openToConnectOrigin === true;
     return {
       sessionKind: "match",
       roomId: String(d.roomId),
@@ -150,6 +153,7 @@ export function parseRoomData(data: unknown): RoomData {
       roomType,
       title: typeof title === "string" ? title : undefined,
       hostUserId: typeof hostUserId === "string" ? hostUserId : undefined,
+      ...(openToConnectOrigin ? { openToConnectOrigin: true } : {}),
       ...parseTimingFields(d),
     };
   }

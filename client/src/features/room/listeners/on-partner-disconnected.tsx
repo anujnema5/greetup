@@ -35,6 +35,9 @@ import {
   isConnectionCallSession,
   isMatchSession,
 } from "@/features/room/lib/session/room-session-kind";
+import { isOtcCallRoom } from "@/features/open-to-connect/lib/otc-call-room";
+import { endOtcCallForPeer } from "@/features/open-to-connect/lib/end-otc-call";
+import type { OtcCallEndReason } from "@/features/open-to-connect/types/otc-call.types";
 import {
   isLocalCallEndInProgress,
   markDirectMatchPartnerSignalHandled,
@@ -190,6 +193,36 @@ export function OnPartnerDisconnected() {
     router,
   ]);
 
+  const endOtcCallAfterPeerLeft = useCallback(
+    (reason: OtcCallEndReason) => {
+      endOtcCallForPeer({
+        reason,
+        roomIdToLeave: activeRoomId ?? resolveApiRoomId(routeRoomId),
+        endVideoSession,
+        leaveRoom,
+        matchmaking,
+        router,
+        handledRef,
+        beforeTeardown: () => {
+          clearPartnerLeftTimer();
+          clearNetworkRecoveryTimer();
+          clearSearchRetryTimer();
+        },
+      });
+    },
+    [
+      activeRoomId,
+      clearNetworkRecoveryTimer,
+      clearPartnerLeftTimer,
+      clearSearchRetryTimer,
+      endVideoSession,
+      leaveRoom,
+      matchmaking,
+      routeRoomId,
+      router,
+    ],
+  );
+
   useEffect(() => {
     if (!sessionActive) {
       hadRemotePeerRef.current = false;
@@ -234,11 +267,12 @@ export function OnPartnerDisconnected() {
 
     const isConnectionCall = isConnectionCallSession(roomData);
     const isMatch = isMatchSession(roomData);
+    const isOtcMatch = isOtcCallRoom(roomData);
 
     if (!isConnectionCall && !isMatch) return;
 
     if (timersRef.current.partnerLeft == null && timersRef.current.networkRecovery == null) {
-      const debounceMs = isConnectionCall
+      const debounceMs = isConnectionCall || isOtcMatch
         ? resolveConnectionCallPeerLeftDebounceMs()
         : DIRECT_CALL_RECOVERY.matchPeerLeftDebounceMs;
 
@@ -259,6 +293,16 @@ export function OnPartnerDisconnected() {
             timersRef.current.networkRecovery = null;
             if (remotePeerCountRef.current >= 1) return;
             endConnectionCallAfterPeerLeft();
+          }, DIRECT_CALL_NETWORK_RECOVERY_TIMEOUT_MS);
+          return;
+        }
+
+        if (isOtcMatch) {
+          if (timersRef.current.networkRecovery != null) return;
+          timersRef.current.networkRecovery = window.setTimeout(() => {
+            timersRef.current.networkRecovery = null;
+            if (remotePeerCountRef.current >= 1) return;
+            endOtcCallAfterPeerLeft("network");
           }, DIRECT_CALL_NETWORK_RECOVERY_TIMEOUT_MS);
           return;
         }
@@ -285,6 +329,7 @@ export function OnPartnerDisconnected() {
     clearPartnerLeftTimer,
     beginSearchForNextCandidate,
     endConnectionCallAfterPeerLeft,
+    endOtcCallAfterPeerLeft,
   ]);
 
   useEffect(() => {
@@ -294,6 +339,10 @@ export function OnPartnerDisconnected() {
       const ourRoomId = activeRoomId ?? resolveApiRoomId(routeRoomId);
       if (!data?.roomId || !ourRoomId || data.roomId !== ourRoomId) return;
       if (!markDirectMatchPartnerSignalHandled(data.roomId)) return;
+      if (isOtcCallRoom(roomData)) {
+        endOtcCallAfterPeerLeft("peer_ended");
+        return;
+      }
       beginSearchForNextCandidate();
     };
 
@@ -304,6 +353,8 @@ export function OnPartnerDisconnected() {
   }, [
     activeRoomId,
     beginSearchForNextCandidate,
+    endOtcCallAfterPeerLeft,
+    roomData,
     routeRoomId,
     roomPhase,
     sessionActive,
@@ -320,6 +371,10 @@ export function OnPartnerDisconnected() {
       return;
     }
     if (isConnectionCallSession(roomData) || isSpaceSession(roomData)) {
+      clearSearchRetryTimer();
+      return;
+    }
+    if (isOtcCallRoom(roomData)) {
       clearSearchRetryTimer();
       return;
     }
