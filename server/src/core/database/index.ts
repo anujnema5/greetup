@@ -3,12 +3,14 @@ import { Pool } from 'pg'
 import * as schema from '@/core/database/schema'
 import logger from '@/core/logging'
 import config from '@/shared/config/config'
+import { pgPoolConfig } from '@/core/database/pg-pool-config'
 
-export const pool = new Pool({
-  connectionString: config.databaseUrl,
-  max: 10,
-  idleTimeoutMillis: 30000,
-})
+export const pool = new Pool(
+  pgPoolConfig(config.databaseUrl, {
+    max: 10,
+    idleTimeoutMillis: 30000,
+  }),
+)
 
 export const db = drizzle(pool, { schema, casing: 'snake_case' })
 
