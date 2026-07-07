@@ -1,4 +1,4 @@
-import type { Message } from '../types/chat.types';
+import type { Message, Reaction } from '../types/chat.types';
 
 export type ClusterPosition = 'single' | 'first' | 'middle' | 'last';
 
@@ -48,30 +48,33 @@ export function formatReplyPreview(
   return { senderName, preview };
 }
 
-export function bubbleCornerRadius(isOwn: boolean, position: ClusterPosition): string {
-  if (isOwn) {
-    switch (position) {
-      case 'first':
-        return 'rounded-tl-[22px] rounded-tr-[22px] rounded-bl-[22px] rounded-br-[4px]';
-      case 'middle':
-        return 'rounded-tl-[22px] rounded-bl-[22px] rounded-tr-[4px] rounded-br-[4px]';
-      case 'last':
-        return 'rounded-tl-[22px] rounded-bl-[22px] rounded-br-[22px] rounded-tr-[4px]';
-      default:
-        return 'rounded-[22px]';
+export interface GroupedReaction {
+  emoji: string;
+  count: number;
+  reactedByMe: boolean;
+}
+
+export function groupReactions(
+  reactions: Reaction[] | undefined,
+  currentUserId: string,
+): GroupedReaction[] {
+  if (!reactions || reactions.length === 0) return [];
+
+  const order: string[] = [];
+  const byEmoji = new Map<string, GroupedReaction>();
+
+  for (const r of reactions) {
+    const existing = byEmoji.get(r.emoji);
+    if (existing) {
+      existing.count += 1;
+      if (r.userId === currentUserId) existing.reactedByMe = true;
+    } else {
+      byEmoji.set(r.emoji, { emoji: r.emoji, count: 1, reactedByMe: r.userId === currentUserId });
+      order.push(r.emoji);
     }
   }
 
-  switch (position) {
-    case 'first':
-      return 'rounded-tl-[22px] rounded-tr-[22px] rounded-br-[22px] rounded-bl-[4px]';
-    case 'middle':
-      return 'rounded-tr-[22px] rounded-br-[22px] rounded-tl-[4px] rounded-bl-[4px]';
-    case 'last':
-      return 'rounded-tr-[22px] rounded-br-[22px] rounded-bl-[22px] rounded-tl-[4px]';
-    default:
-      return 'rounded-[22px]';
-  }
+  return order.map((emoji) => byEmoji.get(emoji)!);
 }
 
 export function replyComposerPreview(replyTo: Message, currentUserId: string): {
