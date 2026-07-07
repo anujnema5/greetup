@@ -2,14 +2,11 @@
 
 import { useEffect, useState } from 'react';
 import { cn } from '@/lib/utils';
-import {
-  MESSAGE_AVATAR_CLASS,
-  MESSAGE_BUBBLE_PAD_CLASS,
-  MESSAGE_ROW_GAP,
-} from '../constants';
-import { bubbleCornerRadius } from '../lib/message-display';
+import { Bubble, BubbleContent } from '@/components/ui/bubble';
+import { Message, MessageAvatar, MessageContent } from '@/components/ui/message';
+import { MESSAGE_AVATAR_CLASS } from '../constants';
 import { MessageSenderAvatar } from './message-sender-avatar';
-import type { ConversationType, Message } from '../types/chat.types';
+import type { ConversationType, Message as ChatMessage } from '../types/chat.types';
 
 /** Keep in sync with `.typing-indicator-shell` / exit animation in `globals.css`. */
 const TYPING_INDICATOR_TRANSITION_MS = 260;
@@ -17,7 +14,7 @@ const TYPING_INDICATOR_TRANSITION_MS = 260;
 interface TypingIndicatorProps {
   userIds: string[];
   conversationType?: ConversationType;
-  peerMessage?: Message | null;
+  peerMessage?: ChatMessage | null;
   senderIsOnline?: boolean;
   className?: string;
 }
@@ -98,11 +95,10 @@ export function TypingIndicator({
   return (
     <div className={cn('typing-indicator-shell pt-2 pb-2', shouldShow && 'is-open', className)}>
       <div className="typing-indicator-shell-inner">
-        <div
+        <Message
+          align="start"
           className={cn(
-            'flex w-full min-w-0 max-w-full justify-start overflow-hidden',
             exiting ? 'animate-typing-indicator-exit' : 'animate-typing-indicator-enter',
-            MESSAGE_ROW_GAP,
             showPeerColumnGutter ? 'items-end' : 'items-start',
             exiting && 'pointer-events-none',
           )}
@@ -112,20 +108,20 @@ export function TypingIndicator({
           aria-hidden={exiting}
         >
           {showDirectPeerAvatar ? (
-            <MessageSenderAvatar message={peerMessage} isOnline={senderIsOnline} />
+            <MessageAvatar>
+              <MessageSenderAvatar message={peerMessage} isOnline={senderIsOnline} />
+            </MessageAvatar>
           ) : showPeerColumnGutter ? (
-            <div className={cn(MESSAGE_AVATAR_CLASS, 'shrink-0')} aria-hidden />
+            <MessageAvatar aria-hidden className={cn(MESSAGE_AVATAR_CLASS, 'invisible')} />
           ) : null}
-          <div
-            className={cn(
-              'w-fit bg-muted text-foreground',
-              MESSAGE_BUBBLE_PAD_CLASS,
-              bubbleCornerRadius(false, 'last'),
-            )}
-          >
-            <TypingDots paused={exiting} />
-          </div>
-        </div>
+          <MessageContent>
+            <Bubble variant="muted">
+              <BubbleContent>
+                <TypingDots paused={exiting} />
+              </BubbleContent>
+            </Bubble>
+          </MessageContent>
+        </Message>
       </div>
     </div>
   );
