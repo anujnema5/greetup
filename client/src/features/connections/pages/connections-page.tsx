@@ -87,7 +87,7 @@ export function ConnectionsPage() {
   );
 
   return (
-    <div className="flex h-screen overflow-hidden bg-background">
+    <div className="flex h-dvh overflow-hidden bg-background">
       <NavSidebar activePath="/connections" />
 
       <main className="flex min-w-0 flex-1 flex-col overflow-hidden pb-16 md:pb-0">
