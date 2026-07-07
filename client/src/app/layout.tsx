@@ -20,12 +20,18 @@ const plusJakartaSans = Plus_Jakarta_Sans({
 
 export const metadata: Metadata = rootMetadata;
 
-/** Resize layout with the virtual keyboard (Chrome/Android) instead of overlaying it. */
+/**
+ * Let the virtual keyboard overlay the page (Chrome/Android) instead of resizing the whole
+ * layout viewport. Matches iOS Safari's default and keeps `dvh`/`svh` stable while the keyboard
+ * is open, so dialogs don't get resized twice (once by the browser, once by our own
+ * `visualViewport` logic in `use-dialog-visual-viewport-style.ts`). We reposition dialogs above
+ * the keyboard ourselves via `visualViewport` instead.
+ */
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
   viewportFit: "cover",
-  interactiveWidget: "resizes-content",
+  interactiveWidget: "overlays-content",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

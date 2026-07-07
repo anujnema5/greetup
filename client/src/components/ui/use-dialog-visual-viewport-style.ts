@@ -104,24 +104,25 @@ function centeredDialogStyle(): CSSProperties {
 
 const BOTTOM_SHEET_TOP_CLEARANCE_PX = 16;
 
+/**
+ * Bottom sheets keep their authored CSS size (`formDialogShellClass`'s `92svh`/`92dvh` cap) at
+ * rest — no JS involved, so browser-chrome resizes (address bar show/hide, scroll) never touch
+ * it. Only once the keyboard actually opens do we lift the sheet above it (`bottom` offset) and,
+ * only if needed to keep it fully on-screen, cap `maxHeight` to the now-smaller visible area.
+ * This is the one-shot "slide up" behavior of native bottom sheets (Instagram/Facebook) instead
+ * of a shrink-to-fit that fires on every viewport tick.
+ */
 function bottomAnchoredInsetStyle(): CSSProperties {
   if (typeof window === "undefined" || !window.visualViewport) return EMPTY_STYLE;
   const vv = window.visualViewport;
   if (vv.width < MIN_VV_AXIS_PX || vv.height < MIN_VV_AXIS_PX) return EMPTY_STYLE;
 
   const inset = keyboardBottomInsetPx();
-  const maxHeight = Math.max(
-    120,
-    Math.round(vv.height - BOTTOM_SHEET_TOP_CLEARANCE_PX),
-  );
-
-  if (inset === 0) {
-    return { maxHeight };
-  }
+  if (inset === 0) return EMPTY_STYLE;
 
   return {
     bottom: inset + DIALOG_VISUAL_VIEWPORT_KEYBOARD_GAP_PX,
-    maxHeight,
+    maxHeight: Math.max(120, Math.round(vv.height - BOTTOM_SHEET_TOP_CLEARANCE_PX)),
   };
 }
 

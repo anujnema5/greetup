@@ -145,6 +145,11 @@ export function MessagesPage({ urlKind, urlConversationId }: MessagesPageProps) 
 
   const threadOpen = Boolean(activeConv);
 
+  /** Mobile: collapse the outer app chrome (page header, bottom tabs) while a thread is
+   * loading, open, or errored — matches the `section` visibility below so there's no flash
+   * of the "Messages" header/tab bar before the thread view takes over. */
+  const mobileThreadView = threadOpen || threadLoading || threadBroken;
+
 
 
   const openConversation = (conv: Conversation) => {
@@ -176,10 +181,21 @@ export function MessagesPage({ urlKind, urlConversationId }: MessagesPageProps) 
         <PageHeader
           title="Messages"
           subtitle="Chats from connections, spaces, and direct rooms."
+          className={cn(mobileThreadView && 'hidden md:flex')}
         />
 
-        <div className="flex min-h-0 flex-1 flex-col px-3 py-3 md:px-6 md:py-5">
-          <div className="flex min-h-0 flex-1 overflow-hidden rounded-2xl border border-border bg-card/40 shadow-sm dark:bg-card/25">
+        <div
+          className={cn(
+            'flex min-h-0 flex-1 flex-col md:px-6 md:py-5',
+            mobileThreadView ? 'p-0' : 'px-3 py-3',
+          )}
+        >
+          <div
+            className={cn(
+              'flex min-h-0 flex-1 overflow-hidden md:rounded-2xl md:border md:border-border md:bg-card/40 md:shadow-sm dark:md:bg-card/25',
+              !mobileThreadView && 'rounded-2xl border border-border bg-card/40 shadow-sm dark:bg-card/25',
+            )}
+          >
 
             <aside
 
