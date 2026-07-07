@@ -137,7 +137,7 @@ export function ProfilePage() {
   const loading = profileQuery.isLoading || stepsQuery.isLoading;
 
   const shell = (body: ReactNode) => (
-    <div className="flex h-screen overflow-hidden bg-background">
+    <div className="flex h-dvh overflow-hidden bg-background">
       <NavSidebar activePath="/profile" />
       <main className="flex flex-1 flex-col overflow-y-auto pb-16 md:pb-0">
         <PageHeader title="Profile" subtitle="Edit one section at a time." />
@@ -207,7 +207,7 @@ export function ProfilePage() {
   }
 
   return (
-    <div className="flex h-screen overflow-hidden bg-background">
+    <div className="flex h-dvh overflow-hidden bg-background">
       <NavSidebar activePath="/profile" />
 
       <main className="flex flex-1 flex-col overflow-y-auto pb-16 md:pb-0">

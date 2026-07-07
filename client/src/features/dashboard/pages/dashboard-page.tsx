@@ -118,7 +118,7 @@ export function DashboardPage() {
         initialMatchIntent={pendingMatchIntent}
       />
       <WelcomeTourLauncher blocked={prepOpen} />
-      <div className="flex h-screen overflow-hidden bg-background">
+      <div className="flex h-dvh overflow-hidden bg-background">
         <NavSidebar activePath="/home" />
 
         <main className="app-scrollbar flex min-w-0 flex-1 flex-col overflow-y-auto pb-16 md:pb-0">
