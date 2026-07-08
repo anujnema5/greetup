@@ -10,7 +10,14 @@ export function getRedis(): Redis {
 }
 
 export async function connectRedis(): Promise<void> {
-  redis = new Redis(env.redisUrl, { lazyConnect: true });
+  const commandTimeout =
+    env.redisCommandTimeoutMs > 0 ? env.redisCommandTimeoutMs : undefined;
+
+  redis = new Redis(env.redisUrl, {
+    lazyConnect: true,
+    connectTimeout: env.redisConnectTimeoutMs,
+    ...(commandTimeout != null ? { commandTimeout } : {}),
+  });
 
   await redis.connect();
 
@@ -23,7 +30,11 @@ export async function connectRedis(): Promise<void> {
 
   if (pong !== "PONG") throw new Error("Redis ping failed");
 
-  logger.info("Redis connected", { url: env.redisUrl });
+  logger.info("Redis connected", {
+    url: env.redisUrl,
+    commandTimeoutMs: env.redisCommandTimeoutMs,
+    connectTimeoutMs: env.redisConnectTimeoutMs,
+  });
 }
 
 export async function disconnectRedis(): Promise<void> {

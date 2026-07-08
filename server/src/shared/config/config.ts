@@ -80,6 +80,15 @@ const config = {
   googleClientSecret: requiredEnv("GOOGLE_CLIENT_SECRET"),
   googleMapsApiKey: optionalEnv("GOOGLE_MAPS_API_KEY"),
   redisUrl: requiredEnv("REDIS_URL"),
+  /**
+   * Per-command Redis deadline (ioredis `commandTimeout`). Keeps Redis outages from
+   * hanging HTTP handlers until Cloudflare returns 504. Default 3s.
+   */
+  redisCommandTimeoutMs: parseNonNegativeInt(optionalEnv("REDIS_COMMAND_TIMEOUT_MS"), 3_000),
+  /** TCP connect deadline for Redis clients. Default 10s. */
+  redisConnectTimeoutMs: parseNonNegativeInt(optionalEnv("REDIS_CONNECT_TIMEOUT_MS"), 10_000),
+  /** Abort match-engine HTTP calls that stall (e.g. matching Redis hang). Default 8s. */
+  matchEngineTimeoutMs: parseNonNegativeInt(optionalEnv("MATCH_ENGINE_TIMEOUT_MS"), 8_000),
   serverUrl: requiredUrlEnv("SERVER_URL"),
   authCookieDomain: optionalEnv("AUTH_COOKIE_DOMAIN")?.replace(/^\./, ""),
   devNotificationEmail: requiredEnv("DEV_NOTIFICATION_EMAIL"),

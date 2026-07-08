@@ -1,11 +1,26 @@
-import Redis from "ioredis";
+import Redis, { type RedisOptions } from "ioredis";
 import { AppError } from "@/shared/errors";
 import { REDIS_URL } from "@/shared/constants";
+import config from "@/shared/config/config";
 import logger from "@/core/logging";
 
 let redis: Redis | null = null;
 let pubClient: Redis | null = null;
 let subClient: Redis | null = null;
+
+function redisClientOptions(overrides: {
+    enableReadyCheck?: boolean;
+} = {}): RedisOptions {
+    const commandTimeout = config.redisCommandTimeoutMs;
+    return {
+        maxRetriesPerRequest: 3,
+        enableReadyCheck: overrides.enableReadyCheck ?? true,
+        lazyConnect: false,
+        connectTimeout: config.redisConnectTimeoutMs,
+        // 0 disables; only set when positive so local tools can opt out.
+        ...(commandTimeout > 0 ? { commandTimeout } : {}),
+    };
+}
 
 export const connectClient = (client: Redis, name: string) => {
     return new Promise((resolve, reject) => {
@@ -36,25 +51,13 @@ export const connectClient = (client: Redis, name: string) => {
 export const setupRedis = async (url: string = REDIS_URL) => {
     try {
         // General client for normal operations
-        redis = new Redis(url, {
-            maxRetriesPerRequest: 3,
-            enableReadyCheck: true,
-            lazyConnect: false,
-        });
+        redis = new Redis(url, redisClientOptions());
 
         // Pub client for publishing messages
-        pubClient = new Redis(url, {
-            maxRetriesPerRequest: 3,
-            enableReadyCheck: true,
-            lazyConnect: false,
-        });
+        pubClient = new Redis(url, redisClientOptions());
 
         // Sub client - will be put into subscriber mode by Socket.IO adapter
-        subClient = new Redis(url, {
-            maxRetriesPerRequest: 3,
-            enableReadyCheck: false,
-            lazyConnect: false,
-        });
+        subClient = new Redis(url, redisClientOptions({ enableReadyCheck: false }));
 
         await Promise.all([
             connectClient(redis, 'general-client'),
@@ -62,7 +65,10 @@ export const setupRedis = async (url: string = REDIS_URL) => {
             connectClient(subClient, 'sub-redis-client'),
         ]);
 
-        logger.info("[Redis] 🚀 All clients connected");
+        logger.info("[Redis] 🚀 All clients connected", {
+            commandTimeoutMs: config.redisCommandTimeoutMs,
+            connectTimeoutMs: config.redisConnectTimeoutMs,
+        });
     } catch (err) {
         logger.error("[Redis] ❌ Failed to setup:", err);
         throw err;
