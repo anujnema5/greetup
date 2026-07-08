@@ -83,6 +83,15 @@ export async function saveProfileSetupStepService(
     case 5: {
       const saves: Promise<unknown>[] = [];
 
+      if (body.data.profession !== undefined) {
+        saves.push(
+          profileSetupRepository.replaceProfessions(
+            profileId,
+            body.data.profession?.id ?? null,
+          )
+        );
+      }
+
       if (body.data.bio !== undefined) {
         saves.push(
           profileSetupRepository.updateBasicProfile(profileId, {
@@ -91,11 +100,10 @@ export async function saveProfileSetupStepService(
         );
       }
 
-      if (body.data.instagram !== undefined || body.data.twitter !== undefined) {
+      if (body.data.instagram !== undefined) {
         saves.push(
           profileSetupRepository.upsertSocials(profileId, {
             instagram: body.data.instagram,
-            twitter: body.data.twitter,
           })
         );
       }
@@ -141,6 +149,7 @@ export async function saveProfileSetupStepService(
       break;
     }
 
+    // Step 6 is no longer part of onboarding but still used by the post-onboarding profile prompts editor.
     case 6: {
       await profileSetupRepository.replacePromptAnswers(profileId, body.data.answers);
       break;
@@ -154,8 +163,8 @@ export async function saveProfileSetupStepService(
 
   let { profileCompletion, isOnboardingComplete } = await recalculateCompletion(userId);
 
-  // API step 6 = profile prompts = last onboarding screen (skip all or complete).
-  if (body.step === 6) {
+  // API step 7 = username = last onboarding screen.
+  if (body.step === 7) {
     isOnboardingComplete = true;
     profileCompletion = Math.max(profileCompletion, PROFILE_COMPLETE_THRESHOLD);
   }

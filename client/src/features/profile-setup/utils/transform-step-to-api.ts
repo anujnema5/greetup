@@ -6,7 +6,6 @@
 import type { SaveProfileSetupPayload } from "../types/profile-setup-api.types";
 
 type FormValues = Record<string, unknown>;
-type StepField = { key: string; id?: string; minLength?: number };
 
 type Step5PayloadData = Extract<SaveProfileSetupPayload, { step: 5 }>["data"];
 
@@ -21,7 +20,6 @@ function toIdArray(value: unknown): Array<{ id: string }> {
 export function transformStepToApiPayload(
   step: number,
   formValues: FormValues,
-  stepFields?: StepField[],
 ): SaveProfileSetupPayload {
   switch (step) {
     case 1: {
@@ -63,17 +61,11 @@ export function transformStepToApiPayload(
               category: (professionVal as { category?: string }).category,
             }
           : null;
-      return { step: 4, data: { profession } };
-    }
 
-    case 5: {
       const data: Step5PayloadData = {
-        bio: formValues.bio != null && String(formValues.bio).trim()
-          ? String(formValues.bio).trim()
-          : undefined,
+        profession,
         photos: undefined,
         instagram: formValues.instagram ? String(formValues.instagram).trim().replace(/^@/, "") : undefined,
-        twitter: formValues.twitter ? String(formValues.twitter).trim().replace(/^@/, "") : undefined,
       };
       const photosRaw = formValues.photos;
       if (Array.isArray(photosRaw) && photosRaw.length > 0) {
@@ -89,28 +81,12 @@ export function transformStepToApiPayload(
       return { step: 5, data };
     }
 
-    case 6: {
+    case 5: {
       const username = String(formValues.username ?? "").trim().toLowerCase();
       if (username.length < 3) throw new Error("Username must be at least 3 characters");
       if (!/^[a-zA-Z0-9_]+$/.test(username))
         throw new Error("Username may only contain letters, numbers, and underscores");
       return { step: 7, data: { username } };
-    }
-
-    case 7: {
-      const answers = (stepFields ?? [])
-        .filter((f) => {
-          if (!f.id) return false;
-          const answer = String(formValues[f.key] ?? "").trim();
-          if (!answer) return false;
-          if (f.minLength && answer.length < f.minLength) return false;
-          return true;
-        })
-        .map((f) => ({
-          questionId: f.id!,
-          answer: String(formValues[f.key]).trim(),
-        }));
-      return { step: 6, data: { answers } };
     }
 
     default:
