@@ -102,8 +102,16 @@ export const saveStep4Schema = z.object({
     .nullable(),
 });
 
-/* Step 5 – Bio, Photos, Socials & matching preferences (profile editor) */
+/* Step 5 – Profession, Bio, Photos, Socials & matching preferences (profile editor) */
 export const saveStep5Schema = z.object({
+  profession: z
+    .object({
+      id: z.string().uuid(),
+      name: z.string().optional(),
+      category: z.string().optional(),
+    })
+    .nullable()
+    .optional(),
   bio: z.string().max(500).optional(),
   photos: z
     .array(
@@ -116,7 +124,6 @@ export const saveStep5Schema = z.object({
     .max(6)
     .optional(),
   instagram: z.string().max(30).optional(),
-  twitter: z.string().max(15).optional(),
   preferredGender: z.enum(["any", "male", "female", "others", "same"]).optional(),
   distancePreference: z
     .enum(["nearby", "same city", "same country", "random", "global"])
@@ -129,7 +136,10 @@ export const saveStep5Schema = z.object({
     .optional(),
 });
 
-/* Step 6 – Prompt Questions (optional free-text answers) */
+/**
+ * Step 6 – Prompt Questions (optional free-text answers).
+ * No longer part of onboarding, but still used by the post-onboarding profile prompts editor.
+ */
 export const saveStep6Schema = z.object({
   answers: z
     .array(

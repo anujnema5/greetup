@@ -166,15 +166,16 @@ export type SaveProfileSetupPayload =
   | {
       step: 5;
       data: {
+        profession?: { id: string; name?: string; category?: string } | null;
         bio?: string;
         photos?: Array<{ url: string; order?: number }>;
         instagram?: string;
-        twitter?: string;
         preferredGender?: "any" | "male" | "female" | "others" | "same";
         distancePreference?: "nearby" | "same city" | "same country" | "random" | "global";
         ageRange?: { min: number; max: number };
       };
     }
+  /** Step 6 is no longer part of onboarding but still used by the post-onboarding profile prompts editor. */
   | { step: 6; data: { answers: Array<{ questionId: string; answer: string }> } }
   | { step: 7; data: { username: string } }
 

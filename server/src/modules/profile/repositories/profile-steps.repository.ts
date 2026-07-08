@@ -10,7 +10,6 @@ import {
   goals,
   moods,
   lookingForOptions,
-  promptQuestions,
 } from "@/core/database/schema";
 
 export const profileStepsRepository = {
@@ -124,7 +123,7 @@ export const profileStepsRepository = {
    * Fetch all lookup options for profile steps.
    */
   async fetchStepOptions() {
-    const [goalsList, interestsList, professionsList, moodsList, lookingForList, promptQuestionsList] =
+    const [goalsList, interestsList, professionsList, moodsList, lookingForList] =
       await Promise.all([
         db.query.goals.findMany({
           where: eq(goals.isActive, "yes"),
@@ -149,11 +148,6 @@ export const profileStepsRepository = {
           columns: { id: true, name: true, displayName: true, description: true },
           orderBy: (l, { asc }) => [asc(l.displayName)],
         }),
-        db.query.promptQuestions.findMany({
-          where: eq(promptQuestions.isActive, true),
-          columns: { id: true, key: true, question: true, order: true },
-          orderBy: (q, { asc }) => [asc(q.order)],
-        }),
       ]);
 
     return {
@@ -162,7 +156,6 @@ export const profileStepsRepository = {
       professions: professionsList,
       moods: moodsList,
       lookingForOptions: lookingForList,
-      promptQuestions: promptQuestionsList,
     };
   },
 };

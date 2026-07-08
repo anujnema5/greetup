@@ -275,7 +275,7 @@ export const ProfileSetupProvider: React.FC<ProfileSetupProviderProps> = ({
     setAllFormData(updatedData)
 
     try {
-      const payload = transformStepToApiPayload(currentStep, updatedData, currentStepData.fields)
+      const payload = transformStepToApiPayload(currentStep, updatedData)
       await saveProfileSetup(payload)
 
       if (currentStep === steps.length) {

@@ -17,7 +17,6 @@ import { isPlaceholderUsername } from "../lib/username";
 const GUEST_PLACEHOLDER_USERNAME_PREFIX = "guest_";
 const PROFILE_INTERESTS_STEP_TITLE = "Your interests";
 const USERNAME_STEP_TITLE = "Username";
-const PROFILE_PROMPTS_STEP_TITLE = "Profile prompts";
 
 function resolveUsernameFieldValue(username: string | null | undefined): string | null {
   if (!username || isPlaceholderUsername(username)) return null;
@@ -86,11 +85,6 @@ function buildSteps(profile: ProfileForSteps | undefined, options: StepOptions):
         order: p.order,
         isVerified: p.isVerified,
       })) ?? [];
-
-  // Build a map of questionId → existing answer for quick lookup
-  const answerByQuestionId = new Map(
-    (profile?.promptAnswers ?? []).map((a) => [a.questionId, a.answer]),
-  );
 
   const steps: FormStep[] = [
     {
@@ -164,7 +158,7 @@ function buildSteps(profile: ProfileForSteps | undefined, options: StepOptions):
     },
     {
       step: 4,
-      title: "Profession",
+      title: "Complete your profile",
       fields: [
         {
           key: "profession",
@@ -175,21 +169,6 @@ function buildSteps(profile: ProfileForSteps | undefined, options: StepOptions):
           required: false,
           options: professionsOptions,
           value: professionValue,
-        },
-      ],
-    },
-    {
-      step: 5,
-      title: "Complete your profile",
-      fields: [
-        {
-          key: "bio",
-          name: "bio",
-          label: "Bio",
-          placeholder: "Tell us something about yourself",
-          type: "textarea",
-          maxLength: 500,
-          value: profile?.bio ?? null,
         },
         {
           key: "photos",
@@ -211,21 +190,10 @@ function buildSteps(profile: ProfileForSteps | undefined, options: StepOptions):
           description: "Your Instagram username (without @)",
           value: profile?.socials?.instagram ?? null,
         },
-        {
-          key: "twitter",
-          name: "twitter",
-          label: "X / Twitter",
-          placeholder: "your_handle",
-          type: "text",
-          required: false,
-          maxLength: 15,
-          description: "Your X (Twitter) username (without @)",
-          value: profile?.socials?.twitter ?? null,
-        },
       ],
     },
     {
-      step: 6,
+      step: 5,
       title: USERNAME_STEP_TITLE,
       description: "Used in your profile URL.",
       fields: [
@@ -241,24 +209,6 @@ function buildSteps(profile: ProfileForSteps | undefined, options: StepOptions):
           value: usernameValue,
         },
       ],
-    },
-    {
-      step: 7,
-      title: PROFILE_PROMPTS_STEP_TITLE,
-      optional: true,
-      description: "Optional.",
-      fields: options.promptQuestions.map((q) => ({
-        key: q.key,
-        id: q.id,
-        name: q.key,
-        label: q.question,
-        type: "textarea" as const,
-        required: false,
-        placeholder: "Your answer",
-        minLength: 10,
-        maxLength: 300,
-        value: answerByQuestionId.get(q.id) ?? null,
-      })),
     },
   ];
 
@@ -371,7 +321,7 @@ export function computeProfileProgressFromSteps(steps: FormStep[]): {
 
 /**
  * Fetch profile steps with optional pagination.
- * Steps are ordered 1–7; page/limit slice which steps are returned.
+ * Steps are ordered 1–5; page/limit slice which steps are returned.
  */
 export async function fetchProfileStepsService(
   params: FetchProfileStepsParams
