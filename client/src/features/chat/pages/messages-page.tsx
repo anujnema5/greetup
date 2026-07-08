@@ -170,7 +170,7 @@ export function MessagesPage({ urlKind, urlConversationId }: MessagesPageProps) 
 
   return (
 
-    <div className="flex h-dvh overflow-hidden bg-background">
+    <div className="flex app-shell-h overflow-hidden bg-background">
 
       <NavSidebar activePath={pathname} />
 

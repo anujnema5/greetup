@@ -10,7 +10,7 @@ import { SPACES_BROWSE_PATH } from "../lib/spaces-browse-path";
 export function SpacesPage() {
   return (
     <StartSpaceModalProvider>
-      <div className="flex h-dvh overflow-hidden bg-background">
+      <div className="flex app-shell-h overflow-hidden bg-background">
         <NavSidebar activePath={SPACES_BROWSE_PATH} />
 
         <main className="flex flex-1 flex-col overflow-y-auto pb-16 md:pb-0">
