@@ -285,6 +285,14 @@ export const selectRtcPrimaryRemoteUserId = (state: RoomStore) =>
 
 export const selectRoomPhase = (state: RoomStore) => state.session.phase;
 
+/**
+ * True while the forced-dark call surface (`CALL_ROOM_FORCED_DARK_CLASS`) is on
+ * screen — mirrors `showCallSurface` in the room pages. Lets the global Toaster
+ * render dark toasts over the call even when the app theme is light.
+ */
+export const selectRoomChromeForcesDark = (state: RoomStore) =>
+  (state.ui.sessionActive || state.session.phase === 'searching') && !state.ui.isMinimized;
+
 export const selectRoomPeers = (state: RoomStore) => state.peers.byUserId;
 
 export const selectRoomMediaStatus = (state: RoomStore) => state.media.status;

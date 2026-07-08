@@ -40,6 +40,7 @@ import { MOCK_MATCH } from "@/features/room/constants/dev/mock-match";
 import { useCallDisplayData } from "@/features/room/hooks/media/use-call-display-data";
 import { useCallRenderDebug } from "@/features/room/hooks/debug/use-call-render-debug";
 import { useStageFullscreen } from "@/features/room/hooks/call-ui/use-stage-fullscreen";
+import { useCallStageAnchor } from "@/features/room/hooks/call-ui/use-call-stage-anchor";
 import type { InCallScreenProps } from "@/features/room/types/call/in-call-screen.types";
 import type { RoomActivityId } from "@/features/room/types/call/room-activity.types";
 import type { RoomCallRightPanelTab } from "@/features/room/types/call/room-call-panel.types";
@@ -217,6 +218,8 @@ export function InCallScreen({
   const mdDown = useSyncExternalStore(subscribeMdDown, snapshotMdDown, snapshotMdDownServer);
   const stageShellRef = useRef<HTMLDivElement>(null);
   const stageFullscreen = useStageFullscreen(stageShellRef);
+  // Anchor the conversation-cue toast to the stage's bottom-right corner (see globals.css).
+  useCallStageAnchor(stageShellRef);
   const [mobileChatSheetOpen, setMobileChatSheetOpen] = useState(false);
   const [activeActivity, setActiveActivity] = useState<RoomActivityId | null>(null);
   const [stageRatio, setStageRatio] = useState<StageRatio>(() =>

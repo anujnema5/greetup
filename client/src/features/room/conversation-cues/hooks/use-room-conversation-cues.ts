@@ -30,6 +30,12 @@ function showConversationCueToast(roomId: string, cue: ConversationCue): void {
     id: toastIdForCue(roomId, cue.id),
     description: cue.body ?? undefined,
     duration: 8_000,
+    // Sit in the lower stage area, raised above the call footer controls (see the
+    // `.conversation-cue-toast` offset in globals.css) so it never overlaps the
+    // toolbar the way the default bottom toast did on phones. The class also keeps
+    // it compact instead of full-bleed.
+    position: "bottom-center",
+    className: "conversation-cue-toast",
   });
 }
 

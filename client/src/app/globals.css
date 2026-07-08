@@ -438,6 +438,40 @@
   box-shadow: none !important;
 }
 
+/* Conversation-cue toast (in-call): stay compact and centred instead of the
+   full-width mobile default, so it reads as a hint and never blankets the screen.
+   This is the phone / narrow default (< lg) — centred in the lower-stage area,
+   lifted clear of the ~90px footer toolbar. Set on the toast element itself (not the
+   toaster list) so the lift lands regardless of which position list sonner drops it
+   into on mobile. Wide layouts (>= lg) override this below. */
+[data-sonner-toast].conversation-cue-toast {
+  width: min(100%, 20rem) !important;
+  margin-inline: auto !important;
+  bottom: calc(7rem + env(safe-area-inset-bottom)) !important;
+}
+
+/* Desktop / wide layouts: drop the cue into the stage's bottom-right corner instead
+   of centring it over both tiles. We anchor to the *live* stage geometry published
+   by `useCallStageAnchor` (--call-stage-right / --call-stage-bottom), so it lands
+   inside the stage whether or not the chat sidebar is shown and at any width — no
+   hard-coded sidebar offset. Un-center the toaster list to the viewport corner, then
+   inset the toast to the stage edges. */
+@media (min-width: 1024px) {
+  [data-sonner-toaster][data-x-position='center'][data-y-position='bottom'] {
+    left: auto !important;
+    right: 0 !important;
+    transform: none !important;
+    bottom: 0 !important;
+  }
+
+  [data-sonner-toast].conversation-cue-toast {
+    left: auto !important;
+    margin-inline: 0 !important;
+    right: calc(var(--call-stage-right, 1.5rem) + 1rem) !important;
+    bottom: calc(var(--call-stage-bottom, 6rem) + 1rem) !important;
+  }
+}
+
 /* Custom Sonner toasts — no double box (wrapper stays invisible) */
 [data-sonner-toast][data-styled='false'] {
   padding: 0 !important;
