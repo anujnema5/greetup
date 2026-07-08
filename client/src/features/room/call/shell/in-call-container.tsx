@@ -35,6 +35,7 @@ import { NSFW_LOG_ENABLED } from "@/shared/constants";
 import { buildCallCapabilities } from "@/features/room/contracts";
 import {
   resolveEmbeddedActivityCallPolicy,
+  sessionAllowsCallActivities,
   shouldShowDirectCallActivitiesTab,
   toastMessageForBlockedInvite,
   useRoomEmbeddedActivitiesCatalog,
@@ -184,8 +185,16 @@ export function InCallContainer({
 
   const showAddToSpace = isMatch && !embeddedCallPolicy.blockParticipantInvites;
 
+  /** Matches always; connection calls only once the callee joins (while ringing the caller is alone). */
+  const sessionAllowsActivities = sessionAllowsCallActivities({
+    isMatchSession: isMatch,
+    isConnectionCallSession: isConnectionCall,
+    hasConnectedRemotePeer: Object.keys(peers).length > 0,
+  });
+
   const showActivitiesTab =
-    isMatch && shouldShowDirectCallActivitiesTab(isGroupRoom, directRoomActivities);
+    sessionAllowsActivities &&
+    shouldShowDirectCallActivitiesTab(isGroupRoom, directRoomActivities);
 
   const callCapabilities = useMemo(
     () =>

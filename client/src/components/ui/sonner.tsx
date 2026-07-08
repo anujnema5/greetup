@@ -9,15 +9,23 @@ import {
 } from "lucide-react"
 import { useTheme } from "next-themes"
 import { Toaster as Sonner, type ToasterProps } from "sonner"
+import {
+  selectRoomChromeForcesDark,
+  useRoomStore,
+} from "@/features/room/state/room.store"
+import { cn } from "@/lib/utils"
 
 const Toaster = ({ ...props }: ToasterProps) => {
   const { resolvedTheme } = useTheme()
-  const sonnerTheme = resolvedTheme === "light" ? "light" : "dark"
+  // The in-call surface is always forced dark, but toasts portal to <body> outside
+  // it — so pin them dark while the call chrome is up, regardless of the app theme.
+  const forceDark = useRoomStore(selectRoomChromeForcesDark)
+  const sonnerTheme = forceDark ? "dark" : resolvedTheme === "light" ? "light" : "dark"
 
   return (
     <Sonner
       theme={sonnerTheme}
-      className="toaster group"
+      className={cn("toaster group", forceDark && "dark")}
       toastOptions={{
         classNames: {
           toast:

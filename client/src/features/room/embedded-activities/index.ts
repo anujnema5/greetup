@@ -11,7 +11,11 @@ export type {
   RoomEmbeddedActivityDto,
 } from "./types";
 export { parseListRoomEmbeddedActivitiesResponse } from "./parse/parse-list-response";
-export { shouldShowDirectCallActivitiesTab } from "./catalog/direct-call-activities-ui";
+export {
+  sessionAllowsCallActivities,
+  shouldShowDirectCallActivitiesTab,
+} from "./catalog/direct-call-activities-ui";
+export type { CallActivitiesSessionInput } from "./catalog/direct-call-activities-ui";
 export { KNOWN_ACTIVITY_DISPLAY, resolveActivityMetaForStage } from "./catalog/known-activity-display";
 export {
   DEFAULT_INVITE_BLOCKED_TOAST,

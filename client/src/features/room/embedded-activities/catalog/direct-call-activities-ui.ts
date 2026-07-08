@@ -10,3 +10,20 @@ export function shouldShowDirectCallActivitiesTab(
 ): boolean {
   return !isGroupRoom && activeCatalogTiles.length > 0;
 }
+
+export type CallActivitiesSessionInput = {
+  isMatchSession: boolean;
+  isConnectionCallSession: boolean;
+  /** True once the RTC roster has a remote peer. */
+  hasConnectedRemotePeer: boolean;
+};
+
+/**
+ * Session kinds that get the Activities tab: matches (incl. open-to-connect) always; connection
+ * calls only after the callee joins — the caller sits alone in the room while it rings, and the
+ * callee only becomes a room participant on accept (invites would 400 with `PEER_NOT_FOUND`).
+ */
+export function sessionAllowsCallActivities(input: CallActivitiesSessionInput): boolean {
+  if (input.isMatchSession) return true;
+  return input.isConnectionCallSession && input.hasConnectedRemotePeer;
+}
