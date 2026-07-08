@@ -4,6 +4,7 @@ import { Plus_Jakarta_Sans } from "next/font/google";
 // @ts-ignore: side-effect CSS import without module declarations
 import "./globals.css";
 import { ThemeProvider } from "@/components/theme-provider";
+import { KeyboardInsetCssVar } from "@/components/keyboard-inset-css-var";
 import { Toaster } from "@/components/ui/sonner";
 import { SiteJsonLd } from "@/components/seo/site-json-ld";
 import { ApiPreconnect } from "@/components/seo/api-preconnect";
@@ -42,6 +43,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       </head>
       <body className={`${plusJakartaSans.variable} antialiased font-sans`}>
         <SiteJsonLd />
+        <KeyboardInsetCssVar />
         <ThemeProvider
           attribute="class"
           defaultTheme="system"
