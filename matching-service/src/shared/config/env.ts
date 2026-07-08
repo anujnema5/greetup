@@ -27,6 +27,9 @@ export const env = {
   port: getNumberEnv(process.env.PORT ?? process.env.MATCHING_PORT, 5060),
   redisUrl: process.env.REDIS_URL ?? "redis://127.0.0.1:26379",
   redisPingTimeoutMs: getNumberEnv(process.env.REDIS_PING_TIMEOUT_MS, 800),
+  /** Per-command deadline on the request-path Redis client (not the BRPOP worker). Default 3s. */
+  redisCommandTimeoutMs: getNumberEnv(process.env.REDIS_COMMAND_TIMEOUT_MS, 3_000),
+  redisConnectTimeoutMs: getNumberEnv(process.env.REDIS_CONNECT_TIMEOUT_MS, 10_000),
   roomServiceUrl: process.env.ROOM_SERVICE_URL,
   roomServiceMode: process.env.MATCHING_ROOM_MODE ?? "mock",
   matchWebhookUrl: process.env.MATCH_WEBHOOK_URL,

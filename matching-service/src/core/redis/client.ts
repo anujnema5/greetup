@@ -13,11 +13,15 @@ export const connectRedis = async (): Promise<RedisClient> => {
     return client;
   }
 
+  const commandTimeout =
+    env.redisCommandTimeoutMs > 0 ? env.redisCommandTimeoutMs : undefined;
+
   const redis = new Redis(env.redisUrl, {
     maxRetriesPerRequest: 3,
     enableReadyCheck: true,
     lazyConnect: true,
-    connectTimeout: 10_000,
+    connectTimeout: env.redisConnectTimeoutMs,
+    ...(commandTimeout != null ? { commandTimeout } : {}),
   });
 
   redis.on("error", (error) => {
@@ -29,7 +33,13 @@ export const connectRedis = async (): Promise<RedisClient> => {
 
   client = redis;
 
-  const blocking = redis.duplicate();
+  // Blocking client must not use commandTimeout — BRPOP sleeps up to blockSeconds.
+  const blocking = new Redis(env.redisUrl, {
+    maxRetriesPerRequest: 3,
+    enableReadyCheck: true,
+    lazyConnect: true,
+    connectTimeout: env.redisConnectTimeoutMs,
+  });
   blocking.on("error", (error) => {
     logger.error("Redis blocking client error", { error: String(error) });
   });
@@ -37,7 +47,11 @@ export const connectRedis = async (): Promise<RedisClient> => {
   await blocking.ping();
   blockingClient = blocking;
 
-  logger.info("Redis connected", { url: env.redisUrl });
+  logger.info("Redis connected", {
+    url: env.redisUrl,
+    commandTimeoutMs: env.redisCommandTimeoutMs,
+    connectTimeoutMs: env.redisConnectTimeoutMs,
+  });
   return client;
 };
 
