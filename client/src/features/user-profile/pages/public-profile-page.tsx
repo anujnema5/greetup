@@ -9,7 +9,7 @@ type Props = {
 
 export function PublicProfilePage({ username }: Props) {
   return (
-    <div className="flex app-shell-h overflow-hidden bg-background">
+    <div className="flex h-dvh overflow-hidden bg-background">
       <NavSidebar activePath="/explore" />
 
       <main className="flex flex-1 flex-col overflow-y-auto pb-16 md:pb-0">
