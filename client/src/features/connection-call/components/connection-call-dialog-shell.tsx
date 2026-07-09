@@ -44,7 +44,6 @@ export function ConnectionCallDialogShell({
           'bg-black/50 data-[state=open]:animate-none data-[state=closed]:animate-none',
         )}
         showCloseButton={false}
-        adaptVisualViewport={false}
         onInteractOutside={allowDismiss ? undefined : (event) => event.preventDefault()}
         onEscapeKeyDown={allowDismiss ? undefined : (event) => event.preventDefault()}
       >

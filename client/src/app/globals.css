@@ -245,19 +245,6 @@
   scrollbar-color: var(--scrollbar-thumb) transparent;
 }
 
-/*
- * App shell root height. `--kb-inset` is kept in sync with the on-screen keyboard
- * height (see `use-keyboard-inset-px.ts`) because the root viewport meta uses
- * `interactive-widget=overlays-content` — the keyboard overlays the page instead of
- * resizing it, so `100dvh` alone never shrinks. Subtracting `--kb-inset` here makes
- * flex children anchored to the bottom of the shell (chat composer, etc.) end up
- * right above the keyboard instead of hidden underneath it.
- */
-.app-shell-h {
-  height: 100dvh;
-  height: calc(100dvh - var(--kb-inset, 0px));
-}
-
 /* ─── Base ───────────────────────────────────────────────────────────────────── */
 
 @layer base {

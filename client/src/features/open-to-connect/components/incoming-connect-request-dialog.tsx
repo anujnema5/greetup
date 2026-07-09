@@ -54,7 +54,6 @@ export function IncomingConnectRequestDialog({
           "bg-black/50 data-[state=open]:animate-none data-[state=closed]:animate-none",
         )}
         showCloseButton={false}
-        adaptVisualViewport={false}
         onInteractOutside={(event) => event.preventDefault()}
         onEscapeKeyDown={(event) => event.preventDefault()}
       >

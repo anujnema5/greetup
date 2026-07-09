@@ -81,7 +81,7 @@ export function OpenNowPage() {
   const showEndMessage = !isLoading && people.length > OPEN_NOW_EXPLORE_PREVIEW_LIMIT && !hasNextPage;
 
   return (
-    <div className="flex app-shell-h overflow-hidden bg-background">
+    <div className="flex h-dvh overflow-hidden bg-background">
       <NavSidebar activePath="/explore" />
 
       <main className="flex min-w-0 flex-1 flex-col overflow-y-auto pb-16 md:pb-0">

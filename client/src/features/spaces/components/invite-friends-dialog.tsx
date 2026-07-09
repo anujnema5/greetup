@@ -1,26 +1,19 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Loader2, Search, UserPlus } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+  FormSheet,
+  FormSheetDescription,
+  FormSheetFooter,
+  FormSheetHeader,
+  FormSheetTitle,
+} from "@/components/ui/form-sheet";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
-import {
-  formDialogFooterClass,
-  formDialogScrollBodyClass,
-  formDialogShellClass,
-} from "@/lib/ui/form-dialog-shell";
-import { useDialogScrollOnFocus } from "@/lib/ui/use-dialog-scroll-on-focus";
 import {
   COMPACT_DIALOG_BODY,
   COMPACT_DIALOG_CAPTION,
@@ -61,8 +54,6 @@ export function InviteFriendsDialog({
 }: InviteFriendsDialogProps) {
   const [search, setSearch] = useState("");
   const [draft, setDraft] = useState<Set<string>>(() => new Set());
-  const listScrollRef = useRef<HTMLDivElement>(null);
-  useDialogScrollOnFocus(listScrollRef, open);
 
   useEffect(() => {
     if (!open) return;
@@ -110,19 +101,18 @@ export function InviteFriendsDialog({
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent
-        showCloseButton
-        className={cn(
-          formDialogShellClass({ maxWidthClass: "sm:max-w-md" }),
-          "z-100 border-border/60 shadow-2xl",
-        )}
-      >
-        <DialogHeader className="shrink-0 space-y-1 border-b border-border/40 px-5 pt-5 pb-4 text-left">
-          <DialogTitle className="text-lg font-semibold tracking-tight">
+    <FormSheet
+      open={open}
+      onOpenChange={onOpenChange}
+      showCloseButton
+      overlayClassName="z-100"
+      contentClassName="z-100 max-h-[min(85vh,560px)] sm:max-w-md"
+    >
+        <FormSheetHeader className="shrink-0 space-y-1 border-b border-border/40 px-5 pt-5 pb-4 text-left">
+          <FormSheetTitle className="text-lg font-semibold tracking-tight">
             Invite peoples
-          </DialogTitle>
-          <DialogDescription className="text-sm text-muted-foreground">
+          </FormSheetTitle>
+          <FormSheetDescription className="text-sm text-muted-foreground">
             Pick who should get a heads-up—search below and confirm with Invite.
             {maxSelectableInvites > 0 ? (
               <span className="mt-1 block text-xs text-muted-foreground/90">
@@ -130,8 +120,8 @@ export function InviteFriendsDialog({
                 {maxSelectableInvites === 1 ? "" : "s"} for this room size (you take one seat).
               </span>
             ) : null}
-          </DialogDescription>
-        </DialogHeader>
+          </FormSheetDescription>
+        </FormSheetHeader>
 
         <div className="shrink-0 border-b border-border/40 px-5 py-3">
           <div className="relative">
@@ -146,10 +136,7 @@ export function InviteFriendsDialog({
           </div>
         </div>
 
-        <div
-          ref={listScrollRef}
-          className={cn(formDialogScrollBodyClass, "px-2 py-2")}
-        >
+        <div className="min-h-0 flex-1 overflow-y-auto px-2 py-2">
           {connectionsLoading ? (
             <div className={cn("flex items-center justify-center gap-2 py-12", COMPACT_DIALOG_BODY)}>
               <Loader2 className="size-5 animate-spin" />
@@ -205,7 +192,7 @@ export function InviteFriendsDialog({
           )}
         </div>
 
-        <DialogFooter className={cn(formDialogFooterClass, "gap-2 px-5 py-4")}>
+        <FormSheetFooter className="shrink-0 gap-2 border-t border-border/40 px-5 py-4">
           <Button
             type="button"
             variant="outline"
@@ -222,8 +209,7 @@ export function InviteFriendsDialog({
           >
             Invite
           </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+        </FormSheetFooter>
+    </FormSheet>
   );
 }
