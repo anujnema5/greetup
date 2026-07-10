@@ -1,6 +1,7 @@
 "use client";
 
 import { TRY_ROUTE } from "@/features/guest-try/constants/try-routes";
+import { useGuestTryStatus } from "@/features/guest-try/hooks/use-guest-try-status";
 import { LANDING_ENTRY } from "@/lib/copy/user-messages";
 
 import { useLandingSession } from "./use-landing-session";
@@ -11,15 +12,20 @@ const REGISTER_ROUTE = "/register";
 const HOME_ROUTE = "/home";
 
 export function useLandingEntryCta() {
-  const { isLoggedIn, isGuest, firstName, ready: sessionReady } = useLandingSession();
+  const { isLoggedIn, firstName, ready: sessionReady } = useLandingSession();
+  const { data: guestStatus, isPending: guestPending } = useGuestTryStatus({
+    enabled: sessionReady && isLoggedIn,
+  });
 
   const kind: LandingVisitorKind = !sessionReady
     ? "loading"
     : !isLoggedIn
       ? "anonymous"
-      : isGuest
-        ? "guest"
-        : "member";
+      : guestPending
+        ? "loading"
+        : guestStatus?.isGuest
+          ? "guest"
+          : "member";
 
   if (kind === "loading") {
     return {
