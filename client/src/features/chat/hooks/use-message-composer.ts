@@ -37,11 +37,8 @@ export function useMessageComposer({
     inputRef.current?.focus({ preventScroll: true });
   }, [disabled]);
 
-  useEffect(() => {
-    const t = window.setTimeout(focusInput, 50);
-    return () => window.clearTimeout(t);
-  }, [conversationId, focusInput]);
-
+  // Do not autofocus on open — mobile keyboards should only appear after a tap
+  // (Instagram-style). Still refocus for reply / after send while composing.
   useEffect(() => {
     if (replyTo) focusInput();
   }, [replyTo, focusInput]);
