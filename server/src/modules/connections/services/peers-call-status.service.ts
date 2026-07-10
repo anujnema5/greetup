@@ -1,8 +1,7 @@
 import logger from "@/core/logging";
-import { getRedis } from "@/core/redis";
-import { USER_PRESENCE_KEYS } from "@/core/redis/keys";
 import { roomsRepository } from "@/modules/rooms/repositories/rooms.repository";
 import { getUsersActiveRtcRooms } from "@/modules/rooms/services/rtc/user-active-rtc-room-redis.service";
+import { resolveUsersOnlineFlags } from "@/modules/presence/services/resolve-users-online-flags.service";
 
 export type PeerCallStatusDto = {
   isOnline: boolean;
@@ -31,18 +30,15 @@ export async function peersCallStatusForUser(
   }
   if (unique.length === 0) return out;
 
-  const redis = getRedis();
-  const pipe = redis.pipeline();
-  for (const id of unique) {
-    pipe.sismember(USER_PRESENCE_KEYS.ONLINE_USERS_SET, id);
-  }
-  const presenceRows = await pipe.exec();
-  unique.forEach((id, i) => {
-    const n = pipelineValue(presenceRows, i);
-    out[id]!.isOnline = redisSismemberTrue(n);
-  });
+  const [onlineByUser, activeRoomByUser] = await Promise.all([
+    resolveUsersOnlineFlags(unique),
+    getUsersActiveRtcRooms(unique),
+  ]);
 
-  const activeRoomByUser = await getUsersActiveRtcRooms(unique);
+  for (const id of unique) {
+    out[id]!.isOnline = onlineByUser.get(id) === true;
+  }
+
   const roomIds = [...new Set(activeRoomByUser.values())];
   const titleByRoomId = await roomsRepository.findRoomTitlesByIds(roomIds);
 
@@ -64,13 +60,4 @@ export async function peersCallStatusForUser(
   });
 
   return out;
-}
-
-function pipelineValue(rows: unknown[][] | null | undefined, index: number): unknown {
-  const row = rows?.[index];
-  return Array.isArray(row) ? row[1] : undefined;
-}
-
-function redisSismemberTrue(val: unknown): boolean {
-  return val === 1 || val === true || val === "1";
 }

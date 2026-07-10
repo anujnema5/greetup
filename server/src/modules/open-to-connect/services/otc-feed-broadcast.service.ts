@@ -1,7 +1,6 @@
-import { getRedis } from "@/core/redis";
-import { USER_PRESENCE_KEYS } from "@/core/redis/keys";
 import logger from "@/core/logging";
 import { userBlocksRepository } from "@/modules/blocks/repositories/user-blocks.repository";
+import { listLiveOnlineUserIds } from "@/modules/presence/services/live-online-users.service";
 
 import { openToConnectDiscoveryRepository } from "../repositories/open-to-connect-discovery.repository";
 import { otcRedisIndexService } from "./otc-redis-index.service";
@@ -13,12 +12,10 @@ async function buildOpenUserPayload(
   const visible = await otcRedisIndexService.isUserVisibleInDiscovery(openUserId);
   if (!visible) return null;
 
-  const tagsByUserId = await otcRedisIndexService.readTagsForUsers([openUserId]);
-  const tags = tagsByUserId.get(openUserId);
+  const tags = (await otcRedisIndexService.readTagsForUsers([openUserId])).get(openUserId);
   if (!tags) return null;
 
-  const profileRows = await openToConnectDiscoveryRepository.loadUserProfilesByUserIds([openUserId]);
-  const profile = profileRows[0];
+  const profile = (await openToConnectDiscoveryRepository.loadUserProfilesByUserIds([openUserId]))[0];
   if (!profile) return null;
 
   const [activitiesByProfileId, lookingForByProfileId, professionByProfileId] =
@@ -47,13 +44,12 @@ async function buildOpenUserPayload(
 }
 
 async function listViewerIdsForOpenUser(openUserId: string): Promise<string[]> {
-  const redis = getRedis();
-  const [onlineIds, blockedPeerIds] = await Promise.all([
-    redis.smembers(USER_PRESENCE_KEYS.ONLINE_USERS_SET),
+  const [liveIds, blockedPeerIds] = await Promise.all([
+    listLiveOnlineUserIds(),
     userBlocksRepository.listAllBlockedPeerIds(openUserId),
   ]);
   const blocked = new Set(blockedPeerIds);
-  return onlineIds.filter((id) => id !== openUserId && !blocked.has(id));
+  return liveIds.filter((id) => id !== openUserId && !blocked.has(id));
 }
 
 export const otcFeedBroadcastService = {
@@ -63,8 +59,6 @@ export const otcFeedBroadcastService = {
       if (!payload) return;
 
       const viewerIds = await listViewerIdsForOpenUser(openUserId);
-      if (viewerIds.length === 0) return;
-
       for (const viewerId of viewerIds) {
         otcSocketService.emitFeedUserAvailable(viewerId, payload);
       }
@@ -78,9 +72,7 @@ export const otcFeedBroadcastService = {
 
   async notifyUserUnavailable(userId: string): Promise<void> {
     try {
-      const redis = getRedis();
-      const onlineIds = await redis.smembers(USER_PRESENCE_KEYS.ONLINE_USERS_SET);
-      const viewers = onlineIds.filter((id) => id !== userId);
+      const viewers = (await listLiveOnlineUserIds()).filter((id) => id !== userId);
       for (const viewerId of viewers) {
         otcSocketService.emitFeedUserUnavailable(viewerId, { userId });
       }
