@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { getApiErrorMessage } from "@/lib/api/fetch-client";
-import { Camera, ImageIcon, Loader2, UserRound, Wand2 } from "lucide-react";
+import { Camera, ImageIcon, Loader2, RefreshCw, UserRound, Wand2 } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -72,6 +72,7 @@ export function ProfilePhotoDialog({
   const currentPhotoUrl = existingPhotos[0]?.url ?? "";
   const selectedPreviewUrl = useMemo(() => (file ? URL.createObjectURL(file) : null), [file]);
   const previewUrl = selectedPreviewUrl ?? currentPhotoUrl;
+  const hasPreview = Boolean(previewUrl);
 
   useEffect(() => {
     return () => {
@@ -233,8 +234,20 @@ export function ProfilePhotoDialog({
             disabled={busy}
             className="flex cursor-pointer items-center justify-center gap-2 rounded-xl border border-border bg-background px-3 py-2.5 text-[13px] font-medium text-foreground transition-colors hover:bg-muted/50 disabled:cursor-not-allowed disabled:opacity-50"
           >
-            <Wand2 className="h-3.5 w-3.5 text-muted-foreground" aria-hidden />
-            Generate avatar
+            {isGenerating ? (
+              <Loader2 className="h-3.5 w-3.5 animate-spin text-muted-foreground" aria-hidden />
+            ) : hasPreview ? (
+              <RefreshCw className="h-3.5 w-3.5 text-muted-foreground" aria-hidden />
+            ) : (
+              <Wand2 className="h-3.5 w-3.5 text-muted-foreground" aria-hidden />
+            )}
+            {isGenerating
+              ? hasPreview
+                ? "Regenerating…"
+                : "Generating…"
+              : hasPreview
+                ? "Regenerate"
+                : "Generate avatar"}
           </button>
         </div>
 

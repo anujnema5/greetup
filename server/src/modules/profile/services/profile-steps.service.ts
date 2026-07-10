@@ -182,7 +182,7 @@ function buildSteps(profile: ProfileForSteps | undefined, options: StepOptions):
         {
           key: "instagram",
           name: "instagram",
-          label: "Instagram",
+          label: "Instagram (optional)",
           placeholder: "your_handle",
           type: "text",
           required: false,

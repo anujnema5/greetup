@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { getApiErrorMessage } from "@/lib/api/fetch-client";
-import { Camera, ImageOff, Loader2, UserRound, Wand2 } from "lucide-react";
+import { Camera, ImageOff, Loader2, RefreshCw, UserRound, Wand2 } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -294,8 +294,13 @@ export function ProfileSetupPhotoField({
                 {pending === "generate" ? (
                   <span className="inline-flex items-center gap-1.5">
                     <Loader2 className="size-3.5 shrink-0 animate-spin" aria-hidden />
-                    Generating…
+                    {showImage ? "Regenerating…" : "Generating…"}
                   </span>
+                ) : showImage ? (
+                  <>
+                    <RefreshCw className="size-3.5 shrink-0 opacity-95" aria-hidden />
+                    Regenerate
+                  </>
                 ) : (
                   <>
                     <Wand2 className="size-3.5 shrink-0 opacity-95" aria-hidden />
