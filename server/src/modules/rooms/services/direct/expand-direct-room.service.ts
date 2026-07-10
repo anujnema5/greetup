@@ -1,7 +1,7 @@
 import { emitToUser } from "@/core/socket/socket";
 import logger from "@/core/logging";
 import { getRedis } from "@/core/redis";
-import { USER_PRESENCE_KEYS } from "@/core/redis/keys";
+import { userPresenceHashKey } from "@/modules/presence/lib/user-presence-key";
 import { getAcceptedPeerIdsForUser } from "@/modules/connections/services/accepted-peer-ids.service";
 import { peersCallStatusForUser } from "@/modules/connections/services/peers-call-status.service";
 import {
@@ -88,7 +88,7 @@ export async function createRoomInviteService(
   }
 
   const redis = getRedis();
-  const online = (await redis.sismember(USER_PRESENCE_KEYS.ONLINE_USERS_SET, inviteeUserId)) === 1;
+  const online = (await redis.exists(userPresenceHashKey(inviteeUserId))) === 1;
   if (!online) {
     throw new RoomInviteError("User is offline", "INVITEE_OFFLINE", 400);
   }

@@ -18,7 +18,8 @@ export class UserEventListeners {
     private jobName = "UserEventListeners"
     private redis: Redis;
 
-    // 1 MINUTES TTL — IF SERVER CRASHES AND DISCONNECT EVENT NEVER FIRES, REDIS WILL AUTO-CLEAN STALE PRESENCE DATA
+    // 1 MINUTE TTL on the presence hash. `all_online_users` has no TTL — readers
+    // use EXISTS on this hash (and purge stale set members) after missed disconnects.
     private static readonly PRESENCE_TTL_SECONDS = 60 * 1;
     // Grace period before removing a disconnected user from the matching pool
     private static readonly MATCH_GRACE_MS = 12_000;
@@ -182,14 +183,12 @@ export class UserEventListeners {
 
         const userPresenceKey = `${USER_PRESENCE_KEYS.ONLINE_USER_IPS}${userId}`;
 
-        // ONLY REFRESH TTL IF THE KEY ACTUALLY EXISTS — NO POINT EXTENDING A KEY
-        // THAT WAS ALREADY DELETED BY A DISCONNECT EVENT
+        // Only refresh if the key exists — disconnect already deleted it.
         const exists = await this.redis.exists(userPresenceKey);
         if (!exists) return;
 
         await this.redis.expire(userPresenceKey, UserEventListeners.PRESENCE_TTL_SECONDS);
         await otcRedisIndexService.refreshUserTtlIfIndexed(userId);
-        // logger.info(`[${this.jobName}] Refreshed TTL for user ${userId} via heartbeat`);
     }
 
     private async userDisconnected(payload: EventPayloads['user:disconnected']) {

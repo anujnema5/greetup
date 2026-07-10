@@ -5,7 +5,8 @@ import { userBlocksRepository } from "@/modules/blocks/repositories/user-blocks.
 import { db } from "@/core/database";
 import { users } from "@/core/database/schema";
 import { getRedis } from "@/core/redis";
-import { USER_CACHE_KEYS, USER_PRESENCE_KEYS } from "@/core/redis/keys";
+import { USER_CACHE_KEYS } from "@/core/redis/keys";
+import { userPresenceHashKey } from "@/modules/presence/lib/user-presence-key";
 import { userConnectionsRepository } from "@/modules/connections/repositories/user-connections.repository";
 import {
   resolveConnectionForPublicProfile,
@@ -235,7 +236,7 @@ export async function getMatchPeerPreview(
 
   const [peerRaw, isOnline, social] = await Promise.all([
     fetchSnapshot(peerUserId),
-    redis.sismember(USER_PRESENCE_KEYS.ONLINE_USERS_SET, peerUserId).then((v) => v === 1),
+    redis.exists(userPresenceHashKey(peerUserId)).then((v) => v === 1),
     fetchPeerSocialMeta(myUserId, peerUserId),
   ]);
 

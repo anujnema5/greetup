@@ -4,6 +4,7 @@ import {
   OPEN_TO_CONNECT_USER_TTL_SEC,
   USER_PRESENCE_KEYS,
 } from "@/core/redis/keys";
+import { userPresenceHashKey } from "@/modules/presence/lib/user-presence-key";
 import type { OpenToConnectTags } from "../types";
 
 function parseActivityIdsFromHash(raw: string | null | undefined): string[] {
@@ -13,9 +14,7 @@ function parseActivityIdsFromHash(raw: string | null | undefined): string[] {
 
 export const otcRedisIndexService = {
   async isUserOnline(userId: string): Promise<boolean> {
-    const redis = getRedis();
-    const result = await redis.sismember(USER_PRESENCE_KEYS.ONLINE_USERS_SET, userId);
-    return result === 1;
+    return (await getRedis().exists(userPresenceHashKey(userId))) === 1;
   },
 
   async syncUserToIndex(tags: OpenToConnectTags): Promise<void> {
@@ -50,8 +49,7 @@ export const otcRedisIndexService = {
   async removeUserFromIndex(userId: string): Promise<void> {
     const redis = getRedis();
     const userKey = OPEN_TO_CONNECT_KEYS.user(userId);
-    const activityIdsRaw = await redis.hget(userKey, "activityIds");
-    const activityIds = parseActivityIdsFromHash(activityIdsRaw);
+    const activityIds = parseActivityIdsFromHash(await redis.hget(userKey, "activityIds"));
 
     const multi = redis.multi();
     multi.srem(OPEN_TO_CONNECT_KEYS.ONLINE, userId);
@@ -65,46 +63,57 @@ export const otcRedisIndexService = {
   async refreshUserTtlIfIndexed(userId: string): Promise<void> {
     const redis = getRedis();
     const userKey = OPEN_TO_CONNECT_KEYS.user(userId);
-    const exists = await redis.exists(userKey);
-    if (exists !== 1) return;
+    if ((await redis.exists(userKey)) !== 1) return;
     await redis.expire(userKey, OPEN_TO_CONNECT_USER_TTL_SEC);
   },
 
+  /** Visible only while both TTL'd hashes exist (sets alone can be stale). */
   async isUserVisibleInDiscovery(userId: string): Promise<boolean> {
     const redis = getRedis();
-    const [online, indexed] = await Promise.all([
-      redis.sismember(USER_PRESENCE_KEYS.ONLINE_USERS_SET, userId),
-      redis.sismember(OPEN_TO_CONNECT_KEYS.ONLINE, userId),
+    const [presence, otc] = await Promise.all([
+      redis.exists(userPresenceHashKey(userId)),
+      redis.exists(OPEN_TO_CONNECT_KEYS.user(userId)),
     ]);
-    return online === 1 && indexed === 1;
+    return presence === 1 && otc === 1;
   },
 
   async listIndexedUserIds(activityId?: string): Promise<string[]> {
     const redis = getRedis();
-    if (activityId) {
-      return redis.smembers(OPEN_TO_CONNECT_KEYS.activity(activityId));
-    }
+    if (activityId) return redis.smembers(OPEN_TO_CONNECT_KEYS.activity(activityId));
     return redis.smembers(OPEN_TO_CONNECT_KEYS.ONLINE);
   },
 
   async filterStillVisibleUserIds(userIds: string[]): Promise<string[]> {
     if (userIds.length === 0) return [];
     const redis = getRedis();
-    const pipeline = redis.pipeline();
+    const pipe = redis.pipeline();
     for (const userId of userIds) {
-      pipeline.sismember(USER_PRESENCE_KEYS.ONLINE_USERS_SET, userId);
-      pipeline.sismember(OPEN_TO_CONNECT_KEYS.ONLINE, userId);
+      pipe.exists(userPresenceHashKey(userId));
+      pipe.exists(OPEN_TO_CONNECT_KEYS.user(userId));
     }
-    const results = await pipeline.exec();
+    const results = await pipe.exec();
+
     const visible: string[] = [];
+    const stale: string[] = [];
+    const offline: string[] = [];
     for (let i = 0; i < userIds.length; i += 1) {
       const userId = userIds[i];
       if (!userId) continue;
-      const online = results?.[i * 2]?.[1];
-      const indexed = results?.[i * 2 + 1]?.[1];
-      if (online === 1 && indexed === 1) {
+      const presenceOk = results?.[i * 2]?.[1] === 1;
+      const otcOk = results?.[i * 2 + 1]?.[1] === 1;
+      if (presenceOk && otcOk) {
         visible.push(userId);
+        continue;
       }
+      stale.push(userId);
+      if (!presenceOk) offline.push(userId);
+    }
+
+    if (stale.length > 0) {
+      void Promise.all(stale.map((id) => otcRedisIndexService.removeUserFromIndex(id)));
+    }
+    if (offline.length > 0) {
+      void redis.srem(USER_PRESENCE_KEYS.ONLINE_USERS_SET, ...offline);
     }
     return visible;
   },
@@ -112,11 +121,11 @@ export const otcRedisIndexService = {
   async readTagsForUsers(userIds: string[]): Promise<Map<string, OpenToConnectTags>> {
     if (userIds.length === 0) return new Map();
     const redis = getRedis();
-    const pipeline = redis.pipeline();
+    const pipe = redis.pipeline();
     for (const userId of userIds) {
-      pipeline.hgetall(OPEN_TO_CONNECT_KEYS.user(userId));
+      pipe.hgetall(OPEN_TO_CONNECT_KEYS.user(userId));
     }
-    const results = await pipeline.exec();
+    const results = await pipe.exec();
     const out = new Map<string, OpenToConnectTags>();
     for (let i = 0; i < userIds.length; i += 1) {
       const userId = userIds[i];
@@ -124,17 +133,15 @@ export const otcRedisIndexService = {
       const raw = results?.[i]?.[1];
       if (!raw || typeof raw !== "object") continue;
       const hash = raw as Record<string, string>;
-      const activityIds = parseActivityIdsFromHash(hash.activityIds);
-      const moodIds = parseActivityIdsFromHash(hash.moodIds);
-      const interestIds = parseActivityIdsFromHash(hash.interestIds);
+      if (!hash.profileId && !hash.userId) continue;
       out.set(userId, {
         profileId: hash.profileId ?? "",
         userId,
         displayName: hash.displayName?.trim() || null,
         headline: hash.headline?.trim() || null,
-        activityIds,
-        moodIds,
-        interestIds,
+        activityIds: parseActivityIdsFromHash(hash.activityIds),
+        moodIds: parseActivityIdsFromHash(hash.moodIds),
+        interestIds: parseActivityIdsFromHash(hash.interestIds),
         updatedAt: hash.updatedAt ?? new Date().toISOString(),
       });
     }
