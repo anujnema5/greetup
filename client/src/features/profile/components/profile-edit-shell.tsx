@@ -1,5 +1,7 @@
 "use client";
 
+import type { ReactNode } from "react";
+
 import {
   FormSheet,
   FormSheetDescription,
@@ -14,13 +16,11 @@ type ProfileEditShellProps = {
   onOpenChange: (open: boolean) => void;
   title: string;
   description?: string;
-  children: React.ReactNode;
-  footer?: React.ReactNode;
+  children: ReactNode;
+  footer?: ReactNode;
 };
 
-/**
- * Mobile: bottom drawer with keyboard lift. Desktop: centered dialog.
- */
+/** Profile section editor — FormSheet (drawer on mobile, dialog on desktop). */
 export function ProfileEditShell({
   open,
   onOpenChange,

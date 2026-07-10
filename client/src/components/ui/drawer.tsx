@@ -4,10 +4,11 @@ import * as React from "react";
 import { Drawer as DrawerPrimitive } from "vaul";
 import { XIcon } from "lucide-react";
 
-import { cn } from "@/lib/utils";
 import { useDrawerKeyboardOffset } from "@/lib/ui/use-drawer-keyboard-offset";
+import { cn } from "@/lib/utils";
 
 function Drawer({
+  /** Vaul's auto-reposition fights the keyboard; keep off by default. */
   repositionInputs = false,
   ...props
 }: React.ComponentProps<typeof DrawerPrimitive.Root>) {
@@ -20,21 +21,21 @@ function Drawer({
   );
 }
 
-function DrawerTrigger({
-  ...props
-}: React.ComponentProps<typeof DrawerPrimitive.Trigger>) {
+function DrawerTrigger(
+  props: React.ComponentProps<typeof DrawerPrimitive.Trigger>,
+) {
   return <DrawerPrimitive.Trigger data-slot="drawer-trigger" {...props} />;
 }
 
-function DrawerPortal({
-  ...props
-}: React.ComponentProps<typeof DrawerPrimitive.Portal>) {
+function DrawerPortal(
+  props: React.ComponentProps<typeof DrawerPrimitive.Portal>,
+) {
   return <DrawerPrimitive.Portal data-slot="drawer-portal" {...props} />;
 }
 
-function DrawerClose({
-  ...props
-}: React.ComponentProps<typeof DrawerPrimitive.Close>) {
+function DrawerClose(
+  props: React.ComponentProps<typeof DrawerPrimitive.Close>,
+) {
   return <DrawerPrimitive.Close data-slot="drawer-close" {...props} />;
 }
 
@@ -46,7 +47,7 @@ function DrawerOverlay({
     <DrawerPrimitive.Overlay
       data-slot="drawer-overlay"
       className={cn(
-        "data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 fixed inset-0 z-50 bg-black/50",
+        "fixed inset-0 z-50 bg-black/50 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",
         className,
       )}
       {...props}
@@ -74,7 +75,7 @@ function DrawerContent({
         ref={contentRef}
         data-slot="drawer-content"
         className={cn(
-          "group/drawer-content bg-background fixed z-50 flex h-auto flex-col outline-none",
+          "group/drawer-content fixed z-50 flex h-auto flex-col bg-background outline-none",
           "data-[vaul-drawer-direction=bottom]:inset-x-0 data-[vaul-drawer-direction=bottom]:bottom-0",
           "data-[vaul-drawer-direction=bottom]:max-h-[min(92dvh,880px)]",
           "data-[vaul-drawer-direction=bottom]:rounded-t-[1.75rem] data-[vaul-drawer-direction=bottom]:border-t",
@@ -82,7 +83,10 @@ function DrawerContent({
         )}
         {...props}
       >
-        <div className="mx-auto mt-3 hidden h-1 w-12 shrink-0 rounded-full bg-muted-foreground/30 group-data-[vaul-drawer-direction=bottom]/drawer-content:block" />
+        <div
+          className="mx-auto mt-3 hidden h-1 w-12 shrink-0 rounded-full bg-muted-foreground/30 group-data-[vaul-drawer-direction=bottom]/drawer-content:block"
+          aria-hidden
+        />
         {children}
       </DrawerPrimitive.Content>
     </DrawerPortal>
@@ -93,7 +97,7 @@ function DrawerHeader({ className, ...props }: React.ComponentProps<"div">) {
   return (
     <div
       data-slot="drawer-header"
-      className={cn("flex flex-col gap-2 p-4 text-center sm:text-left", className)}
+      className={cn("flex flex-col gap-2 text-center sm:text-left", className)}
       {...props}
     />
   );
@@ -116,7 +120,7 @@ function DrawerTitle({
   return (
     <DrawerPrimitive.Title
       data-slot="drawer-title"
-      className={cn("text-lg leading-none font-semibold", className)}
+      className={cn("text-lg font-semibold leading-none", className)}
       {...props}
     />
   );
@@ -129,7 +133,7 @@ function DrawerDescription({
   return (
     <DrawerPrimitive.Description
       data-slot="drawer-description"
-      className={cn("text-muted-foreground text-sm", className)}
+      className={cn("text-sm text-muted-foreground", className)}
       {...props}
     />
   );
@@ -139,7 +143,7 @@ function DrawerCloseButton({ className }: { className?: string }) {
   return (
     <DrawerClose
       className={cn(
-        "ring-offset-background focus:ring-ring absolute top-4 right-4 cursor-pointer rounded-xs opacity-70 transition-opacity hover:opacity-100 focus:ring-2 focus:ring-offset-2 focus:outline-hidden",
+        "absolute top-4 right-4 cursor-pointer rounded-xs opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:ring-2 focus:ring-ring focus:ring-offset-2 focus:outline-hidden",
         className,
       )}
     >
