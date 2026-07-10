@@ -4,6 +4,7 @@ import * as React from "react"
 import * as DialogPrimitive from "@radix-ui/react-dialog"
 import { XIcon } from "lucide-react"
 
+import { useDialogKeyboardOffset } from "@/lib/ui/use-dialog-keyboard-offset"
 import { cn } from "@/lib/utils"
 
 function Dialog({
@@ -51,15 +52,22 @@ function DialogContent({
   children,
   showCloseButton = true,
   overlayClassName,
+  adaptKeyboard = false,
   ...props
 }: React.ComponentProps<typeof DialogPrimitive.Content> & {
   showCloseButton?: boolean
   overlayClassName?: string
+  /** Opt-in: keep centered dialog above the mobile keyboard. */
+  adaptKeyboard?: boolean
 }) {
+  const contentRef = React.useRef<HTMLDivElement>(null)
+  useDialogKeyboardOffset(contentRef, adaptKeyboard)
+
   return (
     <DialogPortal data-slot="dialog-portal">
       <DialogOverlay className={overlayClassName} />
       <DialogPrimitive.Content
+        ref={contentRef}
         data-slot="dialog-content"
         className={cn(
           "bg-background data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 fixed top-[50%] left-[50%] z-50 grid w-full max-w-[calc(100%-2rem)] translate-x-[-50%] translate-y-[-50%] gap-4 rounded-lg border p-6 shadow-lg duration-200 sm:max-w-lg",
