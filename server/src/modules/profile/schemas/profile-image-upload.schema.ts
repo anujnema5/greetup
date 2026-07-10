@@ -1,11 +1,19 @@
 import { z } from "zod";
 
-import { PROFILE_IMAGE_ALLOWED_CONTENT_TYPES } from "@/core/storage";
+import {
+  MAX_UPLOAD_BYTES,
+  PROFILE_IMAGE_ALLOWED_CONTENT_TYPES,
+} from "@/core/storage";
 
 const contentTypeEnum = z.enum(PROFILE_IMAGE_ALLOWED_CONTENT_TYPES);
 
 export const presignProfileImageBodySchema = z.object({
   contentType: contentTypeEnum,
+  contentLength: z
+    .number()
+    .int()
+    .positive()
+    .max(MAX_UPLOAD_BYTES, `File must be at most ${MAX_UPLOAD_BYTES} bytes`),
 });
 
 export type PresignProfileImageBody = z.infer<typeof presignProfileImageBodySchema>;

@@ -20,4 +20,6 @@ export const env = {
   redisCommandTimeoutMs: getNum(process.env.REDIS_COMMAND_TIMEOUT_MS, 3_000),
   redisConnectTimeoutMs: getNum(process.env.REDIS_CONNECT_TIMEOUT_MS, 10_000),
   internalApiKey: process.env.INTERNAL_API_KEY ?? "",
+  /** Browser origin allowed for Socket.IO CORS (e.g. https://greetup.co). */
+  webClientHost: (process.env.WEB_CLIENT_HOST ?? "http://localhost:3000").replace(/\/$/, ""),
 };

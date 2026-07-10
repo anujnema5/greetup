@@ -13,6 +13,7 @@ import { ServiceUnavailableError, ValidationError } from "@/shared/errors";
 
 import {
   fileExtensionForProfileImageContentType,
+  MAX_UPLOAD_BYTES,
   PROFILE_IMAGE_PRESIGN_TTL_SECONDS,
 } from "./constants";
 import {
@@ -43,11 +44,20 @@ function buildReportAttachmentKey(userId: string, filename: string): string {
 export async function presignReportScreenshotUpload(params: {
   userId: string;
   contentType: string;
+  contentLength: number;
 }): Promise<ReportScreenshotPresignResult> {
   if (!isSpacesStorageConfigured()) {
     throw new ServiceUnavailableError(
       "Object storage is not configured (set DO_SPACES_* environment variables)",
     );
+  }
+
+  if (
+    !Number.isInteger(params.contentLength) ||
+    params.contentLength <= 0 ||
+    params.contentLength > MAX_UPLOAD_BYTES
+  ) {
+    throw new ValidationError(`File must be between 1 and ${MAX_UPLOAD_BYTES} bytes`);
   }
 
   const ext = fileExtensionForProfileImageContentType(params.contentType);
@@ -60,6 +70,7 @@ export async function presignReportScreenshotUpload(params: {
     Bucket: appConfig.doSpacesBucket!,
     Key: key,
     ContentType: params.contentType,
+    ContentLength: params.contentLength,
     ACL: "public-read",
   });
 
@@ -73,7 +84,9 @@ export async function presignReportScreenshotUpload(params: {
     key,
     expiresIn: PROFILE_IMAGE_PRESIGN_TTL_SECONDS,
     contentType: params.contentType,
-    uploadHeaders: { "Content-Type": params.contentType },
+    uploadHeaders: {
+      "Content-Type": params.contentType,
+    },
   };
 }
 

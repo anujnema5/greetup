@@ -24,7 +24,7 @@ export function useCreateProblemReport() {
 
 export function usePresignReportScreenshot() {
   return useMutation({
-    mutationFn: (body: { contentType: ReportScreenshotContentType }) =>
+    mutationFn: (body: { contentType: ReportScreenshotContentType; contentLength: number }) =>
       apiFetch<PresignReportScreenshotData>(PROBLEM_REPORTS.SCREENSHOT_UPLOAD_URL, {
         method: "POST",
         body: JSON.stringify(body),

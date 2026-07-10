@@ -3,6 +3,7 @@ import { Server } from "socket.io";
 import type { Server as HttpServer } from "node:http";
 import createApp from "@/http/create-app";
 import { APP_CONFIG } from "@/shared/constants";
+import { env } from "@/shared/config/env";
 import { logger } from "@/core/logging";
 import { connectRedis, disconnectRedis } from "@/core/redis/client";
 import { initializeMediasoup, shutdownMediasoup } from "@/core/mediasoup/mediasoup.service";
@@ -11,6 +12,14 @@ import { registerSignalingHandlers } from "@/modules/rtc/signaling/io-signaling"
 import { registerInternalPeers } from "@/modules/rtc/internal/global-peer-session";
 
 const app = createApp();
+
+const rtcCorsOrigins = (): string | string[] => {
+  const primary = env.webClientHost;
+  if (env.nodeEnv === "production") {
+    return primary;
+  }
+  return [primary, "http://localhost:3000", "http://127.0.0.1:3000"];
+};
 
 const setupShutdownHooks = (io: Server, httpServer: HttpServer): void => {
   const shutdown = async () => {
@@ -52,7 +61,11 @@ const bootstrap = async (): Promise<void> => {
   });
 
   const io = new Server(httpServer, {
-    cors: { origin: "*" },
+    cors: {
+      origin: rtcCorsOrigins(),
+      methods: ["GET", "POST"],
+      credentials: true,
+    },
   });
 
   registerRtcSocketAuth(io);

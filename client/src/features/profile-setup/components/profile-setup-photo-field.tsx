@@ -119,7 +119,7 @@ export function ProfileSetupPhotoField({
         return;
       }
 
-      const inner = await presign({ contentType: ct });
+      const inner = await presign({ contentType: ct, contentLength: file.size });
       const putHeaders =
         inner.uploadHeaders ?? ({ "Content-Type": inner.contentType } as Record<string, string>);
       const put = await fetch(inner.uploadUrl, {

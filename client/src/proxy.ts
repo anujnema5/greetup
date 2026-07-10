@@ -372,46 +372,108 @@ async function resolveGuestRouteRedirect(
 }
 
 // ==================== SECURITY HEADERS ====================
+function originFromUrl(raw: string | undefined): string | null {
+  if (!raw?.trim()) return null;
+  try {
+    return new URL(raw.trim()).origin;
+  } catch {
+    return null;
+  }
+}
+
+function wsOriginFromHttp(raw: string | undefined): string | null {
+  const origin = originFromUrl(raw);
+  if (!origin) return null;
+  if (origin.startsWith("https://")) return `wss://${origin.slice("https://".length)}`;
+  if (origin.startsWith("http://")) return `ws://${origin.slice("http://".length)}`;
+  return origin;
+}
+
 function setSecurityHeaders(response: NextResponse): void {
-  // Basic security headers
   response.headers.set("X-Frame-Options", "DENY");
   response.headers.set("X-Content-Type-Options", "nosniff");
   response.headers.set("Referrer-Policy", "strict-origin-when-cross-origin");
-  
-  // HSTS - Force HTTPS
-  // response.headers.set(
-  //   "Strict-Transport-Security",
-  //   "max-age=31536000; includeSubDomains; preload"
-  // );
 
-  // // Get environment-specific domains
-  // const isDevelopment = process.env.NODE_ENV === "development";
-  // const apiDomain = process.env.NEXT_PUBLIC_API_BASE_URL || "";
-  // const cdnDomain = process.env.NEXT_PUBLIC_CDN_URL || "";
+  const isProduction = process.env.NODE_ENV === "production";
+  if (isProduction) {
+    response.headers.set(
+      "Strict-Transport-Security",
+      "max-age=31536000; includeSubDomains; preload",
+    );
+  }
 
-  // // Content Security Policy - Modern XSS Protection
-  // const cspDirectives = [
-  //   "default-src 'self'",
-  //   `script-src 'self' 'unsafe-inline' 'unsafe-eval'${
-  //     isDevelopment ? " https://vercel.live" : ""
-  //   }`,
-  //   "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
-  //   "font-src 'self' https://fonts.gstatic.com data:",
-  //   `img-src 'self' data: https: blob:${cdnDomain ? " " + cdnDomain : ""}`,
-  //   `connect-src 'self'${apiDomain ? " " + apiDomain : ""}${
-  //     isDevelopment ? " https://vercel.live ws://localhost:* wss://localhost:*" : ""
-  //   }`,
-  //   "frame-ancestors 'none'",
-  //   "base-uri 'self'",
-  //   "form-action 'self'",
-  //   "upgrade-insecure-requests",
-  //   "block-all-mixed-content",
-  // ];
+  const isDevelopment = !isProduction;
+  const apiOrigin =
+    originFromUrl(process.env.NEXT_PUBLIC_API_BASE_URL) ||
+    (isProduction ? `https://api.${SITE_DOMAIN}` : null);
+  const cdnOrigin = originFromUrl(process.env.NEXT_PUBLIC_CDN_URL);
+  const socketOrigin = originFromUrl(process.env.NEXT_PUBLIC_SOCKET_SERVER_URL);
+  const socketWs = wsOriginFromHttp(process.env.NEXT_PUBLIC_SOCKET_SERVER_URL);
+  const rtcOrigin = originFromUrl(process.env.NEXT_PUBLIC_RTC_SOCKET_URL);
+  const rtcWs = wsOriginFromHttp(process.env.NEXT_PUBLIC_RTC_SOCKET_URL);
+  const firebaseAuthOrigin = originFromUrl(
+    process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN
+      ? `https://${process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN}`
+      : undefined,
+  );
 
-  // response.headers.set(
-  //   "Content-Security-Policy",
-  //   cspDirectives.filter(Boolean).join("; ")
-  // );
+  const connectSrc = [
+    "'self'",
+    apiOrigin,
+    socketOrigin,
+    socketWs,
+    rtcOrigin,
+    rtcWs,
+    firebaseAuthOrigin,
+    "https://*.googleapis.com",
+    "https://*.gstatic.com",
+    "https://*.firebaseio.com",
+    "https://identitytoolkit.googleapis.com",
+    "https://securetoken.googleapis.com",
+    "https://www.google.com",
+    "https://www.gstatic.com",
+    "https://api.dicebear.com",
+    cdnOrigin,
+    isDevelopment ? "https://vercel.live" : null,
+    isDevelopment ? "ws://localhost:*" : null,
+    isDevelopment ? "wss://localhost:*" : null,
+    isDevelopment ? "http://localhost:*" : null,
+  ]
+    .filter(Boolean)
+    .join(" ");
+
+  const imgSrc = [
+    "'self'",
+    "data:",
+    "blob:",
+    "https:",
+    cdnOrigin,
+  ]
+    .filter(Boolean)
+    .join(" ");
+
+  const cspDirectives = [
+    "default-src 'self'",
+    `script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.google.com https://www.gstatic.com${
+      isDevelopment ? " https://vercel.live" : ""
+    }`,
+    "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+    "font-src 'self' https://fonts.gstatic.com data:",
+    `img-src ${imgSrc}`,
+    `connect-src ${connectSrc}`,
+    "media-src 'self' blob:",
+    "worker-src 'self' blob:",
+    "frame-src 'self' https://www.google.com https://*.firebaseapp.com",
+    "frame-ancestors 'none'",
+    "base-uri 'self'",
+    "form-action 'self'",
+    isProduction ? "upgrade-insecure-requests" : "",
+  ];
+
+  response.headers.set(
+    "Content-Security-Policy",
+    cspDirectives.filter(Boolean).join("; "),
+  );
 
   // Permissions-Policy: see `next.config.ts` (geolocation/cohort only; camera & mic omitted).
 }

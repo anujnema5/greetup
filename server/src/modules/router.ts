@@ -17,11 +17,12 @@ import {
   blockGuestFromProfileRoutes,
   guestRoute,
 } from "./guest";
-import { authMiddleware } from "@/middleware";
+import { authMiddleware, requireAllowedOrigin } from "@/middleware";
 
 const router = new Hono();
 
 router.use(authMiddleware);
+router.use(requireAllowedOrigin);
 
 router.use("/profile/*", blockGuestFromProfileRoutes);
 router.use("/connections/*", blockGuestFromFullApp);
