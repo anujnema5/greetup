@@ -84,7 +84,13 @@ export function MessageList({
 
   return (
     <div className="flex min-h-0 min-w-0 flex-1 flex-col">
-      <MessageScrollerProvider autoScroll defaultScrollPosition="end">
+      <MessageScrollerProvider
+        autoScroll
+        defaultScrollPosition="end"
+        // Mobile keyboards / composer resize leave a few px of slack; keep the
+        // jump-to-end control hidden while effectively at the bottom.
+        scrollEdgeThreshold={48}
+      >
         <MessageScroller className="min-h-0 min-w-0 flex-1">
           <MessageScrollerViewport onScroll={handleScroll} className={CHAT_HORIZONTAL_PADDING}>
             {hasMore && (
@@ -118,8 +124,12 @@ export function MessageList({
                   <MessageScrollerItem
                     key={msg.id}
                     messageId={msg.id}
-                    scrollAnchor={layout.isOwn}
-                    className={cn(layout.spacingClass, 'min-w-0 max-w-full')}
+                    // Avoid content-visibility sizing guesses — they leave the
+                    // list a few px off-bottom after send on mobile.
+                    className={cn(
+                      layout.spacingClass,
+                      'min-w-0 max-w-full [content-visibility:visible]',
+                    )}
                   >
                     <MessageBubble
                       message={msg}
