@@ -2,6 +2,9 @@
  * DigitalOcean Spaces (S3) — profile image upload constants.
  */
 
+/** Max object size for profile photos and report screenshots (signed into presign). */
+export const MAX_UPLOAD_BYTES = 5 * 1024 * 1024;
+
 /** Presigned PUT lifetime (seconds). */
 export const PROFILE_IMAGE_PRESIGN_TTL_SECONDS = 600;
 

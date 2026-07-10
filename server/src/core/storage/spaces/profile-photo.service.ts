@@ -16,6 +16,7 @@ import { ServiceUnavailableError, ValidationError } from "@/shared/errors";
 
 import {
   fileExtensionForProfileImageContentType,
+  MAX_UPLOAD_BYTES,
   PROFILE_IMAGE_PRESIGN_TTL_SECONDS,
 } from "./constants";
 import {
@@ -37,7 +38,7 @@ export type ProfileImagePresignResult = {
   contentType: string;
   /**
    * Headers the browser should send on PUT. `x-amz-acl=public-read` is on the presigned query string.
-   * We only add `Content-Type` here (avoids extra CORS preflight headers like `Cache-Control` on Spaces).
+   * We only add `Content-Type` + `Content-Length` here (avoids extra CORS preflight headers).
    */
   uploadHeaders: Record<string, string>;
 };
@@ -45,6 +46,7 @@ export type ProfileImagePresignResult = {
 type PresignProfileImageParams = {
   userId: string;
   contentType: string;
+  contentLength: number;
 };
 
 /**
@@ -58,6 +60,14 @@ export async function presignProfileImageUpload(
     throw new ServiceUnavailableError(
       "Object storage is not configured (set DO_SPACES_* environment variables)"
     );
+  }
+
+  if (
+    !Number.isInteger(params.contentLength) ||
+    params.contentLength <= 0 ||
+    params.contentLength > MAX_UPLOAD_BYTES
+  ) {
+    throw new ValidationError(`File must be between 1 and ${MAX_UPLOAD_BYTES} bytes`);
   }
 
   const ext = fileExtensionForProfileImageContentType(params.contentType);
@@ -75,6 +85,7 @@ export async function presignProfileImageUpload(
     Bucket: bucket,
     Key: key,
     ContentType: params.contentType,
+    ContentLength: params.contentLength,
     ACL: "public-read",
   });
 

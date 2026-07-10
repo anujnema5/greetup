@@ -1,4 +1,8 @@
-import { isValidReportScreenshotUrl } from "@/core/storage";
+import {
+  assertUploadedImageObjectAllowed,
+  isValidReportScreenshotUrl,
+  parseSpacesObjectKeyFromPublicUrl,
+} from "@/core/storage";
 import type { ProblemReport } from "@/core/database/schema";
 import { ValidationError } from "@/shared/errors";
 
@@ -20,8 +24,15 @@ export async function createProblemReportService(params: {
 }): Promise<ProblemReport> {
   const { userId, isGuest, body } = params;
 
-  if (body.screenshotUrl && !isValidReportScreenshotUrl(body.screenshotUrl, userId)) {
-    throw new ValidationError("Invalid screenshot reference");
+  if (body.screenshotUrl) {
+    if (!isValidReportScreenshotUrl(body.screenshotUrl, userId)) {
+      throw new ValidationError("Invalid screenshot reference");
+    }
+    const key = parseSpacesObjectKeyFromPublicUrl(body.screenshotUrl);
+    if (!key) {
+      throw new ValidationError("Invalid screenshot reference");
+    }
+    await assertUploadedImageObjectAllowed(key);
   }
 
   // Room reports carry context, but a stale roomId (room ended between open and submit)

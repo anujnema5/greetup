@@ -2,6 +2,7 @@ import type { Context } from "hono";
 
 import {
   ensureProfileImageUrlsArePublic,
+  assertUploadedImageObjectAllowed,
   parseSpacesObjectKeyFromPublicUrl,
   presignProfileImageUpload,
   verifyProfileImageKeyForUser,
@@ -37,6 +38,7 @@ export const handlePresignProfileImageUpload = async (c: Context) => {
     const result = await presignProfileImageUpload({
       userId,
       contentType: parsed.data.contentType,
+      contentLength: parsed.data.contentLength,
     });
 
     return c.json(
@@ -95,6 +97,7 @@ export const handleEnsureProfilePhotoPublic = async (c: Context) => {
       );
     }
 
+    await assertUploadedImageObjectAllowed(key);
     await ensureProfileImageUrlsArePublic([parsed.data.publicUrl]);
 
     return c.json(ApiResponse.success({ ok: true }, "Profile image access updated", 200), 200);

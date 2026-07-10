@@ -72,6 +72,7 @@ export const handlePresignReportScreenshot = async (c: Context) => {
     const result = await presignReportScreenshotUpload({
       userId,
       contentType: parsed.data.contentType,
+      contentLength: parsed.data.contentLength,
     });
     return c.json(ApiResponse.success(result, "Upload URL created", 200), 200);
   } catch (error: unknown) {

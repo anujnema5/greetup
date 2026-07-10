@@ -53,7 +53,6 @@ import {
   CALL_STAGE_CHROME_BTN_CLASS,
 } from "@/features/room/call/stage/top-bar";
 import { RoomVideoToolbar } from "@/features/room/call/toolbar/call-toolbar";
-import { ReportProblemRoomButton } from "@/features/problem-reports";
 import { StageOverlays } from "@/features/room/call/stage/stage-overlays";
 import { RoomMobileChatSheetDragHandle } from "@/features/room/call/panels/mobile/mobile-chat-drag-handle";
 import { RightSidebar } from "@/features/room/call/panels/sidebar/right-sidebar";
@@ -735,7 +734,6 @@ export function InCallScreen({
                             )}
                           </button>
                         ) : null}
-                        <ReportProblemRoomButton roomId={roomId ?? undefined} />
                       </>
                     )
                   }

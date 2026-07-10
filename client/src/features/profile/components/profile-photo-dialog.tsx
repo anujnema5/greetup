@@ -125,7 +125,7 @@ export function ProfilePhotoDialog({
     }
     setIsUploading(true);
     try {
-      const inner = await presign({ contentType });
+      const inner = await presign({ contentType, contentLength: file.size });
       const putHeaders =
         inner.uploadHeaders ?? ({ "Content-Type": inner.contentType } as Record<string, string>);
       const put = await fetch(inner.uploadUrl, {

@@ -73,6 +73,10 @@ const auth = betterAuth({
   advanced: {
     useSecureCookies: config.env === "production",
     crossSubDomainCookies,
+    defaultCookieAttributes: {
+      sameSite: "lax",
+      secure: config.env === "production",
+    },
     /** Prefer Cloudflare / proxy headers when present (rate limit + session IP). */
     ipAddress: {
       ipAddressHeaders: ["cf-connecting-ip", "x-real-ip", "x-forwarded-for"],

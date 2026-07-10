@@ -28,7 +28,10 @@ export function useUploadReportScreenshot() {
         throw new Error("Image is too large (max 5 MB)");
       }
 
-      const presigned = await presign({ contentType: file.type });
+      const presigned = await presign({
+        contentType: file.type,
+        contentLength: file.size,
+      });
       const headers = presigned.uploadHeaders ?? { "Content-Type": presigned.contentType };
 
       const put = await fetch(presigned.uploadUrl, {

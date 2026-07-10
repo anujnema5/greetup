@@ -1,5 +1,6 @@
 import { Hono } from "hono";
 import { cors } from "hono/cors";
+import { secureHeaders } from "hono/secure-headers";
 
 import { auth } from "@/core/auth/auth";
 import { setupRedis } from "@/core/redis";
@@ -17,6 +18,17 @@ const createApp = async () => {
   await setupRedis(REDIS_URL);
 
   const app = new Hono();
+
+  app.use(
+    "*",
+    secureHeaders({
+      xFrameOptions: "DENY",
+      xContentTypeOptions: "nosniff",
+      referrerPolicy: "strict-origin-when-cross-origin",
+      // API returns JSON; browser CSP lives on the Next app.
+      strictTransportSecurity: false,
+    }),
+  );
 
   // API host should not appear in search results (api.greetup.co).
   app.use("*", async (c, next) => {

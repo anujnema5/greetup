@@ -81,7 +81,7 @@ export function useUpdateRoomInviteSettings() {
 
 export function usePresignProfilePhoto() {
   return useMutation({
-    mutationFn: (body: { contentType: string }) =>
+    mutationFn: (body: { contentType: string; contentLength: number }) =>
       apiFetch<PresignProfilePhotoData>(PROFILE.PHOTOS_PRESIGN, {
         method: 'POST',
         body: JSON.stringify(body),

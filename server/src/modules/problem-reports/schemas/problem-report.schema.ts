@@ -1,6 +1,9 @@
 import { z } from "zod";
 
-import { PROFILE_IMAGE_ALLOWED_CONTENT_TYPES } from "@/core/storage";
+import {
+  MAX_UPLOAD_BYTES,
+  PROFILE_IMAGE_ALLOWED_CONTENT_TYPES,
+} from "@/core/storage";
 
 /** Which surface the user reported from. Combined with guest status to derive the stored `source`. */
 export const problemReportSurfaceEnum = z.enum(["room", "app"]);
@@ -27,6 +30,11 @@ export type CreateProblemReportBody = z.infer<typeof createProblemReportBodySche
 
 export const presignReportScreenshotBodySchema = z.object({
   contentType: z.enum(PROFILE_IMAGE_ALLOWED_CONTENT_TYPES),
+  contentLength: z
+    .number()
+    .int()
+    .positive()
+    .max(MAX_UPLOAD_BYTES, `File must be at most ${MAX_UPLOAD_BYTES} bytes`),
 });
 
 export type PresignReportScreenshotBody = z.infer<typeof presignReportScreenshotBodySchema>;
