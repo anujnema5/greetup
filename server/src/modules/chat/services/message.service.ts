@@ -2,6 +2,7 @@ import { inArray } from 'drizzle-orm';
 import { db } from '@/core/database';
 import { users } from '@/core/database/schema';
 import logger from '@/core/logging';
+import { consumeRateLimit } from '@/core/rate-limit';
 import { getRedis } from '@/core/redis';
 import { CHAT_KEYS, CHAT_RATE_LIMIT, CHAT_RATE_WINDOW } from '@/core/redis/keys';
 import { getChatNamespace } from '@/core/socket/socket';
@@ -106,13 +107,12 @@ export const messageService = {
   },
 
   async checkRateLimit(userId: string): Promise<boolean> {
-    const redis = getRedis();
-    const key = CHAT_KEYS.messageRate(userId);
-    const count = await redis.incr(key);
-    if (count === 1) {
-      await redis.expire(key, CHAT_RATE_WINDOW);
-    }
-    return count <= CHAT_RATE_LIMIT;
+    const result = await consumeRateLimit({
+      key: CHAT_KEYS.messageRate(userId),
+      limit: CHAT_RATE_LIMIT,
+      windowSec: CHAT_RATE_WINDOW,
+    });
+    return result.allowed;
   },
 
   async send(params: {

@@ -1,4 +1,5 @@
 import { Hono } from "hono";
+import { rateLimitUser } from "@/core/rate-limit";
 import {
   requireGuestCallTrialAvailable,
   requireGuestCallTrialForMatchConnect,
@@ -13,7 +14,12 @@ import {
 
 export const matchmakingRoute = new Hono();
 
-matchmakingRoute.post("/find", requireGuestCallTrialAvailable, handleFindMatch);
+matchmakingRoute.post(
+  "/find",
+  rateLimitUser("matchingFind"),
+  requireGuestCallTrialAvailable,
+  handleFindMatch,
+);
 matchmakingRoute.get("/peer-preview/:peerUserId", handleGetMatchPeerPreview);
 matchmakingRoute.post("/cancel", handleCancelMatch);
 matchmakingRoute.post(

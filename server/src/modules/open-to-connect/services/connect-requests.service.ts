@@ -2,14 +2,14 @@ import { inArray } from "drizzle-orm";
 
 import { db } from "@/core/database";
 import { users } from "@/core/database/schema";
-import { getRedis } from "@/core/redis";
+import { consumeRateLimit } from "@/core/rate-limit";
 import { userBlocksRepository } from "@/modules/blocks/repositories/user-blocks.repository";
 import {
   getUserMatchStateService,
   cancelMatchService,
 } from "@/modules/matching/services/matchmaking.service";
 import { getUserActiveRtcRoomId } from "@/modules/rooms/services/rtc/user-active-rtc-room-redis.service";
-import { AppError } from "@/shared/errors";
+import { AppError, RateLimitExceededError } from "@/shared/errors";
 
 import {
   CONNECT_REQUEST_MAX_INBOUND_PENDING,
@@ -64,14 +64,13 @@ async function assertTargetIsOpen(targetUserId: string): Promise<void> {
 }
 
 async function assertOutboundRateLimit(requesterUserId: string): Promise<void> {
-  const redis = getRedis();
-  const key = `${CONNECT_REQUEST_RATE_KEY_PREFIX}${requesterUserId}`;
-  const count = await redis.incr(key);
-  if (count === 1) {
-    await redis.expire(key, 3600);
-  }
-  if (count > CONNECT_REQUEST_OUTBOUND_RATE_LIMIT) {
-    throw new AppError("Too many requests — try again later", 409, "CONFLICT");
+  const result = await consumeRateLimit({
+    key: `${CONNECT_REQUEST_RATE_KEY_PREFIX}${requesterUserId}`,
+    limit: CONNECT_REQUEST_OUTBOUND_RATE_LIMIT,
+    windowSec: 3600,
+  });
+  if (!result.allowed) {
+    throw new RateLimitExceededError("Too many requests — try again later");
   }
 }
 

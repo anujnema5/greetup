@@ -1,4 +1,5 @@
 import { Hono } from "hono";
+import { rateLimitUser } from "@/core/rate-limit";
 import { requireGuestCallTrialAvailable } from "@/modules/guest";
 import { handleListRoomEmbeddedActivities } from "./controllers/room-embedded-activities.controller";
 import {
@@ -24,7 +25,12 @@ export { internalRoomsRoute };
 // Public authenticated route (registered under /api)
 export const roomRoute = new Hono();
 roomRoute.get("/embedded-activities", handleListRoomEmbeddedActivities);
-roomRoute.get("/:roomId/rtc-token", requireGuestCallTrialAvailable, handleIssueRtcToken);
+roomRoute.get(
+  "/:roomId/rtc-token",
+  rateLimitUser("rtcToken"),
+  requireGuestCallTrialAvailable,
+  handleIssueRtcToken,
+);
 roomRoute.post("/:roomId/join", requireGuestCallTrialAvailable, handleJoinRoom);
 roomRoute.post("/:roomId/open-meeting", handleOpenSpaceMeeting);
 roomRoute.post("/:roomId/leave-space-rtc", handleLeaveSpaceRtc);
@@ -36,5 +42,9 @@ roomRoute.post("/:roomId/start", handleStartRoomSession);
 roomRoute.post("/:roomId/invite", handleRoomInvite);
 roomRoute.post("/:roomId/invite/respond", handleRoomInviteRespond);
 roomRoute.get("/:roomId", handleGetRoom);
-roomRoute.get("/:roomId/conversation-cues", handleGetConversationCues);
+roomRoute.get(
+  "/:roomId/conversation-cues",
+  rateLimitUser("conversationCues"),
+  handleGetConversationCues,
+);
 roomRoute.route("/", roomActivityRoute);
