@@ -2,32 +2,37 @@
 
 import { createContext, useContext, useEffect, useState } from "react";
 
-type SessionUser = {
-  displayName?: string | null;
-  name?: string | null;
-  email?: string | null;
-};
+import type { AppSessionUser } from "@/features/auth/lib/session-user";
 
 type LandingSessionValue = {
   isLoggedIn: boolean;
+  isGuest: boolean;
+  isOnboarded: boolean;
   firstName: string;
   ready: boolean;
 };
 
 const defaultValue: LandingSessionValue = {
   isLoggedIn: false,
+  isGuest: false,
+  isOnboarded: false,
   firstName: "",
   ready: false,
 };
 
 const LandingSessionContext = createContext<LandingSessionValue>(defaultValue);
 
-function parseSessionUser(user: SessionUser | undefined) {
+function parseSessionUser(user: AppSessionUser | undefined) {
   const displayName = user?.displayName?.trim() || user?.name?.trim() || "";
   const firstNameFromDisplay = displayName.split(/\s+/).filter(Boolean)[0] ?? "";
   const firstNameFromEmail = user?.email?.split("@")[0]?.trim() ?? "";
   const firstName = firstNameFromDisplay || firstNameFromEmail;
-  return { firstName, isLoggedIn: Boolean(user) };
+  return {
+    firstName,
+    isLoggedIn: Boolean(user?.id),
+    isGuest: user?.isGuest === true,
+    isOnboarded: user?.isOnboarded === true,
+  };
 }
 
 export function LandingSessionProvider({ children }: { children: React.ReactNode }) {
@@ -39,9 +44,9 @@ export function LandingSessionProvider({ children }: { children: React.ReactNode
     void import("@/lib/auth-client").then(({ authClient }) =>
       authClient.getSession().then(({ data }) => {
         if (cancelled) return;
-        const user = data?.user as SessionUser | undefined;
-        const { firstName, isLoggedIn } = parseSessionUser(user);
-        setValue({ isLoggedIn, firstName, ready: true });
+        const user = data?.user as AppSessionUser | undefined;
+        const { firstName, isLoggedIn, isGuest, isOnboarded } = parseSessionUser(user);
+        setValue({ isLoggedIn, isGuest, isOnboarded, firstName, ready: true });
       }),
     );
 

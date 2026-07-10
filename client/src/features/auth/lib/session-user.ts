@@ -8,6 +8,8 @@ export type AppSessionUser = {
   email?: string | null;
   phoneNumber?: string | null;
   isOnboarded?: boolean;
+  isGuest?: boolean;
+  guestTrialConsumed?: boolean;
 };
 
 export type AppSession = {
@@ -32,6 +34,12 @@ export function getSessionIsLoggedIn(
   session: AppSession | null | undefined,
 ): boolean {
   return Boolean(toAppSessionUser(session?.user)?.id);
+}
+
+export function getSessionIsGuest(
+  session: AppSession | null | undefined,
+): boolean {
+  return toAppSessionUser(session?.user)?.isGuest === true;
 }
 
 /** Refresh session after profile changes so `isOnboarded` stays in sync. */

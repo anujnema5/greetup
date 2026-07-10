@@ -42,11 +42,14 @@ export async function getNormalizedSessionService(
 
   const displayName = resolveDisplayName(session.user, dbUser);
   const isOnboarded = dbUser?.isOnboarded ?? false;
+  const isGuest = dbUser?.isGuest ?? false;
+  const guestTrialConsumed = dbUser?.guestTrialConsumed ?? false;
 
   logger.debug("session_normalized", {
     userId,
     hasDbUser: !!dbUser,
     isOnboarded,
+    isGuest,
   });
 
   return {
@@ -60,6 +63,8 @@ export async function getNormalizedSessionService(
         (session.user as { phoneNumber?: string | null }).phoneNumber ??
         null,
       isOnboarded,
+      isGuest,
+      guestTrialConsumed,
     },
   };
 }

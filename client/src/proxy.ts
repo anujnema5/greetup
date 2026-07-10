@@ -97,15 +97,17 @@ interface GuestStatusSnapshot {
 interface CacheEntry {
   isLoggedIn: boolean;
   isOnboarded?: boolean;
-  guestStatus?: GuestStatusSnapshot;
+  isGuest?: boolean;
+  guestTrialConsumed?: boolean;
   timestamp: number;
   inProgress?: Promise<AuthCheckResult>;
-  guestStatusInProgress?: Promise<GuestStatusSnapshot | null>;
 }
 
 interface AuthCheckResult {
   isLoggedIn: boolean;
   isOnboarded?: boolean;
+  isGuest?: boolean;
+  guestTrialConsumed?: boolean;
 }
 
 const sessionCache = new Map<string, CacheEntry>();
@@ -138,13 +140,15 @@ export async function proxy(req: NextRequest) {
   }
 
   // Check authentication with proper error handling
-  let isLoggedIn = false;
+  let authResult: AuthCheckResult = { isLoggedIn: false };
   try {
-    isLoggedIn = await checkAuthWithCache(req);
+    authResult = await checkAuthWithCache(req);
   } catch (error) {
     console.error("Critical auth check error:", error);
-    isLoggedIn = false;
+    authResult = { isLoggedIn: false };
   }
+
+  const isLoggedIn = authResult.isLoggedIn;
 
   // Handle common routes (accessible to everyone)
   if (isCommonRoute(pathname)) {
@@ -153,7 +157,13 @@ export async function proxy(req: NextRequest) {
     return response;
   }
 
-  const guestStatus = isLoggedIn ? await checkGuestStatusWithCache(req) : null;
+  // Guest flags come from get-session (same round trip as isOnboarded)
+  const guestStatus: GuestStatusSnapshot | null = isLoggedIn
+    ? {
+        isGuest: authResult.isGuest === true,
+        trialConsumed: authResult.guestTrialConsumed === true,
+      }
+    : null;
 
   // Anonymous: allow /try; deep-link to match room → start guest flow
   if (!isLoggedIn) {
@@ -443,18 +453,18 @@ function cleanExpiredCache(): void {
 
 // ==================== AUTH CHECK ====================
 
-async function checkAuthWithCache(req: NextRequest): Promise<boolean> {
+async function checkAuthWithCache(req: NextRequest): Promise<AuthCheckResult> {
   cleanExpiredCache();
 
   const sessionToken = getSessionToken(req);
 
   if (!sessionToken) {
-    return false;
+    return { isLoggedIn: false };
   }
 
   if (sessionToken.length < 10 || sessionToken.length > 500) {
     console.warn("[Auth] Invalid session token format");
-    return false;
+    return { isLoggedIn: false };
   }
 
   const cached = sessionCache.get(sessionToken);
@@ -463,13 +473,17 @@ async function checkAuthWithCache(req: NextRequest): Promise<boolean> {
   if (cached && now - cached.timestamp < CACHE_TTL) {
     if (cached.inProgress) {
       try {
-        const result = await cached.inProgress;
-        return result.isLoggedIn;
+        return await cached.inProgress;
       } catch {
         console.warn("[Auth] In-progress request failed, retrying");
       }
     }
-    return cached.isLoggedIn;
+    return {
+      isLoggedIn: cached.isLoggedIn,
+      isOnboarded: cached.isOnboarded,
+      isGuest: cached.isGuest,
+      guestTrialConsumed: cached.guestTrialConsumed,
+    };
   }
 
   const authCheckPromise = performAuthCheck(req);
@@ -489,11 +503,11 @@ async function checkAuthWithCache(req: NextRequest): Promise<boolean> {
 
     writeSessionCache(sessionToken, result, now);
 
-    return result.isLoggedIn;
+    return result;
   } catch (error) {
     console.error("[Auth] Check failed:", error);
     sessionCache.delete(sessionToken);
-    return false;
+    return { isLoggedIn: false };
   }
 }
 
@@ -528,12 +542,15 @@ async function performAuthCheck(req: NextRequest): Promise<AuthCheckResult> {
     const data = await res.json();
     const isLoggedIn = !!data?.user;
     const isOnboarded = isLoggedIn && data.user.isOnboarded === true;
+    const isGuest = isLoggedIn && data.user.isGuest === true;
+    const guestTrialConsumed =
+      isLoggedIn && data.user.guestTrialConsumed === true;
 
     if (isLoggedIn) {
       console.log(`[Auth] User authenticated: ${data.user.id || data.user.email || "unknown"}`);
     }
 
-    return { isLoggedIn, isOnboarded };
+    return { isLoggedIn, isOnboarded, isGuest, guestTrialConsumed };
   } catch (error) {
     clearTimeout(timeoutId);
 
@@ -557,106 +574,12 @@ function writeSessionCache(
   sessionCache.set(sessionToken, {
     isLoggedIn: result.isLoggedIn,
     isOnboarded: result.isLoggedIn ? result.isOnboarded === true : false,
+    isGuest: result.isLoggedIn ? result.isGuest === true : false,
+    guestTrialConsumed: result.isLoggedIn
+      ? result.guestTrialConsumed === true
+      : false,
     timestamp,
   });
-}
-
-// ==================== GUEST STATUS CHECK ====================
-
-async function checkGuestStatusWithCache(
-  req: NextRequest,
-): Promise<GuestStatusSnapshot | null> {
-  const sessionToken = getSessionToken(req);
-  if (!sessionToken) {
-    return null;
-  }
-
-  const cached = sessionCache.get(sessionToken);
-  const now = Date.now();
-
-  if (
-    cached?.guestStatus &&
-    now - cached.timestamp < CACHE_TTL
-  ) {
-    if (cached.guestStatusInProgress) {
-      try {
-        return await cached.guestStatusInProgress;
-      } catch {
-        // fall through to refetch
-      }
-    } else {
-      return cached.guestStatus;
-    }
-  }
-
-  const fetchPromise = performGuestStatusCheck(req);
-
-  if (cached) {
-    cached.guestStatusInProgress = fetchPromise;
-  } else {
-    sessionCache.set(sessionToken, {
-      isLoggedIn: true,
-      timestamp: now,
-      guestStatusInProgress: fetchPromise,
-    });
-  }
-
-  try {
-    const guestStatus = await fetchPromise;
-    const entry = sessionCache.get(sessionToken) ?? { isLoggedIn: true, timestamp: now };
-    if (guestStatus) {
-      entry.guestStatus = guestStatus;
-    }
-    entry.timestamp = now;
-    delete entry.guestStatusInProgress;
-    sessionCache.set(sessionToken, entry);
-    return guestStatus;
-  } catch (error) {
-    console.error("[Guest] Status check failed:", error);
-    const entry = sessionCache.get(sessionToken);
-    if (entry) {
-      delete entry.guestStatusInProgress;
-    }
-    return null;
-  }
-}
-
-async function performGuestStatusCheck(
-  req: NextRequest,
-): Promise<GuestStatusSnapshot | null> {
-  const apiBaseUrl = middlewareApiBase(req);
-  const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), AUTH_REQUEST_TIMEOUT_MS);
-
-  try {
-    const res = await fetch(`${apiBaseUrl}/guest/status`, {
-      method: "GET",
-      headers: {
-        cookie: req.headers.get("cookie") ?? "",
-        "Content-Type": "application/json",
-      },
-      credentials: "include",
-      signal: controller.signal,
-    });
-
-    clearTimeout(timeoutId);
-
-    if (!res.ok) {
-      if (res.status === 401 || res.status === 403 || res.status === 404 || res.status === 500) {
-        return { isGuest: false, trialConsumed: false };
-      }
-      throw new Error(`Guest status failed with status ${res.status}`);
-    }
-
-    const data = await res.json();
-    return {
-      isGuest: !!data?.data?.isGuest,
-      trialConsumed: !!data?.data?.trialConsumed,
-    };
-  } catch (error) {
-    clearTimeout(timeoutId);
-    throw error;
-  }
 }
 
 // ==================== ONBOARDING (from get-session cache) ====================
