@@ -47,10 +47,7 @@ type FormSheetProps = {
   onOpenAutoFocus?: (event: Event) => void;
 };
 
-/**
- * Desktop: centered dialog. Mobile: bottom drawer (Vaul) with keyboard offset.
- * Pattern from shadcn responsive drawer + github.com/shadcn-ui/ui/issues/2849.
- */
+/** Desktop dialog / mobile drawer. Keyboard lift lives on `DrawerContent`. */
 export function FormSheet({
   open,
   onOpenChange,
@@ -68,15 +65,12 @@ export function FormSheet({
   }, []);
 
   const shellClass = cn(
-    "flex min-h-0 flex-col gap-0 overflow-hidden p-0",
-    "border-border/60 bg-card shadow-2xl",
+    "flex min-h-0 flex-col gap-0 overflow-hidden border-border/60 bg-card p-0 shadow-2xl",
     contentClassName,
   );
 
-  const mode: FormSheetMode =
-    mounted && isDesktop ? "dialog" : "drawer";
-
-  if (mode === "dialog") {
+  // SSR + first paint: drawer (mobile-first). After mount, switch to dialog on sm+.
+  if (mounted && isDesktop) {
     return (
       <FormSheetModeContext.Provider value="dialog">
         <Dialog open={open} onOpenChange={onOpenChange}>
@@ -109,46 +103,40 @@ export function FormSheet({
   );
 }
 
-export function FormSheetHeader({
-  className,
-  ...props
-}: ComponentProps<"div">) {
+export function FormSheetHeader(props: ComponentProps<"div">) {
   const mode = useFormSheetMode();
-  if (mode === "dialog") {
-    return <DialogHeader className={className} {...props} />;
-  }
-  return <DrawerHeader className={className} {...props} />;
+  return mode === "dialog" ? (
+    <DialogHeader {...props} />
+  ) : (
+    <DrawerHeader {...props} />
+  );
 }
 
-export function FormSheetTitle({
-  className,
-  ...props
-}: ComponentProps<typeof DialogTitle>) {
+export function FormSheetTitle(props: ComponentProps<typeof DialogTitle>) {
   const mode = useFormSheetMode();
-  if (mode === "dialog") {
-    return <DialogTitle className={className} {...props} />;
-  }
-  return <DrawerTitle className={className} {...props} />;
+  return mode === "dialog" ? (
+    <DialogTitle {...props} />
+  ) : (
+    <DrawerTitle {...props} />
+  );
 }
 
-export function FormSheetDescription({
-  className,
-  ...props
-}: ComponentProps<typeof DialogDescription>) {
+export function FormSheetDescription(
+  props: ComponentProps<typeof DialogDescription>,
+) {
   const mode = useFormSheetMode();
-  if (mode === "dialog") {
-    return <DialogDescription className={className} {...props} />;
-  }
-  return <DrawerDescription className={className} {...props} />;
+  return mode === "dialog" ? (
+    <DialogDescription {...props} />
+  ) : (
+    <DrawerDescription {...props} />
+  );
 }
 
-export function FormSheetFooter({
-  className,
-  ...props
-}: ComponentProps<"div">) {
+export function FormSheetFooter(props: ComponentProps<"div">) {
   const mode = useFormSheetMode();
-  if (mode === "dialog") {
-    return <DialogFooter className={className} {...props} />;
-  }
-  return <DrawerFooter className={className} {...props} />;
+  return mode === "dialog" ? (
+    <DialogFooter {...props} />
+  ) : (
+    <DrawerFooter {...props} />
+  );
 }
