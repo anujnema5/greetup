@@ -113,3 +113,8 @@ export const GUEST_TRIAL_DEVICE_CONSUMED_TTL_SEC = 90 * 24 * 60 * 60;
 
 /** Max new guest sessions per IP per UTC day. */
 export const GUEST_TRIAL_IP_DAILY_CREATE_LIMIT = 3;
+
+/** HTTP API rate limits (see `@/core/rate-limit`). */
+export const RATE_LIMIT_KEYS = {
+  user: (bucket: string, userId: string) => `rl:user:${bucket}:${userId}`,
+} as const;

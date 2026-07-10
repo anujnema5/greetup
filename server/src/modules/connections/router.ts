@@ -1,4 +1,5 @@
 import { Hono } from "hono";
+import { rateLimitUser } from "@/core/rate-limit";
 
 import {
   handleCancelConnectionCall,
@@ -22,11 +23,19 @@ export const connectionsRoute = new Hono();
 connectionsRoute.get("/", handleListMyConnections);
 connectionsRoute.get("/pending-incoming-count", handlePendingIncomingCount);
 connectionsRoute.post("/peers-call-status", handlePeersCallStatus);
-connectionsRoute.post("/calls", handleInitiateConnectionCall);
+connectionsRoute.post(
+  "/calls",
+  rateLimitUser("connectionCall"),
+  handleInitiateConnectionCall,
+);
 connectionsRoute.post("/calls/:requestId/respond", handleRespondConnectionCall);
 connectionsRoute.post("/calls/:requestId/cancel", handleCancelConnectionCall);
 connectionsRoute.post("/calls/:requestId/missed", handleMarkConnectionCallMissed);
-connectionsRoute.post("/request", handleRequestConnection);
+connectionsRoute.post(
+  "/request",
+  rateLimitUser("connectionRequest"),
+  handleRequestConnection,
+);
 connectionsRoute.post("/:connectionId/accept", handleAcceptIncomingConnection);
 connectionsRoute.post("/:connectionId/reject", handleRejectIncomingConnection);
 connectionsRoute.post("/:connectionId/disconnect", handleDisconnectConnection);

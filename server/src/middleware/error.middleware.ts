@@ -109,17 +109,6 @@ export const errorHandler = (err: Error, c: Context) => {
         }
     }
 
-    if (err.name === "RateLimitError") {
-        return c.json(
-            ApiResponse.error({
-                message: "Too many requests",
-                statusCode: 429,
-                code: "RATE_LIMIT_EXCEEDED",
-            }),
-            429
-        );
-    }
-
     logger.error("Unhandled error", err);
 
     return c.json(

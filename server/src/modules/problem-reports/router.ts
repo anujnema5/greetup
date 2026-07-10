@@ -1,4 +1,5 @@
 import { Hono } from "hono";
+import { rateLimitUser } from "@/core/rate-limit";
 
 import {
   handleCreateProblemReport,
@@ -7,5 +8,13 @@ import {
 
 export const problemReportsRoute = new Hono();
 
-problemReportsRoute.post("/", handleCreateProblemReport);
-problemReportsRoute.post("/screenshot-upload-url", handlePresignReportScreenshot);
+problemReportsRoute.post(
+  "/",
+  rateLimitUser("problemReportCreate"),
+  handleCreateProblemReport,
+);
+problemReportsRoute.post(
+  "/screenshot-upload-url",
+  rateLimitUser("problemReportScreenshotPresign"),
+  handlePresignReportScreenshot,
+);

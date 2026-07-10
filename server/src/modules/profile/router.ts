@@ -1,4 +1,5 @@
 import { Hono } from "hono";
+import { rateLimitUser } from "@/core/rate-limit";
 import {
   handleFetchProfileSteps,
   handleGetMyProfile,
@@ -48,12 +49,32 @@ profileRoute.get("/username/suggestions", handleSuggestUsernames);
 profileRoute.get("/match-prep/current", handleGetMatchPrepCurrent);
 profileRoute.get("/match-prep/options", handleGetMatchPrepOptions);
 profileRoute.get("/match-prep/prompt-status", handleGetMatchPrepPromptStatus);
-profileRoute.get("/location/suggestions", handleGeocodeLocationSuggestions);
-profileRoute.post("/location/geocode", handleGeocodeLocation);
-profileRoute.post("/location/reverse-geocode", handleReverseGeocodeLocation);
+profileRoute.get(
+  "/location/suggestions",
+  rateLimitUser("geocode"),
+  handleGeocodeLocationSuggestions,
+);
+profileRoute.post(
+  "/location/geocode",
+  rateLimitUser("geocode"),
+  handleGeocodeLocation,
+);
+profileRoute.post(
+  "/location/reverse-geocode",
+  rateLimitUser("geocode"),
+  handleReverseGeocodeLocation,
+);
 profileRoute.post("/match-prep", handleSaveMatchPrep);
 profileRoute.post("/profile-setup", handleSaveProfileSetup);
 
 /** Profile images — presigned PUT to DigitalOcean Spaces */
-profileRoute.post("/photos/presign", handlePresignProfileImageUpload);
-profileRoute.post("/photos/ensure-public", handleEnsureProfilePhotoPublic);
+profileRoute.post(
+  "/photos/presign",
+  rateLimitUser("profilePhotoPresign"),
+  handlePresignProfileImageUpload,
+);
+profileRoute.post(
+  "/photos/ensure-public",
+  rateLimitUser("profilePhotoEnsurePublic"),
+  handleEnsureProfilePhotoPublic,
+);

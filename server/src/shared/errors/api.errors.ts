@@ -11,6 +11,7 @@ export type ErrorCode =
   | "GUEST_NOT_ALLOWED"
   | "GUEST_PROFILE_INCOMPLETE"
   | "GUEST_SEARCH_RETRY_EXHAUSTED"
+  | "RATE_LIMIT_EXCEEDED"
   | "CONFLICT"
   | "INTERNAL_ERROR"
   | "SERVICE_UNAVAILABLE";
@@ -101,6 +102,12 @@ export class GuestTrialAlreadyUsedError extends AppError {
 export class GuestRateLimitedError extends AppError {
   constructor(message: string = "Too many attempts from this network. Try again later or sign up.") {
     super(message, 429, "GUEST_RATE_LIMITED");
+  }
+}
+
+export class RateLimitExceededError extends AppError {
+  constructor(message: string = "Too many requests. Please try again later.") {
+    super(message, 429, "RATE_LIMIT_EXCEEDED");
   }
 }
 

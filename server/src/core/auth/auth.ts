@@ -5,6 +5,7 @@ import { db } from "../database";
 import { firebasePhonePlugin } from "@/core/auth/plugins/firebase-phone.plugin";
 import { guestSessionPlugin } from "@/core/auth/plugins/guest-session.plugin";
 import { guestSignupMergePlugin } from "@/core/auth/plugins/guest-signup-merge.plugin";
+import { betterAuthRedisRateLimitStorage } from "@/core/rate-limit";
 import { sendEmail } from "@/services/email";
 import logger from "../logging";
 import config from "@/shared/config/config";
@@ -72,7 +73,28 @@ const auth = betterAuth({
   advanced: {
     useSecureCookies: config.env === "production",
     crossSubDomainCookies,
+    /** Prefer Cloudflare / proxy headers when present (rate limit + session IP). */
+    ipAddress: {
+      ipAddressHeaders: ["cf-connecting-ip", "x-real-ip", "x-forwarded-for"],
+    },
   },
+
+  /**
+   * Built-in Better Auth limiter (sign-in/up, password reset, verification, etc.).
+   * Redis-backed so limits hold across multiple server instances.
+   * Default special rules: 3/10s for sign-in|sign-up; 3/60s for reset/verify email.
+   */
+  rateLimit: {
+    enabled: true,
+    window: 10,
+    max: 100,
+    customStorage: betterAuthRedisRateLimitStorage,
+    customRules: {
+      "/firebase-phone": { window: 60, max: 10 },
+      "/firebase-phone-update": { window: 60, max: 20 },
+    },
+  },
+
   plugins: [openAPI(), firebasePhonePlugin(), guestSessionPlugin(), guestSignupMergePlugin()],
 
   emailAndPassword: {
