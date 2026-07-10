@@ -2,7 +2,10 @@
 
 import { createContext, useContext, useEffect, useState } from "react";
 
-import type { AppSessionUser } from "@/features/auth/lib/session-user";
+import {
+  toAppSessionUser,
+  type AppSessionUser,
+} from "@/features/auth/lib/session-user";
 
 type LandingSessionValue = {
   isLoggedIn: boolean;
@@ -41,14 +44,18 @@ export function LandingSessionProvider({ children }: { children: React.ReactNode
   useEffect(() => {
     let cancelled = false;
 
-    void import("@/lib/auth-client").then(({ authClient }) =>
-      authClient.getSession().then(({ data }) => {
+    void import("@/lib/auth-client")
+      .then(({ authClient }) => authClient.getSession())
+      .then(({ data }) => {
         if (cancelled) return;
-        const user = data?.user as AppSessionUser | undefined;
+        const user = toAppSessionUser(data?.user);
         const { firstName, isLoggedIn, isGuest, isOnboarded } = parseSessionUser(user);
         setValue({ isLoggedIn, isGuest, isOnboarded, firstName, ready: true });
-      }),
-    );
+      })
+      .catch(() => {
+        if (cancelled) return;
+        setValue({ ...defaultValue, ready: true });
+      });
 
     return () => {
       cancelled = true;
