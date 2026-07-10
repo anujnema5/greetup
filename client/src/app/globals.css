@@ -418,6 +418,27 @@
   font-family: var(--font-plus-jakarta), system-ui, sans-serif;
 }
 
+/* Mobile: compact, right-aligned, clear of the fixed bottom nav (~pb-16). */
+@media (max-width: 767px) {
+  [data-sonner-toaster] {
+    --width: min(15.5rem, calc(100vw - 5.5rem));
+  }
+
+  [data-sonner-toaster][data-x-position='right'][data-y-position='bottom'] {
+    left: 0.75rem !important;
+    right: auto !important;
+    bottom: calc(4.25rem + env(safe-area-inset-bottom, 0px)) !important;
+    width: var(--width) !important;
+    transform: none !important;
+  }
+
+  [data-sonner-toaster][data-x-position='right'][data-y-position='bottom'] [data-sonner-toast] {
+    width: var(--width) !important;
+    max-width: var(--width) !important;
+    margin-inline: 0 !important;
+  }
+}
+
 [data-sonner-toast][data-styled='true'] {
   border: none !important;
   background: var(--popover) !important;

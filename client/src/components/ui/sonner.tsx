@@ -29,7 +29,7 @@ const Toaster = ({ ...props }: ToasterProps) => {
       toastOptions={{
         classNames: {
           toast:
-            "group toast w-full rounded-2xl border-0 bg-popover px-4 py-3 text-popover-foreground !shadow-lg backdrop-blur-sm",
+            "group toast max-w-[min(15.5rem,calc(100vw-5.5rem))] rounded-2xl border-0 bg-popover px-4 py-3 text-popover-foreground !shadow-lg backdrop-blur-sm sm:max-w-[22rem]",
           title: "text-sm font-semibold leading-5 text-foreground",
           description: "text-xs leading-4 text-muted-foreground",
           actionButton:
