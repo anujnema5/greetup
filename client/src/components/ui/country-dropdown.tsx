@@ -152,7 +152,7 @@ const CountryDropdownComponent = (
             )}
           </div>
         ) : (
-          <span className="text-[13px] text-muted-foreground sm:text-xs">
+          <span className="text-[13px] text-muted-foreground">
             {slim === false ? (
               placeholder
             ) : (
