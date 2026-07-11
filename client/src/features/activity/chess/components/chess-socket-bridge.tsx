@@ -88,7 +88,6 @@ export function ChessSocketBridge() {
         lastMoveSan: null,
         lastMoveAt: null,
     });
-    toast.success("Chess started");
   });
 
   const onMoved = useEffectEvent((payload: unknown) => {
