@@ -433,7 +433,10 @@ function setSecurityHeaders(response: NextResponse): void {
     "https://www.google.com",
     "https://www.gstatic.com",
     "https://api.dicebear.com",
+    // Presigned PUTs to DigitalOcean Spaces (profile photos, report screenshots).
+    // Explicit CDN origin + wildcard so uploads work even if NEXT_PUBLIC_CDN_URL is unset.
     cdnOrigin,
+    "https://*.digitaloceanspaces.com",
     isDevelopment ? "https://vercel.live" : null,
     isDevelopment ? "ws://localhost:*" : null,
     isDevelopment ? "wss://localhost:*" : null,
