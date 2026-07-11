@@ -1,4 +1,4 @@
-import { eq, sql } from "drizzle-orm";
+import { eq, inArray, sql } from "drizzle-orm";
 import {
   goals,
   interests,
@@ -13,6 +13,7 @@ import {
   LOOKING_FOR_OPTION_SEED,
   MOOD_SEED,
   PROFESSION_SEED,
+  RETIRED_GOAL_NAMES,
 } from "./onboarding-lookups.data";
 import type { SeedDb } from "./seed-db";
 
@@ -34,6 +35,13 @@ export async function upsertOnboardingLookups(db: SeedDb): Promise<void> {
         isActive: sql`excluded.is_active`,
       },
     });
+
+  if (RETIRED_GOAL_NAMES.length > 0) {
+    await db
+      .update(goals)
+      .set({ isActive: "no" })
+      .where(inArray(goals.name, [...RETIRED_GOAL_NAMES]));
+  }
 
   await db
     .insert(moods)

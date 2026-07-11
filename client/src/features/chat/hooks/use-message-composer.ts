@@ -30,7 +30,7 @@ export function useMessageComposer({
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const { onInputChange, stopTyping } = useTyping(conversationId, { enabled: typingEnabled });
 
-  const isMultiline = text.includes('\n');
+  const [isMultiline, setIsMultiline] = useState(false);
 
   const focusInput = useCallback(() => {
     if (disabled) return;
@@ -46,9 +46,11 @@ export function useMessageComposer({
   useLayoutEffect(() => {
     const el = inputRef.current;
     if (!el) return;
-    el.style.height = 'auto';
-    const next = Math.min(el.scrollHeight, MESSAGE_INPUT_MAX_HEIGHT_PX);
-    el.style.height = `${Math.max(next, INPUT_LINE_HEIGHT_PX)}px`;
+    // Collapse first so scrollHeight reflects wrapped content within the real width.
+    el.style.height = '0px';
+    const next = Math.min(Math.max(el.scrollHeight, INPUT_LINE_HEIGHT_PX), MESSAGE_INPUT_MAX_HEIGHT_PX);
+    el.style.height = `${next}px`;
+    setIsMultiline(next > INPUT_LINE_HEIGHT_PX + 2);
   }, [text]);
 
   const handleSend = () => {

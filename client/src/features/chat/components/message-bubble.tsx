@@ -251,7 +251,9 @@ export function MessageBubble({
                       autoFocus
                     />
                   ) : (
-                    <div className="whitespace-pre-wrap">{content}</div>
+                    <div className="max-w-full whitespace-pre-wrap wrap-anywhere">
+                      {content}
+                    </div>
                   )}
                 </div>
 
