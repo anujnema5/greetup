@@ -1,6 +1,7 @@
 import type { Context } from "hono";
 import type { FindMatchRequest } from "@/modules/simple-matching/types";
 import { MatchOrchestratorService } from "@/modules/simple-matching/orchestrator";
+import { logger } from "@/core/logging";
 
 const orchestrator = new MatchOrchestratorService();
 
@@ -48,7 +49,22 @@ export const handleFindMatch = async (c: Context): Promise<Response> => {
     const result = await orchestrator.startFindMatch(body);
     return c.json({ ok: true, data: result }, 200);
   } catch (error) {
-    return c.json({ ok: false, error: "internal_error", detail: String(error) }, 500);
+    const detail = String(error);
+    const isRedisTimeout = /command timed out/i.test(detail);
+    logger.error("[handleFindMatch] failed", {
+      userId: body.userId,
+      requestId: body.requestId,
+      detail,
+      redisTimeout: isRedisTimeout,
+    });
+    return c.json(
+      {
+        ok: false,
+        error: isRedisTimeout ? "redis_timeout" : "internal_error",
+        detail,
+      },
+      isRedisTimeout ? 503 : 500,
+    );
   }
 };
 
