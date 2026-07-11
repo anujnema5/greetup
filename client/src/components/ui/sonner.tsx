@@ -25,7 +25,10 @@ const Toaster = ({ ...props }: ToasterProps) => {
   return (
     <Sonner
       theme={sonnerTheme}
-      className={cn("toaster group", forceDark && "dark")}
+      className={cn("toaster group", forceDark && "dark toaster-in-call")}
+      expand
+      visibleToasts={5}
+      gap={12}
       toastOptions={{
         classNames: {
           toast:

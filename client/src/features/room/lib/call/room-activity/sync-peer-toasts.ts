@@ -54,7 +54,10 @@ export function syncPeerActivityToasts(
       isDirectCall && currIds.length === 0
         ? ROOM_ACTIVITY_TOAST.partnerLeft
         : ROOM_ACTIVITY_TOAST.peerLeft(name);
-    toast.info(message, { id: TOAST_ID.left(id) });
+    toast.info(message, {
+      id: TOAST_ID.left(id),
+      className: "in-call-activity-toast",
+    });
     delete tracker.peerNames[id];
   }
 

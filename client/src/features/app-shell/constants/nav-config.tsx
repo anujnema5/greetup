@@ -20,7 +20,7 @@ export type NavItem = {
 export const NAV_ITEMS: NavItem[] = [
   { icon: Home, label: "Home", href: "/home" },
   { icon: Compass, label: "Explore", href: "/explore" },
-  { icon: Search, label: "Search", action: "search" },
+  { icon: Search, label: "Search", action: "search", hideOnBottomNav: true },
   { icon: Orbit, label: "Spaces", href: SPACES_BROWSE_PATH, hideOnBottomNav: true },
   { icon: Users, label: "Connections", href: "/connections", badgeId: "connectionsPending" },
   { icon: MessagesSquare, label: "Messages", href: "/messages", badgeId: "messagesUnread" },
