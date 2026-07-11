@@ -3,6 +3,7 @@
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 
+import { BrandSpinner } from "@/components/brand-spinner";
 import { GUEST_TRIAL_FLOW } from "@/lib/copy/user-messages";
 
 import { TRY_SIGNUP_ROUTE } from "../../constants/try-routes";
@@ -18,9 +19,9 @@ export function RedirectToGuestRegister() {
   }, [router]);
 
   return (
-    <TryLayout>
-      <div className="flex flex-1 flex-col items-center justify-center gap-4 py-20">
-        <div className="h-10 w-10 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+    <TryLayout showTagline={false}>
+      <div className="flex flex-1 flex-col items-center justify-center gap-4">
+        <BrandSpinner size="sm" label={GUEST_TRIAL_FLOW.loading.redirect} />
         <p className="text-sm text-muted-foreground">{GUEST_TRIAL_FLOW.loading.redirect}</p>
       </div>
     </TryLayout>

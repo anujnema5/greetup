@@ -2,8 +2,8 @@
 
 import { Suspense, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Loader2 } from "lucide-react";
 
+import { PageLoading } from "@/components/page-loading";
 import SocialLoginButtons from "@/features/auth/components/social-login-buttons";
 import RegisterToggleButtons from "@/features/auth/components/register-toggle-buttons";
 import OTPVerification from "@/features/auth/components/otp-verification-form";
@@ -132,13 +132,7 @@ function RegisterPageContent() {
 
 export default function RegisterPage() {
   return (
-    <Suspense
-      fallback={
-        <div className="flex min-h-screen items-center justify-center">
-          <Loader2 className="size-8 animate-spin text-muted-foreground" aria-hidden />
-        </div>
-      }
-    >
+    <Suspense fallback={<PageLoading />}>
       <RegisterPageContent />
     </Suspense>
   );
