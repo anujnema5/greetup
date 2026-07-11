@@ -10,6 +10,11 @@ export type RoomStoreState = {
     isMinimized: boolean;
     /** True while the local user is leaving — suppresses rematch search UI. */
     localLeavePending: boolean;
+    /**
+     * Bumped to ask the full-screen call UI to open the mobile chat drawer.
+     * `InCallScreen` listens while mounted (not minimized).
+     */
+    openMobileChatNonce: number;
   };
   session: {
     activeRoomId: string | null;
@@ -52,10 +57,19 @@ type RoomStore = RoomStoreState & {
   setChatDraft: (draft: string) => void;
   setDirectCallPeerLabel: (label: string | null) => void;
   setLocalLeavePending: (pending: boolean) => void;
+  /** Sync in-call chat conversation id while the full call surface is mounted. */
+  setSessionConversationId: (conversationId: string | null) => void;
+  /** Ask full-screen call UI to switch to Chat (desktop dock tab or mobile drawer). */
+  requestOpenInCallChat: () => void;
 };
 
 const createInitialState = (): RoomStoreState => ({
-  ui: { sessionActive: false, isMinimized: false, localLeavePending: false },
+  ui: {
+    sessionActive: false,
+    isMinimized: false,
+    localLeavePending: false,
+    openMobileChatNonce: 0,
+  },
   session: {
     activeRoomId: null,
     phase: 'idle',
@@ -108,7 +122,12 @@ export const useRoomStore = create<RoomStore>((set) => ({
         }
         return {
           ...state,
-          ui: { sessionActive: false, isMinimized: false, localLeavePending: false },
+          ui: {
+            ...state.ui,
+            sessionActive: false,
+            isMinimized: false,
+            localLeavePending: false,
+          },
           session: {
             ...state.session,
             activeRoomId: nextId,
@@ -139,7 +158,12 @@ export const useRoomStore = create<RoomStore>((set) => ({
   resetVideoUi: () =>
     set((state) => ({
       ...state,
-      ui: { sessionActive: false, isMinimized: false, localLeavePending: false },
+      ui: {
+        ...state.ui,
+        sessionActive: false,
+        isMinimized: false,
+        localLeavePending: false,
+      },
     })),
 
   startVideoSession: (payload) =>
@@ -149,7 +173,12 @@ export const useRoomStore = create<RoomStore>((set) => ({
       const convId = payload?.conversationId;
       return {
         ...state,
-        ui: { sessionActive: true, isMinimized: false, localLeavePending: false },
+        ui: {
+          ...state.ui,
+          sessionActive: true,
+          isMinimized: false,
+          localLeavePending: false,
+        },
         session: {
           ...state.session,
           activeRoomId: rid !== undefined ? (rid ?? null) : state.session.activeRoomId,
@@ -166,6 +195,7 @@ export const useRoomStore = create<RoomStore>((set) => ({
     set((state) => ({
       ...state,
       ui: {
+        ...state.ui,
         sessionActive: false,
         isMinimized: false,
         localLeavePending: state.ui.localLeavePending,
@@ -206,7 +236,12 @@ export const useRoomStore = create<RoomStore>((set) => ({
     useRoomActivityStore.getState().clearOnSessionChange();
     set((state) => ({
       ...state,
-      ui: { sessionActive: true, isMinimized: false, localLeavePending: false },
+      ui: {
+        ...state.ui,
+        sessionActive: true,
+        isMinimized: false,
+        localLeavePending: false,
+      },
       session: {
         ...state.session,
         activeRoomId: null,
@@ -264,6 +299,21 @@ export const useRoomStore = create<RoomStore>((set) => ({
       ...state,
       ui: { ...state.ui, localLeavePending: pending },
     })),
+
+  setSessionConversationId: (conversationId) =>
+    set((state) => ({
+      ...state,
+      session: { ...state.session, conversationId },
+    })),
+
+  requestOpenInCallChat: () =>
+    set((state) => ({
+      ...state,
+      ui: {
+        ...state.ui,
+        openMobileChatNonce: state.ui.openMobileChatNonce + 1,
+      },
+    })),
 }));
 
 export const selectRoom = (state: RoomStore) => state;
@@ -292,6 +342,10 @@ export const selectRoomPhase = (state: RoomStore) => state.session.phase;
  */
 export const selectRoomChromeForcesDark = (state: RoomStore) =>
   (state.ui.sessionActive || state.session.phase === 'searching') && !state.ui.isMinimized;
+
+export const selectOpenMobileChatNonce = (state: RoomStore) => state.ui.openMobileChatNonce;
+
+export const selectSessionConversationId = (state: RoomStore) => state.session.conversationId;
 
 export const selectRoomPeers = (state: RoomStore) => state.peers.byUserId;
 

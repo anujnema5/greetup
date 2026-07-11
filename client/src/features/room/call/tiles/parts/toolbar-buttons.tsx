@@ -97,6 +97,7 @@ export function CircleToolbarButton({
   className,
   caption,
   isActive,
+  badgeCount,
 }: {
   onClick: () => void;
   ariaLabel: string;
@@ -104,23 +105,37 @@ export function CircleToolbarButton({
   className?: string;
   caption?: string;
   isActive?: boolean;
+  /** Unread / notification count shown on the circle control. */
+  badgeCount?: number;
 }) {
+  const badgeLabel =
+    typeof badgeCount === "number" && badgeCount > 0
+      ? badgeCount > 9
+        ? "9+"
+        : String(badgeCount)
+      : null;
+
   const button = (
     <Button
       type="button"
       variant="ghost"
       size="icon-lg"
       onClick={onClick}
-      aria-label={ariaLabel}
+      aria-label={badgeLabel ? `${ariaLabel}, ${badgeCount} unread` : ariaLabel}
       title={ariaLabel}
       className={cn(
-        "h-11 w-11 shrink-0 rounded-full p-0 transition-all duration-150",
+        "relative h-11 w-11 shrink-0 rounded-full p-0 transition-all duration-150",
         isActive ? CALL_TOOLBAR_CIRCLE_ACTIVE_CLASS : CALL_TOOLBAR_CIRCLE_IDLE_CLASS,
         CALL_TOOLBAR_GLASS_BORDER_CLASS,
         className,
       )}
     >
       {children}
+      {badgeLabel ? (
+        <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-destructive px-1 text-[10px] font-bold leading-none text-destructive-foreground">
+          {badgeLabel}
+        </span>
+      ) : null}
     </Button>
   );
 

@@ -4,8 +4,8 @@
  * InCallScreen is the main in-call screen renderer for both direct and space rooms.
  *
  * Purpose:
- * - Owns local UI state (right panel tab, stage ratio, active activity, mobile chat sheet).
- * - Narrow viewports: bottom sheet for chat/people/activities is vertically resizable via drag handle.
+ * - Owns local UI state (right panel tab, stage ratio, active activity, mobile chat drawer).
+ * - Narrow viewports: Vaul bottom drawer for chat/people/activities.
  * - Space calls: footer “Options” opens invite/link/chat; stage edit icon opens rename dialog.
  * - Delegates media-derived values to `useCallDisplayData`.
  * - Composes stage, overlays, HUD, toolbar, and right panel into a single responsive call layout.
@@ -20,7 +20,6 @@
 import {
   useCallback,
   useEffect,
-  useLayoutEffect,
   useMemo,
   useRef,
   useState,
@@ -28,7 +27,12 @@ import {
 } from "react";
 import { Maximize2, Minimize2, Volume2, VolumeX } from "lucide-react";
 import { toast } from "sonner";
-import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
+import {
+  Drawer,
+  DrawerCloseButton,
+  DrawerContent,
+  DrawerTitle,
+} from "@/components/ui/drawer";
 import { DEFAULT_SPACE_DISPLAY_TITLE } from "@/features/room/constants/call/space-display";
 import { CALL_STAGE_SHELL_CLASS } from "@/features/room/constants/call/call-chrome-theme";
 import { CALL_ROOM_FORCED_DARK_CLASS } from "@/features/room/constants/call/call-chrome-theme";
@@ -40,6 +44,10 @@ import { MOCK_MATCH } from "@/features/room/constants/dev/mock-match";
 import { useCallDisplayData } from "@/features/room/hooks/media/use-call-display-data";
 import { useCallRenderDebug } from "@/features/room/hooks/debug/use-call-render-debug";
 import { useStageFullscreen } from "@/features/room/hooks/call-ui/use-stage-fullscreen";
+import {
+  selectOpenMobileChatNonce,
+  useRoomStore,
+} from "@/features/room/state/room.store";
 import type { InCallScreenProps } from "@/features/room/types/call/in-call-screen.types";
 import type { RoomActivityId } from "@/features/room/types/call/room-activity.types";
 import type { RoomCallRightPanelTab } from "@/features/room/types/call/room-call-panel.types";
@@ -53,11 +61,7 @@ import {
 } from "@/features/room/call/stage/top-bar";
 import { RoomVideoToolbar } from "@/features/room/call/toolbar/call-toolbar";
 import { StageOverlays } from "@/features/room/call/stage/stage-overlays";
-import { RoomMobileChatSheetDragHandle } from "@/features/room/call/panels/mobile/mobile-chat-drag-handle";
 import { RightSidebar } from "@/features/room/call/panels/sidebar/right-sidebar";
-import {
-  useRoomMobileChatSheetHeight,
-} from "@/features/room/hooks/call-ui/use-room-mobile-chat-sheet-height";
 import { useRoomRightPanelTab } from "@/features/room/hooks/call-ui/use-room-right-panel-tab";
 import { cn } from "@/lib/utils";
 import { buildLocalPreviewStream } from "@/features/rtc/lib/direct-call-stage";
@@ -217,6 +221,8 @@ export function InCallScreen({
   const stageShellRef = useRef<HTMLDivElement>(null);
   const stageFullscreen = useStageFullscreen(stageShellRef);
   const [mobileChatSheetOpen, setMobileChatSheetOpen] = useState(false);
+  const openMobileChatNonce = useRoomStore(selectOpenMobileChatNonce);
+  const setSessionConversationId = useRoomStore((s) => s.setSessionConversationId);
   const [activeActivity, setActiveActivity] = useState<RoomActivityId | null>(null);
   const [stageRatio, setStageRatio] = useState<StageRatio>(() =>
     isGroupRoom ? "16:9" : "1:1"
@@ -428,44 +434,18 @@ export function InCallScreen({
     if (xlUp) setMobileChatSheetOpen(false);
   }, [xlUp]);
 
-  const mobileChatSheetDrag = useRoomMobileChatSheetHeight(mobileChatSheetOpen && !xlUp);
-  const mobileChatSheetLayoutRef = useRef<HTMLDivElement>(null);
-
-  useLayoutEffect(() => {
-    const node = mobileChatSheetLayoutRef.current;
-    if (!node) {
-      return;
-    }
-
-    const shell = node.closest('[data-slot="dialog-content"]') as HTMLElement | null;
-    node.style.setProperty("--room-mobile-chat-sheet-h", `${mobileChatSheetDrag.heightPx}px`);
-    shell?.style.setProperty(
-      "--room-mobile-chat-sheet-max-h",
-      `${mobileChatSheetDrag.maxHeightPx}px`,
-    );
-  }, [mobileChatSheetDrag.heightPx, mobileChatSheetDrag.maxHeightPx, mobileChatSheetOpen]);
+  useEffect(() => {
+    setSessionConversationId(conversationId ?? null);
+    return () => {
+      setSessionConversationId(null);
+    };
+  }, [conversationId, setSessionConversationId]);
 
   const {
     tab: rightPanelTab,
     setTab: setRightPanelTab,
     surfacePeopleIfAvailable,
   } = useRoomRightPanelTab({ showPeopleTab, showActivitiesTab, xlUp });
-
-  useEffect(() => {
-    return () => {
-      void stageFullscreen.exit();
-    };
-    // Unmount-only cleanup; `exit` is stable from `useStageFullscreen`.
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- intentionally only `exit`
-  }, [stageFullscreen.exit]);
-
-  // People tab “You”: camera+audio only while sharing; recompute when shares change so the stream re-attaches.
-  const localStreamPeopleTabSelf = useMemo(() => {
-    if (!screenSharing || !localCompositeStream || !localScreenTrackId) {
-      return localStream;
-    }
-    return buildLocalPreviewStream(localCompositeStream, localScreenTrackId) ?? localStream;
-  }, [screenSharing, localCompositeStream, localScreenTrackId, localStream]);
 
   const selectRightPanelTab = useCallback(
     (tab: RoomCallRightPanelTab) => {
@@ -482,6 +462,27 @@ export function InCallScreen({
     },
     [xlUp, setRightPanelTab],
   );
+
+  useEffect(() => {
+    if (!openMobileChatNonce || !conversationId) return;
+    selectRightPanelTab("chat");
+  }, [openMobileChatNonce, conversationId, selectRightPanelTab]);
+
+  useEffect(() => {
+    return () => {
+      void stageFullscreen.exit();
+    };
+    // Unmount-only cleanup; `exit` is stable from `useStageFullscreen`.
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- intentionally only `exit`
+  }, [stageFullscreen.exit]);
+
+  // People tab “You”: camera+audio only while sharing; recompute when shares change so the stream re-attaches.
+  const localStreamPeopleTabSelf = useMemo(() => {
+    if (!screenSharing || !localCompositeStream || !localScreenTrackId) {
+      return localStream;
+    }
+    return buildLocalPreviewStream(localCompositeStream, localScreenTrackId) ?? localStream;
+  }, [screenSharing, localCompositeStream, localScreenTrackId, localStream]);
 
   const suppressPeoplePanelCameras = shouldSuppressDuplicatePeopleCameras({
     isGroupRoom,
@@ -741,53 +742,37 @@ export function InCallScreen({
             <RoomVideoToolbar {...videoToolbarProps} />
           </div>
 
-          <aside className="hidden min-h-0 w-full min-w-0 shrink-0 xl:flex xl:w-88 xl:flex-col">
-            <RightSidebar {...rightPanelProps} variant="dock" />
-          </aside>
+          {xlUp ? (
+            <aside className="flex min-h-0 w-88 shrink-0 flex-col">
+              <RightSidebar {...rightPanelProps} variant="dock" />
+            </aside>
+          ) : null}
         </div>
 
         {!xlUp ? (
-          <Dialog open={mobileChatSheetOpen} onOpenChange={setMobileChatSheetOpen}>
-            <DialogContent
-              showCloseButton
+          <Drawer open={mobileChatSheetOpen} onOpenChange={setMobileChatSheetOpen}>
+            <DrawerContent
               aria-describedby={undefined}
+              overlayClassName={IN_CALL_DIALOG_OVERLAY_Z}
               className={cn(
                 CALL_ROOM_FORCED_DARK_CLASS,
                 /* Above InCallContainer (`z-100`) and in-room dialogs. */
                 IN_CALL_DIALOG_CONTENT_Z,
-                "gap-0 border-x-0 border-b-0 p-0",
-                "fixed! inset-x-0! bottom-0! top-auto! left-0! right-0! w-full! max-w-full!",
-                "translate-x-0! translate-y-0! rounded-t-2xl rounded-b-none",
-                "max-h-(--room-mobile-chat-sheet-max-h)",
+                "gap-0 border-border/60 bg-card p-0 shadow-2xl",
+                "h-[min(90dvh,880px)] max-h-[90dvh]",
               )}
-              overlayClassName={IN_CALL_DIALOG_OVERLAY_Z}
             >
-              <DialogTitle className="sr-only">
+              <DrawerTitle className="sr-only">
                 {showActivitiesTab ? "People, chat, and activities" : "People and chat"}
-              </DialogTitle>
-              <div
-                ref={mobileChatSheetLayoutRef}
-                className={cn(
-                  "flex min-h-0 flex-col overflow-hidden pb-[env(safe-area-inset-bottom)]",
-                  "h-(--room-mobile-chat-sheet-h)",
-                )}
-              >
-                <RoomMobileChatSheetDragHandle
-                  isDragging={mobileChatSheetDrag.isDragging}
-                  {...mobileChatSheetDrag.dragHandleProps}
-                />
-                <div
-                  className={cn(
-                    "flex min-h-0 flex-1 touch-pan-y flex-col overflow-hidden",
-                    mobileChatSheetDrag.isDragging && "touch-none select-none",
-                  )}
-                  {...mobileChatSheetDrag.sheetContentDragProps}
-                >
+              </DrawerTitle>
+              <DrawerCloseButton className="text-muted-foreground hover:text-foreground" />
+              <div className="flex min-h-0 flex-1 flex-col overflow-hidden pb-[env(safe-area-inset-bottom)]">
+                {mobileChatSheetOpen ? (
                   <RightSidebar {...rightPanelProps} variant="sheet" />
-                </div>
+                ) : null}
               </div>
-            </DialogContent>
-          </Dialog>
+            </DrawerContent>
+          </Drawer>
         ) : null}
 
         {spaceRoomId && spaceCanEditTitle ? (

@@ -20,13 +20,6 @@ export { useCallElapsedSeconds } from "./media/use-call-elapsed-seconds";
 
 export { useStageFullscreen } from "./call-ui/use-stage-fullscreen";
 export { useRoomRightPanelTab } from "./call-ui/use-room-right-panel-tab";
-export {
-  useRoomMobileChatSheetHeight,
-  roomMobileChatSheetLayoutCssVars,
-  ROOM_MOBILE_CHAT_SHEET_HEIGHT_KEY,
-  ROOM_MOBILE_CHAT_SHEET_CSS,
-} from "./call-ui/use-room-mobile-chat-sheet-height";
-export type { UseRoomMobileChatSheetHeightResult } from "./call-ui/use-room-mobile-chat-sheet-height";
 
 export { useNarrowToolbar } from "./toolbar/use-narrow-toolbar";
 export { useRoomVideoToolbarInlineCount } from "./toolbar/use-room-video-toolbar-inline-count";

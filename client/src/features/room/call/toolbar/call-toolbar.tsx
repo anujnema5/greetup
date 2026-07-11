@@ -62,6 +62,7 @@ import {
   TOOLBAR_CONTROL_CAPTION_CLASS,
 } from "@/features/room/call/tiles/tile-primitives";
 import { cn } from "@/lib/utils";
+import { useChatUiStore } from "@/features/chat/state/chat-ui.store";
 import type { RoomCallRightPanelTab } from "@/features/room/types/call/room-call-panel.types";
 
 /** Outer bar shell — theme-aware for light and dark stage. */
@@ -287,6 +288,10 @@ export function RoomVideoToolbar({
     Boolean(showScreenShare && onToggleScreenShare) &&
     allowScreenShareCallControl(mobileWebCallUi, screenSharing);
 
+  const chatUnreadCount = useChatUiStore((s) =>
+    conversationId ? (s.unreadCounts[conversationId] ?? 0) : 0,
+  );
+
   const narrowToolbar = useNarrowToolbar();
   const { skipPinnedMobile, toolbarFlowSecondaries } = useRoomVideoToolbarSecondaries(
     narrowToolbar,
@@ -329,6 +334,7 @@ export function RoomVideoToolbar({
             ariaLabel="Open chat panel"
             caption="Chat"
             isActive={rightPanelTab === "chat"}
+            badgeCount={chatUnreadCount}
           >
             <MessageCircle
               size={18}
@@ -428,7 +434,12 @@ export function RoomVideoToolbar({
             className={rightPanelTab === "chat" ? "bg-accent/50" : undefined}
           >
             <MessageCircle size={16} className={rightPanelTab === "chat" ? "text-primary" : undefined} />
-            Chat
+            <span className="flex-1">Chat</span>
+            {chatUnreadCount > 0 ? (
+              <span className="rounded-full bg-destructive px-1.5 py-0.5 text-[10px] font-bold leading-none text-destructive-foreground">
+                {chatUnreadCount > 9 ? "9+" : chatUnreadCount}
+              </span>
+            ) : null}
           </DropdownMenuItem>
         );
       case "participants":
