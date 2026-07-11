@@ -7,12 +7,10 @@ export const GOAL_SEED = [
   { name: "collaborate", displayName: "Collaborate", description: "Find co-founders, project partners, or builders", emoji: "🛠️", isActive: "yes" as const },
   { name: "learn_skills", displayName: "Learn skills", description: "Pick up skills through real conversation", emoji: "📚", isActive: "yes" as const },
   { name: "find_mentor", displayName: "Find a mentor", description: "Get guidance from people ahead of you", emoji: "🧭", isActive: "yes" as const },
-  { name: "join_spaces", displayName: "Join spaces", description: "Hang out in live group rooms and communities", emoji: "🌐", isActive: "yes" as const },
-  { name: "accountability", displayName: "Accountability", description: "Stay on track with goals alongside someone", emoji: "✅", isActive: "yes" as const },
 ];
 
 /** Soft-retired: upsert deactivates these so they stop appearing in onboarding. */
-export const RETIRED_GOAL_NAMES = ["dating"] as const;
+export const RETIRED_GOAL_NAMES = ["dating", "join_spaces", "accountability"] as const;
 
 export const INTEREST_SEED = [
   { name: "music", displayName: "Music", category: "arts", emoji: "🎵", isActive: "yes" as const },
@@ -20,7 +18,6 @@ export const INTEREST_SEED = [
   { name: "gaming", displayName: "Gaming", category: "entertainment", emoji: "🎮", isActive: "yes" as const },
   { name: "reading", displayName: "Reading", category: "arts", emoji: "📖", isActive: "yes" as const },
   { name: "fitness", displayName: "Fitness", category: "lifestyle", emoji: "💪", isActive: "yes" as const },
-  { name: "cooking", displayName: "Cooking", category: "lifestyle", emoji: "🍳", isActive: "yes" as const },
   { name: "photography", displayName: "Photography", category: "arts", emoji: "📷", isActive: "yes" as const },
   { name: "technology", displayName: "Technology", category: "career", emoji: "💻", isActive: "yes" as const },
   { name: "movies", displayName: "Movies", category: "entertainment", emoji: "🎬", isActive: "yes" as const },
@@ -32,28 +29,39 @@ export const INTEREST_SEED = [
   { name: "anime", displayName: "Anime", category: "entertainment", emoji: "🎌", isActive: "yes" as const },
   { name: "languages", displayName: "Languages", category: "learning", emoji: "🌍", isActive: "yes" as const },
   { name: "career_growth", displayName: "Career growth", category: "career", emoji: "📈", isActive: "yes" as const },
-  { name: "productivity", displayName: "Productivity", category: "lifestyle", emoji: "⚡", isActive: "yes" as const },
   { name: "philosophy", displayName: "Philosophy", category: "learning", emoji: "🧠", isActive: "yes" as const },
   { name: "podcasts", displayName: "Podcasts", category: "entertainment", emoji: "🎧", isActive: "yes" as const },
   { name: "wellness", displayName: "Wellness", category: "lifestyle", emoji: "🌿", isActive: "yes" as const },
   { name: "writing", displayName: "Writing", category: "arts", emoji: "✍️", isActive: "yes" as const },
   { name: "science", displayName: "Science", category: "learning", emoji: "🔬", isActive: "yes" as const },
-  { name: "remote_work", displayName: "Remote work", category: "career", emoji: "🏡", isActive: "yes" as const },
 ];
 
+/** Soft-retired interests — deactivated on seed without deleting user relations. */
+export const RETIRED_INTEREST_NAMES = ["cooking", "productivity", "remote_work"] as const;
+
 export const PROFESSION_SEED = [
-  { name: "software_engineer", displayName: "Software Engineer", category: "technology", isActive: "yes" as const },
-  { name: "designer", displayName: "Designer", category: "creative", isActive: "yes" as const },
-  { name: "teacher", displayName: "Teacher", category: "education", isActive: "yes" as const },
-  { name: "doctor", displayName: "Doctor", category: "healthcare", isActive: "yes" as const },
-  { name: "entrepreneur", displayName: "Entrepreneur", category: "business", isActive: "yes" as const },
   { name: "student", displayName: "Student", category: "education", isActive: "yes" as const },
-  { name: "marketing", displayName: "Marketing", category: "business", isActive: "yes" as const },
-  { name: "writer", displayName: "Writer", category: "creative", isActive: "yes" as const },
-  { name: "nurse", displayName: "Nurse", category: "healthcare", isActive: "yes" as const },
+  { name: "software_engineer", displayName: "Software engineer", category: "technology", isActive: "yes" as const },
+  { name: "product_manager", displayName: "Product manager", category: "technology", isActive: "yes" as const },
+  { name: "data_scientist", displayName: "Data scientist", category: "technology", isActive: "yes" as const },
+  { name: "designer", displayName: "Designer", category: "creative", isActive: "yes" as const },
+  { name: "entrepreneur", displayName: "Entrepreneur", category: "business", isActive: "yes" as const },
+  { name: "marketing", displayName: "Marketer", category: "business", isActive: "yes" as const },
+  { name: "sales", displayName: "Sales", category: "business", isActive: "yes" as const },
   { name: "consultant", displayName: "Consultant", category: "business", isActive: "yes" as const },
+  { name: "freelancer", displayName: "Freelancer", category: "business", isActive: "yes" as const },
+  { name: "writer", displayName: "Writer", category: "creative", isActive: "yes" as const },
+  { name: "content_creator", displayName: "Content creator", category: "creative", isActive: "yes" as const },
   { name: "artist", displayName: "Artist", category: "creative", isActive: "yes" as const },
+  { name: "teacher", displayName: "Teacher", category: "education", isActive: "yes" as const },
   { name: "researcher", displayName: "Researcher", category: "academia", isActive: "yes" as const },
+  { name: "doctor", displayName: "Doctor", category: "healthcare", isActive: "yes" as const },
+  { name: "nurse", displayName: "Nurse", category: "healthcare", isActive: "yes" as const },
+  { name: "finance", displayName: "Finance", category: "business", isActive: "yes" as const },
+  { name: "lawyer", displayName: "Lawyer", category: "business", isActive: "yes" as const },
+  { name: "hr", displayName: "HR", category: "business", isActive: "yes" as const },
+  { name: "engineer", displayName: "Engineer", category: "technology", isActive: "yes" as const },
+  { name: "other", displayName: "Other", category: "other", isActive: "yes" as const },
 ];
 
 export const MOOD_SEED = [

@@ -52,7 +52,8 @@ import { UsernamePickerField } from '@/features/profile/components/username-pick
 
 /** Shared field chrome — `border-input` used the input fill token and vanished on dark cards. */
 const SETUP_FIELD_CLASS =
-  "rounded-xl border border-border bg-background shadow-xs transition-all hover:border-primary/50 focus-visible:border-primary focus-visible:ring-primary/20 dark:border-white/12 dark:bg-white/[0.03] dark:hover:border-primary/40"
+  "rounded-xl border border-border bg-background shadow-xs transition-all hover:border-primary/50 focus-visible:border-primary focus-visible:ring-primary/20 dark:border-white/12 dark:bg-white/[0.03] dark:hover:border-primary/40 placeholder:text-[13px] sm:placeholder:text-[13px] data-[placeholder]:text-[13px] sm:data-[placeholder]:text-[13px]"
+
 
 const SETUP_CARD_BORDER_CLASS = "border-border dark:border-white/10"
 
