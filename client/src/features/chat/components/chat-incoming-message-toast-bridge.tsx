@@ -1,42 +1,39 @@
-'use client';
+"use client";
 
-import { useEffect, useLayoutEffect, useRef } from 'react';
-import { useRouter } from 'next/navigation';
-import { useQueryClient } from '@tanstack/react-query';
-import { useSession } from '@/lib/auth-client';
-import { useSocket } from '@/lib/socket/provider';
-import { markRoomMinimized } from '@/features/room/lib/session/room-sync';
-import { useRoomStore } from '@/features/room/state/room.store';
-import { conversationFromCache } from '../lib/conversation-from-cache';
+import { useEffect, useLayoutEffect, useRef } from "react";
+import { useRouter } from "next/navigation";
+import { useQueryClient } from "@tanstack/react-query";
+
+import { markRoomMinimized } from "@/features/room/lib/session/room-sync";
+import { useRoomStore } from "@/features/room/state/room.store";
+import { useSession } from "@/lib/auth-client";
+import { useSocket } from "@/lib/socket/provider";
+
+import { conversationFromCache } from "../lib/conversation-from-cache";
 import {
-  incomingMessagePath,
   shouldToastIncomingMessage,
   showIncomingMessageToast,
-} from '../lib/incoming-message-toast';
-import { useChatUiStore } from '../state/chat-ui.store';
-import type { Message } from '../types/chat.types';
+} from "../lib/incoming-message-toast";
+import { messagesConversationPath } from "../lib/messages-routes";
+import { useChatUiStore } from "../state/chat-ui.store";
+import type { Message } from "../types/chat.types";
 
-/** Full-screen call (not minimized) whose room chat matches this conversation. */
-function isActiveInCallConversation(conversationId: string): boolean {
+function isInCallForConversation(conversationId: string): boolean {
   const { ui, session } = useRoomStore.getState();
   return (
     ui.sessionActive &&
     !ui.isMinimized &&
-    Boolean(session.conversationId) &&
     session.conversationId === conversationId
   );
 }
 
-function bumpUnreadIfNeeded(conversationId: string, activeConversationId: string | null): void {
-  if (activeConversationId === conversationId) return;
+function bumpUnread(conversationId: string, viewingConversationId: string | null): void {
+  if (viewingConversationId === conversationId) return;
   useChatUiStore.getState().incrementUnreadCount(conversationId);
 }
 
-/** Keep the live call as a dock when leaving `/space` for another app route. */
-function navigateFromIncomingMessageToast(
-  path: string,
-  push: (href: string) => void,
-): void {
+/** Minimize the call dock, then leave `/space` for another route (e.g. Messages). */
+function leaveCallAndNavigate(path: string, push: (href: string) => void): void {
   const { ui, minimizeVideoSession } = useRoomStore.getState();
   if (ui.sessionActive && !ui.isMinimized) {
     markRoomMinimized();
@@ -45,48 +42,58 @@ function navigateFromIncomingMessageToast(
   push(path);
 }
 
-/** Toast when a peer message arrives while the user is not viewing that thread. */
+/**
+ * Shows a toast when a peer message arrives and the thread is not open.
+ * In-call room messages open the call chat UI; everything else goes to Messages.
+ */
 export function ChatIncomingMessageToastBridge() {
   const router = useRouter();
-  const qc = useQueryClient();
+  const queryClient = useQueryClient();
   const { chatSocket: socket } = useSocket();
   const { data: session } = useSession();
-  const currentUserId = session?.user?.id ?? '';
+  const currentUserId = session?.user?.id ?? "";
+
   const activeConversationId = useChatUiStore((s) => s.activeConversationId);
-  const activeRef = useRef(activeConversationId);
+  const activeConversationIdRef = useRef(activeConversationId);
 
   useLayoutEffect(() => {
-    activeRef.current = activeConversationId;
+    activeConversationIdRef.current = activeConversationId;
   }, [activeConversationId]);
 
   useEffect(() => {
     if (!socket || !currentUserId) return;
 
-    const onNew = (msg: Message) => {
-      const conv = conversationFromCache(qc, msg.conversationId);
-      if (!shouldToastIncomingMessage(msg, currentUserId, activeRef.current, conv)) return;
+    const onNewMessage = (msg: Message) => {
+      const viewingId = activeConversationIdRef.current;
+      const conversation = conversationFromCache(queryClient, msg.conversationId);
 
-      bumpUnreadIfNeeded(msg.conversationId, activeRef.current);
+      if (!shouldToastIncomingMessage(msg, currentUserId, viewingId, conversation)) {
+        return;
+      }
 
-      // In-call (1:1 or group): stay on the call and open chat panel/drawer.
-      if (isActiveInCallConversation(msg.conversationId)) {
-        showIncomingMessageToast(msg, conv, () => {
+      bumpUnread(msg.conversationId, viewingId);
+
+      if (isInCallForConversation(msg.conversationId)) {
+        showIncomingMessageToast(msg, () => {
           useRoomStore.getState().requestOpenInCallChat();
         });
         return;
       }
 
-      const path = incomingMessagePath(msg, conv);
-      showIncomingMessageToast(msg, conv, () =>
-        navigateFromIncomingMessageToast(path, (href) => router.push(href)),
+      const messagesPath = messagesConversationPath(
+        msg.conversationId,
+        conversation?.type ?? "connection",
       );
+      showIncomingMessageToast(msg, () => {
+        leaveCallAndNavigate(messagesPath, (href) => router.push(href));
+      });
     };
 
-    socket.on('chat:message:new', onNew);
+    socket.on("chat:message:new", onNewMessage);
     return () => {
-      socket.off('chat:message:new', onNew);
+      socket.off("chat:message:new", onNewMessage);
     };
-  }, [socket, currentUserId, qc, router]);
+  }, [socket, currentUserId, queryClient, router]);
 
   return null;
 }

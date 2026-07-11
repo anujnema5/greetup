@@ -11,17 +11,28 @@ import { nameInitials } from "@/lib/utils/name-initials";
 import { messageSenderLabel, messageToastPreview } from "../lib/message-toast-preview";
 import type { Message } from "../types/chat.types";
 
-type Props = {
+type IncomingMessageToastContentProps = {
   message: Message;
   toastId: string | number;
   onOpen: () => void;
 };
 
-export function IncomingMessageToastContent({ message, toastId, onOpen }: Props) {
+export function IncomingMessageToastContent({
+  message,
+  toastId,
+  onOpen,
+}: IncomingMessageToastContentProps) {
   const senderName = messageSenderLabel(message.sender);
   const preview = messageToastPreview(message);
   const senderSeed = message.sender?.id ?? message.senderId;
-  const avatarSrc = message.sender?.image ? getProfileImageUrl(message.sender.image) : null;
+  const avatarSrc = message.sender?.image
+    ? getProfileImageUrl(message.sender.image)
+    : null;
+
+  const dismiss = (event: React.SyntheticEvent) => {
+    event.stopPropagation();
+    toast.dismiss(toastId);
+  };
 
   return (
     <div
@@ -36,7 +47,11 @@ export function IncomingMessageToastContent({ message, toastId, onOpen }: Props)
       >
         {avatarSrc ? (
           // eslint-disable-next-line @next/next/no-img-element
-          <img src={avatarSrc} alt="" className="h-10 w-10 shrink-0 rounded-full object-cover" />
+          <img
+            src={avatarSrc}
+            alt=""
+            className="h-10 w-10 shrink-0 rounded-full object-cover"
+          />
         ) : (
           <div
             className={cn(
@@ -50,22 +65,20 @@ export function IncomingMessageToastContent({ message, toastId, onOpen }: Props)
 
         <div className="min-w-0 flex-1">
           <p className="truncate text-sm font-medium text-foreground">{senderName}</p>
-          <p className="mt-0.5 line-clamp-2 text-xs leading-snug text-muted-foreground">{preview}</p>
+          <p className="mt-0.5 line-clamp-2 text-xs leading-snug text-muted-foreground">
+            {preview}
+          </p>
         </div>
 
         <span
           role="button"
           tabIndex={0}
           aria-label="Dismiss"
-          onClick={(event) => {
-            event.stopPropagation();
-            toast.dismiss(toastId);
-          }}
+          onClick={dismiss}
           onKeyDown={(event) => {
             if (event.key === "Enter" || event.key === " ") {
               event.preventDefault();
-              event.stopPropagation();
-              toast.dismiss(toastId);
+              dismiss(event);
             }
           }}
           className="inline-flex h-7 w-7 shrink-0 cursor-pointer items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
