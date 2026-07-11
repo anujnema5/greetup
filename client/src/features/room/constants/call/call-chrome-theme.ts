@@ -1,5 +1,9 @@
-/** Force dark tokens for the in-call room shell (independent of app light/dark preference). */
-export const CALL_ROOM_FORCED_DARK_CLASS = "dark";
+/**
+ * Force dark tokens for the in-call room shell (independent of app light/dark preference).
+ * Include `text-foreground` so color re-resolves against `.dark` variables — otherwise
+ * body (light theme) inherits its already-computed dark text into the call surface.
+ */
+export const CALL_ROOM_FORCED_DARK_CLASS = "dark text-foreground";
 
 /** In-call chrome — always rendered inside {@link CALL_ROOM_FORCED_DARK_CLASS}. */
 
