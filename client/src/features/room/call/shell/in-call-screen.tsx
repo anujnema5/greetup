@@ -4,7 +4,7 @@
  * InCallScreen is the main in-call screen renderer for both direct and space rooms.
  *
  * Purpose:
- * - Owns local UI state (right panel tab, stage ratio, active activity, mobile chat drawer).
+ * - Owns call UI state (stage ratio, active activity; right panel tab + mobile drawer live in the room store so minimize restores them).
  * - Narrow viewports: Vaul bottom drawer for chat/people/activities.
  * - Space calls: footer “Options” opens invite/link/chat; stage edit icon opens rename dialog.
  * - Delegates media-derived values to `useCallDisplayData`.
@@ -45,6 +45,7 @@ import { useCallDisplayData } from "@/features/room/hooks/media/use-call-display
 import { useCallRenderDebug } from "@/features/room/hooks/debug/use-call-render-debug";
 import { useStageFullscreen } from "@/features/room/hooks/call-ui/use-stage-fullscreen";
 import {
+  selectCallMobilePanelOpen,
   selectOpenInCallChatNonce,
   useRoomStore,
 } from "@/features/room/state/room.store";
@@ -220,8 +221,10 @@ export function InCallScreen({
   const mdDown = useSyncExternalStore(subscribeMdDown, snapshotMdDown, snapshotMdDownServer);
   const stageShellRef = useRef<HTMLDivElement>(null);
   const stageFullscreen = useStageFullscreen(stageShellRef);
-  const [mobileChatSheetOpen, setMobileChatSheetOpen] = useState(false);
+  const mobileChatSheetOpen = useRoomStore(selectCallMobilePanelOpen);
+  const setMobileChatSheetOpen = useRoomStore((s) => s.setCallMobilePanelOpen);
   const openInCallChatNonce = useRoomStore(selectOpenInCallChatNonce);
+  const handledOpenInCallChatNonceRef = useRef(openInCallChatNonce);
   const setSessionConversationId = useRoomStore((s) => s.setSessionConversationId);
   const [activeActivity, setActiveActivity] = useState<RoomActivityId | null>(null);
   const [stageRatio, setStageRatio] = useState<StageRatio>(() =>
@@ -464,7 +467,9 @@ export function InCallScreen({
   );
 
   useEffect(() => {
-    if (!openInCallChatNonce || !conversationId) return;
+    if (!conversationId) return;
+    if (openInCallChatNonce === handledOpenInCallChatNonceRef.current) return;
+    handledOpenInCallChatNonceRef.current = openInCallChatNonce;
     selectRightPanelTab("chat");
   }, [openInCallChatNonce, conversationId, selectRightPanelTab]);
 

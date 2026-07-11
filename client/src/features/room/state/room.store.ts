@@ -2,6 +2,7 @@ import { create } from 'zustand';
 
 import { isSpaceSearchRoomId } from '@/features/room/lib/navigation/space-routes';
 import { useRoomActivityStore } from '@/features/room/state/room-activity.store';
+import type { RoomCallRightPanelTab } from '@/features/room/types/call/room-call-panel.types';
 import type { RoomMediaStatus, RoomPeerEntry, RoomSessionPhase } from '@/features/room/types/room-state.types';
 
 export type RoomStoreState = {
@@ -15,6 +16,12 @@ export type RoomStoreState = {
      * (desktop dock tab or mobile drawer). `InCallScreen` listens while mounted.
      */
     openInCallChatNonce: number;
+    /**
+     * In-call right panel / mobile sheet — kept across minimize so expanding
+     * restores the same tab and open/closed state instead of resetting to chat.
+     */
+    callRightPanelTab: RoomCallRightPanelTab;
+    callMobilePanelOpen: boolean;
   };
   session: {
     activeRoomId: string | null;
@@ -61,6 +68,8 @@ type RoomStore = RoomStoreState & {
   setSessionConversationId: (conversationId: string | null) => void;
   /** Ask full-screen call UI to switch to Chat (desktop dock tab or mobile drawer). */
   requestOpenInCallChat: () => void;
+  setCallRightPanelTab: (tab: RoomCallRightPanelTab) => void;
+  setCallMobilePanelOpen: (open: boolean) => void;
 };
 
 const createInitialState = (): RoomStoreState => ({
@@ -69,6 +78,8 @@ const createInitialState = (): RoomStoreState => ({
     isMinimized: false,
     localLeavePending: false,
     openInCallChatNonce: 0,
+    callRightPanelTab: 'chat',
+    callMobilePanelOpen: false,
   },
   session: {
     activeRoomId: null,
@@ -163,6 +174,9 @@ export const useRoomStore = create<RoomStore>((set) => ({
         sessionActive: false,
         isMinimized: false,
         localLeavePending: false,
+        openInCallChatNonce: 0,
+        callRightPanelTab: 'chat',
+        callMobilePanelOpen: false,
       },
     })),
 
@@ -199,6 +213,9 @@ export const useRoomStore = create<RoomStore>((set) => ({
         sessionActive: false,
         isMinimized: false,
         localLeavePending: state.ui.localLeavePending,
+        openInCallChatNonce: 0,
+        callRightPanelTab: 'chat',
+        callMobilePanelOpen: false,
       },
       session: {
         ...state.session,
@@ -241,6 +258,9 @@ export const useRoomStore = create<RoomStore>((set) => ({
         sessionActive: true,
         isMinimized: false,
         localLeavePending: false,
+        openInCallChatNonce: 0,
+        callRightPanelTab: 'chat',
+        callMobilePanelOpen: false,
       },
       session: {
         ...state.session,
@@ -314,6 +334,18 @@ export const useRoomStore = create<RoomStore>((set) => ({
         openInCallChatNonce: state.ui.openInCallChatNonce + 1,
       },
     })),
+
+  setCallRightPanelTab: (tab) =>
+    set((state) => ({
+      ...state,
+      ui: { ...state.ui, callRightPanelTab: tab },
+    })),
+
+  setCallMobilePanelOpen: (open) =>
+    set((state) => ({
+      ...state,
+      ui: { ...state.ui, callMobilePanelOpen: open },
+    })),
 }));
 
 export const selectRoom = (state: RoomStore) => state;
@@ -344,6 +376,10 @@ export const selectRoomChromeForcesDark = (state: RoomStore) =>
   (state.ui.sessionActive || state.session.phase === 'searching') && !state.ui.isMinimized;
 
 export const selectOpenInCallChatNonce = (state: RoomStore) => state.ui.openInCallChatNonce;
+
+export const selectCallRightPanelTab = (state: RoomStore) => state.ui.callRightPanelTab;
+
+export const selectCallMobilePanelOpen = (state: RoomStore) => state.ui.callMobilePanelOpen;
 
 export const selectRoomPeers = (state: RoomStore) => state.peers.byUserId;
 

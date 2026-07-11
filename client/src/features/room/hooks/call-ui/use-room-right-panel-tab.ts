@@ -2,6 +2,10 @@
 
 import { useCallback, useState } from "react";
 
+import {
+  selectCallRightPanelTab,
+  useRoomStore,
+} from "@/features/room/state/room.store";
 import type { RoomCallRightPanelTab } from "@/features/room/types/call/room-call-panel.types";
 
 export type UseRoomRightPanelTabParams = {
@@ -23,29 +27,28 @@ export type UseRoomRightPanelTabResult = {
 /**
  * Owns the right-hand panel tab in the in-call view and the auto-routing rules around it:
  *
- * - Auto-switches to `"participants"` when `showPeopleTab` becomes `true` at xl+ (share /
- *   embedded activity starts, or we remount into a call that already has one). Implemented
- *   by adjusting state during render (React's canonical pattern for prop transitions), which
- *   keeps the rule out of an effect and avoids cascading-render warnings.
+ * - Tab lives in the room store so minimize → expand restores the same selection.
+ * - Auto-switches to `"participants"` when `showPeopleTab` rises false→true at xl+ while
+ *   mounted (share / embedded activity starts). First xl+ paint only seeds the edge
+ *   detector so returning from the minimized dock does not override the restored tab.
  * - Falls back to `"chat"` when the stored tab's content has gone away — derived from the
  *   stored value and availability flags, so no effect is required.
  * - `surfacePeopleIfAvailable` lets event handlers (e.g. exiting the share fullscreen)
  *   re-assert People when it's still meaningful.
- *
- * xlUp gate: matchMedia returns `false` synchronously on first paint. Tracking the last
- * `showPeopleTab` we observed *while xl+* defers the transition until xlUp resolves, so a
- * call that's already sharing on mount (e.g. returning from the minimized dock) still trips
- * the auto-switch.
  */
 export function useRoomRightPanelTab({
   showPeopleTab,
   showActivitiesTab,
   xlUp,
 }: UseRoomRightPanelTabParams): UseRoomRightPanelTabResult {
-  const [storedTab, setTab] = useState<RoomCallRightPanelTab>("chat");
+  const storedTab = useRoomStore(selectCallRightPanelTab);
+  const setTab = useRoomStore((s) => s.setCallRightPanelTab);
   const [seenShowPeopleTab, setSeenShowPeopleTab] = useState<boolean | null>(null);
 
-  if (xlUp && showPeopleTab !== seenShowPeopleTab) {
+  if (xlUp && seenShowPeopleTab === null) {
+    // Seed on first xl+ observation — do not treat remount / hydrate as a rising edge.
+    setSeenShowPeopleTab(showPeopleTab);
+  } else if (xlUp && showPeopleTab !== seenShowPeopleTab) {
     setSeenShowPeopleTab(showPeopleTab);
     if (showPeopleTab && !seenShowPeopleTab) {
       setTab("participants");
@@ -60,7 +63,7 @@ export function useRoomRightPanelTab({
 
   const surfacePeopleIfAvailable = useCallback(() => {
     if (xlUp && showPeopleTab) setTab("participants");
-  }, [xlUp, showPeopleTab]);
+  }, [xlUp, showPeopleTab, setTab]);
 
   return { tab, setTab, surfacePeopleIfAvailable };
 }
