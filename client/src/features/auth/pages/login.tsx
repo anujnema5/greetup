@@ -1,7 +1,8 @@
 "use client";
 
-import { Suspense, useState } from "react";
+import { Suspense, useEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import { toast } from "sonner";
 
 import { PageLoading } from "@/components/page-loading";
 import PhoneLoginForm from "@/features/auth/components/phone-login-form";
@@ -17,12 +18,37 @@ import { getAuthCallbackUrl } from "@/features/auth/lib/auth-callback-url";
 
 type View = "phone" | "email" | "otp";
 
+function oauthErrorMessage(code: string): string {
+  switch (code) {
+    case "state_mismatch":
+    case "state_not_found":
+    case "please_restart_the_process":
+      return "Google sign-in was interrupted. Please try again.";
+    case "access_denied":
+      return "Google sign-in was cancelled.";
+    default:
+      return "Sign-in failed. Please try again.";
+  }
+}
+
 function LoginPageContent() {
   const [view, setView] = useState<View>("email");
   const [phoneNumber, setPhoneNumber] = useState("");
   const router = useRouter();
   const searchParams = useSearchParams();
   const fromGuestIntent = searchParams.get("from") === "guest";
+  const oauthError = searchParams.get("error");
+  const oauthErrorShownRef = useRef(false);
+
+  useEffect(() => {
+    if (!oauthError || oauthErrorShownRef.current) return;
+    oauthErrorShownRef.current = true;
+    toast.error(oauthErrorMessage(oauthError));
+    const next = new URLSearchParams(searchParams.toString());
+    next.delete("error");
+    const qs = next.toString();
+    router.replace(qs ? `/login?${qs}` : "/login");
+  }, [oauthError, router, searchParams]);
 
   const handleOTPSent = (phone: string) => {
     setPhoneNumber(phone);
@@ -69,6 +95,8 @@ function LoginPageContent() {
         footerText="New to Greetup?"
         footerLinkText="Create account"
         onFooterLinkClick={handleCreateAccount}
+        backHref="/"
+        backLabel="Back to home"
       >
         <SocialLoginButtons callbackURL={getAuthCallbackUrl()} />
 

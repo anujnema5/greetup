@@ -1,5 +1,7 @@
 // features/auth/components/auth-page-layout.tsx
 import { ReactNode } from "react";
+import Link from "next/link";
+import { ArrowLeft } from "lucide-react";
 import { Logo } from "@/components/logo";
 import { ThemeToggle } from "@/components/theme-toggle";
 
@@ -10,6 +12,8 @@ interface AuthPageLayoutProps {
   footerText: string;
   footerLinkText: string;
   onFooterLinkClick: () => void;
+  backHref?: string;
+  backLabel?: string;
 }
 
 export default function AuthPageLayout({
@@ -19,12 +23,24 @@ export default function AuthPageLayout({
   footerText,
   footerLinkText,
   onFooterLinkClick,
+  backHref,
+  backLabel = "Back to home",
 }: AuthPageLayoutProps) {
   return (
     <div className="relative flex min-h-screen w-full items-center justify-center bg-linear-to-br from-background via-background to-muted/20">
       <div className="grid h-full w-full max-w-7xl gap-8 p-6 lg:grid-cols-2 lg:gap-12 lg:p-8">
         <main className="flex items-center justify-center">
           <div className="w-full max-w-md space-y-6">
+            {backHref ? (
+              <Link
+                href={backHref}
+                className="inline-flex items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground"
+              >
+                <ArrowLeft className="size-4 shrink-0" />
+                {backLabel}
+              </Link>
+            ) : null}
+
             <div className="flex flex-col items-center space-y-6">
               <Logo className="scale-110" />
 
