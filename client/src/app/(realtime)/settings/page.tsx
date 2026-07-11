@@ -10,7 +10,7 @@ import { PhoneNumberSettingsCard } from "@/features/settings/components/phone-nu
 import { ReplayTourSettingsCard } from "@/features/tour-guide";
 import { ReportProblemSettingsCard } from "@/features/problem-reports";
 
-const SETTINGS_TILE_CLASS = "min-w-0 w-full max-w-[20rem]";
+const SETTINGS_TILE_CLASS = "min-w-0 w-full";
 
 function SettingsSection({
   icon: Icon,
