@@ -141,7 +141,7 @@ export function UsernamePickerField({
             autoComplete="off"
             spellCheck={false}
             placeholder={inputPlaceholder}
-            className="h-full min-w-0 flex-1 rounded-none border-0 bg-transparent px-3 text-base shadow-none focus-visible:ring-0 dark:bg-transparent"
+            className="h-full min-w-0 flex-1 rounded-none border-0 bg-transparent px-3 text-base shadow-none placeholder:text-[13px] sm:placeholder:text-xs focus-visible:ring-0 dark:bg-transparent"
           />
           <Button
             type="button"

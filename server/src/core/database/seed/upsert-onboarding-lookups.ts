@@ -14,6 +14,7 @@ import {
   MOOD_SEED,
   PROFESSION_SEED,
   RETIRED_GOAL_NAMES,
+  RETIRED_INTEREST_NAMES,
 } from "./onboarding-lookups.data";
 import type { SeedDb } from "./seed-db";
 
@@ -86,6 +87,13 @@ export async function upsertOnboardingLookups(db: SeedDb): Promise<void> {
     }
 
     await db.insert(interests).values(row);
+  }
+
+  if (RETIRED_INTEREST_NAMES.length > 0) {
+    await db
+      .update(interests)
+      .set({ isActive: "no" })
+      .where(inArray(interests.name, [...RETIRED_INTEREST_NAMES]));
   }
 
   for (const row of PROFESSION_SEED) {

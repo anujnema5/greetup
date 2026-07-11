@@ -236,7 +236,7 @@ async function seed() {
         gender: pick(GENDERS, i),
         age: 22 + ((i * 3) % 18),
         profession: pick(
-          ["software_engineer", "designer", "student", "marketing", "writer", "teacher"],
+          ["software_engineer", "designer", "student", "marketing", "product_manager", "content_creator"],
           i,
         ),
         educationLevel: pick(EDUCATION, i),
@@ -269,7 +269,7 @@ async function seed() {
     if (!profileId) continue;
 
     const g1 = goalByName.get(pick(["make_friends", "networking", "casual_chat"], i));
-    const g2 = goalByName.get(pick(["collaborate", "share_ideas", "practice_language", "learn_skills", "join_spaces"], i));
+    const g2 = goalByName.get(pick(["collaborate", "share_ideas", "practice_language", "learn_skills", "find_mentor"], i));
     const goalIds = [...new Set([g1, g2].filter(Boolean))] as string[];
     if (goalIds.length) {
       await db.insert(profileGoals).values(
@@ -279,7 +279,7 @@ async function seed() {
 
     const i1 = interestByName.get(pick(["music", "gaming", "ai", "anime"], i));
     const i2 = interestByName.get(pick(["technology", "startups", "career_growth", "design"], i));
-    const i3 = interestByName.get(pick(["languages", "productivity", "podcasts", "wellness"], i));
+    const i3 = interestByName.get(pick(["languages", "podcasts", "wellness", "science"], i));
     const interestIds = [...new Set([i1, i2, i3].filter(Boolean))] as string[];
     if (interestIds.length) {
       await db.insert(profileInterests).values(
@@ -289,7 +289,7 @@ async function seed() {
 
     const profId = professionByName.get(
       pick(
-        ["software_engineer", "designer", "student", "teacher", "marketing", "writer"],
+        ["software_engineer", "designer", "student", "product_manager", "marketing", "content_creator"],
         i,
       ),
     );
