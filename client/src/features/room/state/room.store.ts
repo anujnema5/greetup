@@ -11,10 +11,10 @@ export type RoomStoreState = {
     /** True while the local user is leaving — suppresses rematch search UI. */
     localLeavePending: boolean;
     /**
-     * Bumped to ask the full-screen call UI to open the mobile chat drawer.
-     * `InCallScreen` listens while mounted (not minimized).
+     * Bumped when something wants the full-screen call UI to open Chat
+     * (desktop dock tab or mobile drawer). `InCallScreen` listens while mounted.
      */
-    openMobileChatNonce: number;
+    openInCallChatNonce: number;
   };
   session: {
     activeRoomId: string | null;
@@ -68,7 +68,7 @@ const createInitialState = (): RoomStoreState => ({
     sessionActive: false,
     isMinimized: false,
     localLeavePending: false,
-    openMobileChatNonce: 0,
+    openInCallChatNonce: 0,
   },
   session: {
     activeRoomId: null,
@@ -311,7 +311,7 @@ export const useRoomStore = create<RoomStore>((set) => ({
       ...state,
       ui: {
         ...state.ui,
-        openMobileChatNonce: state.ui.openMobileChatNonce + 1,
+        openInCallChatNonce: state.ui.openInCallChatNonce + 1,
       },
     })),
 }));
@@ -343,9 +343,7 @@ export const selectRoomPhase = (state: RoomStore) => state.session.phase;
 export const selectRoomChromeForcesDark = (state: RoomStore) =>
   (state.ui.sessionActive || state.session.phase === 'searching') && !state.ui.isMinimized;
 
-export const selectOpenMobileChatNonce = (state: RoomStore) => state.ui.openMobileChatNonce;
-
-export const selectSessionConversationId = (state: RoomStore) => state.session.conversationId;
+export const selectOpenInCallChatNonce = (state: RoomStore) => state.ui.openInCallChatNonce;
 
 export const selectRoomPeers = (state: RoomStore) => state.peers.byUserId;
 

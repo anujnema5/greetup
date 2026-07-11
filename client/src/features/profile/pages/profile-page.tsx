@@ -8,7 +8,6 @@ import {
   Camera,
   FileText,
   Heart,
-  Loader2,
   MapPin,
   MessageSquare,
   SlidersHorizontal,
@@ -19,6 +18,7 @@ import {
   Users,
 } from "lucide-react";
 import { toast } from "sonner";
+import { BrandSpinner } from "@/components/brand-spinner";
 import { ApiError } from "@/lib/api/fetch-client";
 
 import { NavSidebar, BottomNav, PageHeader } from "@/features/app-shell";
@@ -150,9 +150,7 @@ export function ProfilePage() {
   );
 
   if (loading) {
-    return shell(
-      <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" aria-label="Loading" />
-    );
+    return shell(<BrandSpinner size="sm" />);
   }
 
   if (profileQuery.isError) {

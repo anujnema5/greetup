@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Mail, ArrowLeft, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
+import { PageLoading } from '@/components/page-loading';
 import { getAuthCallbackUrl } from '../lib/auth-callback-url';
 import { getAuthErrorMessage } from '../utils/auth-error';
 
@@ -169,11 +170,7 @@ function VerifyEmailContent() {
 
 export default function VerifyEmailPage() {
     return (
-        <Suspense fallback={
-            <div className="min-h-screen flex items-center justify-center bg-background">
-                <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
-            </div>
-        }>
+        <Suspense fallback={<PageLoading />}>
             <VerifyEmailContent />
         </Suspense>
     );

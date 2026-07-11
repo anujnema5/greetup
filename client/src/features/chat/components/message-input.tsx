@@ -129,9 +129,9 @@ export function MessageInput({
 
       <div
         className={cn(
-          'flex max-h-32 min-h-11 w-full gap-1 rounded-full border border-border/60 bg-muted/50 pl-4 pr-1.5 shadow-sm transition-[box-shadow,border-color]',
+          'flex min-h-11 w-full max-w-full gap-1 overflow-hidden border border-border/60 bg-muted/50 pl-4 pr-1.5 shadow-sm transition-[box-shadow,border-color,border-radius]',
           'focus-within:border-primary/40 focus-within:ring-2 focus-within:ring-primary/15',
-          isMultiline ? 'items-end py-1.5' : 'items-center',
+          isMultiline ? 'items-end rounded-3xl py-1.5' : 'items-center rounded-full',
           disabled && 'opacity-60',
         )}
       >
@@ -145,7 +145,7 @@ export function MessageInput({
           rows={1}
           disabled={disabled}
           aria-label="Message"
-          className="max-h-32 min-h-5 min-w-0 flex-1 shrink-0 resize-none overflow-y-auto bg-transparent text-[15px] leading-5 text-foreground outline-none placeholder:text-muted-foreground/55 disabled:cursor-not-allowed"
+          className="max-h-32 min-h-5 min-w-0 flex-1 resize-none overflow-x-hidden overflow-y-auto wrap-anywhere bg-transparent text-[15px] leading-5 text-foreground outline-none placeholder:text-muted-foreground/55 disabled:cursor-not-allowed"
         />
         <Button
           type="button"

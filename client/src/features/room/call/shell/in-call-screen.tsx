@@ -45,7 +45,7 @@ import { useCallDisplayData } from "@/features/room/hooks/media/use-call-display
 import { useCallRenderDebug } from "@/features/room/hooks/debug/use-call-render-debug";
 import { useStageFullscreen } from "@/features/room/hooks/call-ui/use-stage-fullscreen";
 import {
-  selectOpenMobileChatNonce,
+  selectOpenInCallChatNonce,
   useRoomStore,
 } from "@/features/room/state/room.store";
 import type { InCallScreenProps } from "@/features/room/types/call/in-call-screen.types";
@@ -221,7 +221,7 @@ export function InCallScreen({
   const stageShellRef = useRef<HTMLDivElement>(null);
   const stageFullscreen = useStageFullscreen(stageShellRef);
   const [mobileChatSheetOpen, setMobileChatSheetOpen] = useState(false);
-  const openMobileChatNonce = useRoomStore(selectOpenMobileChatNonce);
+  const openInCallChatNonce = useRoomStore(selectOpenInCallChatNonce);
   const setSessionConversationId = useRoomStore((s) => s.setSessionConversationId);
   const [activeActivity, setActiveActivity] = useState<RoomActivityId | null>(null);
   const [stageRatio, setStageRatio] = useState<StageRatio>(() =>
@@ -464,9 +464,9 @@ export function InCallScreen({
   );
 
   useEffect(() => {
-    if (!openMobileChatNonce || !conversationId) return;
+    if (!openInCallChatNonce || !conversationId) return;
     selectRightPanelTab("chat");
-  }, [openMobileChatNonce, conversationId, selectRightPanelTab]);
+  }, [openInCallChatNonce, conversationId, selectRightPanelTab]);
 
   useEffect(() => {
     return () => {

@@ -18,6 +18,7 @@ import ReactCountryFlag from 'react-country-flag'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { ProgressBar } from '@/components/ui/progress-bar'
+import { PageLoading } from '@/components/page-loading'
 import {
   Select,
   SelectContent,
@@ -177,12 +178,10 @@ const ProfileSetupStep = () => {
 
   if (isLoading || !currentStepData) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-linear-to-b from-background to-muted/20">
-        <div className="flex flex-col items-center gap-4">
-          <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent"></div>
-          <div className="text-muted-foreground">Loading...</div>
-        </div>
-      </div>
+      <PageLoading
+        message="Loading..."
+        className="bg-linear-to-b from-background to-muted/20"
+      />
     )
   }
 

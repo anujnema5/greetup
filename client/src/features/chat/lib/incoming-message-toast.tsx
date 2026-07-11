@@ -4,9 +4,9 @@ import { toast } from "sonner";
 
 import { IncomingMessageToastContent } from "../components/incoming-message-toast-content";
 import { isMessagingBlocked } from "./messaging-block";
-import { messagesConversationPath } from "./messages-routes";
 import type { Conversation, Message } from "../types/chat.types";
 
+/** Skip toasts for own/system messages, blocked threads, or the thread already on screen. */
 export function shouldToastIncomingMessage(
   msg: Message,
   currentUserId: string,
@@ -22,7 +22,6 @@ export function shouldToastIncomingMessage(
 
 export function showIncomingMessageToast(
   msg: Message,
-  conv: Conversation | undefined,
   onOpen: () => void,
 ): void {
   toast.custom(
@@ -46,12 +45,4 @@ export function showIncomingMessageToast(
       },
     },
   );
-}
-
-/** @deprecated Prefer passing `onOpen` directly — kept for path helpers in the bridge. */
-export function incomingMessagePath(
-  msg: Message,
-  conv: Conversation | undefined,
-): string {
-  return messagesConversationPath(msg.conversationId, conv?.type ?? "connection");
 }

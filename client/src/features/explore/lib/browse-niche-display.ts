@@ -3,19 +3,28 @@ import { EXPLORE } from "@/lib/copy/user-messages";
 import type { ActiveSpaceItem } from "@/features/spaces/types/spaces-api.types";
 import type { BrowseNicheItem } from "../types/browse-niches.types";
 
-/** Keep in sync with server `isRoomCategoryPickable`. */
-const HIDDEN_NICHE_SLUGS = new Set(["match", "connection_call", "connection-call"]);
+/** Keep in sync with server `SYSTEM_ROOM_CATEGORY_SLUGS` — system rooms are personal, not niches. */
+const HIDDEN_NICHE_SLUGS = new Set([
+  "match",
+  "connection",
+  "connection_call",
+  "connection-call",
+]);
+
+const HIDDEN_NICHE_LABELS = new Set(["match", "connection call"]);
 
 function normalizeCategorySlug(slug: string): string {
   return slug.trim().toLowerCase().replace(/-/g, "_").replace(/\s+/g, "_");
 }
 
-export function isBrowseNichePickable(slug: string): boolean {
-  return !HIDDEN_NICHE_SLUGS.has(normalizeCategorySlug(slug));
+export function isBrowseNichePickable(slug: string, displayName?: string): boolean {
+  if (HIDDEN_NICHE_SLUGS.has(normalizeCategorySlug(slug))) return false;
+  if (displayName && HIDDEN_NICHE_LABELS.has(displayName.trim().toLowerCase())) return false;
+  return true;
 }
 
 export function filterBrowseNiches(niches: readonly BrowseNicheItem[]): BrowseNicheItem[] {
-  return niches.filter((n) => isBrowseNichePickable(n.slug));
+  return niches.filter((n) => isBrowseNichePickable(n.slug, n.displayName));
 }
 
 export function formatNicheGroupCounts(niche: Pick<BrowseNicheItem, "liveGroupCount" | "scheduledGroupCount">): string {

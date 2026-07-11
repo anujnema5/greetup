@@ -2,8 +2,8 @@
 
 import { Suspense, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Loader2 } from "lucide-react";
 
+import { PageLoading } from "@/components/page-loading";
 import PhoneLoginForm from "@/features/auth/components/phone-login-form";
 import SocialLoginButtons from "@/features/auth/components/social-login-buttons";
 import LoginToggleButtons from "@/features/auth/components/login-toggle-buttons";
@@ -91,13 +91,7 @@ function LoginPageContent() {
 
 export default function LoginPage() {
   return (
-    <Suspense
-      fallback={
-        <div className="flex min-h-screen items-center justify-center">
-          <Loader2 className="size-8 animate-spin text-muted-foreground" aria-hidden />
-        </div>
-      }
-    >
+    <Suspense fallback={<PageLoading />}>
       <LoginPageContent />
     </Suspense>
   );

@@ -1,11 +1,18 @@
 export const GOAL_SEED = [
   { name: "make_friends", displayName: "Make friends", description: "Find and connect with new people", emoji: "🤝", isActive: "yes" as const },
   { name: "networking", displayName: "Networking", description: "Expand professional network", emoji: "📊", isActive: "yes" as const },
-  { name: "dating", displayName: "Dating", description: "Find romantic connections", emoji: "❤️", isActive: "yes" as const },
   { name: "practice_language", displayName: "Practice a language", description: "Improve language skills through conversation", emoji: "🗣️", isActive: "yes" as const },
   { name: "share_ideas", displayName: "Share ideas", description: "Discuss and exchange ideas", emoji: "💡", isActive: "yes" as const },
   { name: "casual_chat", displayName: "Casual chat", description: "Light conversation and company", emoji: "💬", isActive: "yes" as const },
+  { name: "collaborate", displayName: "Collaborate", description: "Find co-founders, project partners, or builders", emoji: "🛠️", isActive: "yes" as const },
+  { name: "learn_skills", displayName: "Learn skills", description: "Pick up skills through real conversation", emoji: "📚", isActive: "yes" as const },
+  { name: "find_mentor", displayName: "Find a mentor", description: "Get guidance from people ahead of you", emoji: "🧭", isActive: "yes" as const },
+  { name: "join_spaces", displayName: "Join spaces", description: "Hang out in live group rooms and communities", emoji: "🌐", isActive: "yes" as const },
+  { name: "accountability", displayName: "Accountability", description: "Stay on track with goals alongside someone", emoji: "✅", isActive: "yes" as const },
 ];
+
+/** Soft-retired: upsert deactivates these so they stop appearing in onboarding. */
+export const RETIRED_GOAL_NAMES = ["dating"] as const;
 
 export const INTEREST_SEED = [
   { name: "music", displayName: "Music", category: "arts", emoji: "🎵", isActive: "yes" as const },
@@ -20,6 +27,18 @@ export const INTEREST_SEED = [
   { name: "sports", displayName: "Sports", category: "lifestyle", emoji: "⚽", isActive: "yes" as const },
   { name: "art", displayName: "Art", category: "arts", emoji: "🎨", isActive: "yes" as const },
   { name: "startups", displayName: "Startups", category: "career", emoji: "🚀", isActive: "yes" as const },
+  { name: "ai", displayName: "AI", category: "career", emoji: "🤖", isActive: "yes" as const },
+  { name: "design", displayName: "Design", category: "arts", emoji: "✨", isActive: "yes" as const },
+  { name: "anime", displayName: "Anime", category: "entertainment", emoji: "🎌", isActive: "yes" as const },
+  { name: "languages", displayName: "Languages", category: "learning", emoji: "🌍", isActive: "yes" as const },
+  { name: "career_growth", displayName: "Career growth", category: "career", emoji: "📈", isActive: "yes" as const },
+  { name: "productivity", displayName: "Productivity", category: "lifestyle", emoji: "⚡", isActive: "yes" as const },
+  { name: "philosophy", displayName: "Philosophy", category: "learning", emoji: "🧠", isActive: "yes" as const },
+  { name: "podcasts", displayName: "Podcasts", category: "entertainment", emoji: "🎧", isActive: "yes" as const },
+  { name: "wellness", displayName: "Wellness", category: "lifestyle", emoji: "🌿", isActive: "yes" as const },
+  { name: "writing", displayName: "Writing", category: "arts", emoji: "✍️", isActive: "yes" as const },
+  { name: "science", displayName: "Science", category: "learning", emoji: "🔬", isActive: "yes" as const },
+  { name: "remote_work", displayName: "Remote work", category: "career", emoji: "🏡", isActive: "yes" as const },
 ];
 
 export const PROFESSION_SEED = [
@@ -61,4 +80,7 @@ export const LOOKING_FOR_OPTION_SEED = [
   { name: "support", displayName: "Support", description: "Emotional support" },
   { name: "debate", displayName: "Debate", description: "Friendly debate or discussion" },
   { name: "networking", displayName: "Networking", description: "Professional networking" },
+  { name: "collaboration", displayName: "Collaboration", description: "Build or ship something together" },
+  { name: "mentorship", displayName: "Mentorship", description: "Give or receive guidance" },
+  { name: "hangout", displayName: "Hangout", description: "Casual company in a live space" },
 ];

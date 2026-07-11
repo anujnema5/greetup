@@ -288,7 +288,7 @@ export async function initiateConnectionCallService(
     });
   }
 
-  const category = await roomCategoriesRepository.findActiveCategoryBySlug("match");
+  const category = await roomCategoriesRepository.findActiveCategoryBySlug("connection_call");
   if (!category) {
     rejectConnectionCall("Call category not configured", "ROOM_NOT_FOUND", 503, { callerUserId });
   }

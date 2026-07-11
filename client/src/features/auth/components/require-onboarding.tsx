@@ -2,8 +2,8 @@
 
 import { useEffect } from "react";
 import { usePathname, useRouter } from "next/navigation";
-import { Loader2 } from "lucide-react";
 
+import { PageLoading } from "@/components/page-loading";
 import { POST_AUTH_PATH } from "@/features/auth/lib/auth-callback-url";
 import { useOnboardingGate } from "@/features/auth/hooks/use-onboarding-gate";
 
@@ -37,11 +37,7 @@ export function RequireOnboarding({ children }: { children: React.ReactNode }) {
   }
 
   if (!isReady) {
-    return (
-      <div className="flex min-h-[50vh] items-center justify-center">
-        <Loader2 className="size-8 animate-spin text-muted-foreground" aria-hidden />
-      </div>
-    );
+    return <PageLoading />;
   }
 
   if (needsOnboarding) {
