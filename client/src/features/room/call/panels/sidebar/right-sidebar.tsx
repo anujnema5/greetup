@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
 import { ChatPanel } from "@/features/chat/components/chat-panel";
+import { useChatUiStore } from "@/features/chat/state/chat-ui.store";
 import type { RoomActivityId, RoomActivityMeta } from "@/features/room/types/call/room-activity.types";
 import type { RoomCallRightPanelTab } from "@/features/room/types/call/room-call-panel.types";
 import type { RoomActiveActivity } from "@/features/room/types/room-state.types";
@@ -61,6 +62,9 @@ export function RightSidebar({
 }: RightSidebarProps) {
   const chessActive = activeRealtimeActivity?.kind === "chess";
   const activityLockedOnStage = Boolean(stageActivity);
+  const chatUnreadCount = useChatUiStore((s) =>
+    conversationId ? (s.unreadCounts[conversationId] ?? 0) : 0,
+  );
 
   return (
     <div
@@ -97,9 +101,14 @@ export function RightSidebar({
             ) : null}
             <TabsTrigger
               value="chat"
-              className="h-7 px-2.5 text-[12px] font-semibold capitalize data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm"
+              className="relative h-7 px-2.5 text-[12px] font-semibold capitalize data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm"
             >
               chat
+              {chatUnreadCount > 0 ? (
+                <span className="ml-1 inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-destructive px-1 text-[10px] font-bold leading-none text-destructive-foreground">
+                  {chatUnreadCount > 9 ? "9+" : chatUnreadCount}
+                </span>
+              ) : null}
             </TabsTrigger>
             {!isGroupRoom && showActivitiesTab ? (
               <TabsTrigger

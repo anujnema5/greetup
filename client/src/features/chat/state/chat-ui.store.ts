@@ -15,6 +15,7 @@ type ChatUiStore = {
   clearTyping: (payload: { conversationId: string; userId: string }) => void;
   setUnreadCount: (payload: { conversationId: string; count: number }) => void;
   resetUnreadCount: (conversationId: string) => void;
+  incrementUnreadCount: (conversationId: string) => void;
   setActiveConversation: (conversationId: string | null) => void;
 };
 
@@ -66,6 +67,14 @@ export const useChatUiStore = create<ChatUiStore>((set) => ({
       unreadCounts: {
         ...state.unreadCounts,
         [conversationId]: 0,
+      },
+    })),
+
+  incrementUnreadCount: (conversationId) =>
+    set((state) => ({
+      unreadCounts: {
+        ...state.unreadCounts,
+        [conversationId]: (state.unreadCounts[conversationId] ?? 0) + 1,
       },
     })),
 

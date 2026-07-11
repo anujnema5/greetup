@@ -23,10 +23,8 @@ export function shouldToastIncomingMessage(
 export function showIncomingMessageToast(
   msg: Message,
   conv: Conversation | undefined,
-  navigate: (path: string) => void,
+  onOpen: () => void,
 ): void {
-  const path = messagesConversationPath(msg.conversationId, conv?.type ?? "connection");
-
   toast.custom(
     (toastId) => (
       <IncomingMessageToastContent
@@ -34,7 +32,7 @@ export function showIncomingMessageToast(
         toastId={toastId}
         onOpen={() => {
           toast.dismiss(toastId);
-          navigate(path);
+          onOpen();
         }}
       />
     ),
@@ -48,4 +46,12 @@ export function showIncomingMessageToast(
       },
     },
   );
+}
+
+/** @deprecated Prefer passing `onOpen` directly — kept for path helpers in the bridge. */
+export function incomingMessagePath(
+  msg: Message,
+  conv: Conversation | undefined,
+): string {
+  return messagesConversationPath(msg.conversationId, conv?.type ?? "connection");
 }
