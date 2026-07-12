@@ -1,3 +1,4 @@
+import { authClient } from '@/lib/auth-client';
 import { API_BASE_URL } from '@/shared/constants/environments';
 
 import { resolveGuestTryApiErrorMessage } from './guest-try-errors';
@@ -10,6 +11,62 @@ export class ApiError extends Error {
     super(`API ${status}`);
     this.name = 'ApiError';
   }
+}
+
+/** App-shell paths that must not stay mounted without a valid session. */
+const AUTH_REQUIRED_PATH_PREFIXES = [
+  '/home',
+  '/profile',
+  '/settings',
+  '/profile-setup',
+  '/explore',
+  '/connections',
+  '/u',
+  '/messages',
+  '/spaces',
+  '/open-now',
+  '/chat',
+  '/space',
+];
+
+let unauthorizedRedirectInFlight = false;
+
+function isAuthRequiredPath(pathname: string): boolean {
+  if (pathname === '/try' || pathname.startsWith('/try/')) return false;
+  // Anonymous deep-link into a match room is handled by /try, not login.
+  if (
+    /^\/space\/[^/]+$/.test(pathname) &&
+    pathname !== '/space/search' &&
+    !pathname.startsWith('/space/search/')
+  ) {
+    return false;
+  }
+  return AUTH_REQUIRED_PATH_PREFIXES.some(
+    (prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`),
+  );
+}
+
+/** Clear dead session cookie and leave protected UI when APIs reject auth. */
+function redirectToLoginOnUnauthorized(): void {
+  if (typeof window === 'undefined' || unauthorizedRedirectInFlight) return;
+
+  const { pathname } = window.location;
+  if (pathname === '/login' || pathname.startsWith('/login/')) return;
+  if (!isAuthRequiredPath(pathname)) return;
+
+  unauthorizedRedirectInFlight = true;
+  const params = new URLSearchParams();
+  params.set('redirect', pathname);
+  const loginUrl = `/login?${params.toString()}`;
+
+  void authClient
+    .signOut()
+    .catch(() => {
+      /* cookie may already be invalid */
+    })
+    .finally(() => {
+      window.location.replace(loginUrl);
+    });
 }
 
 function messageFromApiBody(body: string): string | null {
@@ -86,7 +143,13 @@ export async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> 
       ...init?.headers,
     },
   });
-  if (!res.ok) throw new ApiError(res.status, await res.text());
+  if (!res.ok) {
+    const body = await res.text();
+    if (res.status === 401) {
+      redirectToLoginOnUnauthorized();
+    }
+    throw new ApiError(res.status, body);
+  }
   const json = await res.json();
   return (json.data ?? json) as T;
 }

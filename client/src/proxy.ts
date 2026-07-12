@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 
-import { API_BASE_URL, PRODUCTION_ORIGIN, SITE_DOMAIN } from "@/shared/constants/environments";
+import { PRODUCTION_ORIGIN, SITE_DOMAIN } from "@/shared/constants/environments";
 
 /** 301 www/http variants to https://greetup.co (fixes Search Console duplicate canonical). */
 function canonicalOriginRedirect(req: NextRequest): NextResponse | null {
@@ -23,9 +23,9 @@ function canonicalOriginRedirect(req: NextRequest): NextResponse | null {
 }
 
 function middlewareApiBase(req: NextRequest): string {
-  return process.env.NEXT_PUBLIC_API_BASE_URL?.trim()
-    ? API_BASE_URL
-    : `${req.nextUrl.origin}/api`;
+  // Same-origin so edge auth checks share the browser's first-party cookie path
+  // (rewrites forward /api → Hono). Avoids desync with cross-subdomain API calls.
+  return `${req.nextUrl.origin}/api`;
 }
 
 // ==================== ROUTES CONFIGURATION ====================
@@ -45,6 +45,11 @@ const PROTECTED_ROUTES = [
   "/explore",
   "/connections",
   "/u",
+  "/messages",
+  "/spaces",
+  "/open-now",
+  "/chat",
+  "/space",
 ];
 
 /** Routes that require onboarding to be complete */
@@ -55,6 +60,11 @@ const ONBOARDING_REQUIRED_ROUTES = [
   "/explore",
   "/connections",
   "/u",
+  "/messages",
+  "/spaces",
+  "/open-now",
+  "/chat",
+  "/space",
 ];
 const ONBOARDING_ROUTE = "/profile-setup";
 
@@ -71,6 +81,9 @@ const GUEST_BLOCKED_ROUTES = [
   "/explore",
   "/connections",
   "/u",
+  "/messages",
+  "/spaces",
+  "/open-now",
   "/chat",
   "/space/search",
 ];
@@ -109,7 +122,7 @@ interface AuthCheckResult {
 }
 
 const sessionCache = new Map<string, CacheEntry>();
-const CACHE_TTL = 60 * 1000; // 60 seconds
+const CACHE_TTL = 10 * 1000; // short TTL — avoids serving dead sessions as logged-in
 const MAX_CACHE_SIZE = 500; // Prevent cache poisoning
 const AUTH_REQUEST_TIMEOUT_MS = 3000;
 const SESSION_COOKIE_KEYS = [
@@ -532,15 +545,19 @@ async function checkAuthWithCache(req: NextRequest): Promise<boolean> {
         return result.isLoggedIn;
       } catch {
         console.warn("[Auth] In-progress request failed, retrying");
+        sessionCache.delete(sessionToken);
+        // Fall through to a fresh check — never return stale isLoggedIn after failure.
       }
+    } else {
+      return cached.isLoggedIn;
     }
-    return cached.isLoggedIn;
   }
 
   const authCheckPromise = performAuthCheck(req);
+  const entry = sessionCache.get(sessionToken);
 
-  if (cached) {
-    cached.inProgress = authCheckPromise;
+  if (entry) {
+    entry.inProgress = authCheckPromise;
   } else {
     sessionCache.set(sessionToken, {
       isLoggedIn: false,
