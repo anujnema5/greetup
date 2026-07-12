@@ -5,13 +5,35 @@ export const siteConfig = {
   name: "Greetup",
   domain: SITE_DOMAIN,
   url: PRODUCTION_ORIGIN,
+  /** Used in OG alt text and marketing copy */
   tagline: "Meet people matched to you — chat, voice, or video.",
+  /**
+   * Homepage document title suffix → rendered as `Greetup | …`
+   * Keep the full title ~580px / ≤~55–58 chars for SERP display.
+   */
+  homeTitle: "Meet People Online - Chat, Voice & Video",
   description:
-    "Meet like-minded people online — matched by interests, job, or mood. Talk your way with chat, voice, or video. Join live spaces around what you care about.",
+    "Meet like-minded people online matched by activity, interests, job, or mood. Free chat, voice, and video calls plus live spaces — safe, moderated, and NSFW-protected.",
   contactEmail: "hello@greetup.co",
   supportEmail: "support@greetup.co",
   locale: "en_US",
   twitterHandle: "@greetup",
+  keywords: [
+    "Greetup",
+    "meet people online",
+    "make friends online",
+    "find people to talk to",
+    "meet like-minded people",
+    "interest based matching",
+    "activity matching",
+    "online video chat",
+    "voice chat online",
+    "real-time chat",
+    "live spaces",
+    "online networking",
+    "language practice online",
+    "safe video chat",
+  ],
 } as const;
 
 export function absoluteUrl(path = "/"): string {
@@ -41,7 +63,7 @@ export function buildPageMetadata({
     path === "/"
       ? title.trim()
         ? `${siteConfig.name} | ${title}`
-        : siteConfig.name
+        : `${siteConfig.name} | ${siteConfig.homeTitle}`
       : `${title} • ${siteConfig.name}`;
 
   const ogImage = {
@@ -81,18 +103,7 @@ export function buildPageMetadata({
           follow: true,
           googleBot: { index: true, follow: true, "max-image-preview": "large" },
         },
-    keywords: [
-      "Greetup",
-      "meet people online",
-      "find people to talk to",
-      "meet like-minded people",
-      "interest based matching",
-      "real-time chat",
-      "voice chat online",
-      "video chat",
-      "connect with new people",
-      "live spaces",
-    ],
+    keywords: [...siteConfig.keywords],
   };
 }
 
