@@ -9,19 +9,60 @@ import { betterAuthRedisRateLimitStorage } from "@/core/rate-limit";
 import { sendEmail } from "@/services/email";
 import logger from "../logging";
 import config from "@/shared/config/config";
-import { BETTER_AUTH_URL, SERVER_URL } from "@/shared/constants";
+import { BETTER_AUTH_URL, SERVER_URL, WEB_CLIENT_HOST } from "@/shared/constants";
 import * as schema from "@/core/database/schema";
 
 const normalizedBetterAuthUrl = BETTER_AUTH_URL?.replace(/\/$/, "");
 const normalizedServerUrl = SERVER_URL?.replace(/\/$/, "");
 const publicAuthBaseUrl = normalizedServerUrl || normalizedBetterAuthUrl;
+const normalizedWebClientHost = WEB_CLIENT_HOST?.replace(/\/$/, "");
+const oauthErrorRedirectUrl = `${normalizedWebClientHost}/login`;
 const crossSubDomainCookies = config.authCookieDomain
   ? { enabled: true, domain: config.authCookieDomain }
   : { enabled: false };
 
+function betterAuthLog(
+  level: "debug" | "info" | "warn" | "error",
+  message: string,
+  ...args: unknown[]
+) {
+  const first = args[0];
+  if (first instanceof Error) {
+    const stateError = first as Error & {
+      code?: string;
+      details?: unknown;
+    };
+    logger[level](`[better-auth] ${message}`, {
+      err: first,
+      code: stateError.code,
+      details: stateError.details,
+      authCookieDomain: config.authCookieDomain ?? null,
+    });
+    return;
+  }
+
+  if (args.length === 0) {
+    logger[level](`[better-auth] ${message}`);
+    return;
+  }
+
+  if (args.length === 1 && typeof first === "object" && first !== null) {
+    logger[level](`[better-auth] ${message}`, first);
+    return;
+  }
+
+  logger[level](`[better-auth] ${message}`, { args });
+}
+
 if (!publicAuthBaseUrl) {
   throw new Error(
     "Auth base URL is missing. Set SERVER_URL or BETTER_AUTH_URL to a valid absolute URL.",
+  );
+}
+
+if (config.env === "production" && !config.authCookieDomain) {
+  logger.warn(
+    "AUTH_COOKIE_DOMAIN is unset in production; Google OAuth state cookies are host-only and may fail across api.* / apex",
   );
 }
 
@@ -141,6 +182,35 @@ const auth = betterAuth({
   },
 
   trustedOrigins: [publicAuthBaseUrl, config.webClientHost].filter(Boolean),
+
+  /**
+   * Cookie strategy avoids intermittent `state_mismatch` / `state_security_mismatch` from the
+   * default DB strategy (signed `state` cookie is 5m while DB verification is 10m; also avoids
+   * verification row races). Requires AUTH_COOKIE_DOMAIN in prod for api.* ↔ apex.
+   * @see https://better-auth.com/docs/reference/errors/state_mismatch
+   */
+  account: {
+    storeStateStrategy: "cookie",
+  },
+
+  /**
+   * Production Better Auth otherwise redirects `/api/auth/error` → `/?error=…` on the API host
+   * (api.greetup.co JSON root). Send OAuth failures to the web login page instead.
+   */
+  onAPIError: {
+    errorURL: oauthErrorRedirectUrl,
+    onError(error) {
+      logger.error("Better Auth API error", {
+        error,
+        authCookieDomain: config.authCookieDomain ?? null,
+      });
+    },
+  },
+
+  logger: {
+    level: config.env === "production" ? "warn" : "debug",
+    log: betterAuthLog,
+  },
 
   emailVerification: {
     autoSignInAfterVerification: true,
