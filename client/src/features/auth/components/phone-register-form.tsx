@@ -101,7 +101,7 @@ export default function PhoneRegisterForm({ onOTPSent, defaultName }: PhoneRegis
                 <PhoneInput
                   {...field}
                   placeholder="Enter phone number"
-                  defaultCountry="IN"
+                  defaultCountry="US"
                   international
                   disabled={isSending}
                   className="[&_input]:placeholder:text-sm"
