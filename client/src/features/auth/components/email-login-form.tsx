@@ -33,7 +33,12 @@ const EmailLoginForm = () => {
             <FormItem>
               <FormLabel>Email</FormLabel>
               <FormControl>
-                <Input type="email" placeholder="Email" className="w-full" {...field} />
+                <Input
+                  type="email"
+                  placeholder="Email"
+                  className="w-full placeholder:text-sm"
+                  {...field}
+                />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -52,6 +57,7 @@ const EmailLoginForm = () => {
                   <Input
                     type={showPassword ? "text" : "password"}
                     placeholder="Create a password"
+                    className="placeholder:text-sm"
                     {...field}
                     disabled={isLoading}
                   />

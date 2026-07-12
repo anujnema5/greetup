@@ -17,7 +17,7 @@ import { generateRoomConversationCuesWithGemini } from "@/modules/rooms/services
 import { parseProfileSnapshotContext } from "@/modules/rooms/services/conversation-cues/parse-profile-snapshot.util";
 import { ensureProfileSnapshotCached } from "@/modules/user/services/profile-snapshot-cache.service";
 
-export const CONVERSATION_CUES_MAX_PER_CALL = 2;
+export const CONVERSATION_CUES_MAX_PER_CALL = 1;
 
 const GENERATION_LOCK_TTL_SEC = 45;
 const GENERATION_WAIT_MS = 500;

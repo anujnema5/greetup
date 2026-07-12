@@ -104,6 +104,8 @@ function RegisterPageContent() {
         footerText="Already have an account?"
         footerLinkText="Log in"
         onFooterLinkClick={handleLogin}
+        backHref="/"
+        backLabel="Back to home"
       >
         <GuestRegisterMergeBanner
           fromGuestIntent={fromGuestIntent}
