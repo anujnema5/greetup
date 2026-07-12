@@ -3,6 +3,7 @@ import { cors } from "hono/cors";
 import { secureHeaders } from "hono/secure-headers";
 
 import { auth } from "@/core/auth/auth";
+import { handleAuthWithOAuthDiagnostics } from "@/core/auth/oauth-diagnostics";
 import { setupRedis } from "@/core/redis";
 import { errorHandler, internalMiddleware } from "@/middleware";
 import { apiRouter, authPublicRouter, internalRoomsRoute } from "@/modules";
@@ -45,7 +46,9 @@ const createApp = async () => {
   app.use(cors(corsOptions));
 
   app.route(HTTP_PATHS.auth, authPublicRouter);
-  app.all(HTTP_PATHS.authGlob, (c) => auth.handler(c.req.raw));
+  app.all(HTTP_PATHS.authGlob, (c) =>
+    handleAuthWithOAuthDiagnostics(c.req.raw, (request) => auth.handler(request)),
+  );
 
   app.route(HTTP_PATHS.api, apiRouter);
 

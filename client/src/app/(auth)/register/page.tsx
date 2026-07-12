@@ -10,11 +10,7 @@ export const metadata: Metadata = buildPageMetadata({
 });
 
 const page = () => {
-  return (
-    <div className='min-h-screen flex flex-col justify-center items-center'>
-      <Register />
-    </div>
-  )
+  return <Register />;
 }
 
 export default page

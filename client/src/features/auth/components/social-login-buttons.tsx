@@ -9,9 +9,11 @@ type SocialLoginButtonsProps = {
 export default function SocialLoginButtons({ callbackURL }: SocialLoginButtonsProps) {
   const handleGoogleAuth = () => {
     const fallback = typeof window !== "undefined" ? window.location.origin : CURRENT_HOST;
+    const origin = fallback.replace(/\/+$/, "");
     authClient.signIn.social({
       provider: "google",
-      callbackURL: callbackURL ?? fallback,
+      callbackURL: callbackURL ?? origin,
+      errorCallbackURL: `${origin}/login`,
     });
   };
 
