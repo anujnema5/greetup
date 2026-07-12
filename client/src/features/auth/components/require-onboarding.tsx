@@ -5,40 +5,27 @@ import { usePathname, useRouter } from "next/navigation";
 
 import { PageLoading } from "@/components/page-loading";
 import { POST_AUTH_PATH } from "@/features/auth/lib/auth-callback-url";
+import {
+  guestTrialLandingPath,
+  isGuestSpaceMatchRoom,
+  isTryRoute,
+  pathMatchesPrefix,
+} from "@/features/auth/lib/app-route-guards";
 import { useOnboardingGate } from "@/features/auth/hooks/use-onboarding-gate";
 
-function shouldSkipAuthGate(pathname: string): boolean {
-  return pathname === "/try" || pathname.startsWith("/try/");
-}
-
-function isOnboardingPath(pathname: string): boolean {
-  return (
-    pathname === POST_AUTH_PATH || pathname.startsWith(`${POST_AUTH_PATH}/`)
-  );
-}
-
-/** Direct match room `/space/[roomId]` — guests may stay here (proxy + try flow). */
-function isGuestAllowedRealtimePath(pathname: string): boolean {
-  if (!pathname.startsWith("/space/")) return false;
-  if (pathname === "/space/search" || pathname.startsWith("/space/search/")) {
-    return false;
-  }
-  return /^\/space\/[^/]+$/.test(pathname);
-}
-
 /**
- * Client-side auth + onboarding safety net.
- * Covers stale edge-proxy session cache, client navigations, and auth API timeouts.
+ * Client-side auth + onboarding safety net for the realtime app shell.
+ * Covers stale edge-proxy cache, client navigations, and auth API timeouts.
  */
 export function RequireOnboarding({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
-  const skip = shouldSkipAuthGate(pathname);
+  const skip = isTryRoute(pathname);
 
   const { isGuest, isLoggedIn, needsOnboarding, isReady, trialConsumed } =
-    useOnboardingGate({
-      enabled: !skip,
-    });
+    useOnboardingGate({ enabled: !skip });
+
+  const guestBlocked = isGuest && !isGuestSpaceMatchRoom(pathname);
 
   useEffect(() => {
     if (skip || !isReady) return;
@@ -48,40 +35,27 @@ export function RequireOnboarding({ children }: { children: React.ReactNode }) {
       return;
     }
 
-    if (isGuest && !isGuestAllowedRealtimePath(pathname)) {
-      router.replace(trialConsumed ? "/try/complete" : "/try");
+    if (guestBlocked) {
+      router.replace(guestTrialLandingPath(trialConsumed));
       return;
     }
 
-    if (needsOnboarding && !isOnboardingPath(pathname)) {
+    if (needsOnboarding && !pathMatchesPrefix(pathname, POST_AUTH_PATH)) {
       router.replace(POST_AUTH_PATH);
     }
   }, [
     skip,
     isReady,
     isLoggedIn,
-    isGuest,
+    guestBlocked,
     trialConsumed,
     needsOnboarding,
     pathname,
     router,
   ]);
 
-  if (skip) {
-    return <>{children}</>;
-  }
-
-  if (!isReady || !isLoggedIn) {
-    return <PageLoading />;
-  }
-
-  if (isGuest && !isGuestAllowedRealtimePath(pathname)) {
-    return <PageLoading />;
-  }
-
-  if (needsOnboarding) {
-    return null;
-  }
-
+  if (skip) return <>{children}</>;
+  if (!isReady || !isLoggedIn || guestBlocked) return <PageLoading />;
+  if (needsOnboarding) return null;
   return <>{children}</>;
 }

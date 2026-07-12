@@ -1,7 +1,7 @@
-import { authClient } from '@/lib/auth-client';
-import { API_BASE_URL } from '@/shared/constants/environments';
+import { API_BASE_URL } from "@/shared/constants/environments";
 
-import { resolveGuestTryApiErrorMessage } from './guest-try-errors';
+import { resolveGuestTryApiErrorMessage } from "./guest-try-errors";
+import { redirectToPublicHomeOnUnauthorized } from "./unauthorized-redirect";
 
 export class ApiError extends Error {
   constructor(
@@ -9,61 +9,8 @@ export class ApiError extends Error {
     public body: string,
   ) {
     super(`API ${status}`);
-    this.name = 'ApiError';
+    this.name = "ApiError";
   }
-}
-
-/** App-shell paths that must not stay mounted without a valid session. */
-const AUTH_REQUIRED_PATH_PREFIXES = [
-  '/home',
-  '/profile',
-  '/settings',
-  '/profile-setup',
-  '/explore',
-  '/connections',
-  '/u',
-  '/messages',
-  '/spaces',
-  '/open-now',
-  '/chat',
-  '/space',
-];
-
-let unauthorizedRedirectInFlight = false;
-
-function isAuthRequiredPath(pathname: string): boolean {
-  if (pathname === '/try' || pathname.startsWith('/try/')) return false;
-  // Anonymous deep-link into a match room is handled by /try, not login.
-  if (
-    /^\/space\/[^/]+$/.test(pathname) &&
-    pathname !== '/space/search' &&
-    !pathname.startsWith('/space/search/')
-  ) {
-    return false;
-  }
-  return AUTH_REQUIRED_PATH_PREFIXES.some(
-    (prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`),
-  );
-}
-
-/** Clear dead session cookie and send anonymous users to the marketing home. */
-function redirectToPublicHomeOnUnauthorized(): void {
-  if (typeof window === 'undefined' || unauthorizedRedirectInFlight) return;
-
-  const { pathname } = window.location;
-  if (pathname === '/' || pathname === '/login' || pathname.startsWith('/login/')) return;
-  if (!isAuthRequiredPath(pathname)) return;
-
-  unauthorizedRedirectInFlight = true;
-
-  void authClient
-    .signOut()
-    .catch(() => {
-      /* cookie may already be invalid */
-    })
-    .finally(() => {
-      window.location.replace('/');
-    });
 }
 
 function messageFromApiBody(body: string): string | null {
@@ -74,9 +21,9 @@ function messageFromApiBody(body: string): string | null {
     };
     if (Array.isArray(parsed.errors) && parsed.errors.length > 0) {
       const first = parsed.errors[0]?.messages?.[0];
-      if (typeof first === 'string' && first.trim().length > 0) return first;
+      if (typeof first === "string" && first.trim().length > 0) return first;
     }
-    if (typeof parsed.message === 'string' && parsed.message.trim().length > 0) {
+    if (typeof parsed.message === "string" && parsed.message.trim().length > 0) {
       return parsed.message;
     }
   } catch {
@@ -92,16 +39,16 @@ export function getApiErrorCode(error: unknown): string | null {
     try {
       const parsed = JSON.parse(error.body) as { code?: unknown };
       const code = parsed.code;
-      return typeof code === 'string' && code.length > 0 ? code : null;
+      return typeof code === "string" && code.length > 0 ? code : null;
     } catch {
       return null;
     }
   }
-  if (typeof error === 'object' && error !== null) {
+  if (typeof error === "object" && error !== null) {
     const data = (error as { data?: unknown }).data;
-    if (data && typeof data === 'object' && 'code' in data) {
+    if (data && typeof data === "object" && "code" in data) {
       const code = (data as { code?: unknown }).code;
-      return typeof code === 'string' && code.length > 0 ? code : null;
+      return typeof code === "string" && code.length > 0 ? code : null;
     }
   }
   return null;
@@ -110,22 +57,20 @@ export function getApiErrorCode(error: unknown): string | null {
 /** Human-readable message from `ApiError` or other thrown error shapes. */
 export function getApiErrorMessage(error: unknown, fallback: string): string {
   const guestMessage = resolveGuestTryApiErrorMessage(error);
-  if (guestMessage) {
-    return guestMessage;
-  }
+  if (guestMessage) return guestMessage;
 
   if (error instanceof ApiError) {
     return messageFromApiBody(error.body) ?? fallback;
   }
-  if (error && typeof error === 'object') {
+  if (error && typeof error === "object") {
     const data = (error as { data?: unknown }).data;
-    if (typeof data === 'string' && data.trim().length > 0) return data;
-    if (data && typeof data === 'object') {
+    if (typeof data === "string" && data.trim().length > 0) return data;
+    if (data && typeof data === "object") {
       const fromData = messageFromApiBody(JSON.stringify(data));
       if (fromData) return fromData;
     }
     const top = (error as { error?: unknown; message?: unknown }).error;
-    if (typeof top === 'string' && top.trim().length > 0) return top;
+    if (typeof top === "string" && top.trim().length > 0) return top;
     if (error instanceof Error && error.message.trim().length > 0) return error.message;
   }
   return fallback;
@@ -133,20 +78,20 @@ export function getApiErrorMessage(error: unknown, fallback: string): string {
 
 export async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
   const res = await fetch(`${API_BASE_URL}${path}`, {
-    credentials: 'include',
+    credentials: "include",
     ...init,
     headers: {
-      'Content-Type': 'application/json',
+      "Content-Type": "application/json",
       ...init?.headers,
     },
   });
+
   if (!res.ok) {
     const body = await res.text();
-    if (res.status === 401) {
-      redirectToPublicHomeOnUnauthorized();
-    }
+    if (res.status === 401) redirectToPublicHomeOnUnauthorized();
     throw new ApiError(res.status, body);
   }
+
   const json = await res.json();
   return (json.data ?? json) as T;
 }

@@ -22,14 +22,12 @@ export function useOnboardingGate(options?: UseOnboardingGateOptions) {
   const isLoggedIn = getSessionIsLoggedIn(session);
 
   const { data: guestStatus, isPending: guestPending } = useGuestTryStatus({
-    // Only hit guest/status when a session exists — avoids 401 noise for logged-out users.
     enabled: enabled && !sessionPending && isLoggedIn,
   });
 
   const isGuest = guestStatus?.isGuest === true;
   const isOnboarded = getSessionIsOnboarded(session);
-  const guestReady = !isLoggedIn || !guestPending;
-  const isReady = !sessionPending && guestReady;
+  const isReady = !sessionPending && (!isLoggedIn || !guestPending);
 
   return {
     session,
@@ -38,7 +36,6 @@ export function useOnboardingGate(options?: UseOnboardingGateOptions) {
     isOnboarded,
     isReady,
     trialConsumed: guestStatus?.trialConsumed === true,
-    /** Full account that still needs profile-setup. */
     needsOnboarding: isReady && isLoggedIn && !isGuest && !isOnboarded,
   };
 }

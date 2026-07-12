@@ -1,6 +1,5 @@
 import Link from "next/link";
 
-/** Shared 404 UI — also used when unauthenticated users probe protected app routes. */
 export default function NotFound() {
   return (
     <main className="flex min-h-dvh flex-col items-center justify-center gap-4 px-6 text-center">
@@ -15,7 +14,10 @@ export default function NotFound() {
         >
           Go home
         </Link>
-        <Link href="/login" className="text-sm font-medium text-primary underline-offset-4 hover:underline">
+        <Link
+          href="/login"
+          className="text-sm font-medium text-primary underline-offset-4 hover:underline"
+        >
           Sign in
         </Link>
       </div>

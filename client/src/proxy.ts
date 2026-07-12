@@ -52,20 +52,10 @@ const PROTECTED_ROUTES = [
   "/space",
 ];
 
-/** Routes that require onboarding to be complete */
-const ONBOARDING_REQUIRED_ROUTES = [
-  "/home",
-  "/profile",
-  "/settings",
-  "/explore",
-  "/connections",
-  "/u",
-  "/messages",
-  "/spaces",
-  "/open-now",
-  "/chat",
-  "/space",
-];
+/** Routes that require onboarding to be complete (everything protected except setup). */
+const ONBOARDING_REQUIRED_ROUTES = PROTECTED_ROUTES.filter(
+  (route) => route !== "/profile-setup",
+);
 const ONBOARDING_ROUTE = "/profile-setup";
 
 /** Guest trial shell — anonymous may visit; session created client-side. */
@@ -74,17 +64,7 @@ const GUEST_TRIAL_COMPLETE_ROUTE = "/try/complete";
 
 /** Full-app routes guests must not access (server also enforces). */
 const GUEST_BLOCKED_ROUTES = [
-  "/home",
-  "/profile",
-  "/settings",
-  "/profile-setup",
-  "/explore",
-  "/connections",
-  "/u",
-  "/messages",
-  "/spaces",
-  "/open-now",
-  "/chat",
+  ...PROTECTED_ROUTES.filter((route) => route !== "/space"),
   "/space/search",
 ];
 
