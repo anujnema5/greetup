@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 
-import { PRODUCTION_ORIGIN, SITE_DOMAIN } from "@/shared/constants/environments";
+import { API_BASE_URL, PRODUCTION_ORIGIN, SITE_DOMAIN } from "@/shared/constants/environments";
 
 /** 301 www/http variants to https://greetup.co (fixes Search Console duplicate canonical). */
 function canonicalOriginRedirect(req: NextRequest): NextResponse | null {
@@ -22,9 +22,11 @@ function canonicalOriginRedirect(req: NextRequest): NextResponse | null {
   return NextResponse.redirect(destination, 308);
 }
 
+/** Prefer public API base in prod (api.greetup.co) so edge auth matches browser cookies. */
 function middlewareApiBase(req: NextRequest): string {
-  // Same-origin so edge auth checks share the browser's first-party cookie path
-  // (rewrites forward /api → Hono). Avoids desync with cross-subdomain API calls.
+  if (process.env.NEXT_PUBLIC_API_BASE_URL?.trim()) {
+    return API_BASE_URL;
+  }
   return `${req.nextUrl.origin}/api`;
 }
 
