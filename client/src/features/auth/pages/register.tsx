@@ -5,9 +5,9 @@ import { useRouter, useSearchParams } from "next/navigation";
 
 import { PageLoading } from "@/components/page-loading";
 import SocialLoginButtons from "@/features/auth/components/social-login-buttons";
-import RegisterToggleButtons from "@/features/auth/components/register-toggle-buttons";
+// import RegisterToggleButtons from "@/features/auth/components/register-toggle-buttons";
 import OTPVerification from "@/features/auth/components/otp-verification-form";
-import EmailRegisterForm from "@/features/auth/components/email-register-form";
+// import EmailRegisterForm from "@/features/auth/components/email-register-form";
 import AuthPageLayout from "@/features/auth/components/auth-page-layout";
 import { AuthFormDivider } from "@/features/auth/components/auth-form-divider";
 import { AuthGuestContinueButton } from "@/features/auth/components/auth-guest-continue-button";
@@ -22,10 +22,11 @@ import { useSignupMergeContext } from "@/features/guest-try/hooks/use-signup-mer
 import { useGuestTryStatus } from "@/features/guest-try/hooks/use-guest-try-status";
 import { GUEST_TRIAL_REGISTER, REGISTER_PAGE } from "@/lib/copy/user-messages";
 
+// Email auth UI temporarily hidden — keep "email" for future re-enable.
 type View = "phone" | "email" | "otp";
 
 function RegisterPageContent() {
-  const [view, setView] = useState<View>("email");
+  const [view, setView] = useState<View>("phone");
   const [phoneNumber, setPhoneNumber] = useState("");
   const [registrationName, setRegistrationName] = useState("");
   const router = useRouter();
@@ -80,14 +81,14 @@ function RegisterPageContent() {
           />
         );
 
-      case "email":
-        return (
-          <EmailRegisterForm
-            defaultName={suggestedName}
-            emailVerificationCallbackURL={authCallbackURL}
-            verifyEmailFrom={fromGuestIntent ? "guest-register" : "register"}
-          />
-        );
+      // case "email":
+      //   return (
+      //     <EmailRegisterForm
+      //       defaultName={suggestedName}
+      //       emailVerificationCallbackURL={authCallbackURL}
+      //       verifyEmailFrom={fromGuestIntent ? "guest-register" : "register"}
+      //     />
+      //   );
 
       default:
         return (
@@ -115,12 +116,14 @@ function RegisterPageContent() {
 
         <SocialLoginButtons callbackURL={authCallbackURL} />
 
+        {/* Email / phone toggle — re-enable with email auth
         {view !== "otp" && (
           <RegisterToggleButtons
-            currentView={view}
+            currentView={view === "email" ? "email" : "phone"}
             onToggle={() => setView(view === "email" ? "phone" : "email")}
           />
         )}
+        */}
 
         <AuthFormDivider label="Or continue with" />
 
