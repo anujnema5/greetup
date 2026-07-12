@@ -206,11 +206,9 @@ export async function proxy(req: NextRequest) {
     return NextResponse.redirect(new URL(redirectUrl, req.url));
   }
 
-  // Redirect non-logged-in users away from protected routes
+  // Unauthenticated users belong on the marketing home — not /login.
   if (!isLoggedIn && isProtectedRoute(pathname)) {
-    const loginUrl = new URL("/login", req.url);
-    loginUrl.searchParams.set("redirect", pathname);
-    return NextResponse.redirect(loginUrl);
+    return NextResponse.redirect(new URL("/", req.url));
   }
 
   // Redirect onboarded users away from profile-setup (they're done)

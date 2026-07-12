@@ -46,18 +46,15 @@ function isAuthRequiredPath(pathname: string): boolean {
   );
 }
 
-/** Clear dead session cookie and leave protected UI when APIs reject auth. */
-function redirectToLoginOnUnauthorized(): void {
+/** Clear dead session cookie and send anonymous users to the marketing home. */
+function redirectToPublicHomeOnUnauthorized(): void {
   if (typeof window === 'undefined' || unauthorizedRedirectInFlight) return;
 
   const { pathname } = window.location;
-  if (pathname === '/login' || pathname.startsWith('/login/')) return;
+  if (pathname === '/' || pathname === '/login' || pathname.startsWith('/login/')) return;
   if (!isAuthRequiredPath(pathname)) return;
 
   unauthorizedRedirectInFlight = true;
-  const params = new URLSearchParams();
-  params.set('redirect', pathname);
-  const loginUrl = `/login?${params.toString()}`;
 
   void authClient
     .signOut()
@@ -65,7 +62,7 @@ function redirectToLoginOnUnauthorized(): void {
       /* cookie may already be invalid */
     })
     .finally(() => {
-      window.location.replace(loginUrl);
+      window.location.replace('/');
     });
 }
 
@@ -146,7 +143,7 @@ export async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> 
   if (!res.ok) {
     const body = await res.text();
     if (res.status === 401) {
-      redirectToLoginOnUnauthorized();
+      redirectToPublicHomeOnUnauthorized();
     }
     throw new ApiError(res.status, body);
   }
