@@ -26,12 +26,6 @@ function isGuestAllowedRealtimePath(pathname: string): boolean {
   return /^\/space\/[^/]+$/.test(pathname);
 }
 
-function loginHref(pathname: string): string {
-  const params = new URLSearchParams();
-  params.set("redirect", pathname);
-  return `/login?${params.toString()}`;
-}
-
 /**
  * Client-side auth + onboarding safety net.
  * Covers stale edge-proxy session cache, client navigations, and auth API timeouts.
@@ -50,7 +44,7 @@ export function RequireOnboarding({ children }: { children: React.ReactNode }) {
     if (skip || !isReady) return;
 
     if (!isLoggedIn) {
-      router.replace(loginHref(pathname));
+      router.replace("/");
       return;
     }
 
