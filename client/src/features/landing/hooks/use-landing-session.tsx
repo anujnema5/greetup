@@ -6,28 +6,35 @@ type SessionUser = {
   displayName?: string | null;
   name?: string | null;
   email?: string | null;
+  isOnboarded?: boolean;
 };
 
 type LandingSessionValue = {
   isLoggedIn: boolean;
+  isOnboarded: boolean;
   firstName: string;
   ready: boolean;
 };
 
 const defaultValue: LandingSessionValue = {
   isLoggedIn: false,
+  isOnboarded: false,
   firstName: "",
   ready: false,
 };
 
 const LandingSessionContext = createContext<LandingSessionValue>(defaultValue);
 
-function parseSessionUser(user: SessionUser | undefined) {
+function parseSessionUser(user: SessionUser | undefined): Omit<LandingSessionValue, "ready"> {
   const displayName = user?.displayName?.trim() || user?.name?.trim() || "";
   const firstNameFromDisplay = displayName.split(/\s+/).filter(Boolean)[0] ?? "";
   const firstNameFromEmail = user?.email?.split("@")[0]?.trim() ?? "";
-  const firstName = firstNameFromDisplay || firstNameFromEmail;
-  return { firstName, isLoggedIn: Boolean(user) };
+
+  return {
+    firstName: firstNameFromDisplay || firstNameFromEmail,
+    isLoggedIn: Boolean(user),
+    isOnboarded: user?.isOnboarded === true,
+  };
 }
 
 export function LandingSessionProvider({ children }: { children: React.ReactNode }) {
@@ -39,9 +46,8 @@ export function LandingSessionProvider({ children }: { children: React.ReactNode
     void import("@/lib/auth-client").then(({ authClient }) =>
       authClient.getSession().then(({ data }) => {
         if (cancelled) return;
-        const user = data?.user as SessionUser | undefined;
-        const { firstName, isLoggedIn } = parseSessionUser(user);
-        setValue({ isLoggedIn, firstName, ready: true });
+        const parsed = parseSessionUser(data?.user as SessionUser | undefined);
+        setValue({ ...parsed, ready: true });
       }),
     );
 

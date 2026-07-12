@@ -11,53 +11,40 @@ export type LandingVisitorKind = "anonymous" | "guest" | "member" | "loading";
 const REGISTER_ROUTE = "/register";
 const HOME_ROUTE = "/home";
 
+const anonymousCta = {
+  kind: "anonymous" as const,
+  ready: true,
+  navPrimaryHref: REGISTER_ROUTE,
+  navPrimaryLabel: LANDING_ENTRY.getStarted,
+  heroPrimaryHref: TRY_ROUTE,
+  heroPrimaryLabel: LANDING_ENTRY.tryAsGuest,
+  navGreeting: null,
+  appHref: REGISTER_ROUTE,
+};
+
+const loadingCta = {
+  ...anonymousCta,
+  kind: "loading" as const,
+  ready: false,
+};
+
 export function useLandingEntryCta() {
   const { isLoggedIn, firstName, ready: sessionReady } = useLandingSession();
   const { data: guestStatus, isPending: guestPending } = useGuestTryStatus({
     enabled: sessionReady && isLoggedIn,
   });
 
-  const kind: LandingVisitorKind = !sessionReady
-    ? "loading"
-    : !isLoggedIn
-      ? "anonymous"
-      : guestPending
-        ? "loading"
-        : guestStatus?.isGuest
-          ? "guest"
-          : "member";
-
-  if (kind === "loading") {
-    return {
-      kind,
-      ready: false,
-      navPrimaryHref: REGISTER_ROUTE,
-      navPrimaryLabel: LANDING_ENTRY.getStarted,
-      heroPrimaryHref: TRY_ROUTE,
-      heroPrimaryLabel: LANDING_ENTRY.tryAsGuest,
-      navGreeting: null,
-      appHref: REGISTER_ROUTE,
-    } as const;
+  if (!sessionReady || (isLoggedIn && guestPending)) {
+    return loadingCta;
   }
 
-  if (kind === "member") {
-    const greeting = firstName ? LANDING_ENTRY.greeting(firstName) : null;
-    const label = firstName ? LANDING_ENTRY.welcome(firstName) : LANDING_ENTRY.goToHome;
-    return {
-      kind,
-      ready: true,
-      navPrimaryHref: HOME_ROUTE,
-      navPrimaryLabel: LANDING_ENTRY.goToHome,
-      heroPrimaryHref: HOME_ROUTE,
-      heroPrimaryLabel: label,
-      navGreeting: greeting,
-      appHref: HOME_ROUTE,
-    } as const;
+  if (!isLoggedIn) {
+    return anonymousCta;
   }
 
-  if (kind === "guest") {
+  if (guestStatus?.isGuest) {
     return {
-      kind,
+      kind: "guest" as const,
       ready: true,
       navPrimaryHref: TRY_ROUTE,
       navPrimaryLabel: LANDING_ENTRY.continueTry,
@@ -65,17 +52,19 @@ export function useLandingEntryCta() {
       heroPrimaryLabel: LANDING_ENTRY.continueTry,
       navGreeting: null,
       appHref: TRY_ROUTE,
-    } as const;
+    };
   }
 
   return {
-    kind,
+    kind: "member" as const,
     ready: true,
-    navPrimaryHref: REGISTER_ROUTE,
-    navPrimaryLabel: LANDING_ENTRY.getStarted,
-    heroPrimaryHref: TRY_ROUTE,
-    heroPrimaryLabel: LANDING_ENTRY.tryAsGuest,
-    navGreeting: null,
-    appHref: REGISTER_ROUTE,
-  } as const;
+    navPrimaryHref: HOME_ROUTE,
+    navPrimaryLabel: LANDING_ENTRY.goToHome,
+    heroPrimaryHref: HOME_ROUTE,
+    heroPrimaryLabel: firstName
+      ? LANDING_ENTRY.welcome(firstName)
+      : LANDING_ENTRY.goToHome,
+    navGreeting: firstName ? LANDING_ENTRY.greeting(firstName) : null,
+    appHref: HOME_ROUTE,
+  };
 }
