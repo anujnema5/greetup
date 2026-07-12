@@ -79,7 +79,12 @@ export default function PhoneRegisterForm({ onOTPSent, defaultName }: PhoneRegis
             <FormItem>
               <FormLabel>Full name</FormLabel>
               <FormControl>
-                <Input placeholder="Your name" {...field} disabled={isSending} />
+                <Input
+                  placeholder="Your name"
+                  className="placeholder:text-sm"
+                  {...field}
+                  disabled={isSending}
+                />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -99,6 +104,7 @@ export default function PhoneRegisterForm({ onOTPSent, defaultName }: PhoneRegis
                   defaultCountry="IN"
                   international
                   disabled={isSending}
+                  className="[&_input]:placeholder:text-sm"
                 />
               </FormControl>
               <FormMessage />

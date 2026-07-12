@@ -54,6 +54,7 @@ const PhoneLoginForm = ({ onOTPSent }: PhoneLoginFormProps) => {
                   placeholder="Enter phone number"
                   defaultCountry="IN"
                   international
+                  className="[&_input]:placeholder:text-sm"
                 />
               </FormControl>
               <FormMessage />

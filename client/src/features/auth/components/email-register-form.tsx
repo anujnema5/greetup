@@ -56,6 +56,7 @@ export default function EmailRegisterForm({
                             <FormControl>
                                 <Input
                                     placeholder="Enter your full name"
+                                    className="placeholder:text-sm"
                                     {...field}
                                     disabled={isLoading}
                                 />
@@ -75,6 +76,7 @@ export default function EmailRegisterForm({
                                 <Input
                                     type="email"
                                     placeholder="Enter your email"
+                                    className="placeholder:text-sm"
                                     {...field}
                                     disabled={isLoading}
                                 />
@@ -95,6 +97,7 @@ export default function EmailRegisterForm({
                                     <Input
                                         type={showPassword ? "text" : "password"}
                                         placeholder="Create a password"
+                                        className="placeholder:text-sm"
                                         {...field}
                                         disabled={isLoading}
                                     />
@@ -130,6 +133,7 @@ export default function EmailRegisterForm({
                                     <Input
                                         type={showConfirmPassword ? "text" : "password"}
                                         placeholder="Confirm your password"
+                                        className="placeholder:text-sm"
                                         {...field}
                                         disabled={isLoading}
                                     />
