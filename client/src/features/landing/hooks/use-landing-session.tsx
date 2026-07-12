@@ -6,19 +6,16 @@ type SessionUser = {
   displayName?: string | null;
   name?: string | null;
   email?: string | null;
-  isOnboarded?: boolean;
 };
 
 type LandingSessionValue = {
   isLoggedIn: boolean;
-  isOnboarded: boolean;
   firstName: string;
   ready: boolean;
 };
 
 const defaultValue: LandingSessionValue = {
   isLoggedIn: false,
-  isOnboarded: false,
   firstName: "",
   ready: false,
 };
@@ -33,7 +30,6 @@ function parseSessionUser(user: SessionUser | undefined): Omit<LandingSessionVal
   return {
     firstName: firstNameFromDisplay || firstNameFromEmail,
     isLoggedIn: Boolean(user),
-    isOnboarded: user?.isOnboarded === true,
   };
 }
 
