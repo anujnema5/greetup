@@ -2,6 +2,8 @@ FROM oven/bun:1.3.11-alpine AS deps
 
 WORKDIR /app
 
+# All workspace manifests are required for --frozen-lockfile,
+# but --filter installs only this app + shared.
 COPY package.json bun.lock ./
 COPY packages/shared/package.json ./packages/shared/
 COPY packages/tsconfig/package.json ./packages/tsconfig/
@@ -11,8 +13,9 @@ COPY apps/matching-service/package.json ./apps/matching-service/
 COPY apps/rtc-service/package.json ./apps/rtc-service/
 COPY apps/voiceiq-service/package.json ./apps/voiceiq-service/
 
-# Workspace install pulls mediasoup (rtc-service); skip its native worker on alpine.
-RUN MEDIASOUP_WORKER_BIN=/dev/null bun install --frozen-lockfile
+RUN bun install --frozen-lockfile \
+  --filter '@greetup/client' \
+  --filter '@greetup/shared'
 
 FROM deps AS build
 
@@ -60,7 +63,7 @@ ENV PORT=3000
 
 COPY --from=deps /app/node_modules ./node_modules
 COPY --from=deps /app/apps/client/node_modules ./apps/client/node_modules
-COPY --from=deps /app/packages ./packages
+COPY --from=build /app/packages ./packages
 COPY --from=build /app/apps/client/.next ./apps/client/.next
 COPY --from=build /app/apps/client/public ./apps/client/public
 COPY --from=build /app/apps/client/package.json ./apps/client/package.json

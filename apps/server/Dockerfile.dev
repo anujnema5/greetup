@@ -11,7 +11,9 @@ COPY apps/matching-service/package.json ./apps/matching-service/
 COPY apps/rtc-service/package.json ./apps/rtc-service/
 COPY apps/voiceiq-service/package.json ./apps/voiceiq-service/
 
-RUN MEDIASOUP_WORKER_BIN=/dev/null bun install --frozen-lockfile
+RUN bun install --frozen-lockfile \
+  --filter '@greetup/server' \
+  --filter '@greetup/shared'
 
 COPY packages/shared ./packages/shared
 COPY apps/server ./apps/server
