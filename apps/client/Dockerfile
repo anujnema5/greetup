@@ -61,8 +61,8 @@ ENV NEXT_TELEMETRY_DISABLED=1
 ENV HOSTNAME=0.0.0.0
 ENV PORT=3000
 
+# Bun hoists workspace deps to the repo root — no apps/client/node_modules.
 COPY --from=deps /app/node_modules ./node_modules
-COPY --from=deps /app/apps/client/node_modules ./apps/client/node_modules
 COPY --from=build /app/packages ./packages
 COPY --from=build /app/apps/client/.next ./apps/client/.next
 COPY --from=build /app/apps/client/public ./apps/client/public
