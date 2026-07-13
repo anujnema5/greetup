@@ -43,16 +43,16 @@ jobs:
       matrix:
         include:
           - service: client
-            directory: client
+            directory: apps/client
             commands: bun run typecheck
           - service: server
-            directory: server
+            directory: apps/server
             commands: bun run typecheck && bun run test
           - service: matching-service
-            directory: matching-service
+            directory: apps/matching-service
             commands: bun run typecheck && bun test
           - service: rtc-service
-            directory: rtc-service
+            directory: apps/rtc-service
             commands: bun run typecheck
     steps:
       - uses: actions/checkout@v4
@@ -62,7 +62,6 @@ jobs:
           bun-version: 1.3.11
 
       - name: Install dependencies
-        working-directory: ${{ matrix.directory }}
         run: bun install --frozen-lockfile
 
       - name: Run checks
@@ -80,17 +79,13 @@ jobs:
       matrix:
         include:
           - service: server
-            context: server
-            dockerfile: server/Dockerfile
+            dockerfile: apps/server/Dockerfile
           - service: matching-service
-            context: matching-service
-            dockerfile: matching-service/Dockerfile
+            dockerfile: apps/matching-service/Dockerfile
           - service: rtc-service
-            context: rtc-service
-            dockerfile: rtc-service/Dockerfile
+            dockerfile: apps/rtc-service/Dockerfile
           - service: client
-            context: client
-            dockerfile: client/Dockerfile
+            dockerfile: apps/client/Dockerfile
 
     steps:
       - uses: actions/checkout@v4
@@ -121,7 +116,7 @@ jobs:
         if: matrix.service != 'client'
         uses: docker/build-push-action@v6
         with:
-          context: ${{ matrix.context }}
+          context: .
           file: ${{ matrix.dockerfile }}
           push: true
           tags: |
@@ -134,8 +129,8 @@ jobs:
         if: matrix.service == 'client'
         uses: docker/build-push-action@v6
         with:
-          context: client
-          file: client/Dockerfile
+          context: .
+          file: apps/client/Dockerfile
           push: true
           tags: |
             ${{ env.REGISTRY }}/client:latest

@@ -17,16 +17,19 @@ jobs:
       matrix:
         include:
           - service: client
-            directory: client
+            directory: apps/client
             commands: bun run typecheck
           - service: server
-            directory: server
+            directory: apps/server
             commands: bun run typecheck && bun run test
           - service: matching-service
-            directory: matching-service
+            directory: apps/matching-service
             commands: bun run typecheck && bun test
           - service: rtc-service
-            directory: rtc-service
+            directory: apps/rtc-service
+            commands: bun run typecheck
+          - service: shared
+            directory: packages/shared
             commands: bun run typecheck
 
     steps:
@@ -37,7 +40,6 @@ jobs:
           bun-version: 1.3.11
 
       - name: Install dependencies
-        working-directory: ${{ matrix.directory }}
         run: bun install --frozen-lockfile
 
       - name: Run checks

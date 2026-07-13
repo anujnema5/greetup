@@ -7,7 +7,7 @@ GitHub Actions **cannot** run `bun run db:migrate` against DigitalOcean managed 
 The **server** container runs migrations automatically on every deploy **before** it starts listening:
 
 ```ts
-// server/src/index.ts
+// apps/server/src/index.ts
 await runMigrations();
 ```
 

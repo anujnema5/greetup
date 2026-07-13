@@ -1,0 +1,22 @@
+FROM oven/bun:1.3.11-alpine
+
+WORKDIR /app
+
+COPY package.json bun.lock ./
+COPY packages/shared/package.json ./packages/shared/
+COPY packages/tsconfig/package.json ./packages/tsconfig/
+COPY apps/client/package.json ./apps/client/
+COPY apps/server/package.json ./apps/server/
+COPY apps/matching-service/package.json ./apps/matching-service/
+COPY apps/rtc-service/package.json ./apps/rtc-service/
+COPY apps/voiceiq-service/package.json ./apps/voiceiq-service/
+
+RUN bun install --frozen-lockfile
+
+COPY packages/shared ./packages/shared
+COPY apps/client ./apps/client
+
+WORKDIR /app/apps/client
+
+EXPOSE 3000
+CMD ["bun", "run", "dev"]

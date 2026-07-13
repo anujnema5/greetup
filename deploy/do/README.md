@@ -86,19 +86,19 @@ Images are built on the **laptop/CI**, not on the droplet. The droplet only **pu
 cd c:\path\to\circlo-2
 
 # server
-docker build -f server/Dockerfile -t registry.digitalocean.com/greetup/server:latest server/
+docker build -f apps/server/Dockerfile -t registry.digitalocean.com/greetup/server:latest .
 docker push registry.digitalocean.com/greetup/server:latest
 
 # matching-service
-docker build -f matching-service/Dockerfile -t registry.digitalocean.com/greetup/matching-service:latest matching-service/
+docker build -f apps/matching-service/Dockerfile -t registry.digitalocean.com/greetup/matching-service:latest .
 docker push registry.digitalocean.com/greetup/matching-service:latest
 
 # rtc-service
-docker build -f rtc-service/Dockerfile -t registry.digitalocean.com/greetup/rtc-service:latest rtc-service/
+docker build -f apps/rtc-service/Dockerfile -t registry.digitalocean.com/greetup/rtc-service:latest .
 docker push registry.digitalocean.com/greetup/rtc-service:latest
 
 # client (NEXT_PUBLIC_* required at build time)
-docker build -f client/Dockerfile `
+docker build -f apps/client/Dockerfile `
   --build-arg NEXT_PUBLIC_API_BASE_URL=https://api-staging.greetup.co/api `
   --build-arg NEXT_PUBLIC_SOCKET_SERVER_URL=https://api-staging.greetup.co `
   --build-arg NEXT_PUBLIC_RTC_SOCKET_URL=https://rtc-staging.greetup.co `
@@ -109,7 +109,7 @@ docker build -f client/Dockerfile `
   --build-arg NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=... `
   --build-arg NEXT_PUBLIC_FIREBASE_APP_ID=... `
   --build-arg NEXT_PUBLIC_GA_MEASUREMENT_ID=... `
-  -t registry.digitalocean.com/greetup/client:latest client/
+  -t registry.digitalocean.com/greetup/client:latest .
 docker push registry.digitalocean.com/greetup/client:latest
 ```
 
@@ -253,7 +253,8 @@ Browsers use **`https://rtc.greetup.co`** (port 443, TLS). Server still calls **
 
 ```powershell
 # Laptop — rebuild & push
-docker build -f rtc-service/Dockerfile -t registry.digitalocean.com/greetup/rtc-service:latest rtc-service/
+docker build -f apps/rtc-service/Dockerfile -t registry.digitalocean.com/greetup/rtc-service:latest .
+
 docker push registry.digitalocean.com/greetup/rtc-service:latest
 ```
 
@@ -298,7 +299,7 @@ MATCH_WEBHOOK_URL=https://api-staging.greetup.co/api/match/webhook
 | Size | 1 GiB ($12/mo) |
 | VPC | Enabled |
 
-Key env vars (see `server/env/.env.example` for full list):
+Key env vars (see `apps/server/env/.env.example` for full list):
 
 ```env
 PORT=5300
@@ -383,7 +384,7 @@ Workflows in `.github/workflows/`:
 
 **rtc droplet:** no GitHub SSH secrets required. `deploy/do/vm/docker-compose.yml` includes **Watchtower** (polls registry every 5 min). One-time on VM: `docker login registry.digitalocean.com`, then `docker compose up -d`.
 
-**Database migrations on deploy:** automatic when the **server** container starts (`runMigrations()` in `server/src/index.ts`). See [server-migrations.md](./server-migrations.md). Do **not** run migrations from GitHub Actions or add a paid extra component.
+**Database migrations on deploy:** automatic when the **server** container starts (`runMigrations()` in `apps/server/src/index.ts`). See [server-migrations.md](./server-migrations.md). Do **not** run migrations from GitHub Actions or add a paid extra component.
 
 Find App Platform IDs:
 
