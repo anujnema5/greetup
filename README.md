@@ -6,10 +6,12 @@ Monorepo for Greetup application services.
 
 | Service | Tech | Role |
 |---|---|---|
-| `client` | Next.js | Frontend app |
-| `server` | Hono / Bun | Main API, auth, realtime orchestration |
-| `matching-service` | Bun | Async matchmaking microservice |
-| `rtc-service` | Node.js + mediasoup | WebRTC SFU for peer video/audio |
+| `apps/client` | Next.js | Frontend app |
+| `apps/server` | Hono / Bun | Main API, auth, realtime orchestration |
+| `apps/matching-service` | Bun | Async matchmaking microservice |
+| `apps/rtc-service` | Node.js + mediasoup | WebRTC SFU for peer video/audio |
+| `apps/voiceiq-service` | Bun | Voice scoring / analytics |
+| `packages/shared` | TypeScript | Shared room-session types and env loader |
 | `docs` | — | Architecture, developer notes, [product overview](docs/product/greetup-product-overview.md) |
 
 ---
@@ -203,26 +205,32 @@ All request bodies are parsed with **Zod** schemas before reaching handlers. Val
 
 ```
 greetup/
-  client/               # Next.js app
-  server/               # Hono/Bun backend
-  matching-service/     # Bun matchmaking microservice
-  rtc-service/          # mediasoup SFU
-  docs/                 # Index: docs/README.md
+  apps/
+    client/               # Next.js app
+    server/               # Hono/Bun backend
+    matching-service/     # Bun matchmaking microservice
+    rtc-service/          # mediasoup SFU
+    voiceiq-service/      # Voice scoring / analytics
+  packages/
+    shared/               # Shared TypeScript contracts
+    tsconfig/             # Shared TS base config
+  docs/                   # Index: docs/README.md
   docker-compose.dev.yml
+  package.json            # Bun workspaces root
 ```
 
 ### Code conventions
 
-- **Server** (`server/`): Feature modules under `src/modules/<name>/` use **controllers → services → repositories** for HTTP; **Drizzle/Postgres only in repositories**. Shared request/response types live in each module’s **`types/`** — import from there; services do not re-export types. User-visible **5xx** messages use shared copy from `src/shared/messages` (no raw database errors in JSON). See **`server/README.md`**.
-- **Client** (`client/`): Feature-first layout under `src/features/<name>/` with **`api/`** (RTK Query), **`types/`**, components, hooks. See **`client/README.md`**.
-- **Matching** (`matching-service/`): Standalone Bun service; see **`matching-service/README.md`**.
+- **Server** (`apps/server/`): Feature modules under `src/modules/<name>/` use **controllers → services → repositories** for HTTP; **Drizzle/Postgres only in repositories**. Shared request/response types live in each module’s **`types/`** — import from there; services do not re-export types. User-visible **5xx** messages use shared copy from `src/shared/messages` (no raw database errors in JSON). See **`apps/server/README.md`**.
+- **Client** (`apps/client/`): Feature-first layout under `src/features/<name>/` with **`api/`** (RTK Query), **`types/`**, components, hooks. See **`apps/client/README.md`**.
+- **Matching** (`apps/matching-service/`): Standalone Bun service; see **`apps/matching-service/README.md`**.
+- **Shared** (`packages/shared/`): Cross-app types (e.g. room session) and `load-env` helper.
 
 ---
 
 ## Prerequisites
 
-- Bun (for `server`, `matching-service`, `client`)
-- Node.js + npm (for `rtc-service`)
+- Bun `1.3.11` (all apps; install once from the repo root)
 - Docker Desktop (recommended for Postgres and Redis locally)
 
 ---
@@ -231,7 +239,13 @@ greetup/
 
 Run DB dependencies in Docker, apps on host for better local DX.
 
-### 1) Start dependencies
+### 1) Install dependencies (repo root)
+
+```bash
+bun install
+```
+
+### 2) Start dependencies
 
 ```bash
 docker compose -f docker-compose.dev.yml up -d postgres redis
@@ -242,46 +256,45 @@ Default exposed ports:
 - Postgres: `localhost:25432`
 - Redis: `localhost:26379`
 
-### 2) Start server
+### 3) Start server
 
 ```bash
-cd server
+cd apps/server
 cp env/.env.example env/.env.development   # set DATABASE_URL and secrets
-bun install
 bun run db:migrate      # apply Drizzle migrations (required for a fresh DB)
 bun run dev
 # → http://localhost:5300
 ```
 
-See **`server/README.md`** for layout, repositories, and shared messages.
+See **`apps/server/README.md`** for layout, repositories, and shared messages.
 
-### 3) Start client
+### 4) Start client
 
 ```bash
-cd client
-bun install
+cd apps/client
 bun run dev
 # → http://localhost:3000
 ```
 
-### 4) Start matching-service
+### 5) Start matching-service
 
 ```bash
-cd matching-service
-bun install
+cd apps/matching-service
 bun run dev
 ```
 
-Config comes from `matching-service/env/.env.*` (see `matching-service/README.md`).
+Config comes from `apps/matching-service/env/.env.*` (see `apps/matching-service/README.md`).
 
-### 5) Start rtc-service
+### 6) Start rtc-service
 
 ```bash
-cd rtc-service
-npm install
-npm run dev
+cd apps/rtc-service
+bun run dev
 # → http://localhost:5370
 ```
+
+Or from the repo root: `bun run dev` (starts server, client, matching, and rtc in parallel).
+On Windows you can also use `start-dev.bat`.
 
 ---
 
@@ -345,8 +358,8 @@ Clients connect directly to `rtc-service` for WebRTC signalling after `server` p
 
 ## Environment files
 
-- `server/env/.env.example`
-- `matching-service/env/.env.example`
+- `apps/server/env/.env.example`
+- `apps/matching-service/env/.env.example`
 
 Create local `.env` files before starting services and fill required secrets.
 

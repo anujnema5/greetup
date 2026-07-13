@@ -27,16 +27,18 @@ services:
   server:
     profiles: ["app"]
     build:
-      context: ./server
-      dockerfile: Dockerfile.dev
+      context: .
+      dockerfile: apps/server/Dockerfile.dev
     container_name: greetup_server
     ports:
       - "5300:5300"
     volumes:
-      - ./server:/app
-      - /app/node_modules  # keep container-installed deps (Bun), use host source
+      - ./apps/server:/app/apps/server
+      - ./packages:/app/packages
+      - /app/node_modules
+      - /app/apps/server/node_modules
     env_file:
-      - ./server/.env
+      - ./apps/server/env/.env.development
     environment:
       CHOKIDAR_USEPOLLING: "true"
       TSC_WATCHFILE: "UseFsEventsWithFallbackDynamicPolling"
@@ -47,16 +49,18 @@ services:
   client:
     profiles: ["app"]
     build:
-      context: ./client
-      dockerfile: Dockerfile.dev
+      context: .
+      dockerfile: apps/client/Dockerfile.dev
     container_name: greetup_client
     ports:
       - "3000:3000"
     volumes:
-      - ./client:/app
+      - ./apps/client:/app/apps/client
+      - ./packages:/app/packages
       - /app/node_modules
+      - /app/apps/client/node_modules
     env_file:
-      - ./client/.env
+      - ./apps/client/.env
     environment:
       NODE_ENV: development
       # Optional: enable if file changes don't trigger reload (e.g. on Windows)

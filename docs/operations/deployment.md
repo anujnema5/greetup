@@ -25,10 +25,10 @@ Local development uses Docker Postgres/Redis (`docker-compose.dev.yml`). Product
 
 | Trigger | Config | Path filter |
 |---|---|---|
-| greetup-client | `deploy/gcp/cloudbuild.client.yaml` | `client/**` |
-| greetup-server | `deploy/gcp/cloudbuild.server.yaml` | `server/**` |
-| greetup-matching-service | `deploy/gcp/cloudbuild.matching.yaml` | `matching-service/**` |
-| greetup-rtc-service | `deploy/gcp/cloudbuild.rtc.yaml` | `rtc-service/**` |
+| greetup-client | `deploy/gcp/cloudbuild.client.yaml` | `apps/client/**` |
+| greetup-server | `deploy/gcp/cloudbuild.server.yaml` | `apps/server/**` |
+| greetup-matching-service | `deploy/gcp/cloudbuild.matching.yaml` | `apps/matching-service/**` |
+| greetup-rtc-service | `deploy/gcp/cloudbuild.rtc.yaml` | `apps/rtc-service/**` |
 
 Push to `main` → matching trigger runs → build → Artifact Registry → Cloud Run (or VM pull for rtc).
 

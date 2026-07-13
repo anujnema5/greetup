@@ -38,7 +38,7 @@ Sankshipt runbook for everything done during the GCP → DigitalOcean cutover. F
 2. Create database `greetup_db`.
 3. Enable PostGIS.
 4. VPC network access for App Platform.
-5. Laptop: run migrations from `server/` with `DATABASE_URL` (public host + trusted IP, or VPC).
+5. Laptop: run migrations from `apps/server/` with `DATABASE_URL` (public host + trusted IP, or VPC).
 
 ---
 
@@ -218,7 +218,7 @@ curl -sI https://www.greetup.co/
 
 Both should end with `location: https://greetup.co/`.
 
-App-level backup exists in `client/next.config.ts` and `client/src/proxy.ts`.
+App-level backup exists in `apps/client/next.config.ts` and `apps/client/src/proxy.ts`.
 
 ---
 

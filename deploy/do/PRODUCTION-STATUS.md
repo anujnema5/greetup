@@ -98,7 +98,8 @@ Only after staging tests pass. Keep GCP running as rollback until stable.
 
 ```bash
 # Laptop — build & push rtc image
-docker build -f rtc-service/Dockerfile -t registry.digitalocean.com/greetup/rtc-service:latest rtc-service/
+docker build -f apps/rtc-service/Dockerfile -t registry.digitalocean.com/greetup/rtc-service:latest .
+
 docker push registry.digitalocean.com/greetup/rtc-service:latest
 
 # VM — SSH
