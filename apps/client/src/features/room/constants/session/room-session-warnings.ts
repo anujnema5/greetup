@@ -10,6 +10,3 @@ export const ROOM_SESSION_WARNING_COPY: Record<
   15: "This call will end in about 15 minutes.",
   5: "This call will end in about 5 minutes.",
 };
-
-/** Legacy interval — expiry warnings now use scheduled refetch instead of in-call polling. */
-export const ROOM_SESSION_EXPIRY_POLL_MS = 60_000;

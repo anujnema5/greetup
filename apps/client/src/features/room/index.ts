@@ -13,7 +13,7 @@ export type {
   UseMinimizedDockMainStageArgs,
 } from "./types/minimized-dock/minimized-dock-main-stage.types";
 export { RoomPage } from "./pages/room-page";
-export type { RoomSliceState, RoomStoreState } from "@/features/room/state/room.store";
+export type { RoomStoreState } from "@/features/room/state/room.store";
 export { useRoomStore } from "@/features/room/state/room.store";
 export { useRoomActivityStore } from "@/features/room/state/room-activity.store";
 export * from "./embedded-activities";
@@ -22,7 +22,6 @@ export {
   MATCHMAKING_HUB_PATH,
   SPACE_HOST_END_FOR_EVERYONE_REDIRECT_PATH,
   DIRECT_CALL_RECOVERY,
-  DIRECT_CALL_PEER_LEFT_DEBOUNCE_MS,
   DIRECT_CALL_NETWORK_RECOVERY_TIMEOUT_MS,
 } from "./constants";
 

@@ -15,7 +15,7 @@ import { Worker, type Job } from 'bullmq'
 import { eq } from 'drizzle-orm'
 import { db } from '@/core/database/index.ts'
 import { scores, rubrics } from '@/core/database/schema/index.ts'
-import { redis, keys } from '@/core/redis/index.ts'
+import { redis, VOICEIQ_KEYS } from '@/core/redis/index.ts'
 import { scoreWindow } from '@/scoring/engine.ts'
 import { redisConnection, type ScoringJobData } from '../queues.ts'
 import config from '@/shared/config/config.ts'
@@ -55,7 +55,7 @@ export function startScoringWorker() {
 
       // ── 4. Update live score in Redis (for dashboard / WS broadcast) ─────
       await redis.set(
-        keys.liveScore(participantId, sessionId),
+        VOICEIQ_KEYS.liveScore(participantId, sessionId),
         JSON.stringify(windowScores),
         'EX',
         300, // 5-minute TTL — meetings don't run forever

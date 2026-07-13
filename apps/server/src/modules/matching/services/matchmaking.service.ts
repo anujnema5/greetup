@@ -64,6 +64,3 @@ export const respondMatchProposalService = async (
   await assertMatchEngineOk(res, "Match engine /match/respond");
   await clearUserActiveRtcRoom(userId);
 };
-
-/** @deprecated Import from `@/modules/rooms/services/participation/leave-direct-room.service` */
-export { leaveDirectRoomService as leaveRoomService } from "@/modules/rooms/services/participation/leave-direct-room.service";

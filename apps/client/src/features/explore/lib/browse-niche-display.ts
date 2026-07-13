@@ -40,13 +40,6 @@ export function formatTopicSpaceCount(
   return total === 1 ? "1 space" : `${total} spaces`;
 }
 
-/** @deprecated Use formatTopicSpaceCount */
-export function formatTopicCircleCount(
-  niche: Pick<BrowseNicheItem, "liveGroupCount" | "scheduledGroupCount">,
-): string {
-  return formatTopicSpaceCount(niche);
-}
-
 export function partitionNicheRooms(rooms: readonly ActiveSpaceItem[]) {
   const live: ActiveSpaceItem[] = [];
   const scheduled: ActiveSpaceItem[] = [];

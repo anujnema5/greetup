@@ -1,6 +1,6 @@
 import { Queue, Worker, type Job } from 'bullmq'
 import config from '@/shared/config/config.ts'
-import { redis, keys } from '@/core/redis/index.ts'
+import { redis, VOICEIQ_KEYS } from '@/core/redis/index.ts'
 import { db } from '@/core/database/index.ts'
 import { scores, feedback, sessions, participants, rubrics } from '@/core/database/schema/index.ts'
 import { scoreWindow } from '@/scoring/engine.ts'
@@ -89,7 +89,7 @@ export function startScoringWorker() {
 
       // Push live score to Redis for real-time dashboard / WebSocket
       await redis.set(
-        keys.liveScore(participantId, sessionId),
+        VOICEIQ_KEYS.liveScore(participantId, sessionId),
         JSON.stringify(windowScores),
         'EX',
         300, // 5 minutes TTL
