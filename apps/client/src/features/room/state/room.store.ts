@@ -389,6 +389,3 @@ export const selectRoomChatDraft = (state: RoomStore) => state.chat.draft;
 
 export const selectDirectCallPeerLabel = (state: RoomStore) =>
   state.session.directCallPeerLabel;
-
-/** @deprecated Use `RoomStoreState` — kept for barrel compatibility. */
-export type RoomSliceState = RoomStoreState;

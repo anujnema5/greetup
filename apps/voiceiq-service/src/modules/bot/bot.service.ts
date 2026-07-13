@@ -1,6 +1,6 @@
 import { randomUUID } from 'crypto'
 import { webhookQueue } from '@/queue/index.ts'
-import { keys, redis } from '@/core/redis/index.ts'
+import { VOICEIQ_KEYS, redis } from '@/core/redis/index.ts'
 import { rubricRepository } from '../rubric/repositories/rubric.repository.ts'
 import { sessionRepository } from '../session/repositories/session.repository.ts'
 
@@ -26,8 +26,8 @@ export const botService = {
       notifyUrl:  body.notify_url ?? null,
     })
 
-    await redis.set(keys.botAlive(botId), '1', 'EX', 30)
-    await redis.set(keys.sessionStatus(session.id), 'active', 'EX', 86_400)
+    await redis.set(VOICEIQ_KEYS.botAlive(botId), '1', 'EX', 30)
+    await redis.set(VOICEIQ_KEYS.sessionStatus(session.id), 'active', 'EX', 86_400)
 
     return {
       bot_id:     botId,
@@ -38,7 +38,7 @@ export const botService = {
   },
 
   async heartbeat(botId: string) {
-    await redis.set(keys.botAlive(botId), '1', 'EX', 30)
+    await redis.set(VOICEIQ_KEYS.botAlive(botId), '1', 'EX', 30)
     return { ok: true as const }
   },
 

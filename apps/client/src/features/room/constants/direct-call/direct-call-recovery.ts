@@ -20,9 +20,6 @@ export const DIRECT_CALL_RECOVERY = {
   searchRetryDelayMs: 1_200,
 } as const;
 
-/** @deprecated Prefer {@link DIRECT_CALL_RECOVERY.matchPeerLeftDebounceMs}. */
-export const DIRECT_CALL_PEER_LEFT_DEBOUNCE_MS = DIRECT_CALL_RECOVERY.matchPeerLeftDebounceMs;
-
 export const DIRECT_CALL_NETWORK_RECOVERY_TIMEOUT_MS =
   DIRECT_CALL_RECOVERY.networkRecoveryTimeoutMs;
 

@@ -1,6 +1,6 @@
 import { aggregateWindows } from '@/scoring/aggregator.ts'
 import { scoringQueue, webhookQueue } from '@/queue/index.ts'
-import { keys, redis } from '@/core/redis/index.ts'
+import { VOICEIQ_KEYS, redis } from '@/core/redis/index.ts'
 import { sessionRepository } from './repositories/session.repository.ts'
 
 export const sessionService = {
@@ -23,7 +23,7 @@ export const sessionService = {
       await sessionRepository.addParticipantNames(session.id, input.participants)
     }
 
-    await redis.set(keys.sessionStatus(session.id), 'active', 'EX', 86_400)
+    await redis.set(VOICEIQ_KEYS.sessionStatus(session.id), 'active', 'EX', 86_400)
 
     return { session_id: session.id, status: 'active' as const }
   },
@@ -126,7 +126,7 @@ export const sessionService = {
         participant_id: p.id,
         name:           p.name,
         scores: await redis
-          .get(keys.liveScore(p.id, sessionId))
+          .get(VOICEIQ_KEYS.liveScore(p.id, sessionId))
           .then(raw => (raw ? JSON.parse(raw) : null)),
       })),
     )

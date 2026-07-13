@@ -11,7 +11,7 @@ export {
   toActivityOptionDtos,
   toSpaceActivityTagDto,
 } from "./activity-catalog.mapper";
-export { activityCatalogRepository, activitiesRepository } from "./activity-catalog.repository";
+export { activityCatalogRepository } from "./activity-catalog.repository";
 export { normalizeActivityDetail, trimActivityDetail } from "./normalize-detail";
 
 export type {

@@ -15,6 +15,3 @@ export const VOICEIQ_KEYS = {
   rateLimit: (apiKey: string, slot: string) =>
     `voiceiq:rate:${apiKey}:${slot}`,
 } as const
-
-/** @deprecated Prefer `VOICEIQ_KEYS` — alias kept for minimal churn in workers/services. */
-export const keys = VOICEIQ_KEYS

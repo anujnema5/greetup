@@ -402,18 +402,6 @@ export const EXPLORE = {
 
   },
 
-  /** @deprecated Use popularSpaces */
-
-  popularCircles: {
-
-    title: "Popular spaces",
-
-    viewAll: "View all",
-
-    empty: "No spaces to show yet. Browse topics or start your own.",
-
-  },
-
   peopleToMeet: {
 
     title: "People to meet",

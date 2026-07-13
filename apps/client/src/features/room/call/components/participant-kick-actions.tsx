@@ -144,6 +144,3 @@ export function ParticipantRemoveConfirmDialog({
   );
 }
 
-/** @deprecated Use ParticipantRemoveConfirmDialog */
-export const ParticipantKickConfirmDialog = ParticipantRemoveConfirmDialog;
-

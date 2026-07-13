@@ -166,6 +166,3 @@ export const activityCatalogRepository = {
     });
   },
 };
-
-/** @deprecated Import from `@/modules/session-activities` instead. */
-export const activitiesRepository = activityCatalogRepository;
