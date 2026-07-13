@@ -11,7 +11,9 @@ COPY apps/matching-service/package.json ./apps/matching-service/
 COPY apps/rtc-service/package.json ./apps/rtc-service/
 COPY apps/voiceiq-service/package.json ./apps/voiceiq-service/
 
-RUN bun install --frozen-lockfile --production
+# Workspace install pulls mediasoup (rtc-service); skip its native worker on alpine.
+# rtc-service image builds the worker properly on debian-slim.
+RUN MEDIASOUP_WORKER_BIN=/dev/null bun install --frozen-lockfile --production
 
 COPY packages/shared ./packages/shared
 COPY apps/server/tsconfig.json ./apps/server/
