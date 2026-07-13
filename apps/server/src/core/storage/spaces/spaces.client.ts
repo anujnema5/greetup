@@ -3,7 +3,6 @@
  */
 
 import { S3Client } from "@aws-sdk/client-s3";
-import { RequestChecksumCalculation } from "@aws-sdk/middleware-flexible-checksums";
 
 import appConfig from "@/shared/config/config";
 
@@ -23,7 +22,7 @@ export function getSpacesS3Client(): S3Client {
         secretAccessKey: appConfig.doSpacesSecret!,
       },
       forcePathStyle: false,
-      requestChecksumCalculation: RequestChecksumCalculation.WHEN_REQUIRED,
+      requestChecksumCalculation: "WHEN_REQUIRED",
     });
   }
   return client;
