@@ -8,8 +8,8 @@ export const siteConfig = {
   tagline: "Meet people matched to you — chat, voice, or video.",
   description:
     "Meet like-minded people online — matched by interests, job, or mood. Talk your way with chat, voice, or video. Join live spaces around what you care about.",
-  contactEmail: "hello@greetup.co",
-  supportEmail: "support@greetup.co",
+  contactEmail: "hello@greetup.club",
+  supportEmail: "support@greetup.club",
   locale: "en_US",
   twitterHandle: "@greetup",
 } as const;
