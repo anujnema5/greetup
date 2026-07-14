@@ -2,7 +2,7 @@ import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { openAPI } from "better-auth/plugins";
 import { db } from "../database";
-import { firebasePhonePlugin } from "@/core/auth/plugins/firebase-phone.plugin";
+import { phoneOtpPlugin } from "@/core/auth/plugins/phone-otp.plugin";
 import { guestSessionPlugin } from "@/core/auth/plugins/guest-session.plugin";
 import { guestSignupMergePlugin } from "@/core/auth/plugins/guest-signup-merge.plugin";
 import { betterAuthRedisRateLimitStorage } from "@/core/rate-limit";
@@ -135,12 +135,14 @@ const auth = betterAuth({
     max: 100,
     customStorage: betterAuthRedisRateLimitStorage,
     customRules: {
-      "/firebase-phone": { window: 60, max: 10 },
-      "/firebase-phone-update": { window: 60, max: 20 },
+      "/phone-otp/start": { window: 60, max: 10 },
+      "/phone-otp/verify": { window: 60, max: 20 },
+      "/phone-otp/update/start": { window: 60, max: 10 },
+      "/phone-otp/update/verify": { window: 60, max: 20 },
     },
   },
 
-  plugins: [openAPI(), firebasePhonePlugin(), guestSessionPlugin(), guestSignupMergePlugin()],
+  plugins: [openAPI(), phoneOtpPlugin(), guestSessionPlugin(), guestSignupMergePlugin()],
 
   emailAndPassword: {
     enabled: true,

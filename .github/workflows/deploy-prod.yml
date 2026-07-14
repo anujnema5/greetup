@@ -8,11 +8,10 @@ name: Deploy to production
 #
 # Required GitHub secrets (Settings → Secrets and variables → Actions):
 #   DIGITALOCEAN_ACCESS_TOKEN   DO API token (registry + doctl)
-#   NEXT_PUBLIC_FIREBASE_API_KEY
-#   NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN
-#   NEXT_PUBLIC_FIREBASE_PROJECT_ID
-#   NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID
-#   NEXT_PUBLIC_FIREBASE_APP_ID
+#
+# Phone OTP uses AWS SNS (server-side). The server container needs AWS_SNS_REGION,
+# AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY as *runtime* env on App Platform — not
+# build args (they are not NEXT_PUBLIC_ and must never be baked into the client image).
 #
 # Required GitHub variables (Settings → Secrets and variables → Actions → Variables):
 #   DO_APP_ID_CLIENT
@@ -90,20 +89,6 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Verify Firebase client config
-        if: matrix.service == 'client'
-        env:
-          NEXT_PUBLIC_FIREBASE_API_KEY: ${{ secrets.NEXT_PUBLIC_FIREBASE_API_KEY }}
-          NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN: ${{ secrets.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN }}
-          NEXT_PUBLIC_FIREBASE_PROJECT_ID: ${{ secrets.NEXT_PUBLIC_FIREBASE_PROJECT_ID }}
-        run: |
-          set -euo pipefail
-          if [ -z "$NEXT_PUBLIC_FIREBASE_API_KEY" ] || [ -z "$NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN" ] || [ -z "$NEXT_PUBLIC_FIREBASE_PROJECT_ID" ]; then
-            echo "ERROR: Firebase client secrets are missing."
-            echo "Add NEXT_PUBLIC_FIREBASE_API_KEY, NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN, and NEXT_PUBLIC_FIREBASE_PROJECT_ID to GitHub Actions secrets."
-            exit 1
-          fi
-
       - uses: docker/setup-buildx-action@v3
 
       - uses: docker/login-action@v3
@@ -140,11 +125,6 @@ jobs:
             NEXT_PUBLIC_SOCKET_SERVER_URL=${{ env.NEXT_PUBLIC_SOCKET_SERVER_URL }}
             NEXT_PUBLIC_RTC_SOCKET_URL=${{ env.NEXT_PUBLIC_RTC_SOCKET_URL }}
             NEXT_PUBLIC_APP_URL=${{ env.NEXT_PUBLIC_APP_URL }}
-            NEXT_PUBLIC_FIREBASE_API_KEY=${{ secrets.NEXT_PUBLIC_FIREBASE_API_KEY }}
-            NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=${{ secrets.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN }}
-            NEXT_PUBLIC_FIREBASE_PROJECT_ID=${{ secrets.NEXT_PUBLIC_FIREBASE_PROJECT_ID }}
-            NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=${{ secrets.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID }}
-            NEXT_PUBLIC_FIREBASE_APP_ID=${{ secrets.NEXT_PUBLIC_FIREBASE_APP_ID }}
             NEXT_PUBLIC_GA_MEASUREMENT_ID=${{ env.NEXT_PUBLIC_GA_MEASUREMENT_ID }}
           cache-from: type=gha,scope=client
           cache-to: type=gha,mode=max,scope=client

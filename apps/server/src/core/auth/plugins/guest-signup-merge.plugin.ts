@@ -27,7 +27,7 @@ function isSignupMergePath(path: string | undefined): boolean {
   return (
     path === "/sign-up/email" ||
     path.startsWith("/callback/") ||
-    path === "/firebase-phone"
+    path === "/phone-otp/verify"
   );
 }
 

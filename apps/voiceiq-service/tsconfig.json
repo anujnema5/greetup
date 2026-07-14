@@ -5,10 +5,8 @@
     "moduleResolution": "bundler",
     "strict": true,
     "skipLibCheck": true,
-    "ignoreDeprecations": "6.0",
     "noEmit": true,
     "allowImportingTsExtensions": true,
-    "baseUrl": ".",
     "paths": {
       "@/*": ["./src/*"]
     }

@@ -13,7 +13,7 @@ import OTPVerification from "@/features/auth/components/otp-verification-form";
 import AuthPageLayout from "@/features/auth/components/auth-page-layout";
 import { AuthFormDivider } from "@/features/auth/components/auth-form-divider";
 import { AuthGuestContinueButton } from "@/features/auth/components/auth-guest-continue-button";
-import { FirebasePhoneAuthProvider } from "@/features/auth/context/firebase-phone-auth-context";
+import { PhoneOtpProvider } from "@/features/auth/context/phone-otp-context";
 import { getAuthCallbackUrl } from "@/features/auth/lib/auth-callback-url";
 
 // Email auth UI temporarily hidden — keep "email" for future re-enable.
@@ -89,7 +89,7 @@ function LoginPageContent() {
   };
 
   return (
-    <FirebasePhoneAuthProvider>
+    <PhoneOtpProvider>
       <AuthPageLayout
         title="Welcome back"
         subtitle="Log in to continue"
@@ -116,7 +116,7 @@ function LoginPageContent() {
 
         {view !== "otp" ? <AuthGuestContinueButton /> : null}
       </AuthPageLayout>
-    </FirebasePhoneAuthProvider>
+    </PhoneOtpProvider>
   );
 }
 

@@ -17,7 +17,7 @@ import {
   getGuestRegisterAuthCallbackUrl,
   getGuestRegisterPostSignupPath,
 } from "@/features/auth/lib/guest-register-post-signup-path";
-import { FirebasePhoneAuthProvider } from "@/features/auth/context/firebase-phone-auth-context";
+import { PhoneOtpProvider } from "@/features/auth/context/phone-otp-context";
 import { useSignupMergeContext } from "@/features/guest-try/hooks/use-signup-merge-context";
 import { useGuestTryStatus } from "@/features/guest-try/hooks/use-guest-try-status";
 import { GUEST_TRIAL_REGISTER, REGISTER_PAGE } from "@/lib/copy/user-messages";
@@ -98,7 +98,7 @@ function RegisterPageContent() {
   };
 
   return (
-    <FirebasePhoneAuthProvider>
+    <PhoneOtpProvider>
       <AuthPageLayout
         title={title}
         subtitle={subtitle}
@@ -131,7 +131,7 @@ function RegisterPageContent() {
 
         {view !== "otp" ? <AuthGuestContinueButton /> : null}
       </AuthPageLayout>
-    </FirebasePhoneAuthProvider>
+    </PhoneOtpProvider>
   );
 }
 

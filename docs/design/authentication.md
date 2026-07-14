@@ -1,6 +1,6 @@
 # Authentication
 
-This document describes how end-user authentication works in this repo: **Better Auth** on the Hono server, **PostgreSQL** sessions, **Google OAuth**, **email/password**, and **Firebase Phone OTP**.
+This document describes how end-user authentication works in this repo: **Better Auth** on the Hono server, **PostgreSQL** sessions, **Google OAuth**, **email/password**, and **Phone OTP over AWS SNS** (OTP generated and verified server-side).
 
 ---
 
@@ -9,12 +9,13 @@ This document describes how end-user authentication works in this repo: **Better
 | Piece | Location | Role |
 |--------|-----------|------|
 | Better Auth | `server/src/core/auth/auth.ts` | Sessions, OAuth, email flows, DB adapter; **`user.additionalFields`** registers `phoneNumber`, `username`, etc. (must match Drizzle `users` columns) |
-| Custom phone exchange | `server/src/core/auth/plugins/firebase-phone.plugin.ts` | `POST /api/auth/firebase-phone` |
-| Firebase Admin | `server/src/core/firebase/admin.ts` | Verifies Firebase **ID tokens** (server only) |
+| Phone OTP plugin | `server/src/core/auth/plugins/phone-otp.plugin.ts` | `POST /api/auth/phone-otp/{start,verify}` and `.../update/{start,verify}` |
+| OTP store | `server/src/core/auth/otp/` | Generates codes, stores the **hash** in Redis with TTL, verifies (single-use, attempt-capped), and gates sends (cooldown + hourly caps) |
+| SNS sender | `server/src/core/sns/` | Publishes the OTP SMS (transactional) via AWS SNS |
 | Auth middleware | `server/src/middleware/auth.middleware.ts` | `auth.api.getSession` → `c.set("user", …)` |
 | Better Auth React client | `client/src/lib/auth-client.ts` | `useSession`, Google sign-in URLs |
-| Phone OTP UI | `client/src/features/auth/context/firebase-phone-auth-context.tsx` | reCAPTCHA + `signInWithPhoneNumber` |
-| Session bridge | `client/src/features/auth/lib/exchange-firebase-session.ts` | Sends ID token to Hono, receives cookie |
+| Phone OTP UI | `client/src/features/auth/context/phone-otp-context.tsx` | `sendOtp` / `confirmOtp` (mode `signin` or `update`) |
+| OTP network lib | `client/src/features/auth/lib/phone-otp.ts` | `start`/`verify` calls; server sets the session cookie |
 
 ---
 
@@ -39,21 +40,23 @@ This document describes how end-user authentication works in this repo: **Better
 - `authClient.signIn.social({ provider: "google", callbackURL })` with `baseURL` pointing at the **Next app origin** so `/api/auth/*` is proxied to Hono (see §4).
 - OAuth **redirect URI** on the server is `{SERVER_URL}/api/auth/callback/google` (or equivalent public base).
 
-### 3.3 Firebase Phone (OTP)
+### 3.3 Phone (OTP over AWS SNS)
 
-1. **Client**: Firebase JS SDK initializes with `NEXT_PUBLIC_FIREBASE_*` (`client/src/lib/firebase/client-app.ts`).
-2. Invisible **reCAPTCHA** + `signInWithPhoneNumber` → user receives SMS → `confirmation.confirm(code)`.
-3. Client calls `getIdToken()` and **`exchangeFirebaseSession(idToken)`** → `POST /api/auth/firebase-phone` with `{ idToken, name? }`.
-4. **Server**: Firebase Admin **`verifyIdToken`** (must use a service account from the **same** Firebase project as the web app). Plugin ensures `phone_number` is present, **find-or-creates** the user (synthetic email `fb_{uid}@firebase.greetup.local`), **`createSession`**, **`setSessionCookie`**, returns JSON.
+The OTP lifecycle is **server-side** — SNS is only an SMS transport (unlike Firebase it does not generate or verify codes).
 
-Phone users typically have **`emailVerified: false`** until you add a separate email verification path.
+1. **Client** (`sendOtp`): `POST /api/auth/phone-otp/start` with `{ phone }`.
+2. **Server** (`/phone-otp/start`): normalizes to E.164, applies send limits (per-number cooldown + per-number and per-IP hourly caps — `core/auth/otp/otp-rate-limit.ts`), generates an N-digit code, stores its **hash** in Redis with a TTL (`createOtp`), and publishes the SMS via SNS (`sendOtpSms`).
+3. **Client** (`confirmOtp`): `POST /api/auth/phone-otp/verify` with `{ phone, code, name? }`.
+4. **Server** (`/phone-otp/verify`): `verifyOtp` (constant-time hash compare, single-use, `OTP_MAX_ATTEMPTS` lockout) → **find-or-creates** the user (synthetic email `phone_{random}@phone.greetup.local`) → **`createSession`** → **`setSessionCookie`**, returns JSON.
+
+Phone users typically have **`emailVerified: false`** until you add a separate email verification path. Invalid/expired/wrong codes all return a generic `OTP_INVALID` (detail is logged server-side only).
 
 ### 3.4 Change phone (Settings)
 
-1. **Settings** (`/settings`) wraps **Change phone** in `FirebasePhoneAuthProvider` (same Firebase SMS + reCAPTCHA as login).
-2. User enters the **new** E.164 number → Firebase sends OTP → user confirms.
-3. Client calls **`POST /api/auth/firebase-phone-update`** with `{ idToken }` and the **existing** Better Auth session cookie.
-4. Server (`firebase-phone-update` in `firebase-phone.plugin.ts`): **`sessionMiddleware`** loads the current user → verifies the Firebase token → ensures the number is not on **another** account → **`updateUser`** + **`setSessionCookie`**.
+1. **Settings** (`/settings`) wraps **Change phone** in `PhoneOtpProvider mode="update"` (same UI, different endpoints).
+2. User enters the **new** E.164 number → `POST /api/auth/phone-otp/update/start` (requires the existing session) sends a code.
+3. Client confirms → `POST /api/auth/phone-otp/update/verify` with `{ phone, code }` and the **existing** Better Auth session cookie.
+4. Server (`/phone-otp/update/verify` in `phone-otp.plugin.ts`): **`sessionMiddleware`** loads the current user → `verifyOtp` → ensures the number is not on **another** account → **`updateUser`** + **`setSessionCookie`**.
 5. **`get-session`** normalization includes **`phoneNumber`** from Postgres so the UI shows the current number.
 
 ---
@@ -90,25 +93,27 @@ Implications:
 
 - `BETTER_AUTH_URL`, `BETTER_AUTH_SECRET`, `SERVER_URL`, `WEB_CLIENT_HOST`
 - `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`
-- `FIREBASE_SERVICE_ACCOUNT_PATH` — **recommended**: path to the downloaded service account `.json` (e.g. `./env/firebase-service-account.json`). Standard `.env` files cannot hold multi-line JSON; a pasted multi-line key causes `must be valid JSON` errors.
-- `FIREBASE_SERVICE_ACCOUNT_JSON` — optional alternative: the same JSON as a **single line** only. **`project_id` must match** `NEXT_PUBLIC_FIREBASE_PROJECT_ID`.
+- `AWS_SNS_REGION`, `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY` — SNS SMS delivery (IAM principal needs `sns:Publish`). New accounts start in the **SNS SMS sandbox** (delivers only to verified numbers) until you request production access.
+- `AWS_SNS_SENDER_ID` — optional alphanumeric Sender ID (unsupported in US/CA — those need a registered 10DLC/toll-free number).
+- `OTP_TTL_SEC`, `OTP_LENGTH`, `OTP_MAX_ATTEMPTS` — optional OTP tunables (defaults 300 / 6 / 5).
 
 **Client** (`.env.local`):
 
 - `NEXT_PUBLIC_APP_URL` — Next app origin
 - `NEXT_PUBLIC_API_BASE_URL` — optional; defaults to `{NEXT_PUBLIC_APP_URL}/api`
 - `NEXT_PUBLIC_SOCKET_SERVER_URL` — Hono + Socket.IO (e.g. `http://localhost:5300`)
-- `NEXT_PUBLIC_FIREBASE_*` — Firebase web app config
 - `API_BACKEND_ORIGIN` — optional; used by **Next** rewrites (build-time) to find Hono
+
+_Phone OTP is fully server-side — the client no longer needs any Firebase/SMS config._
 
 ---
 
 ## 7. Operational checklist
 
-1. **Firebase Phone**: Enable Phone provider in Firebase Console; **authorized domains** include your Next host.
-2. **INVALID_TOKEN** / JSON errors on `/firebase-phone`: **Wrong Firebase project** (client vs service account), **corrupt credentials**, or **multi-line JSON in `.env`** — use `FIREBASE_SERVICE_ACCOUNT_PATH` to a real file instead.
+1. **AWS SNS**: IAM principal has `sns:Publish`; account is out of the **SMS sandbox** (or the test number is verified); a `MonthlySpendLimit` + billing alarm are set.
+2. **`OTP_SEND_FAILED`**: SNS rejected the publish — check region/credentials, and that the destination country has a valid origination identity (Sender ID where allowed, else 10DLC/toll-free).
 3. **401 with `hasSessionCookie: false`**: Browser not sending a cookie — confirm rewrites, **`API_BASE_URL`**, and that you are not mixing `localhost` with `127.0.0.1`.
-4. **INVALID_CODE** (Firebase): Wrong/expired OTP, or code not **6 digits** after normalizing (non-digits stripped client-side).
+4. **`OTP_INVALID` / `OTP_TOO_MANY_ATTEMPTS`**: Wrong/expired code, code already used, or `OTP_MAX_ATTEMPTS` exceeded — request a new code. **`OTP_RATE_LIMITED`**: resend cooldown or hourly cap hit.
 
 ---
 
@@ -117,16 +122,17 @@ Implications:
 | File | Purpose |
 |------|---------|
 | `server/src/core/auth/auth.ts` | Better Auth configuration |
-| `server/src/core/auth/plugins/firebase-phone.plugin.ts` | Phone token exchange |
-| `server/src/core/firebase/admin.ts` | Firebase Admin singleton |
+| `server/src/core/auth/plugins/phone-otp.plugin.ts` | Phone OTP start/verify endpoints (sign-in + update) |
+| `server/src/core/auth/otp/` | OTP generate/verify store, E.164 helpers, send rate limits |
+| `server/src/core/sns/` | AWS SNS client + `sendOtpSms` |
 | `server/src/middleware/auth.middleware.ts` | Protected REST routes |
 | `server/src/core/socket/socket.ts` | Socket session from cookies |
 | `client/next.config.ts` | `/api` → Hono rewrites |
 | `client/src/lib/auth-client.ts` | Better Auth React client |
-| `client/src/features/auth/context/firebase-phone-auth-context.tsx` | Phone OTP; sign-in exchange vs **signed-in** phone update |
-| `client/src/features/auth/lib/update-account-phone.ts` | `POST /api/auth/firebase-phone-update` |
-| `client/src/features/settings/components/change-phone-section.tsx` | Settings UI for changing phone |
-| `client/src/features/auth/types/` | Auth-related TS types (e.g. Firebase session exchange) |
+| `client/src/features/auth/context/phone-otp-context.tsx` | Phone OTP UI state; `mode` = `signin` \| `update` |
+| `client/src/features/auth/lib/phone-otp.ts` | `start`/`verify` network calls |
+| `client/src/features/settings/components/change-phone-dialog.tsx` | Settings UI for changing phone |
+| `client/src/features/auth/types/` | Auth-related TS types (e.g. `PhoneOtpSessionResult`) |
 | `client/src/features/auth/schemas/auth.schemas.ts` | Zod schemas including phone OTP |
 
 For local runbooks and full env tables, see **[getting-started/development-run.md](../getting-started/development-run.md)**.

@@ -29,14 +29,11 @@ import {
   InputOTPSlot,
 } from "@/components/ui/input-otp";
 import { PhoneInput } from "@/components/ui/phone-input";
-import { useFirebasePhoneAuth } from "@/features/auth/context/firebase-phone-auth-context";
-import { getFirebaseAuth } from "@/lib/firebase/client-app";
-import { useUpdateAccountPhone } from "@/features/settings/api/account-settings.mutations";
+import { usePhoneOtp } from "@/features/auth/context/phone-otp-context";
 import { getApiErrorMessage } from "@/lib/api/fetch-client";
 import {
   phoneLoginSchema,
   phoneOtpVerificationSchema,
-  updateAccountPhoneBodySchema,
   type PhoneLoginInput,
   type PhoneOtpVerificationInput,
 } from "@/features/settings/schemas/change-phone.schemas";
@@ -56,9 +53,8 @@ type ChangePhoneDialogProps = {
 
 export function ChangePhoneDialog({ open, onOpenChange, currentPhone }: ChangePhoneDialogProps) {
   const router = useRouter();
-  const { sendOtp, confirmPhoneOtpToIdToken, isSending, reset: resetFirebasePhone } =
-    useFirebasePhoneAuth();
-  const { mutateAsync: updateAccountPhone, isPending: isSaving } = useUpdateAccountPhone();
+  const { sendOtp, confirmOtp, isSending, reset: resetPhoneOtp } = usePhoneOtp();
+  const [isSaving, setIsSaving] = useState(false);
 
   const [step, setStep] = useState<Step>("phone");
   const [pendingE164, setPendingE164] = useState("");
@@ -84,7 +80,7 @@ export function ChangePhoneDialog({ open, onOpenChange, currentPhone }: ChangePh
   // ─── Handlers ───────────────────────────────────────────────────────────────
 
   const closeAndReset = () => {
-    resetFirebasePhone();
+    resetPhoneOtp();
     phoneForm.reset({ phone: currentPhone ?? "" });
     otpForm.reset({ otp: "" });
     setStep("phone");
@@ -124,25 +120,17 @@ export function ChangePhoneDialog({ open, onOpenChange, currentPhone }: ChangePh
   };
 
   const onConfirmOtp = async (data: PhoneOtpVerificationInput) => {
+    setIsSaving(true);
     try {
-      const idToken = await confirmPhoneOtpToIdToken(data.otp);
-      const parsed = updateAccountPhoneBodySchema.safeParse({ idToken });
-      if (!parsed.success) {
-        toast.error(parsed.error.issues[0]?.message ?? "Invalid token");
-        return;
-      }
-      await updateAccountPhone(parsed.data);
+      await confirmOtp(pendingE164, data.otp);
       toast.success("Phone number updated");
-      try {
-        await getFirebaseAuth().signOut();
-      } catch {
-        /* ignore */
-      }
-      resetFirebasePhone();
+      resetPhoneOtp();
       handleOpenChange(false);
       router.refresh();
     } catch (err) {
       toast.error(getApiErrorMessage(err, "Could not update phone number"));
+    } finally {
+      setIsSaving(false);
     }
   };
 

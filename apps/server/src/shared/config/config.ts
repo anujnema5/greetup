@@ -116,12 +116,21 @@ const config = {
   geminiApiKey: requiredEnv("GEMINI_API_KEY"),
 
   /**
-   * Full JSON of Firebase service account (Phone Auth). Prefer `FIREBASE_SERVICE_ACCOUNT_PATH`
-   * locally — standard `.env` files do not support multi-line JSON.
+   * AWS SNS — phone OTP SMS delivery (replaces Firebase Phone Auth). SNS only transports the
+   * SMS; the OTP is generated/verified server-side (see `core/auth/otp`). Requires an IAM
+   * principal with `sns:Publish`. Optional at boot so non-phone flows still run without it;
+   * `sendOtpSms` throws a clear error if unset when a code is actually requested.
    */
-  firebaseServiceAccountJson: optionalEnv("FIREBASE_SERVICE_ACCOUNT_JSON"),
-  /** Absolute path, or path relative to `server` process cwd (usually repo `server/`), to the downloaded `.json` key file. */
-  firebaseServiceAccountPath: optionalEnv("FIREBASE_SERVICE_ACCOUNT_PATH"),
+  awsSnsRegion: optionalEnv("AWS_SNS_REGION"),
+  awsAccessKeyId: optionalEnv("AWS_ACCESS_KEY_ID"),
+  awsSecretAccessKey: optionalEnv("AWS_SECRET_ACCESS_KEY"),
+  /** Alphanumeric sender shown on the SMS where the destination country supports it (not US/CA). */
+  awsSnsSenderId: optionalEnv("AWS_SNS_SENDER_ID"),
+
+  /** Phone OTP tunables (server-side generate/verify). */
+  otpTtlSec: parseNonNegativeInt(optionalEnv("OTP_TTL_SEC"), 300),
+  otpLength: parseNonNegativeInt(optionalEnv("OTP_LENGTH"), 6),
+  otpMaxAttempts: parseNonNegativeInt(optionalEnv("OTP_MAX_ATTEMPTS"), 5),
 
   /** AES-256-GCM message encryption key (32 bytes / 64 hex chars). Loaded from Doppler. */
   messageEncryptionKey: optionalEnv("MESSAGE_ENCRYPTION_KEY"),

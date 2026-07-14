@@ -9,7 +9,7 @@ export const phoneLoginSchema = z.object({
     phone: z.string().min(10, "Please enter a valid phone number"),
 });
 
-/** Firebase Phone Auth SMS code (exactly 6 digits in the UI before `digitsOnlyOtp` in context). */
+/** Phone OTP SMS code (exactly 6 digits in the UI; the server strips non-digits on verify). */
 export const phoneOtpVerificationSchema = z.object({
     otp: z.string().length(6, "Enter the 6-digit code"),
 });
