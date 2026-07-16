@@ -6,9 +6,12 @@ export const API_ENDPOINTS = {
     PROFILE: "/guest/profile",
     MATCH_PREP: "/guest/match-prep",
   },
-  ACCOUNT: {
-    /** Better Auth plugin: update signed-in user phone after Firebase SMS verification. */
-    FIREBASE_PHONE_UPDATE: "/auth/firebase-phone-update",
+  AUTH: {
+    /** Server-side phone OTP over AWS SNS (Better Auth `phone-otp` plugin). */
+    PHONE_OTP_START: "/auth/phone-otp/start",
+    PHONE_OTP_VERIFY: "/auth/phone-otp/verify",
+    PHONE_OTP_UPDATE_START: "/auth/phone-otp/update/start",
+    PHONE_OTP_UPDATE_VERIFY: "/auth/phone-otp/update/verify",
   },
   PROFILE: {
     ME: "/profile/me",

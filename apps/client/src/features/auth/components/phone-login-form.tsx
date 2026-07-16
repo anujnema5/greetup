@@ -9,7 +9,7 @@ import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { isValidPhoneNumber } from "react-phone-number-input";
 
-import { useFirebasePhoneAuth } from "@/features/auth/context/firebase-phone-auth-context";
+import { usePhoneOtp } from "@/features/auth/context/phone-otp-context";
 import { phoneLoginSchema, type PhoneLoginInput } from "../schemas/auth.schemas";
 
 interface PhoneLoginFormProps {
@@ -17,7 +17,7 @@ interface PhoneLoginFormProps {
 }
 
 const PhoneLoginForm = ({ onOTPSent }: PhoneLoginFormProps) => {
-  const { sendOtp, isSending } = useFirebasePhoneAuth();
+  const { sendOtp, isSending } = usePhoneOtp();
 
   const form = useForm<PhoneLoginInput>({
     resolver: zodResolver(phoneLoginSchema),

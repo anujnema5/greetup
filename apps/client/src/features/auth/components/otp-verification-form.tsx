@@ -21,6 +21,10 @@ interface OTPVerificationProps {
   displayName?: string;
 }
 
+/** Inline link-style action, matching the Resend link in the Settings change-phone dialog. */
+const LINK_BUTTON_CLASS =
+  "cursor-pointer rounded-sm font-medium text-tertiary-foreground underline-offset-4 transition-colors hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-50 disabled:no-underline";
+
 function OTPVerification({
   phoneNumber,
   onVerified,
@@ -85,23 +89,31 @@ function OTPVerification({
             )}
           </Button>
 
-          <p className="text-center text-[12px] text-muted-foreground">
-            Didn&apos;t receive the code?{" "}
-            <button
-              className="cursor-pointer underline"
-              type="button"
-              onClick={() => void resendOTP()}
-            >
-              Resend
-            </button>
-          </p>
+          <div className="space-y-2.5 text-center">
+            <p className="text-[12px] leading-snug text-muted-foreground">
+              Didn&apos;t receive the code?{" "}
+              <button
+                type="button"
+                onClick={() => void resendOTP()}
+                disabled={isLoading}
+                className={LINK_BUTTON_CLASS}
+              >
+                Resend
+              </button>
+            </p>
 
-          <p className="text-center text-[11px] text-muted-foreground">
-            Wrong number?{" "}
-            <button type="button" className="cursor-pointer underline" onClick={onEditPhone}>
-              Edit phone
-            </button>
-          </p>
+            <p className="text-[12px] leading-snug text-muted-foreground">
+              Wrong number?{" "}
+              <button
+                type="button"
+                onClick={onEditPhone}
+                disabled={isLoading}
+                className={LINK_BUTTON_CLASS}
+              >
+                Edit phone
+              </button>
+            </p>
+          </div>
         </form>
       </Form>
     </div>

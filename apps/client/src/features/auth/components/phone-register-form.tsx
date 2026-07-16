@@ -19,7 +19,7 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { PhoneInput } from "@/components/ui/phone-input";
-import { useFirebasePhoneAuth } from "@/features/auth/context/firebase-phone-auth-context";
+import { usePhoneOtp } from "@/features/auth/context/phone-otp-context";
 
 const phoneRegisterSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters"),
@@ -34,7 +34,7 @@ interface PhoneRegisterFormProps {
 }
 
 export default function PhoneRegisterForm({ onOTPSent, defaultName }: PhoneRegisterFormProps) {
-  const { sendOtp, isSending } = useFirebasePhoneAuth();
+  const { sendOtp, isSending } = usePhoneOtp();
 
   const form = useForm<PhoneFormValues>({
     resolver: zodResolver(phoneRegisterSchema),

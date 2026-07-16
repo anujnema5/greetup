@@ -12,7 +12,7 @@ export function resolveGuestSignupProviderFromRequestUrl(
   if (path.includes("google") || path.includes("callback/google")) {
     return "google";
   }
-  if (path.includes("firebase-phone") || path.includes("phone")) {
+  if (path.includes("phone")) {
     return "phone";
   }
   return "email";

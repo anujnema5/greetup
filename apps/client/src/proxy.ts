@@ -404,11 +404,6 @@ function setSecurityHeaders(response: NextResponse): void {
   const socketWs = wsOriginFromHttp(process.env.NEXT_PUBLIC_SOCKET_SERVER_URL);
   const rtcOrigin = originFromUrl(process.env.NEXT_PUBLIC_RTC_SOCKET_URL);
   const rtcWs = wsOriginFromHttp(process.env.NEXT_PUBLIC_RTC_SOCKET_URL);
-  const firebaseAuthOrigin = originFromUrl(
-    process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN
-      ? `https://${process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN}`
-      : undefined,
-  );
 
   const connectSrc = [
     "'self'",
@@ -417,12 +412,8 @@ function setSecurityHeaders(response: NextResponse): void {
     socketWs,
     rtcOrigin,
     rtcWs,
-    firebaseAuthOrigin,
     "https://*.googleapis.com",
     "https://*.gstatic.com",
-    "https://*.firebaseio.com",
-    "https://identitytoolkit.googleapis.com",
-    "https://securetoken.googleapis.com",
     "https://www.google.com",
     "https://www.gstatic.com",
     "https://api.dicebear.com",
@@ -459,7 +450,7 @@ function setSecurityHeaders(response: NextResponse): void {
     `connect-src ${connectSrc}`,
     "media-src 'self' blob:",
     "worker-src 'self' blob:",
-    "frame-src 'self' https://www.google.com https://*.firebaseapp.com",
+    "frame-src 'self' https://www.google.com",
     "frame-ancestors 'none'",
     "base-uri 'self'",
     "form-action 'self'",

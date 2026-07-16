@@ -1,23 +1,25 @@
 "use client";
 
-import { Suspense, useEffect, useRef, useState } from "react";
+import { Suspense, useEffect, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { toast } from "sonner";
 
 import { PageLoading } from "@/components/page-loading";
-import PhoneLoginForm from "@/features/auth/components/phone-login-form";
 import SocialLoginButtons from "@/features/auth/components/social-login-buttons";
-// import LoginToggleButtons from "@/features/auth/components/login-toggle-buttons";
-import OTPVerification from "@/features/auth/components/otp-verification-form";
-// import EmailLoginForm from "@/features/auth/components/email-login-form";
 import AuthPageLayout from "@/features/auth/components/auth-page-layout";
-import { AuthFormDivider } from "@/features/auth/components/auth-form-divider";
 import { AuthGuestContinueButton } from "@/features/auth/components/auth-guest-continue-button";
-import { FirebasePhoneAuthProvider } from "@/features/auth/context/firebase-phone-auth-context";
 import { getAuthCallbackUrl } from "@/features/auth/lib/auth-callback-url";
 
-// Email auth UI temporarily hidden — keep "email" for future re-enable.
-type View = "phone" | "email" | "otp";
+// Phone OTP + email auth UI temporarily hidden (Google-only launch) — keep for future re-enable.
+// import { useState } from "react";
+// import PhoneLoginForm from "@/features/auth/components/phone-login-form";
+// import LoginToggleButtons from "@/features/auth/components/login-toggle-buttons";
+// import OTPVerification from "@/features/auth/components/otp-verification-form";
+// import EmailLoginForm from "@/features/auth/components/email-login-form";
+// import { AuthFormDivider } from "@/features/auth/components/auth-form-divider";
+// import { PhoneOtpProvider } from "@/features/auth/context/phone-otp-context";
+
+// type View = "phone" | "email" | "otp";
 
 function oauthErrorMessage(code: string): string {
   switch (code) {
@@ -33,8 +35,6 @@ function oauthErrorMessage(code: string): string {
 }
 
 function LoginPageContent() {
-  const [view, setView] = useState<View>("phone");
-  const [phoneNumber, setPhoneNumber] = useState("");
   const router = useRouter();
   const searchParams = useSearchParams();
   const fromGuestIntent = searchParams.get("from") === "guest";
@@ -51,6 +51,14 @@ function LoginPageContent() {
     router.replace(qs ? `/login?${qs}` : "/login");
   }, [oauthError, router, searchParams]);
 
+  const handleCreateAccount = () => {
+    router.push(fromGuestIntent ? "/register?from=guest" : "/register");
+  };
+
+  /* Phone OTP flow — re-enable with SMS provider
+  const [view, setView] = useState<View>("phone");
+  const [phoneNumber, setPhoneNumber] = useState("");
+
   const handleOTPSent = (phone: string) => {
     setPhoneNumber(phone);
     setView("otp");
@@ -63,10 +71,6 @@ function LoginPageContent() {
   const handleEditPhone = () => {
     setPhoneNumber("");
     setView("phone");
-  };
-
-  const handleCreateAccount = () => {
-    router.push(fromGuestIntent ? "/register?from=guest" : "/register");
   };
 
   const renderForm = () => {
@@ -87,36 +91,27 @@ function LoginPageContent() {
         return <PhoneLoginForm onOTPSent={handleOTPSent} />;
     }
   };
+  */
 
   return (
-    <FirebasePhoneAuthProvider>
-      <AuthPageLayout
-        title="Welcome back"
-        subtitle="Log in to continue"
-        footerText="New to Greetup?"
-        footerLinkText="Create account"
-        onFooterLinkClick={handleCreateAccount}
-        backHref="/"
-        backLabel="Back to home"
-      >
-        <SocialLoginButtons callbackURL={getAuthCallbackUrl()} />
+    <AuthPageLayout
+      title="Welcome back"
+      subtitle="Log in to continue"
+      footerText="New to Greetup?"
+      footerLinkText="Create account"
+      onFooterLinkClick={handleCreateAccount}
+      backHref="/"
+      backLabel="Back to home"
+    >
+      <SocialLoginButtons callbackURL={getAuthCallbackUrl()} />
 
-        {/* Email / phone toggle — re-enable with email auth
-        {view !== "otp" && (
-          <LoginToggleButtons
-            currentView={view === "email" ? "email" : "phone"}
-            onToggle={() => setView(view === "email" ? "phone" : "email")}
-          />
-        )}
-        */}
+      {/* Phone OTP / email forms — re-enable with SMS provider (wrap page in PhoneOtpProvider again)
+      <AuthFormDivider label="Or continue with" />
+      {renderForm()}
+      */}
 
-        <AuthFormDivider label="Or continue with" />
-
-        {renderForm()}
-
-        {view !== "otp" ? <AuthGuestContinueButton /> : null}
-      </AuthPageLayout>
-    </FirebasePhoneAuthProvider>
+      <AuthGuestContinueButton />
+    </AuthPageLayout>
   );
 }
 

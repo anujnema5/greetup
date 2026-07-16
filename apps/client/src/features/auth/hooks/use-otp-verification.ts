@@ -3,7 +3,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
 
-import { useFirebasePhoneAuth } from "@/features/auth/context/firebase-phone-auth-context";
+import { usePhoneOtp } from "@/features/auth/context/phone-otp-context";
 import {
   phoneOtpVerificationSchema,
   type PhoneOtpVerificationInput,
@@ -13,7 +13,7 @@ export function useOTPVerification(
   phoneE164: string,
   options?: { displayName?: string }
 ) {
-  const { confirmOtp, sendOtp, isSending } = useFirebasePhoneAuth();
+  const { confirmOtp, sendOtp, isSending } = usePhoneOtp();
   const [isLoading, setIsLoading] = useState(false);
 
   const form = useForm<PhoneOtpVerificationInput>({
@@ -25,7 +25,7 @@ export function useOTPVerification(
     async (otp: string) => {
       setIsLoading(true);
       try {
-        await confirmOtp(otp, {
+        await confirmOtp(phoneE164, otp, {
           displayName: options?.displayName,
         });
         return { success: true as const };
@@ -37,7 +37,7 @@ export function useOTPVerification(
         setIsLoading(false);
       }
     },
-    [confirmOtp, options?.displayName]
+    [confirmOtp, phoneE164, options?.displayName]
   );
 
   const resendOTP = useCallback(async () => {

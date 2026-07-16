@@ -1,7 +1,7 @@
-import { z } from "zod";
-
 /**
  * Settings → change phone. Reuses auth field rules; keeps zod next to the settings feature.
+ * Verification is done server-side (AWS SNS OTP) via the `phone-otp` plugin, so the client
+ * only needs the phone + OTP field schemas.
  */
 export {
   phoneLoginSchema,
@@ -9,10 +9,3 @@ export {
   type PhoneLoginInput,
   type PhoneOtpVerificationInput,
 } from "@/features/auth/schemas/auth.schemas";
-
-/** Mutation body — verified on the client before submit. */
-export const updateAccountPhoneBodySchema = z.object({
-  idToken: z.string().min(1, "Missing ID token"),
-});
-
-export type UpdateAccountPhoneBody = z.infer<typeof updateAccountPhoneBodySchema>;

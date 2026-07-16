@@ -5,7 +5,7 @@ import { Compass, Shield, ShieldBan } from "lucide-react";
 
 import { BottomNav, NavSidebar, PageHeader } from "@/features/app-shell";
 import { BlockedUsersSettingsSection } from "@/features/blocks";
-import { FirebasePhoneAuthProvider } from "@/features/auth/context/firebase-phone-auth-context";
+import { PhoneOtpProvider } from "@/features/auth/context/phone-otp-context";
 import { PhoneNumberSettingsCard } from "@/features/settings/components/phone-number-settings-card";
 import { ReplayTourSettingsCard } from "@/features/tour-guide";
 import { ReportProblemSettingsCard } from "@/features/problem-reports";
@@ -50,9 +50,9 @@ export default function SettingsPage() {
         <div className="w-full px-4 py-5 md:px-8 md:py-6">
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-[repeat(3,20rem)] xl:justify-start">
             <SettingsSection icon={Shield} title="Security" className={SETTINGS_TILE_CLASS}>
-              <FirebasePhoneAuthProvider>
+              <PhoneOtpProvider mode="update">
                 <PhoneNumberSettingsCard />
-              </FirebasePhoneAuthProvider>
+              </PhoneOtpProvider>
             </SettingsSection>
 
             <SettingsSection icon={ShieldBan} title="Privacy" className={SETTINGS_TILE_CLASS}>

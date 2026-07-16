@@ -14,7 +14,11 @@ export function resolvePageHeaderDisplayName(
 
 export function resolvePageHeaderAccountSubtitle(sessionUser: PageHeaderSessionUser | undefined): string {
   const rawEmail = sessionUser?.email?.trim() ?? "";
-  const email = rawEmail.endsWith("@firebase.greetup.local") ? "" : rawEmail;
+  // Synthetic emails for phone-only accounts are internal — never show them.
+  // `@firebase.greetup.local` = legacy Firebase users; `@phone.greetup.local` = SNS OTP users.
+  const isSyntheticPhoneEmail =
+    rawEmail.endsWith("@firebase.greetup.local") || rawEmail.endsWith("@phone.greetup.local");
+  const email = isSyntheticPhoneEmail ? "" : rawEmail;
   const phone = sessionUser?.phoneNumber?.trim() ?? "";
   return email || phone;
 }

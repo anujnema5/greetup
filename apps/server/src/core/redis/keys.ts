@@ -118,3 +118,21 @@ export const GUEST_TRIAL_IP_DAILY_CREATE_LIMIT = 3;
 export const RATE_LIMIT_KEYS = {
   user: (bucket: string, userId: string) => `rl:user:${bucket}:${userId}`,
 } as const;
+
+/** Server-side phone OTP (AWS SNS). One live code per E.164 number; overwriting invalidates the old. */
+export const PHONE_OTP_KEYS = {
+  /** HASH { codeHash, attempts } with EX = OTP_TTL_SEC. */
+  code: (e164: string) => `otp:phone:${e164}`,
+  /** Fixed-window resend counter per destination number (INCR + EX). */
+  sendCountByPhone: (e164: string) => `otp:phone:send:${e164}`,
+  /** Fixed-window resend counter per client IP (INCR + EX). */
+  sendCountByIp: (ipHash: string) => `otp:phone:send-ip:${ipHash}`,
+} as const;
+
+/** Min seconds between two code requests for the same number (resend cooldown). */
+export const PHONE_OTP_RESEND_COOLDOWN_SEC = 30;
+/** Max codes per number per hour. */
+export const PHONE_OTP_MAX_SENDS_PER_HOUR = 5;
+/** Max codes per client IP per hour (blunts enumeration across many numbers). */
+export const PHONE_OTP_MAX_SENDS_PER_IP_PER_HOUR = 20;
+export const PHONE_OTP_SEND_WINDOW_SEC = 3600;
