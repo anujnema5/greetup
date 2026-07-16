@@ -1,34 +1,31 @@
 "use client";
 
-import { Suspense, useState } from "react";
+import { Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 
 import { PageLoading } from "@/components/page-loading";
 import SocialLoginButtons from "@/features/auth/components/social-login-buttons";
-// import RegisterToggleButtons from "@/features/auth/components/register-toggle-buttons";
-import OTPVerification from "@/features/auth/components/otp-verification-form";
-// import EmailRegisterForm from "@/features/auth/components/email-register-form";
 import AuthPageLayout from "@/features/auth/components/auth-page-layout";
-import { AuthFormDivider } from "@/features/auth/components/auth-form-divider";
 import { AuthGuestContinueButton } from "@/features/auth/components/auth-guest-continue-button";
-import PhoneRegisterForm from "@/features/auth/components/phone-register-form";
 import { GuestRegisterMergeBanner } from "@/features/auth/components/guest-register-merge-banner";
-import {
-  getGuestRegisterAuthCallbackUrl,
-  getGuestRegisterPostSignupPath,
-} from "@/features/auth/lib/guest-register-post-signup-path";
-import { PhoneOtpProvider } from "@/features/auth/context/phone-otp-context";
+import { getGuestRegisterAuthCallbackUrl } from "@/features/auth/lib/guest-register-post-signup-path";
 import { useSignupMergeContext } from "@/features/guest-try/hooks/use-signup-merge-context";
-import { useGuestTryStatus } from "@/features/guest-try/hooks/use-guest-try-status";
 import { GUEST_TRIAL_REGISTER, REGISTER_PAGE } from "@/lib/copy/user-messages";
 
-// Email auth UI temporarily hidden — keep "email" for future re-enable.
-type View = "phone" | "email" | "otp";
+// Phone OTP + email auth UI temporarily hidden (Google-only launch) — keep for future re-enable.
+// import { useState } from "react";
+// import RegisterToggleButtons from "@/features/auth/components/register-toggle-buttons";
+// import OTPVerification from "@/features/auth/components/otp-verification-form";
+// import EmailRegisterForm from "@/features/auth/components/email-register-form";
+// import { AuthFormDivider } from "@/features/auth/components/auth-form-divider";
+// import PhoneRegisterForm from "@/features/auth/components/phone-register-form";
+// import { PhoneOtpProvider } from "@/features/auth/context/phone-otp-context";
+// import { useGuestTryStatus } from "@/features/guest-try/hooks/use-guest-try-status";
+// import { getGuestRegisterPostSignupPath } from "@/features/auth/lib/guest-register-post-signup-path";
+
+// type View = "phone" | "email" | "otp";
 
 function RegisterPageContent() {
-  const [view, setView] = useState<View>("phone");
-  const [phoneNumber, setPhoneNumber] = useState("");
-  const [registrationName, setRegistrationName] = useState("");
   const router = useRouter();
   const searchParams = useSearchParams();
   const fromGuestIntent = searchParams.get("from") === "guest";
@@ -38,13 +35,26 @@ function RegisterPageContent() {
     isLoading: signupContextLoading,
   } = useSignupMergeContext({ fromGuest: fromGuestIntent });
 
+  const authCallbackURL = getGuestRegisterAuthCallbackUrl(signupContext);
+
+  const handleLogin = () => {
+    router.push(fromGuestIntent ? "/login?from=guest" : "/login");
+  };
+
+  const title = fromGuestIntent ? GUEST_TRIAL_REGISTER.title : REGISTER_PAGE.title;
+  const subtitle = fromGuestIntent ? GUEST_TRIAL_REGISTER.subtitle : REGISTER_PAGE.subtitle;
+
+  /* Phone OTP flow — re-enable with SMS provider
+  const [view, setView] = useState<View>("phone");
+  const [phoneNumber, setPhoneNumber] = useState("");
+  const [registrationName, setRegistrationName] = useState("");
+
   const { data: guestStatus } = useGuestTryStatus({
     enabled: signupContext?.mergeAvailable === true,
   });
 
   const suggestedName = guestStatus?.displayName?.trim() || "";
   const postSignupPath = getGuestRegisterPostSignupPath(signupContext);
-  const authCallbackURL = getGuestRegisterAuthCallbackUrl(signupContext);
 
   const handleOTPSent = (phone: string, name: string) => {
     setPhoneNumber(phone);
@@ -61,13 +71,6 @@ function RegisterPageContent() {
     setRegistrationName("");
     setView("phone");
   };
-
-  const handleLogin = () => {
-    router.push(fromGuestIntent ? "/login?from=guest" : "/login");
-  };
-
-  const title = fromGuestIntent ? GUEST_TRIAL_REGISTER.title : REGISTER_PAGE.title;
-  const subtitle = fromGuestIntent ? GUEST_TRIAL_REGISTER.subtitle : REGISTER_PAGE.subtitle;
 
   const renderForm = () => {
     switch (view) {
@@ -96,42 +99,33 @@ function RegisterPageContent() {
         );
     }
   };
+  */
 
   return (
-    <PhoneOtpProvider>
-      <AuthPageLayout
-        title={title}
-        subtitle={subtitle}
-        footerText="Already have an account?"
-        footerLinkText="Log in"
-        onFooterLinkClick={handleLogin}
-        backHref="/"
-        backLabel="Back to home"
-      >
-        <GuestRegisterMergeBanner
-          fromGuestIntent={fromGuestIntent}
-          signupContext={signupContext}
-          isLoading={signupContextLoading}
-        />
+    <AuthPageLayout
+      title={title}
+      subtitle={subtitle}
+      footerText="Already have an account?"
+      footerLinkText="Log in"
+      onFooterLinkClick={handleLogin}
+      backHref="/"
+      backLabel="Back to home"
+    >
+      <GuestRegisterMergeBanner
+        fromGuestIntent={fromGuestIntent}
+        signupContext={signupContext}
+        isLoading={signupContextLoading}
+      />
 
-        <SocialLoginButtons callbackURL={authCallbackURL} />
+      <SocialLoginButtons callbackURL={authCallbackURL} />
 
-        {/* Email / phone toggle — re-enable with email auth
-        {view !== "otp" && (
-          <RegisterToggleButtons
-            currentView={view === "email" ? "email" : "phone"}
-            onToggle={() => setView(view === "email" ? "phone" : "email")}
-          />
-        )}
-        */}
+      {/* Phone OTP / email forms — re-enable with SMS provider (wrap page in PhoneOtpProvider again)
+      <AuthFormDivider label="Or continue with" />
+      {renderForm()}
+      */}
 
-        <AuthFormDivider label="Or continue with" />
-
-        {renderForm()}
-
-        {view !== "otp" ? <AuthGuestContinueButton /> : null}
-      </AuthPageLayout>
-    </PhoneOtpProvider>
+      <AuthGuestContinueButton />
+    </AuthPageLayout>
   );
 }
 
