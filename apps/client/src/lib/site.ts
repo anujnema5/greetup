@@ -5,7 +5,7 @@ export const siteConfig = {
   name: "Greetup",
   domain: SITE_DOMAIN,
   url: PRODUCTION_ORIGIN,
-  tagline: "Meet people matched to you — chat, voice, or video.",
+  tagline: "Meet people, not profiles",
   description:
     "Meet like-minded people online — matched by interests, job, or mood. Talk your way with chat, voice, or video. Join live spaces around what you care about.",
   contactEmail: "hello@greetup.club",
@@ -41,7 +41,7 @@ export function buildPageMetadata({
     path === "/"
       ? title.trim()
         ? `${siteConfig.name} | ${title}`
-        : siteConfig.name
+        : `${siteConfig.name} — ${siteConfig.tagline}`
       : `${title} • ${siteConfig.name}`;
 
   const ogImage = {
