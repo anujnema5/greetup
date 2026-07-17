@@ -6,7 +6,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { PageLoading } from "@/components/page-loading";
 import SocialLoginButtons from "@/features/auth/components/social-login-buttons";
 import AuthPageLayout from "@/features/auth/components/auth-page-layout";
-import { AuthGuestContinueButton } from "@/features/auth/components/auth-guest-continue-button";
+// import { AuthGuestContinueButton } from "@/features/auth/components/auth-guest-continue-button"; // guest continue temporarily hidden
 import { GuestRegisterMergeBanner } from "@/features/auth/components/guest-register-merge-banner";
 import { getGuestRegisterAuthCallbackUrl } from "@/features/auth/lib/guest-register-post-signup-path";
 import { useSignupMergeContext } from "@/features/guest-try/hooks/use-signup-merge-context";
@@ -124,7 +124,9 @@ function RegisterPageContent() {
       {renderForm()}
       */}
 
+      {/* Guest "try as guest" continue temporarily hidden — keep for future re-enable.
       <AuthGuestContinueButton />
+      */}
     </AuthPageLayout>
   );
 }
