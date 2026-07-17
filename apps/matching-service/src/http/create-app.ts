@@ -3,7 +3,7 @@
  */
 
 import { Hono } from "hono";
-import { healthResponse } from "@/modules/health/health.controller";
+import { healthResponse, readyResponse } from "@/modules/health/health.controller";
 import {
   handleFindMatch,
   handleGetMatchResult,
@@ -17,6 +17,7 @@ export function createApp(): Hono {
   const app = new Hono();
 
   app.get("/health", healthResponse);
+  app.get("/ready", readyResponse);
   app.post("/match/find", handleFindMatch);
   app.get("/match/result/:requestId", handleGetMatchResult);
   app.get("/match/state/user/:userId", handleGetUserMatchState);
