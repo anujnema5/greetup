@@ -1,9 +1,10 @@
 import config from "@/shared/config/config";
 import logger from "@/core/logging";
 import { ServiceUnavailableError } from "@/shared/errors";
+import type { MatchEngineRequestOptions } from "../types/match.types";
 
 const MATCH_ENGINE_URL = config.matchEngineUrl;
-const MAX_ATTEMPTS = 3;
+const MAX_ATTEMPTS = 2;
 const RETRYABLE_STATUS = new Set([408, 425, 429, 502, 503, 504]);
 const LOG_BODY_MAX = 500;
 
@@ -46,17 +47,19 @@ function truncateForLog(text: string): string {
 
 /**
  * HTTP to matching-service with short retries on gateway / network blips.
- * Safe for find (requestId coalesce) and cancel/leave/respond (idempotent-ish).
+ * Callers can disable retries for operations that should not be replayed.
  */
 export async function matchEngineRequest(
   method: "GET" | "POST",
   path: string,
   body?: Record<string, unknown>,
+  options?: MatchEngineRequestOptions,
 ): Promise<Response> {
   const timeoutMs = config.matchEngineTimeoutMs;
+  const maxAttempts = options?.retry === false ? 1 : MAX_ATTEMPTS;
   let lastError: unknown;
 
-  for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
     const startedAt = Date.now();
     try {
       const res = await fetch(`${MATCH_ENGINE_URL}${path}`, {
@@ -66,7 +69,7 @@ export async function matchEngineRequest(
         ...(timeoutMs > 0 ? { signal: AbortSignal.timeout(timeoutMs) } : {}),
       });
 
-      if (!RETRYABLE_STATUS.has(res.status) || attempt === MAX_ATTEMPTS) {
+      if (!RETRYABLE_STATUS.has(res.status) || attempt === maxAttempts) {
         return res;
       }
 
@@ -80,7 +83,7 @@ export async function matchEngineRequest(
       void res.text().catch(() => undefined);
     } catch (err) {
       lastError = err;
-      if (!isTransientMatchEngineError(err) || attempt === MAX_ATTEMPTS) {
+      if (!isTransientMatchEngineError(err) || attempt === maxAttempts) {
         throw err;
       }
       logger.warn("Match engine request failed, retrying", {

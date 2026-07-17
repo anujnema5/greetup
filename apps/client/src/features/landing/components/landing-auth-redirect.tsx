@@ -23,7 +23,9 @@ export function LandingAuthRedirect() {
   useEffect(() => {
     if (!sessionReady || !isLoggedIn) return;
     if (guestPending) return;
-    if (guestStatus?.isGuest) return;
+    // Only bounce confirmed non-guests. Missing/error status must not send
+    // active guests toward /home → /profile-setup.
+    if (guestStatus?.isGuest !== false) return;
     router.replace("/home");
   }, [sessionReady, isLoggedIn, guestPending, guestStatus?.isGuest, router]);
 
