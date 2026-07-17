@@ -28,6 +28,9 @@ const phoneRegisterSchema = z.object({
 
 type PhoneFormValues = z.infer<typeof phoneRegisterSchema>;
 
+// Phone OTP temporarily disabled — SMS costs money and validation isn't ready yet.
+const OTP_DISABLED = true;
+
 interface PhoneRegisterFormProps {
   onOTPSent: (phoneE164: string, name: string) => void;
   defaultName?: string;
@@ -112,7 +115,7 @@ export default function PhoneRegisterForm({ onOTPSent, defaultName }: PhoneRegis
           )}
         />
 
-        <Button type="submit" className="w-full" disabled={isSending}>
+        <Button type="submit" className="w-full" disabled={isSending || OTP_DISABLED}>
           {isSending ? (
             <span className="inline-flex items-center gap-1.5">
               <Loader2 className="size-4 shrink-0 animate-spin" aria-hidden />
@@ -122,6 +125,12 @@ export default function PhoneRegisterForm({ onOTPSent, defaultName }: PhoneRegis
             "Continue"
           )}
         </Button>
+
+        {OTP_DISABLED && (
+          <p className="text-center text-xs text-muted-foreground">
+            OTP is on a budget break 😅 Until I validate the idea, please use Google Sign-In.
+          </p>
+        )}
       </form>
     </Form>
   );

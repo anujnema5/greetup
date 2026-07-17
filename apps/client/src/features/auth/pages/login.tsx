@@ -9,15 +9,15 @@ import SocialLoginButtons from "@/features/auth/components/social-login-buttons"
 import AuthPageLayout from "@/features/auth/components/auth-page-layout";
 // import { AuthGuestContinueButton } from "@/features/auth/components/auth-guest-continue-button"; // guest continue temporarily hidden
 import { getAuthCallbackUrl } from "@/features/auth/lib/auth-callback-url";
+import PhoneLoginForm from "@/features/auth/components/phone-login-form";
+import { AuthFormDivider } from "@/features/auth/components/auth-form-divider";
+import { PhoneOtpProvider } from "@/features/auth/context/phone-otp-context";
 
-// Phone OTP + email auth UI temporarily hidden (Google-only launch) — keep for future re-enable.
+// Email auth UI temporarily hidden (Google-only launch) — keep for future re-enable.
 // import { useState } from "react";
-// import PhoneLoginForm from "@/features/auth/components/phone-login-form";
 // import LoginToggleButtons from "@/features/auth/components/login-toggle-buttons";
 // import OTPVerification from "@/features/auth/components/otp-verification-form";
 // import EmailLoginForm from "@/features/auth/components/email-login-form";
-// import { AuthFormDivider } from "@/features/auth/components/auth-form-divider";
-// import { PhoneOtpProvider } from "@/features/auth/context/phone-otp-context";
 
 // type View = "phone" | "email" | "otp";
 
@@ -94,26 +94,26 @@ function LoginPageContent() {
   */
 
   return (
-    <AuthPageLayout
-      title="Welcome back"
-      subtitle="Log in to continue"
-      footerText="New to Greetup?"
-      footerLinkText="Create account"
-      onFooterLinkClick={handleCreateAccount}
-      backHref="/"
-      backLabel="Back to home"
-    >
-      <SocialLoginButtons callbackURL={getAuthCallbackUrl()} />
+    <PhoneOtpProvider>
+      <AuthPageLayout
+        title="Welcome back"
+        subtitle="Log in to continue"
+        footerText="New to Greetup?"
+        footerLinkText="Create account"
+        onFooterLinkClick={handleCreateAccount}
+        backHref="/"
+        backLabel="Back to home"
+      >
+        <SocialLoginButtons callbackURL={getAuthCallbackUrl()} />
 
-      {/* Phone OTP / email forms — re-enable with SMS provider (wrap page in PhoneOtpProvider again)
-      <AuthFormDivider label="Or continue with" />
-      {renderForm()}
-      */}
+        <AuthFormDivider label="Or continue with" />
+        <PhoneLoginForm onOTPSent={() => {}} />
 
-      {/* Guest "try as guest" continue temporarily hidden — keep for future re-enable.
-      <AuthGuestContinueButton />
-      */}
-    </AuthPageLayout>
+        {/* Guest "try as guest" continue temporarily hidden — keep for future re-enable.
+        <AuthGuestContinueButton />
+        */}
+      </AuthPageLayout>
+    </PhoneOtpProvider>
   );
 }
 
