@@ -16,6 +16,9 @@ interface PhoneLoginFormProps {
   onOTPSent: (phoneE164: string) => void;
 }
 
+// Phone OTP temporarily disabled — SMS costs money and validation isn't ready yet.
+const OTP_DISABLED = true;
+
 const PhoneLoginForm = ({ onOTPSent }: PhoneLoginFormProps) => {
   const { sendOtp, isSending } = usePhoneOtp();
 
@@ -62,7 +65,7 @@ const PhoneLoginForm = ({ onOTPSent }: PhoneLoginFormProps) => {
           )}
         />
 
-        <Button type="submit" className="w-full" disabled={isSending}>
+        <Button type="submit" className="w-full" disabled={isSending || OTP_DISABLED}>
           {isSending ? (
             <span className="inline-flex items-center gap-1.5">
               <Loader2 className="size-4 shrink-0 animate-spin" aria-hidden />
@@ -72,6 +75,12 @@ const PhoneLoginForm = ({ onOTPSent }: PhoneLoginFormProps) => {
             "Send OTP"
           )}
         </Button>
+
+        {OTP_DISABLED && (
+          <p className="text-center text-xs text-muted-foreground">
+            OTP is on a budget break 😅 Until I validate the idea, please use Google Sign-In.
+          </p>
+        )}
       </form>
     </Form>
   );
