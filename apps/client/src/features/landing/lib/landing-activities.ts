@@ -17,7 +17,7 @@ export const LANDING_HERO_ACTIVITY_HIGHLIGHTS = [
   { emoji: "💨", label: "Vent" },
   { emoji: "🗯️", label: "Yap" },
   { emoji: "♟️", label: "Play chess" },
-  { emoji: "🃏", label: "UNO · Coming soon" },
+  { emoji: "🃏", label: "UNO (Coming soon)" },
   { emoji: "💬", label: "Open to anything" },
   { emoji: "📚", label: "Study" },
   { emoji: "🗣️", label: "Practice language" },
