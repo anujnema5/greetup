@@ -5,11 +5,11 @@ import { invalidateSuggestedPeopleCache } from '@/features/explore/lib/invalidat
 import { queryClient } from '@/lib/query/client';
 import { queryKeys } from '@/lib/query/keys';
 
-export function invalidateAfterSaveProfile(qc: QueryClient = queryClient) {
+export async function invalidateAfterSaveProfile(qc: QueryClient = queryClient) {
   void qc.invalidateQueries({ queryKey: queryKeys.profileSetup.steps });
   void qc.invalidateQueries({ queryKey: queryKeys.profileSetup.myProfile });
   invalidateSuggestedPeopleCache(qc);
-  void refetchAppSession();
+  await refetchAppSession();
 }
 
 export function invalidateAfterSaveMatchPrep(qc: QueryClient = queryClient) {

@@ -13,7 +13,10 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import type { Resolver, FieldValues } from 'react-hook-form'
 import type { ProfileSetupProvider as TProfileSetupProvider } from '../types'
 import type { ProfileSetupField, ProfileSetupStep } from '../types/profile-setup-api.types'
-import { getSessionIsOnboarded } from '@/features/auth/lib/session-user'
+import {
+  getSessionIsOnboarded,
+  refetchAppSession,
+} from '@/features/auth/lib/session-user'
 import { guestTrialLandingPath } from '@/features/auth/lib/app-route-guards'
 import { useGuestTryStatus } from '@/features/guest-try/hooks/use-guest-try-status'
 import { getApiErrorCode } from '@/lib/api'
@@ -310,7 +313,10 @@ export const ProfileSetupProvider: React.FC<ProfileSetupProviderProps> = ({
 
       if (currentStep === steps.length) {
         clearProfileSetupProgress()
-        router.push('/home')
+        // Wait for session.isOnboarded before leaving — soft push with a stale
+        // session makes RequireOnboarding return null (white /home) until reload.
+        await refetchAppSession()
+        window.location.assign('/home')
       } else {
         setCurrentStep((prev) => prev + 1)
       }
