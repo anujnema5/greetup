@@ -3,9 +3,11 @@
 import { useCallback } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 
-import { API_ENDPOINTS, apiFetch, buildQueryParams } from '@/lib/api';
-import { queryKeys } from '@/lib/query/keys';
+import { useGuestTryStatus } from '@/features/guest-try/hooks/use-guest-try-status';
 import type { MyProfileResponse } from '@/features/profile/types/my-profile.types';
+import { API_ENDPOINTS, apiFetch, buildQueryParams } from '@/lib/api';
+import { useSession } from '@/lib/auth-client';
+import { queryKeys } from '@/lib/query/keys';
 
 import type {
   MatchPrepCurrentData,
@@ -21,7 +23,7 @@ type UseMyProfileOptions = {
   refetchOnMount?: boolean | 'always';
 };
 
-export function useProfileSetupSteps() {
+export function useProfileSetupSteps(options?: { enabled?: boolean }) {
   return useQuery({
     queryKey: queryKeys.profileSetup.steps,
     queryFn: async () => {
@@ -34,14 +36,27 @@ export function useProfileSetupSteps() {
       }
       return data;
     },
+    enabled: options?.enabled ?? true,
   });
 }
 
+/**
+ * Full-account profile only. Guests get 403 on `/profile/me` — wait until guest
+ * status confirms a member before fetching (avoids noisy logs on `/try`).
+ */
 export function useMyProfile(options?: UseMyProfileOptions) {
+  const { data: session, isPending: sessionPending } = useSession();
+  const hasSession = Boolean(session?.user);
+  const { data: guestStatus, isPending: guestPending } = useGuestTryStatus({
+    enabled: !sessionPending && hasSession,
+  });
+  const isMember = guestStatus?.isGuest === false;
+  const memberReady = !sessionPending && hasSession && !guestPending && isMember;
+
   return useQuery({
     queryKey: queryKeys.profileSetup.myProfile,
     queryFn: () => apiFetch<MyProfileResponse>(PROFILE.ME),
-    enabled: options?.enabled ?? true,
+    enabled: (options?.enabled ?? true) && memberReady,
     refetchOnMount: options?.refetchOnMount,
   });
 }

@@ -21,7 +21,7 @@ import { useAppSearchPalette } from "../context/app-search-palette-context";
 
 export function AppSearchPaletteDialog() {
   const { open, closePalette } = useAppSearchPalette();
-  const { query, setQuery, results } = useAppSearch();
+  const { query, setQuery, results } = useAppSearch({ enabled: open });
   const topicModal = useExploreNicheRoomsModal();
   const joinSpace = useJoinSpace();
   const inputRef = useRef<HTMLInputElement>(null);

@@ -51,10 +51,14 @@ export function useListSpaceActivityOptions(enabled = true) {
   });
 }
 
-export function useListActiveSpaces(args: ListActiveSpacesArgs = {}) {
+export function useListActiveSpaces(
+  args: ListActiveSpacesArgs = {},
+  options?: { enabled?: boolean },
+) {
   return useQuery({
     queryKey: queryKeys.spaces.active(args),
     queryFn: () => fetchActiveSpaces(args),
+    enabled: options?.enabled ?? true,
     refetchOnMount: true,
   });
 }

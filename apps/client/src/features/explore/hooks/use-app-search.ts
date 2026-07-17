@@ -15,20 +15,30 @@ import type { AppSearchResults } from "../types/app-search.types";
 import { useExploreBrowseNiches } from "./use-explore-browse-niches";
 import { useExploreSpaces } from "./use-explore-spaces";
 
+type UseAppSearchOptions = {
+  /** When false, skip spaces/niches/people fetches (e.g. palette closed). */
+  enabled?: boolean;
+};
+
 /** Search people (API), spaces, and topics for the app topbar dropdown. */
-export function useAppSearch() {
+export function useAppSearch(options?: UseAppSearchOptions) {
+  const enabled = options?.enabled ?? true;
   const [query, setQuery] = useState("");
   const trimmed = query.trim();
   const debouncedQuery = useDebouncedValue(trimmed, 300);
-  const canSearch = debouncedQuery.length >= APP_SEARCH_MIN_LENGTH;
+  const canSearch = enabled && debouncedQuery.length >= APP_SEARCH_MIN_LENGTH;
 
   const { data: peopleData, isFetching: isPeopleLoading } = useSearchUsers(
     { q: debouncedQuery, limit: APP_SEARCH_RESULT_LIMIT },
     { enabled: canSearch },
   );
 
-  const { allSpaces, isLoading: isSpacesLoading } = useExploreSpaces("for-you");
-  const { niches, isLoading: isTopicsLoading } = useExploreBrowseNiches();
+  const { allSpaces, isLoading: isSpacesLoading } = useExploreSpaces("for-you", {
+    enabled,
+  });
+  const { niches, isLoading: isTopicsLoading } = useExploreBrowseNiches({
+    enabled,
+  });
 
   const people = canSearch ? (peopleData?.items ?? []) : [];
 
