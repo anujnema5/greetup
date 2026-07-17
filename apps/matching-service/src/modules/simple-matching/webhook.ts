@@ -1,55 +1,29 @@
 import { env } from "@/shared/config/env";
 import { logger } from "@/core/logging";
+import type {
+  EnsureSnapshotApiSuccessBody,
+  MatchCompletedPayload,
+  MatchFailedPayload,
+  MatchProposalCancelledPayload,
+  MatchProposedPayload,
+  WebhookPostResult,
+} from "@/modules/simple-matching/types/webhook.types";
 
 /** Keep webhook calls inside the match-engine HTTP budget (avoids DO via_upstream). */
 const WEBHOOK_TIMEOUT_MS = 4_000;
 
-type MatchCompletedPayload = {
-  attemptId: string;
-  userA: string;
-  userB: string;
-  roomId: string;
-  matchScore: number;
-  isFallbackMatch: boolean;
-};
-
-type MatchFailedPayload = {
-  attemptId: string;
-  userId: string;
-  reason: string;
-};
-
-type MatchProposedPayload = {
-  userA: string;
-  userB: string;
-  attemptIdA: string;
-  attemptIdB: string;
-  matchScore: number;
-  isFallbackMatch: boolean;
-};
-
-type MatchProposalCancelledPayload = {
-  userId: string;
-  attemptId: string;
-  reason: string;
-};
-
-type ApiSuccessBody = {
-  success?: boolean;
-  data?: { cached?: boolean };
-};
-
 export class MatchWebhookService {
-  /** Asks the main API to load the profile from DB and write `user:profile:snapshot:{userId}` in Redis. */
-  async requestEnsureProfileSnapshot(userId: string): Promise<boolean> {
+  private async post(
+    path: string,
+    payload: Record<string, unknown>,
+    meta: Record<string, unknown>,
+  ): Promise<WebhookPostResult> {
     if (!env.matchWebhookUrl) {
-      logger.warn("[MatchWebhookService] matchWebhookUrl is not set — cannot hydrate snapshot", { userId });
-      return false;
+      logger.warn("[MatchWebhookService] matchWebhookUrl is not set — skipping webhook", meta);
+      return { ok: false };
     }
 
-    const url = `${env.matchWebhookUrl}/webhook/ensure-profile-snapshot`;
-    logger.info("[MatchWebhookService] ensure profile snapshot", { url, userId });
-
+    const url = `${env.matchWebhookUrl}${path}`;
     try {
       const response = await fetch(url, {
         method: "POST",
@@ -57,143 +31,120 @@ export class MatchWebhookService {
           "content-type": "application/json",
           "x-internal-api-key": env.internalApiKey,
         },
-        body: JSON.stringify({ userId }),
+        body: JSON.stringify(payload),
         signal: AbortSignal.timeout(WEBHOOK_TIMEOUT_MS),
       });
 
       if (!response.ok) {
-        const body = await response.text();
-        logger.warn("[MatchWebhookService] ensure snapshot returned non-OK", { status: response.status, body, userId });
-        return false;
+        const body = await response.text().catch(() => "");
+        return { ok: false, status: response.status, body };
       }
 
-      const json = (await response.json()) as ApiSuccessBody;
-      return json.success === true && json.data?.cached === true;
-    } catch (err) {
-      logger.warn("[MatchWebhookService] ensure snapshot request failed", { error: err, userId });
+      const contentType = response.headers.get("content-type") ?? "";
+      if (contentType.includes("application/json")) {
+        return { ok: true, status: response.status, json: await response.json() };
+      }
+      return { ok: true, status: response.status };
+    } catch (error) {
+      return { ok: false, error };
+    }
+  }
+
+  /** Asks the main API to load the profile from DB and write `user:profile:snapshot:{userId}` in Redis. */
+  async requestEnsureProfileSnapshot(userId: string): Promise<boolean> {
+    const meta = { userId };
+    logger.info("[MatchWebhookService] ensure profile snapshot", meta);
+
+    const result = await this.post(
+      "/webhook/ensure-profile-snapshot",
+      { userId },
+      meta,
+    );
+
+    if (!result.ok) {
+      logger.warn("[MatchWebhookService] ensure snapshot failed", {
+        ...meta,
+        status: result.status,
+        body: result.body,
+        error: result.error,
+      });
       return false;
     }
+
+    const json = result.json as EnsureSnapshotApiSuccessBody | undefined;
+    return json?.success === true && json.data?.cached === true;
   }
 
   async notifyMatchFailed(payload: MatchFailedPayload): Promise<void> {
-    if (!env.matchWebhookUrl) {
-      logger.warn("[MatchWebhookService] matchWebhookUrl is not set — skipping no-match webhook", { attemptId: payload.attemptId });
+    const meta = { attemptId: payload.attemptId, userId: payload.userId, reason: payload.reason };
+    logger.info("[MatchWebhookService] firing no-match webhook", meta);
+
+    const result = await this.post("/webhook/match-failed", payload, meta);
+    if (!result.ok) {
+      logger.warn("[MatchWebhookService] no-match webhook failed", {
+        ...meta,
+        status: result.status,
+        body: result.body,
+        error: result.error,
+      });
       return;
     }
-
-    const url = `${env.matchWebhookUrl}/webhook/match-failed`;
-    logger.info("[MatchWebhookService] firing no-match webhook", { url, attemptId: payload.attemptId, userId: payload.userId, reason: payload.reason });
-
-    try {
-      const response = await fetch(url, {
-        method: "POST",
-        headers: {
-          "content-type": "application/json",
-          "x-internal-api-key": env.internalApiKey,
-        },
-        body: JSON.stringify(payload),
-        signal: AbortSignal.timeout(WEBHOOK_TIMEOUT_MS),
-      });
-
-      if (!response.ok) {
-        const body = await response.text();
-        logger.warn("[MatchWebhookService] no-match webhook returned non-OK status", { status: response.status, body, attemptId: payload.attemptId });
-      } else {
-        logger.info("[MatchWebhookService] no-match webhook delivered successfully", { attemptId: payload.attemptId, status: response.status });
-      }
-    } catch (err) {
-      logger.warn("[MatchWebhookService] no-match webhook call threw — server may be unreachable", { error: err, url, attemptId: payload.attemptId });
-    }
+    logger.info("[MatchWebhookService] no-match webhook delivered", {
+      attemptId: payload.attemptId,
+      status: result.status,
+    });
   }
 
   async notifyMatchProposed(payload: MatchProposedPayload): Promise<void> {
-    if (!env.matchWebhookUrl) {
-      logger.warn("[MatchWebhookService] matchWebhookUrl is not set — skipping match-proposed webhook");
-      return;
-    }
+    const meta = { userA: payload.userA, userB: payload.userB };
+    logger.info("[MatchWebhookService] match-proposed webhook", meta);
 
-    const url = `${env.matchWebhookUrl}/webhook/match-proposed`;
-    logger.info("[MatchWebhookService] match-proposed webhook", { url, userA: payload.userA, userB: payload.userB });
-
-    try {
-      const response = await fetch(url, {
-        method: "POST",
-        headers: {
-          "content-type": "application/json",
-          "x-internal-api-key": env.internalApiKey,
-        },
-        body: JSON.stringify(payload),
-        signal: AbortSignal.timeout(WEBHOOK_TIMEOUT_MS),
+    const result = await this.post("/webhook/match-proposed", payload, meta);
+    if (!result.ok) {
+      logger.warn("[MatchWebhookService] match-proposed failed", {
+        ...meta,
+        status: result.status,
+        body: result.body,
+        error: result.error,
       });
-
-      if (!response.ok) {
-        const body = await response.text();
-        logger.warn("[MatchWebhookService] match-proposed returned non-OK", { status: response.status, body });
-      }
-    } catch (err) {
-      logger.warn("[MatchWebhookService] match-proposed threw", { error: err, url });
     }
   }
 
   async notifyMatchProposalCancelled(payload: MatchProposalCancelledPayload): Promise<void> {
-    if (!env.matchWebhookUrl) {
-      logger.warn("[MatchWebhookService] matchWebhookUrl is not set — skipping proposal-cancelled webhook");
-      return;
-    }
-
-    const url = `${env.matchWebhookUrl}/webhook/match-proposal-cancelled`;
-    try {
-      const response = await fetch(url, {
-        method: "POST",
-        headers: {
-          "content-type": "application/json",
-          "x-internal-api-key": env.internalApiKey,
-        },
-        body: JSON.stringify(payload),
-        signal: AbortSignal.timeout(WEBHOOK_TIMEOUT_MS),
+    const meta = { userId: payload.userId, attemptId: payload.attemptId, reason: payload.reason };
+    const result = await this.post("/webhook/match-proposal-cancelled", payload, meta);
+    if (!result.ok) {
+      logger.warn("[MatchWebhookService] proposal-cancelled failed", {
+        ...meta,
+        status: result.status,
+        body: result.body,
+        error: result.error,
       });
-
-      if (!response.ok) {
-        const body = await response.text();
-        logger.warn("[MatchWebhookService] proposal-cancelled returned non-OK", { status: response.status, body });
-      }
-    } catch (err) {
-      logger.warn("[MatchWebhookService] proposal-cancelled threw", { error: err, url });
     }
   }
 
   async notifyMatchCompleted(payload: MatchCompletedPayload): Promise<void> {
-    if (!env.matchWebhookUrl) {
-      logger.warn("[MatchWebhookService] matchWebhookUrl is not set — skipping webhook", { attemptId: payload.attemptId });
+    const meta = {
+      attemptId: payload.attemptId,
+      userA: payload.userA,
+      userB: payload.userB,
+      roomId: payload.roomId,
+    };
+    logger.info("[MatchWebhookService] firing match-completed webhook", meta);
+
+    const result = await this.post("/webhook/match-completed", payload, meta);
+    if (!result.ok) {
+      logger.warn("[MatchWebhookService] match-completed failed", {
+        ...meta,
+        status: result.status,
+        body: result.body,
+        error: result.error,
+      });
       return;
     }
-
-    const url = `${env.matchWebhookUrl}/webhook/match-completed`;
-    logger.info("[MatchWebhookService] firing webhook", { url, attemptId: payload.attemptId, userA: payload.userA, userB: payload.userB, roomId: payload.roomId });
-
-    try {
-      const response = await fetch(url, {
-        method: "POST",
-        headers: {
-          "content-type": "application/json",
-          "x-internal-api-key": env.internalApiKey,
-        },
-        body: JSON.stringify(payload),
-        signal: AbortSignal.timeout(WEBHOOK_TIMEOUT_MS),
-      });
-
-      if (!response.ok) {
-        const body = await response.text();
-        logger.warn("[MatchWebhookService] webhook returned non-OK status", {
-          status: response.status,
-          body,
-          attemptId: payload.attemptId,
-        });
-      } else {
-        logger.info("[MatchWebhookService] webhook delivered successfully", { attemptId: payload.attemptId, status: response.status });
-      }
-    } catch (err) {
-      logger.warn("[MatchWebhookService] webhook call threw — server may be unreachable", { error: err, url, attemptId: payload.attemptId });
-    }
+    logger.info("[MatchWebhookService] match-completed delivered", {
+      attemptId: payload.attemptId,
+      status: result.status,
+    });
   }
 }
