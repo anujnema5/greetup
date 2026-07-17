@@ -66,7 +66,9 @@ function parseNonNegativeInt(raw: string | undefined, fallback: number): number 
 const config = {
   env: nodeEnv,
   port: parsePort(process.env.PORT, 5300),
-  listenHost: optionalEnv("LISTEN_HOST") ?? (nodeEnv === "production" ? "0.0.0.0" : "localhost"),
+  // Dev: bind IPv4 loopback explicitly. On Windows "localhost" resolves to ::1 (IPv6),
+  // but the client proxy connects to 127.0.0.1 (IPv4) → ECONNREFUSED. Keep both on IPv4.
+  listenHost: optionalEnv("LISTEN_HOST") ?? (nodeEnv === "production" ? "0.0.0.0" : "127.0.0.1"),
   debug: optionalEnv("APP_DEBUG") === "true",
   databaseUrl: requiredEnv("DATABASE_URL"),
   betterAuthUrl: requiredUrlEnv("BETTER_AUTH_URL"),

@@ -67,6 +67,12 @@ export function useFindMatch() {
   const isGuestTryRef = useRef(false);
   isGuestTryRef.current = pathname?.startsWith('/try') ?? false;
 
+  /** Error toasts are noise in the `/try` guest flow — the UI surfaces state inline there. */
+  const notifyError = useCallback((message: string) => {
+    if (isGuestTryRef.current) return;
+    toast.error(message);
+  }, []);
+
   const requestIdRef = useRef<string | null>(null);
   /** Peer user id while proposal is open — `match:completed` uses initiator attemptId for both sockets. */
   const proposalPeerIdRef = useRef<string | null>(null);
@@ -106,7 +112,6 @@ export function useFindMatch() {
     const message = messageForNoMatch(reason ?? 'no_match');
     setStatus('error');
     setError(message);
-    toast.error(message);
   }, []);
 
   const applyProposedFromServer = useCallback(
@@ -153,7 +158,7 @@ export function useFindMatch() {
             const message = messageForFailedStart(reason);
             setStatus('error');
             setError(message);
-            toast.error(message);
+            notifyError(message);
           }
           return;
         }
@@ -175,7 +180,7 @@ export function useFindMatch() {
         setStatus('error');
         setErrorCode(getApiErrorCode(err));
         setError(message);
-        toast.error(message);
+        notifyError(message);
       }
     });
   }, [findMatch, applyNoMatchOutcome]);
@@ -271,7 +276,7 @@ export function useFindMatch() {
       setStatus('error');
       const message = messageForProposalCancelled(data.reason);
       setError(message);
-      toast.error(message);
+      notifyError(message);
     };
 
     socket.on('match:completed', onMatchCompleted);
@@ -311,7 +316,7 @@ export function useFindMatch() {
       if (!attemptId) {
         const message = 'No active match proposal.';
         setError(message);
-        toast.error(message);
+        notifyError(message);
         return;
       }
       if (decision === 'skip') {
@@ -330,7 +335,7 @@ export function useFindMatch() {
         );
         setErrorCode(getApiErrorCode(err));
         setError(message);
-        toast.error(message);
+        notifyError(message);
         if (decision === 'connect') {
           setWaitingForPeerConnect(false);
         }
