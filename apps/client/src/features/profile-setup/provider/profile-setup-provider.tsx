@@ -110,30 +110,37 @@ export const ProfileSetupProvider: React.FC<ProfileSetupProviderProps> = ({
 }) => {
   const searchParams = useSearchParams()
   const router = useRouter()
-  const { data, isLoading, isError, error, refetch } = useProfileSetupSteps()
   const { data: session, isPending: sessionPending } = useSession()
   const { data: guestStatus, isPending: guestPending } = useGuestTryStatus({
     enabled: !sessionPending && Boolean(session),
+  })
+  const isGuest = guestStatus?.isGuest === true
+  const canLoadSteps =
+    !sessionPending && !guestPending && Boolean(session) && !isGuest
+  const { data, isLoading, isError, error, refetch } = useProfileSetupSteps({
+    enabled: canLoadSteps,
   })
   const { mutateAsync: saveProfileSetup, isPending: isSaving } = useSaveProfileSetup()
 
   useEffect(() => {
     if (sessionPending || guestPending) return
-    if (guestStatus?.isGuest === true) {
-      router.replace(guestTrialLandingPath(guestStatus.trialConsumed === true))
+    if (isGuest) {
+      router.replace(guestTrialLandingPath(guestStatus?.trialConsumed === true))
       return
     }
     if (getSessionIsOnboarded(session)) {
       router.replace('/home')
     }
-  }, [session, sessionPending, guestPending, guestStatus, router])
+  }, [session, sessionPending, guestPending, isGuest, guestStatus?.trialConsumed, router])
 
   const stepsLoadError =
-    isError
-      ? getApiErrorCode(error) === 'GUEST_NOT_ALLOWED'
-        ? 'guest'
-        : 'failed'
-      : null
+    isGuest
+      ? 'guest'
+      : isError
+        ? getApiErrorCode(error) === 'GUEST_NOT_ALLOWED'
+          ? 'guest'
+          : 'failed'
+        : null
 
   useEffect(() => {
     if (stepsLoadError === 'guest') {
@@ -371,7 +378,7 @@ export const ProfileSetupProvider: React.FC<ProfileSetupProviderProps> = ({
         isFirstStep: currentStep === 1,
         isLoading:
           guestPending ||
-          guestStatus?.isGuest === true ||
+          isGuest ||
           stepsLoadError === 'guest' ||
           ((isLoading || !isInitialized) && !stepsLoadError),
         stepsLoadError,

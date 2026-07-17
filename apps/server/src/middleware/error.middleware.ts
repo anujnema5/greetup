@@ -13,7 +13,20 @@ const safeMessage = (message: string, statusCode: number) =>
     statusCode >= 500 && !isDev ? CLIENT_SAFE_INTERNAL_MESSAGE : message;
 
 export const errorHandler = (err: Error, c: Context) => {
-    logger.error("Error caught by global handler", err);
+    // Expected client denials (e.g. guests hitting member routes) must not spam error logs.
+    if (err instanceof AppError && err.isOperational && err.statusCode < 500) {
+        if (err.code === "GUEST_NOT_ALLOWED") {
+            logger.info("Guest blocked from member route", {
+                code: err.code,
+                path: c.req.path,
+                method: c.req.method,
+            });
+        } else {
+            logger.warn("Operational error caught by global handler", err);
+        }
+    } else {
+        logger.error("Error caught by global handler", err);
+    }
 
     if (err instanceof HTTPException) {
         const status = err.status;

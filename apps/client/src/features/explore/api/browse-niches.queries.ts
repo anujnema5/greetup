@@ -30,10 +30,11 @@ export async function fetchBrowseNicheRooms(
   return data ?? { items: [], nextCursor: null, hasMore: false };
 }
 
-export function useBrowseNiches() {
+export function useBrowseNiches(options?: { enabled?: boolean }) {
   return useQuery({
     queryKey: queryKeys.explore.browseNiches,
     queryFn: fetchBrowseNiches,
+    enabled: options?.enabled ?? true,
   });
 }
 

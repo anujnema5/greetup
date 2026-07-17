@@ -30,8 +30,18 @@ function filterSpaces(
   return spaces.filter((s) => s.category.id === filter.nicheId);
 }
 
-export function useExploreSpaces(filter: ExploreFilter) {
-  const { data, isLoading, isError, error, isFetching } = useListActiveSpaces();
+type UseExploreSpacesOptions = {
+  enabled?: boolean;
+};
+
+export function useExploreSpaces(
+  filter: ExploreFilter,
+  options?: UseExploreSpacesOptions,
+) {
+  const { data, isLoading, isError, error, isFetching } = useListActiveSpaces(
+    {},
+    { enabled: options?.enabled ?? true },
+  );
 
   const allSpaces = useMemo(() => {
     if (!data) return [];
