@@ -1,6 +1,9 @@
 import { env } from "@/shared/config/env";
 import { logger } from "@/core/logging";
 
+/** Keep webhook calls inside the match-engine HTTP budget (avoids DO via_upstream). */
+const WEBHOOK_TIMEOUT_MS = 4_000;
+
 type MatchCompletedPayload = {
   attemptId: string;
   userA: string;
@@ -55,6 +58,7 @@ export class MatchWebhookService {
           "x-internal-api-key": env.internalApiKey,
         },
         body: JSON.stringify({ userId }),
+        signal: AbortSignal.timeout(WEBHOOK_TIMEOUT_MS),
       });
 
       if (!response.ok) {
@@ -88,6 +92,7 @@ export class MatchWebhookService {
           "x-internal-api-key": env.internalApiKey,
         },
         body: JSON.stringify(payload),
+        signal: AbortSignal.timeout(WEBHOOK_TIMEOUT_MS),
       });
 
       if (!response.ok) {
@@ -118,6 +123,7 @@ export class MatchWebhookService {
           "x-internal-api-key": env.internalApiKey,
         },
         body: JSON.stringify(payload),
+        signal: AbortSignal.timeout(WEBHOOK_TIMEOUT_MS),
       });
 
       if (!response.ok) {
@@ -144,6 +150,7 @@ export class MatchWebhookService {
           "x-internal-api-key": env.internalApiKey,
         },
         body: JSON.stringify(payload),
+        signal: AbortSignal.timeout(WEBHOOK_TIMEOUT_MS),
       });
 
       if (!response.ok) {
@@ -172,6 +179,7 @@ export class MatchWebhookService {
           "x-internal-api-key": env.internalApiKey,
         },
         body: JSON.stringify(payload),
+        signal: AbortSignal.timeout(WEBHOOK_TIMEOUT_MS),
       });
 
       if (!response.ok) {

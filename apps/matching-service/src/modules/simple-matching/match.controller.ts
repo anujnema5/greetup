@@ -5,6 +5,19 @@ import { logger } from "@/core/logging";
 
 const orchestrator = new MatchOrchestratorService();
 
+const redisOrInternalError = (error: unknown) => {
+  const detail = String(error);
+  const timedOut = /command timed out/i.test(detail);
+  return {
+    body: {
+      ok: false as const,
+      error: timedOut ? "redis_timeout" : "internal_error",
+      detail,
+    },
+    status: (timedOut ? 503 : 500) as 503 | 500,
+  };
+};
+
 const parseBody = async (request: Request): Promise<FindMatchRequest | null> => {
   let payload: unknown;
   try {
@@ -49,22 +62,14 @@ export const handleFindMatch = async (c: Context): Promise<Response> => {
     const result = await orchestrator.startFindMatch(body);
     return c.json({ ok: true, data: result }, 200);
   } catch (error) {
-    const detail = String(error);
-    const isRedisTimeout = /command timed out/i.test(detail);
+    const { body: errBody, status } = redisOrInternalError(error);
     logger.error("[handleFindMatch] failed", {
       userId: body.userId,
       requestId: body.requestId,
-      detail,
-      redisTimeout: isRedisTimeout,
+      detail: errBody.detail,
+      redisTimeout: status === 503,
     });
-    return c.json(
-      {
-        ok: false,
-        error: isRedisTimeout ? "redis_timeout" : "internal_error",
-        detail,
-      },
-      isRedisTimeout ? 503 : 500,
-    );
+    return c.json(errBody, status);
   }
 };
 
@@ -82,7 +87,8 @@ export const handleGetMatchResult = async (c: Context): Promise<Response> => {
     const result = await orchestrator.getMatchResult(requestId);
     return c.json({ ok: true, data: result }, 200);
   } catch (error) {
-    return c.json({ ok: false, error: "internal_error", detail: String(error) }, 500);
+    const { body: errBody, status } = redisOrInternalError(error);
+    return c.json(errBody, status);
   }
 };
 
@@ -97,7 +103,13 @@ export const handleGetUserMatchState = async (c: Context): Promise<Response> => 
     const state = await orchestrator.getUserMatchState(userId);
     return c.json({ ok: true, data: state }, 200);
   } catch (error) {
-    return c.json({ ok: false, error: "internal_error", detail: String(error) }, 500);
+    const { body: errBody, status } = redisOrInternalError(error);
+    logger.error("[handleGetUserMatchState] failed", {
+      userId,
+      detail: errBody.detail,
+      redisTimeout: status === 503,
+    });
+    return c.json(errBody, status);
   }
 };
 
@@ -118,7 +130,8 @@ export const handleCancelMatch = async (c: Context): Promise<Response> => {
     await orchestrator.cancelMatch(userId);
     return c.json({ ok: true }, 200);
   } catch (error) {
-    return c.json({ ok: false, error: "internal_error", detail: String(error) }, 500);
+    const { body: errBody, status } = redisOrInternalError(error);
+    return c.json(errBody, status);
   }
 };
 
@@ -149,7 +162,8 @@ export const handleMatchRespond = async (c: Context): Promise<Response> => {
     }
     return c.json({ ok: true }, 200);
   } catch (error) {
-    return c.json({ ok: false, error: "internal_error", detail: String(error) }, 500);
+    const { body: errBody, status } = redisOrInternalError(error);
+    return c.json(errBody, status);
   }
 };
 
@@ -170,6 +184,7 @@ export const handleLeaveRoom = async (c: Context): Promise<Response> => {
     await orchestrator.leaveRoom(userId);
     return c.json({ ok: true }, 200);
   } catch (error) {
-    return c.json({ ok: false, error: "internal_error", detail: String(error) }, 500);
+    const { body: errBody, status } = redisOrInternalError(error);
+    return c.json(errBody, status);
   }
 };

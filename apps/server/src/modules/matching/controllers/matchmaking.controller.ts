@@ -22,7 +22,7 @@ export const handleFindMatch = async (c: Context) => {
     const userId = c.get("userId") as string;
     logger.info("[handleFindMatch] request received", { userId });
 
-    const currentState = await getUserMatchStateService(userId);
+    const currentState = await getUserMatchStateService(userId, { requireEngine: true });
     logger.info("[handleFindMatch] current engine state", { userId, state: currentState.status, requestId: currentState.requestId });
 
     if (currentState.status === "searching" && currentState.requestId) {

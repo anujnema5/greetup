@@ -312,7 +312,7 @@ Build blockers fixed before images could deploy:
 | Client loads | `https://greetup.co` |
 | www redirect | `curl -sI http://www.greetup.co/` → `https://greetup.co/` |
 | API health | `https://api.greetup.co` |
-| Matching health | `https://greetup-matching-*/health` → redis up |
+| Matching health | `https://greetup-matching-*/health` → process up (`redis` in body); `/ready` → redis up |
 | RTC health | `https://rtc.greetup.co/health` |
 | Register + login | Fresh user on new DB |
 | Find match | Two users → proposal UI (no webhook 401) |
