@@ -16,6 +16,10 @@ export type GetUserMatchStateOptions = {
   requireEngine?: boolean;
 };
 
+export type MatchEngineRequestOptions = {
+  retry?: boolean;
+};
+
 /** Data stored in Redis for each user (for matching) */
 export interface MatchUserData {
   profileId: string;

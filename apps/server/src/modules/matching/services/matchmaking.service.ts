@@ -96,7 +96,7 @@ export const respondMatchProposalService = async (
       userId,
       attemptId,
       decision,
-    });
+    }, { retry: false });
     await assertMatchEngineOk(res, "Match engine /match/respond");
   } catch (err) {
     rethrowMatchEngineFailure(err, "Match engine /match/respond");
