@@ -165,6 +165,7 @@ export async function proxy(req: NextRequest) {
     if (isGuestTrialRoute(pathname)) {
       const response = NextResponse.next();
       setSecurityHeaders(response);
+      response.headers.set("Cache-Control", "private, no-store");
       return response;
     }
     if (isGuestSpaceMatchRoom(pathname)) {
@@ -242,6 +243,10 @@ export async function proxy(req: NextRequest) {
 
   const response = NextResponse.next();
   setSecurityHeaders(response);
+  // Never let CDNs cache auth-gated HTML/RSC variants as a shared document.
+  if (isProtectedRoute(pathname) || isGuestTrialRoute(pathname)) {
+    response.headers.set("Cache-Control", "private, no-store");
+  }
 
   return response;
 }
