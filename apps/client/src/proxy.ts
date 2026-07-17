@@ -22,12 +22,20 @@ function canonicalOriginRedirect(req: NextRequest): NextResponse | null {
   return NextResponse.redirect(destination, 308);
 }
 
-/** Prefer public API base in prod (api.greetup.co) so edge auth matches browser cookies. */
+/**
+ * Session checks must hit the same API host the browser uses for cookies.
+ * In production that is api.* (NEXT_PUBLIC_API_BASE_URL). Same-origin `/api`
+ * rewrites to API_BACKEND_ORIGIN at build time (defaults to localhost:5300),
+ * which is unreachable inside the client App Platform container.
+ *
+ * Replace `localhost` → `127.0.0.1` so Node does not resolve to `::1` while
+ * the API listens on IPv4 only (common Windows ECONNREFUSED failure).
+ */
 function middlewareApiBase(req: NextRequest): string {
-  if (process.env.NEXT_PUBLIC_API_BASE_URL?.trim()) {
-    return API_BASE_URL;
-  }
-  return `${req.nextUrl.origin}/api`;
+  const base = process.env.NEXT_PUBLIC_API_BASE_URL?.trim()
+    ? API_BASE_URL
+    : `${req.nextUrl.origin}/api`;
+  return base.replace("//localhost", "//127.0.0.1");
 }
 
 // ==================== ROUTES CONFIGURATION ====================
@@ -106,7 +114,9 @@ interface AuthCheckResult {
 const sessionCache = new Map<string, CacheEntry>();
 const CACHE_TTL = 10 * 1000; // short TTL — avoids serving dead sessions as logged-in
 const MAX_CACHE_SIZE = 500; // Prevent cache poisoning
-const AUTH_REQUEST_TIMEOUT_MS = 3000;
+/** Prod auth checks go public api.* via Cloudflare — 3s was failing open on `/`. */
+const AUTH_REQUEST_TIMEOUT_MS =
+  process.env.NODE_ENV === "production" ? 8000 : 3000;
 const SESSION_COOKIE_KEYS = [
   "__Secure-better-auth.session_token",
   "better-auth.session_token",
@@ -172,7 +182,9 @@ export async function proxy(req: NextRequest) {
   if (isLoggedIn && pathname === "/" && !guestStatus?.isGuest) {
     const isOnboarded = await resolveIsOnboarded(req, pathname);
     const redirectUrl = isOnboarded ? "/home" : ONBOARDING_ROUTE;
-    return NextResponse.redirect(new URL(redirectUrl, req.url));
+    const redirect = NextResponse.redirect(new URL(redirectUrl, req.url));
+    redirect.headers.set("Cache-Control", "private, no-store");
+    return redirect;
   }
 
   // Redirect logged-in users away from public routes (guests may finish signup / verify email)
@@ -562,6 +574,8 @@ async function performAuthCheck(req: NextRequest): Promise<AuthCheckResult> {
       headers: {
         cookie: req.headers.get("cookie") ?? "",
         "Content-Type": "application/json",
+        // Avoid Cloudflare bot challenges on server→api.* fetches.
+        "User-Agent": "greetup-proxy-auth",
       },
       credentials: "include",
       signal: controller.signal,
@@ -687,6 +701,7 @@ async function performGuestStatusCheck(
       headers: {
         cookie: req.headers.get("cookie") ?? "",
         "Content-Type": "application/json",
+        "User-Agent": "greetup-proxy-auth",
       },
       credentials: "include",
       signal: controller.signal,
@@ -747,7 +762,24 @@ function getSessionToken(req: NextRequest): string | undefined {
   for (const key of SESSION_COOKIE_KEYS) {
     const value = req.cookies.get(key)?.value;
     if (value) return value;
+
+    // Better Auth splits oversized cookies into `.0`, `.1`, …
+    const chunk0 = req.cookies.get(`${key}.0`)?.value;
+    if (chunk0) return chunk0;
   }
+
+  // Last resort: any cookie whose name starts with a known session key.
+  for (const cookie of req.cookies.getAll()) {
+    if (
+      SESSION_COOKIE_KEYS.some(
+        (key) => cookie.name === key || cookie.name.startsWith(`${key}.`),
+      ) &&
+      cookie.value
+    ) {
+      return cookie.value;
+    }
+  }
+
   return undefined;
 }
 
