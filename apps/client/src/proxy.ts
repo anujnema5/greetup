@@ -213,9 +213,13 @@ export async function proxy(req: NextRequest) {
     }
   }
 
-  // Redirect logged-in but not-onboarded users away from onboarding-required routes
+  // Redirect logged-in but not-onboarded users away from onboarding-required routes.
+  // Guests never complete full onboarding — their allowed routes (including the
+  // `/space/[roomId]` match room) are already governed by resolveGuestRouteRedirect
+  // above, so never bounce a guest to /profile-setup here.
   if (
     isLoggedIn &&
+    !guestStatus?.isGuest &&
     isOnboardingRequiredRoute(pathname) &&
     !isOnboardingRoute(pathname)
   ) {
