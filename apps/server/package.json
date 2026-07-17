@@ -11,6 +11,7 @@
     "db:migrate": "bun src/core/database/run-migrations.ts",
     "db:studio": "drizzle-kit studio",
     "db:drop": "drizzle-kit drop",
+    "db:clean": "bun src/core/database/clean-db.ts",
     "db:seed": "bun src/core/database/seed/index.ts",
     "db:seed:onboarding": "bun src/core/database/seed/seed-onboarding-lookups.ts",
     "db:seed:room-categories": "bun src/core/database/seed/seed-room-categories.ts",
