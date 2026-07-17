@@ -8,6 +8,14 @@ export type UserMatchState = {
   isFallbackMatch?: boolean;
 };
 
+/**
+ * When `requireEngine` is true, engine errors throw SERVICE_UNAVAILABLE instead of
+ * pretending the user is idle (find-match must not cascade into /match/find).
+ */
+export type GetUserMatchStateOptions = {
+  requireEngine?: boolean;
+};
+
 /** Data stored in Redis for each user (for matching) */
 export interface MatchUserData {
   profileId: string;

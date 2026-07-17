@@ -1,11 +1,12 @@
 import logger from "@/core/logging";
-import { ServiceUnavailableError } from "@/shared/errors";
 import { clearUserActiveRtcRoom } from "@/modules/rooms/services/rtc/user-active-rtc-room-redis.service";
 
-import type { UserMatchState } from "../types/match.types";
+import type { GetUserMatchStateOptions, UserMatchState } from "../types/match.types";
 import {
   assertMatchEngineOk,
   matchEngineRequest,
+  matchEngineUnavailable,
+  rethrowMatchEngineFailure,
 } from "./match-engine-client";
 
 export const findMatchService = async (userId: string, requestId: string) => {
@@ -14,41 +15,38 @@ export const findMatchService = async (userId: string, requestId: string) => {
     await assertMatchEngineOk(res, "Match engine /match/find");
     return res.json();
   } catch (err) {
-    if (err instanceof ServiceUnavailableError) throw err;
-    if (
-      typeof err === "object" &&
-      err !== null &&
-      "name" in err &&
-      (err.name === "TimeoutError" || err.name === "AbortError")
-    ) {
-      logger.error("Match engine /match/find timed out", { userId, requestId });
-      throw new ServiceUnavailableError("Matching is temporarily unavailable. Please try again.");
-    }
-    throw err;
+    rethrowMatchEngineFailure(err, "Match engine /match/find");
   }
 };
 
 export const getMatchResultService = async (requestId: string) => {
-  const res = await matchEngineRequest(
-    "GET",
-    `/match/result/${encodeURIComponent(requestId)}`,
-  );
-  await assertMatchEngineOk(res, "Match engine /match/result");
-  return res.json();
+  try {
+    const res = await matchEngineRequest(
+      "GET",
+      `/match/result/${encodeURIComponent(requestId)}`,
+    );
+    await assertMatchEngineOk(res, "Match engine /match/result");
+    return res.json();
+  } catch (err) {
+    rethrowMatchEngineFailure(err, "Match engine /match/result");
+  }
 };
 
-type GetUserMatchStateOptions = {
-  /**
-   * When true, engine 5xx/network errors throw SERVICE_UNAVAILABLE instead of
-   * pretending the user is idle (used by find-match to avoid cascading find failures).
-   */
-  requireEngine?: boolean;
-};
+function parseUserMatchState(json: unknown): UserMatchState | null {
+  if (typeof json !== "object" || json === null) return null;
+  const data = (json as { data?: unknown }).data;
+  if (typeof data !== "object" || data === null) return null;
+  const status = (data as { status?: unknown }).status;
+  if (typeof status !== "string") return null;
+  return data as UserMatchState;
+}
 
 export const getUserMatchStateService = async (
   userId: string,
   opts?: GetUserMatchStateOptions,
 ): Promise<UserMatchState> => {
+  const requireEngine = opts?.requireEngine === true;
+
   try {
     const res = await matchEngineRequest(
       "GET",
@@ -57,20 +55,22 @@ export const getUserMatchStateService = async (
 
     if (!res.ok) {
       logger.warn("Match engine /match/state/user failed", { status: res.status, userId });
-      if (opts?.requireEngine) {
-        throw new ServiceUnavailableError("Matching is temporarily unavailable. Please try again.");
-      }
+      if (requireEngine) throw matchEngineUnavailable();
       return { status: "idle" };
     }
 
-    const json = await res.json();
-    return json.data as UserMatchState;
-  } catch (err) {
-    if (err instanceof ServiceUnavailableError) throw err;
-    logger.warn("getUserMatchStateService threw", { userId, err });
-    if (opts?.requireEngine) {
-      throw new ServiceUnavailableError("Matching is temporarily unavailable. Please try again.");
+    const state = parseUserMatchState(await res.json());
+    if (!state) {
+      logger.warn("Match engine /match/state/user returned invalid payload", { userId });
+      if (requireEngine) throw matchEngineUnavailable();
+      return { status: "idle" };
     }
+    return state;
+  } catch (err) {
+    if (requireEngine) {
+      rethrowMatchEngineFailure(err, "Match engine /match/state/user");
+    }
+    logger.warn("getUserMatchStateService threw, returning idle", { userId, err });
     return { status: "idle" };
   }
 };
@@ -79,6 +79,8 @@ export const cancelMatchService = async (userId: string): Promise<void> => {
   try {
     const res = await matchEngineRequest("POST", "/match/cancel", { userId });
     await assertMatchEngineOk(res, "Match engine /match/cancel");
+  } catch (err) {
+    rethrowMatchEngineFailure(err, "Match engine /match/cancel");
   } finally {
     await clearUserActiveRtcRoom(userId);
   }
@@ -89,11 +91,15 @@ export const respondMatchProposalService = async (
   attemptId: string,
   decision: "connect" | "skip",
 ): Promise<void> => {
-  const res = await matchEngineRequest("POST", "/match/respond", {
-    userId,
-    attemptId,
-    decision,
-  });
-  await assertMatchEngineOk(res, "Match engine /match/respond");
+  try {
+    const res = await matchEngineRequest("POST", "/match/respond", {
+      userId,
+      attemptId,
+      decision,
+    });
+    await assertMatchEngineOk(res, "Match engine /match/respond");
+  } catch (err) {
+    rethrowMatchEngineFailure(err, "Match engine /match/respond");
+  }
   await clearUserActiveRtcRoom(userId);
 };
