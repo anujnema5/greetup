@@ -14,6 +14,7 @@ type UseOnboardingGateOptions = {
 /**
  * Shared session + guest state for onboarding redirects.
  * Guests and logged-out users are never treated as "must complete profile-setup".
+ * Guest-status fetch failures also must not fail open into profile-setup.
  */
 export function useOnboardingGate(options?: UseOnboardingGateOptions) {
   const enabled = options?.enabled ?? true;
@@ -21,13 +22,20 @@ export function useOnboardingGate(options?: UseOnboardingGateOptions) {
   const { data: session, isPending: sessionPending } = useSession();
   const isLoggedIn = getSessionIsLoggedIn(session);
 
-  const { data: guestStatus, isPending: guestPending } = useGuestTryStatus({
+  const {
+    data: guestStatus,
+    isPending: guestPending,
+    isError: guestStatusError,
+  } = useGuestTryStatus({
     enabled: enabled && !sessionPending && isLoggedIn,
   });
 
   const isGuest = guestStatus?.isGuest === true;
   const isOnboarded = getSessionIsOnboarded(session);
   const isReady = !sessionPending && (!isLoggedIn || !guestPending);
+  /** Confirmed full member — not guest, and status did not fail open. */
+  const isConfirmedMember =
+    isReady && isLoggedIn && !isGuest && !guestStatusError;
 
   return {
     session,
@@ -35,7 +43,8 @@ export function useOnboardingGate(options?: UseOnboardingGateOptions) {
     isLoggedIn,
     isOnboarded,
     isReady,
+    guestStatusError,
     trialConsumed: guestStatus?.trialConsumed === true,
-    needsOnboarding: isReady && isLoggedIn && !isGuest && !isOnboarded,
+    needsOnboarding: isConfirmedMember && !isOnboarded,
   };
 }

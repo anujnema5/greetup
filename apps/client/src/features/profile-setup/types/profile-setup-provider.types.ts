@@ -14,6 +14,9 @@ export interface ProfileSetupProvider {
   isLastStep: boolean
   isFirstStep: boolean
   isLoading: boolean
+  /** Non-null when steps failed to load (exits infinite PageLoading). */
+  stepsLoadError: 'guest' | 'failed' | null
+  retryLoadSteps: () => void
   isSaving: boolean
   allFormData: Record<string, unknown>
 }

@@ -14,6 +14,9 @@ import type { Resolver, FieldValues } from 'react-hook-form'
 import type { ProfileSetupProvider as TProfileSetupProvider } from '../types'
 import type { ProfileSetupField, ProfileSetupStep } from '../types/profile-setup-api.types'
 import { getSessionIsOnboarded } from '@/features/auth/lib/session-user'
+import { guestTrialLandingPath } from '@/features/auth/lib/app-route-guards'
+import { useGuestTryStatus } from '@/features/guest-try/hooks/use-guest-try-status'
+import { getApiErrorCode } from '@/lib/api'
 import { useSession } from '@/lib/auth-client'
 import {
   useProfileSetupSteps,
@@ -107,16 +110,36 @@ export const ProfileSetupProvider: React.FC<ProfileSetupProviderProps> = ({
 }) => {
   const searchParams = useSearchParams()
   const router = useRouter()
-  const { data, isLoading } = useProfileSetupSteps()
+  const { data, isLoading, isError, error, refetch } = useProfileSetupSteps()
   const { data: session, isPending: sessionPending } = useSession()
+  const { data: guestStatus, isPending: guestPending } = useGuestTryStatus({
+    enabled: !sessionPending && Boolean(session),
+  })
   const { mutateAsync: saveProfileSetup, isPending: isSaving } = useSaveProfileSetup()
 
   useEffect(() => {
-    if (sessionPending) return
+    if (sessionPending || guestPending) return
+    if (guestStatus?.isGuest === true) {
+      router.replace(guestTrialLandingPath(guestStatus.trialConsumed === true))
+      return
+    }
     if (getSessionIsOnboarded(session)) {
       router.replace('/home')
     }
-  }, [session, sessionPending, router])
+  }, [session, sessionPending, guestPending, guestStatus, router])
+
+  const stepsLoadError =
+    isError
+      ? getApiErrorCode(error) === 'GUEST_NOT_ALLOWED'
+        ? 'guest'
+        : 'failed'
+      : null
+
+  useEffect(() => {
+    if (stepsLoadError === 'guest') {
+      router.replace('/try')
+    }
+  }, [stepsLoadError, router])
 
   const [currentStep, setCurrentStep] = useState(1)
   const [steps, setSteps] = useState<ProfileSetupStep[]>([])
@@ -346,7 +369,15 @@ export const ProfileSetupProvider: React.FC<ProfileSetupProviderProps> = ({
         onBack,
         isLastStep: currentStep === steps.length,
         isFirstStep: currentStep === 1,
-        isLoading: isLoading || !isInitialized,
+        isLoading:
+          guestPending ||
+          guestStatus?.isGuest === true ||
+          stepsLoadError === 'guest' ||
+          ((isLoading || !isInitialized) && !stepsLoadError),
+        stepsLoadError,
+        retryLoadSteps: () => {
+          void refetch()
+        },
         isSaving,
         allFormData,
       }}

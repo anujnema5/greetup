@@ -93,6 +93,8 @@ const ProfileSetupStep = () => {
     currentStep,
     totalSteps,
     isLoading,
+    stepsLoadError,
+    retryLoadSteps,
     isSaving,
     allFormData,
   } = useProfileSetup()
@@ -175,6 +177,24 @@ const ProfileSetupStep = () => {
     clearProfileSetupProgress()
     await signOut()
     router.push('/login')
+  }
+
+  if (stepsLoadError === 'failed') {
+    return (
+      <div className="flex min-h-dvh flex-col items-center justify-center gap-4 bg-linear-to-b from-background to-muted/20 px-6 text-center">
+        <p className="text-sm text-muted-foreground">
+          Couldn&apos;t load profile setup. Please try again.
+        </p>
+        <div className="flex flex-wrap items-center justify-center gap-2">
+          <Button type="button" onClick={() => retryLoadSteps()}>
+            Try again
+          </Button>
+          <Button type="button" variant="outline" onClick={() => router.replace('/try')}>
+            Back to try
+          </Button>
+        </div>
+      </div>
+    )
   }
 
   if (isLoading || !currentStepData) {

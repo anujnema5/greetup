@@ -178,8 +178,10 @@ export async function proxy(req: NextRequest) {
     return guestRedirect;
   }
 
-  // Redirect full accounts away from marketing home (guests may browse landing)
-  if (isLoggedIn && pathname === "/" && !guestStatus?.isGuest) {
+  // Redirect full accounts away from marketing home (guests may browse landing).
+  // Only when guest status is *confirmed* non-guest — unknown status must not
+  // fail open into /profile-setup (mobile flaky /guest/status).
+  if (isLoggedIn && pathname === "/" && guestStatus?.isGuest === false) {
     const isOnboarded = await resolveIsOnboarded(req, pathname);
     const redirectUrl = isOnboarded ? "/home" : ONBOARDING_ROUTE;
     const redirect = NextResponse.redirect(new URL(redirectUrl, req.url));
@@ -189,15 +191,26 @@ export async function proxy(req: NextRequest) {
 
   // Redirect logged-in users away from public routes (guests may finish signup / verify email)
   if (isLoggedIn && PUBLIC_ROUTES.includes(pathname)) {
-    if (guestStatus?.isGuest && isGuestAccountConversionRoute(pathname)) {
+    // Guest or unknown status on conversion routes — do not send to /profile-setup
+    if (
+      guestStatus?.isGuest !== false &&
+      isGuestAccountConversionRoute(pathname)
+    ) {
       const response = NextResponse.next();
       setSecurityHeaders(response);
       return response;
     }
 
-    const isOnboarded = await resolveIsOnboarded(req, pathname);
-    const redirectUrl = isOnboarded ? "/home" : ONBOARDING_ROUTE;
-    return NextResponse.redirect(new URL(redirectUrl, req.url));
+    // Confirmed full account only
+    if (guestStatus?.isGuest === false) {
+      const isOnboarded = await resolveIsOnboarded(req, pathname);
+      const redirectUrl = isOnboarded ? "/home" : ONBOARDING_ROUTE;
+      return NextResponse.redirect(new URL(redirectUrl, req.url));
+    }
+
+    const response = NextResponse.next();
+    setSecurityHeaders(response);
+    return response;
   }
 
   // Unauthenticated users belong on the marketing home — not /login.
@@ -214,12 +227,10 @@ export async function proxy(req: NextRequest) {
   }
 
   // Redirect logged-in but not-onboarded users away from onboarding-required routes.
-  // Guests never complete full onboarding — their allowed routes (including the
-  // `/space/[roomId]` match room) are already governed by resolveGuestRouteRedirect
-  // above, so never bounce a guest to /profile-setup here.
+  // Require confirmed non-guest — never treat unknown/failed guest status as a member.
   if (
     isLoggedIn &&
-    !guestStatus?.isGuest &&
+    guestStatus?.isGuest === false &&
     isOnboardingRequiredRoute(pathname) &&
     !isOnboardingRoute(pathname)
   ) {
@@ -297,14 +308,16 @@ function isGuestSpaceMatchRoom(pathname: string): boolean {
   return /^\/space\/[^/]+$/.test(pathname);
 }
 
-/** Routes guests use while upgrading to a full account — must not bounce to /try. */
+/**
+ * Routes guests use while upgrading to a full account — must not bounce to /try.
+ * Do NOT include `/profile-setup`: that is for converted (non-guest) accounts.
+ * Active guests landing there hit blocked APIs and can spin forever.
+ */
 function isGuestAccountConversionRoute(pathname: string): boolean {
   return (
     pathname === "/register" ||
     pathname === "/login" ||
-    pathname === "/verify-email" ||
-    pathname === ONBOARDING_ROUTE ||
-    pathname.startsWith(`${ONBOARDING_ROUTE}/`)
+    pathname === "/verify-email"
   );
 }
 
@@ -714,10 +727,12 @@ async function performGuestStatusCheck(
     clearTimeout(timeoutId);
 
     if (!res.ok) {
-      if (res.status === 401 || res.status === 403 || res.status === 404 || res.status === 500) {
+      // Auth rejection → treat as non-guest. Transient 5xx/404 → unknown (null)
+      // so we do not fail open into /profile-setup for active guests.
+      if (res.status === 401 || res.status === 403) {
         return { isGuest: false, trialConsumed: false };
       }
-      throw new Error(`Guest status failed with status ${res.status}`);
+      return null;
     }
 
     const data = await res.json();
