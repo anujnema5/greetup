@@ -9,6 +9,7 @@ import { useSocket } from "@/lib/socket";
 import { queryKeys } from "@/lib/query/keys";
 import { OPEN_TO_CONNECT } from "@/lib/copy/user-messages";
 import { getApiErrorMessage, API_ENDPOINTS, apiFetch } from "@/lib/api";
+import { useGuestTryStatus } from "@/features/guest-try/hooks/use-guest-try-status";
 
 import { useInboundConnectRequests } from "../api/connect-requests.queries";
 import {
@@ -48,7 +49,15 @@ function invalidateConnectRequestQueries(qc: ReturnType<typeof useQueryClient>) 
 export function useInboundConnectRequestBridge() {
   const qc = useQueryClient();
   const { socket } = useSocket();
-  const { data: inboundData } = useInboundConnectRequests();
+
+  /**
+   * Open to Connect is a members-only feature. Guests (the `/try` flow, or a guest
+   * in their trial call) get a 403 from the inbound endpoint, so only poll once we
+   * know the session is a full member.
+   */
+  const { data: guestStatus } = useGuestTryStatus();
+  const isMember = guestStatus?.isGuest === false;
+  const { data: inboundData } = useInboundConnectRequests(isMember);
 
   const [queue, setQueue] = useState<IncomingConnectRequest[]>([]);
   const [responding, setResponding] = useState(false);
