@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { usePathname } from 'next/navigation';
 import {
   useFindMatchMutation,
   useCancelMatchMutation,
@@ -57,6 +58,15 @@ export function useFindMatch() {
   const { mutateAsync: respondMatch } = useRespondMatchProposalMutation();
   const { socket } = useSocket();
 
+  /**
+   * Guests in the `/try` flow shouldn't see the "Open to Connect" discoverability
+   * upsell after a no-match — that's a signed-in feature. Kept in a ref so the
+   * socket listeners don't re-subscribe on navigation.
+   */
+  const pathname = usePathname();
+  const isGuestTryRef = useRef(false);
+  isGuestTryRef.current = pathname?.startsWith('/try') ?? false;
+
   const requestIdRef = useRef<string | null>(null);
   /** Peer user id while proposal is open — `match:completed` uses initiator attemptId for both sockets. */
   const proposalPeerIdRef = useRef<string | null>(null);
@@ -85,7 +95,7 @@ export function useFindMatch() {
     setWaitingForPeerConnect(false);
     setResult(null);
 
-    if (shouldOfferOpenToConnectAfterNoMatch(reason)) {
+    if (!isGuestTryRef.current && shouldOfferOpenToConnectAfterNoMatch(reason)) {
       setNoMatchOfferReason(reason ?? 'no_match');
       setNoMatchSuggestionContext(true);
       setStatus('idle');

@@ -7,7 +7,7 @@ import { toast } from "sonner";
 import { PageLoading } from "@/components/page-loading";
 import SocialLoginButtons from "@/features/auth/components/social-login-buttons";
 import AuthPageLayout from "@/features/auth/components/auth-page-layout";
-// import { AuthGuestContinueButton } from "@/features/auth/components/auth-guest-continue-button"; // guest continue temporarily hidden
+import { AuthGuestContinueButton } from "@/features/auth/components/auth-guest-continue-button";
 import { getAuthCallbackUrl } from "@/features/auth/lib/auth-callback-url";
 import PhoneLoginForm from "@/features/auth/components/phone-login-form";
 import { AuthFormDivider } from "@/features/auth/components/auth-form-divider";
@@ -109,9 +109,7 @@ function LoginPageContent() {
         <AuthFormDivider label="Or continue with" />
         <PhoneLoginForm onOTPSent={() => {}} />
 
-        {/* Guest "try as guest" continue temporarily hidden — keep for future re-enable.
         <AuthGuestContinueButton />
-        */}
       </AuthPageLayout>
     </PhoneOtpProvider>
   );
