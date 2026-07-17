@@ -58,9 +58,7 @@ export function useSaveProfileSetup() {
         method: 'POST',
         body: JSON.stringify(body),
       }),
-    onSuccess: () => {
-      invalidateAfterSaveProfile(qc);
-    },
+    onSuccess: () => invalidateAfterSaveProfile(qc),
   });
 }
 

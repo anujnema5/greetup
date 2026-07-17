@@ -56,6 +56,8 @@ export function RequireOnboarding({ children }: { children: React.ReactNode }) {
 
   if (skip) return <>{children}</>;
   if (!isReady || !isLoggedIn || guestBlocked) return <PageLoading />;
-  if (needsOnboarding) return null;
+  // Loading (not blank) while redirecting to profile-setup — avoids white /home
+  // after soft nav when session.isOnboarded is still stale.
+  if (needsOnboarding) return <PageLoading />;
   return <>{children}</>;
 }
