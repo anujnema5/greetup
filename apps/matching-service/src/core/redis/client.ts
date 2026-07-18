@@ -140,7 +140,7 @@ export const connectRedis = async (): Promise<RedisClient> => {
  * per-command inside a transaction — each call may hand back a different socket.
  */
 export const getRedis = (): RedisClient => {
-  const live = pool.filter(isLive);
+  const live = pool.filter(isLive); 
   if (live.length === 0) {
     throw new Error("Redis client not initialized");
   }
