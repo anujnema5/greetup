@@ -13,7 +13,7 @@ import {
 } from "@/modules/simple-matching/repositories/snapshot";
 import { getRedis } from "@/core/redis/client";
 import { redisKeys } from "@/core/redis/keys";
-import { isBlockedWithPeer } from "@/modules/simple-matching/blocks/blocked-peers";
+import { filterBlockedPeers } from "@/modules/simple-matching/blocks/blocked-peers";
 
 type LocationPoolIndexMeta = {
   countryCode?: string;
@@ -184,6 +184,48 @@ export class MatchPoolService {
     return out;
   }
 
+  /**
+   * Batched "which of these users are still searching" via a single MGET.
+   * Replaces per-candidate `GET mm:state` round-trips that head-of-line block
+   * the shared request-path Redis connection.
+   */
+  private async fetchSearchingStates(userIds: string[]): Promise<Set<string>> {
+    const searching = new Set<string>();
+    if (userIds.length === 0) return searching;
+    const redis = getRedis();
+    const states = await redis.mget(...userIds.map((id) => redisKeys.userState(id)));
+    for (let i = 0; i < userIds.length; i += 1) {
+      const uid = userIds[i];
+      if (uid !== undefined && states[i] === "searching") searching.add(uid);
+    }
+    return searching;
+  }
+
+  /**
+   * Filters an ordered candidate list down to unblocked, still-searching peers,
+   * preserving input order and stopping at `batchSize`. Uses two batched Redis
+   * round-trips (block sets + state MGET) instead of two per candidate.
+   */
+  private async filterCandidates(
+    requesterId: string,
+    ordered: MatchCandidate[],
+    batchSize: number,
+  ): Promise<MatchCandidate[]> {
+    if (ordered.length === 0) return [];
+    const ids = ordered.map((c) => c.userId);
+    const [blocked, searching] = await Promise.all([
+      filterBlockedPeers(requesterId, ids),
+      this.fetchSearchingStates(ids),
+    ]);
+    const out: MatchCandidate[] = [];
+    for (const c of ordered) {
+      if (blocked.has(c.userId) || !searching.has(c.userId)) continue;
+      out.push(c);
+      if (out.length >= batchSize) break;
+    }
+    return out;
+  }
+
   private async collectFromZset(
     requesterId: string,
     key: string,
@@ -192,18 +234,14 @@ export class MatchPoolService {
   ): Promise<MatchCandidate[]> {
     const redis = getRedis();
     const rows = await redis.zrevrange(key, 0, scanLimit - 1, "WITHSCORES");
-    const candidates: MatchCandidate[] = [];
+    const ordered: MatchCandidate[] = [];
     for (let i = 0; i < rows.length; i += 2) {
       const userId = rows[i];
       const scoreRaw = rows[i + 1];
       if (!userId || !scoreRaw || userId === requesterId) continue;
-      if (await isBlockedWithPeer(requesterId, userId)) continue;
-      const state = await redis.get(redisKeys.userState(userId));
-      if (state !== "searching") continue;
-      candidates.push({ userId, score: Number(scoreRaw) });
-      if (candidates.length >= batchSize) break;
+      ordered.push({ userId, score: Number(scoreRaw) });
     }
-    return candidates;
+    return this.filterCandidates(requesterId, ordered, batchSize);
   }
 
   private async mergePrimaryThenGlobal(
@@ -213,21 +251,16 @@ export class MatchPoolService {
     const redis = getRedis();
     const batchSize = MATCH_CONFIG.candidateBatchSize;
     const seen = new Set<string>();
-    const out: MatchCandidate[] = [];
 
-    const tryAdd = async (c: MatchCandidate): Promise<void> => {
+    // Ordered primary-then-global candidate list, deduped, requester excluded.
+    const ordered: MatchCandidate[] = [];
+    const pushUnique = (c: MatchCandidate): void => {
       if (c.userId === requesterId || seen.has(c.userId)) return;
-      if (await isBlockedWithPeer(requesterId, c.userId)) return;
-      const state = await redis.get(redisKeys.userState(c.userId));
-      if (state !== "searching") return;
       seen.add(c.userId);
-      out.push(c);
+      ordered.push(c);
     };
 
-    for (const c of primaryRows) {
-      await tryAdd(c);
-      if (out.length >= batchSize) return out;
-    }
+    for (const c of primaryRows) pushUnique(c);
 
     const globalRows = await redis.zrevrange(
       redisKeys.poolGlobal(),
@@ -235,14 +268,14 @@ export class MatchPoolService {
       MATCH_CONFIG.poolScanLimit - 1,
       "WITHSCORES",
     );
-    for (let i = 0; i < globalRows.length && out.length < batchSize; i += 2) {
+    for (let i = 0; i < globalRows.length; i += 2) {
       const userId = globalRows[i];
       const scoreRaw = globalRows[i + 1];
       if (!userId || !scoreRaw) continue;
-      await tryAdd({ userId, score: Number(scoreRaw) });
+      pushUnique({ userId, score: Number(scoreRaw) });
     }
 
-    return out;
+    return this.filterCandidates(requesterId, ordered, batchSize);
   }
 
   private async collectGlobalForeignFirst(
@@ -255,14 +288,20 @@ export class MatchPoolService {
     const rows = await redis.zrevrange(redisKeys.poolGlobal(), 0, fetchCap - 1, "WITHSCORES");
 
     type Row = MatchCandidate & { sortGroup: number };
-    const pending: Row[] = [];
+    const parsed: Row[] = [];
     for (let i = 0; i < rows.length; i += 2) {
       const userId = rows[i];
       const scoreRaw = rows[i + 1];
       if (!userId || !scoreRaw || userId === requesterId) continue;
-      if (await isBlockedWithPeer(requesterId, userId)) continue;
-      pending.push({ userId, score: Number(scoreRaw), sortGroup: 1 });
+      parsed.push({ userId, score: Number(scoreRaw), sortGroup: 1 });
     }
+
+    // Single batched block-set check instead of one round-trip per candidate.
+    const blocked = await filterBlockedPeers(
+      requesterId,
+      parsed.map((p) => p.userId),
+    );
+    const pending = parsed.filter((p) => !blocked.has(p.userId));
 
     const ids = pending.map((p) => p.userId);
     const ccMap = await peekCountryCodesByUserIds(ids);
@@ -294,11 +333,12 @@ export class MatchPoolService {
       return b.score - a.score;
     });
 
+    // Single batched state MGET instead of one GET per candidate.
+    const searching = await this.fetchSearchingStates(pending.map((p) => p.userId));
     const out: MatchCandidate[] = [];
     for (const p of pending) {
       if (out.length >= batchSize) break;
-      const state = await redis.get(redisKeys.userState(p.userId));
-      if (state !== "searching") continue;
+      if (!searching.has(p.userId)) continue;
       out.push({ userId: p.userId, score: p.score });
     }
     return out;
