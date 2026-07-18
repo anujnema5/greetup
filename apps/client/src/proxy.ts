@@ -450,6 +450,10 @@ function setSecurityHeaders(response: NextResponse): void {
     "https://*.gstatic.com",
     "https://www.google.com",
     "https://www.gstatic.com",
+    // Google Analytics 4 (gtag.js + collect endpoints)
+    "https://*.googletagmanager.com",
+    "https://*.google-analytics.com",
+    "https://*.analytics.google.com",
     "https://api.dicebear.com",
     // Presigned PUTs to DigitalOcean Spaces (profile photos, report screenshots).
     // Explicit CDN origin + wildcard so uploads work even if NEXT_PUBLIC_CDN_URL is unset.
@@ -475,7 +479,7 @@ function setSecurityHeaders(response: NextResponse): void {
 
   const cspDirectives = [
     "default-src 'self'",
-    `script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.google.com https://www.gstatic.com${
+    `script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.google.com https://www.gstatic.com https://*.googletagmanager.com${
       isDevelopment ? " https://vercel.live" : ""
     }`,
     "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
@@ -484,7 +488,7 @@ function setSecurityHeaders(response: NextResponse): void {
     `connect-src ${connectSrc}`,
     "media-src 'self' blob:",
     "worker-src 'self' blob:",
-    "frame-src 'self' https://www.google.com",
+    "frame-src 'self' https://www.google.com https://www.googletagmanager.com",
     "frame-ancestors 'none'",
     "base-uri 'self'",
     "form-action 'self'",
