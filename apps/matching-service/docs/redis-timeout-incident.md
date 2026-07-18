@@ -265,6 +265,70 @@ would be dangerous if the code relied on one connection's stateful ordering. We 
 
 ---
 
+## 10b. Round 2 — the timeouts came back (stale sockets)
+
+After Fixes A and B shipped, the **same** `Command timed out` errors reappeared — but the
+cause was now completely different, and the pool from Fix B actually made it *slightly more*
+likely. Read this before assuming the connection pool is broken.
+
+### The new fingerprint
+
+- Timeouts **started minutes after pod boot** (`05:58` boot → first timeout `06:05`), not
+  under load.
+- They came in **bursts**, hit **random users**, and hit the **trivial** `GET`
+  path (`handleGetUserMatchState`) — the same innocent victim as before.
+- The request-path code was already clean: trivial commands, batched scans, spread across
+  4 sockets, a single serial worker. There was no command flood left to blame.
+
+### The cause: silently-dead TCP sockets
+
+Redis is remote (App Platform → droplet Redis over a **DigitalOcean VPC**). VPC/NAT/firewall
+paths **silently drop idle TCP flows** after a few minutes. Our ioredis clients had:
+
+- `keepAlive: 0` — ioredis's default, i.e. **TCP keepalive disabled**, so no probes kept the
+  flow alive or detected the drop, and
+- **no application heartbeat** — nothing pinged an idle socket.
+
+So an idle socket died on the network, ioredis didn't know, and it only found out when it
+sent the **next** command onto that dead socket — which hung until the 5s `commandTimeout`.
+That is the entire Round‑2 bug: **the timeout was a dead socket being discovered by a user's
+request instead of by a keepalive probe.**
+
+Every detail matches: minutes after boot (idle-reap window), bursts (a batch of sockets
+reaped together), random users on trivial GETs (whoever lands on a dead socket).
+
+### Why the pool made it worse
+
+Fix B spread request traffic across **4** sockets round-robin. Under low/moderate load each
+individual socket now sits **idle longer** between uses — so it's *more* likely to cross the
+VPC idle-reap threshold before its next command. The pool contains our own head-of-line
+blocking; it does nothing for a socket the network killed underneath us.
+
+### Fix C — keep sockets warm, detect death fast
+
+Two small, complementary settings in `src/core/redis/client.ts`:
+
+- **TCP keepalive** (`keepAlive: REDIS_KEEPALIVE_MS`, default 30s) on every client — probes
+  keep the VPC/NAT flow mapping alive and let the OS surface a dead peer quickly, so a
+  command never hangs on it.
+- **Application heartbeat** (`REDIS_HEARTBEAT_MS`, default 25s) — PINGs every request-path
+  pool socket on an interval, so no socket is ever idle long enough to be reaped, and a dead
+  one is reconnected proactively rather than on a user's request. The **blocking client is
+  exempt**: the worker's `BRPOP` every ~2s keeps it continuously busy, so it never idles.
+
+Set `REDIS_KEEPALIVE_MS` / `REDIS_HEARTBEAT_MS` below the VPC/firewall idle timeout if it's
+shorter than ~60s.
+
+### If it *still* comes back after Fix C
+
+Now it genuinely points at Redis server health, not the client. Check `redis-cli`:
+`INFO clients` (blocked/connected), `INFO persistence` (`latest_fork_usec`, an RDB/AOF fork
+pause blocks the single-threaded server for everyone), `SLOWLOG GET`, `INFO stats`
+(`evicted_keys` under `maxmemory`), and confirm no other service on the same Redis is running
+`KEYS`/big `SMEMBERS`/`FLUSHALL`.
+
+---
+
 ## 11. TL;DR
 
 1. The status endpoint (`handleGetUserMatchState`) was **timing out but was innocent** — it
