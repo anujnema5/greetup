@@ -31,6 +31,9 @@ export const env = {
    * Default 5s — App Platform → droplet Redis over VPC can be slower than localhost. */
   redisCommandTimeoutMs: getNumberEnv(process.env.REDIS_COMMAND_TIMEOUT_MS, 5_000),
   redisConnectTimeoutMs: getNumberEnv(process.env.REDIS_CONNECT_TIMEOUT_MS, 10_000),
+  /** Number of independent request-path Redis sockets. A stall on one socket
+   * can only head-of-line block commands routed to that socket, not all of them. */
+  redisPoolSize: getNumberEnv(process.env.REDIS_POOL_SIZE, 4),
   roomServiceUrl: process.env.ROOM_SERVICE_URL,
   roomServiceMode: process.env.MATCHING_ROOM_MODE ?? "mock",
   matchWebhookUrl: process.env.MATCH_WEBHOOK_URL,
