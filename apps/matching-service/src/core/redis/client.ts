@@ -30,6 +30,35 @@ let rrCursor = 0;
  * command on that socket for the block timeout. */
 let blockingClient: RedisClient | null = null;
 
+/** Keeps request-path sockets warm so a VPC/NAT idle-reap can't kill them under
+ * us. The blocking client is exempt — the worker's `BRPOP` every couple seconds
+ * keeps it continuously busy, so it never idles long enough to be reaped. */
+let heartbeatTimer: ReturnType<typeof setInterval> | null = null;
+
+const stopHeartbeat = (): void => {
+  if (heartbeatTimer) {
+    clearInterval(heartbeatTimer);
+    heartbeatTimer = null;
+  }
+};
+
+const startHeartbeat = (): void => {
+  stopHeartbeat();
+  if (env.redisHeartbeatMs <= 0) return;
+  heartbeatTimer = setInterval(() => {
+    for (const client of pool) {
+      if (!isLive(client)) continue;
+      // A stale socket's PING rejects (or its reconnect kicks in); either way we
+      // surface/repair the dead connection here rather than on a user's request.
+      client.ping().catch((error) => {
+        logger.warn("Redis heartbeat ping failed", { error: String(error) });
+      });
+    }
+  }, env.redisHeartbeatMs);
+  // Don't let the heartbeat keep the event loop alive on shutdown.
+  heartbeatTimer.unref?.();
+};
+
 const isLive = (c: RedisClient | null | undefined): c is RedisClient =>
   !!c && c.status !== "end";
 
@@ -39,6 +68,11 @@ const makeClient = (commandTimeout?: number): RedisClient =>
     enableReadyCheck: true,
     lazyConnect: true,
     connectTimeout: env.redisConnectTimeoutMs,
+    // Remote Redis over a VPC/NAT path silently drops idle TCP flows. TCP
+    // keepalive probes keep the flow alive and let the OS surface a dead peer
+    // fast, instead of a command discovering it by hanging until commandTimeout.
+    ...(env.redisKeepAliveMs > 0 ? { keepAlive: env.redisKeepAliveMs } : {}),
+    noDelay: true,
     ...(commandTimeout != null ? { commandTimeout } : {}),
   });
 
@@ -84,11 +118,15 @@ export const connectRedis = async (): Promise<RedisClient> => {
   await blocking.ping();
   blockingClient = blocking;
 
+  startHeartbeat();
+
   logger.info("Redis connected", {
     url: env.redisUrl,
     poolSize: size,
     commandTimeoutMs: env.redisCommandTimeoutMs,
     connectTimeoutMs: env.redisConnectTimeoutMs,
+    keepAliveMs: env.redisKeepAliveMs,
+    heartbeatMs: env.redisHeartbeatMs,
   });
 
   return primary;
@@ -133,6 +171,7 @@ export const pingRedis = async (): Promise<boolean> => {
 };
 
 export const disconnectRedis = async (): Promise<void> => {
+  stopHeartbeat();
   const toClose = pool.filter(isLive);
   pool = [];
   rrCursor = 0;

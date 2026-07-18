@@ -34,6 +34,15 @@ export const env = {
   /** Number of independent request-path Redis sockets. A stall on one socket
    * can only head-of-line block commands routed to that socket, not all of them. */
   redisPoolSize: getNumberEnv(process.env.REDIS_POOL_SIZE, 4),
+  /** TCP keepalive probe interval (ms). Remote Redis over a VPC/NAT path silently
+   * drops idle TCP flows; without keepalive probes ioredis only discovers a dead
+   * socket when it sends the next command, which then hangs until `commandTimeout`.
+   * 0 disables (ioredis default) — do NOT leave it disabled for remote Redis. */
+  redisKeepAliveMs: getNumberEnv(process.env.REDIS_KEEPALIVE_MS, 30_000),
+  /** Application-level heartbeat (ms): PING every idle request-path socket so it
+   * is never idle long enough to be reaped, and so a dead one is reconnected
+   * proactively instead of on a user's request. 0 disables. */
+  redisHeartbeatMs: getNumberEnv(process.env.REDIS_HEARTBEAT_MS, 25_000),
   roomServiceUrl: process.env.ROOM_SERVICE_URL,
   roomServiceMode: process.env.MATCHING_ROOM_MODE ?? "mock",
   matchWebhookUrl: process.env.MATCH_WEBHOOK_URL,
