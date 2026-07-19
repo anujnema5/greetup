@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 
 import { LandingPage } from "@/features/landing";
+import { RootAuthGate } from "@/components/root-auth-gate";
 import { buildPageMetadata } from "@/lib/site";
 
 export const metadata: Metadata = buildPageMetadata({
@@ -11,5 +12,10 @@ export const metadata: Metadata = buildPageMetadata({
 });
 
 export default function HomePage() {
-  return <LandingPage />;
+  return (
+    <>
+      <LandingPage />
+      <RootAuthGate />
+    </>
+  );
 }

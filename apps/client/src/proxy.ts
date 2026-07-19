@@ -214,9 +214,12 @@ export async function proxy(req: NextRequest) {
     return response;
   }
 
-  // Unauthenticated users belong on the marketing home — not /login.
+  // Unauthenticated users hitting a gated route → /login, remembering where they
+  // were headed (Instagram-style `?next=`) so login can return them after auth.
   if (!isLoggedIn && isProtectedRoute(pathname)) {
-    return NextResponse.redirect(new URL("/", req.url));
+    const loginUrl = new URL("/login", req.url);
+    loginUrl.searchParams.set("next", `${pathname}${req.nextUrl.search}`);
+    return NextResponse.redirect(loginUrl);
   }
 
   // Redirect onboarded users away from profile-setup (they're done)

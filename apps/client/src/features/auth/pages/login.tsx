@@ -8,7 +8,15 @@ import { PageLoading } from "@/components/page-loading";
 import SocialLoginButtons from "@/features/auth/components/social-login-buttons";
 import AuthPageLayout from "@/features/auth/components/auth-page-layout";
 import { AuthGuestContinueButton } from "@/features/auth/components/auth-guest-continue-button";
-import { getAuthCallbackUrl } from "@/features/auth/lib/auth-callback-url";
+import {
+  DEFAULT_AUTHED_PATH,
+  getAuthCallbackUrl,
+  NEXT_PARAM,
+  POST_AUTH_PATH,
+  sanitizeNextPath,
+} from "@/features/auth/lib/auth-callback-url";
+import { getSessionIsLoggedIn } from "@/features/auth/lib/session-user";
+import { useSession } from "@/lib/auth-client";
 import PhoneLoginForm from "@/features/auth/components/phone-login-form";
 import { AuthFormDivider } from "@/features/auth/components/auth-form-divider";
 import { PhoneOtpProvider } from "@/features/auth/context/phone-otp-context";
@@ -41,6 +49,20 @@ function LoginPageContent() {
   const oauthError = searchParams.get("error");
   const oauthErrorShownRef = useRef(false);
 
+  const nextPath = sanitizeNextPath(searchParams.get(NEXT_PARAM));
+  // After Google returns, land the user where they were headed (else profile-setup,
+  // which bounces onboarded users on to /home).
+  const callbackURL = getAuthCallbackUrl(nextPath ?? POST_AUTH_PATH);
+
+  const { data: session, isPending: sessionPending } = useSession();
+  const alreadyLoggedIn = getSessionIsLoggedIn(session);
+
+  useEffect(() => {
+    // A logged-in user shouldn't sit on /login — send them on immediately.
+    if (sessionPending || !alreadyLoggedIn) return;
+    router.replace(nextPath ?? DEFAULT_AUTHED_PATH);
+  }, [sessionPending, alreadyLoggedIn, nextPath, router]);
+
   useEffect(() => {
     if (!oauthError || oauthErrorShownRef.current) return;
     oauthErrorShownRef.current = true;
@@ -52,7 +74,11 @@ function LoginPageContent() {
   }, [oauthError, router, searchParams]);
 
   const handleCreateAccount = () => {
-    router.push(fromGuestIntent ? "/register?from=guest" : "/register");
+    const params = new URLSearchParams();
+    if (fromGuestIntent) params.set("from", "guest");
+    if (nextPath) params.set(NEXT_PARAM, nextPath);
+    const qs = params.toString();
+    router.push(qs ? `/register?${qs}` : "/register");
   };
 
   /* Phone OTP flow — re-enable with SMS provider
@@ -93,6 +119,10 @@ function LoginPageContent() {
   };
   */
 
+  // Already-authed users are being redirected away — show the branded loader
+  // instead of flashing the login form.
+  if (alreadyLoggedIn) return <PageLoading />;
+
   return (
     <PhoneOtpProvider>
       <AuthPageLayout
@@ -104,7 +134,7 @@ function LoginPageContent() {
         backHref="/"
         backLabel="Back to home"
       >
-        <SocialLoginButtons callbackURL={getAuthCallbackUrl()} />
+        <SocialLoginButtons callbackURL={callbackURL} />
 
         <AuthFormDivider label="Or continue with" />
         <PhoneLoginForm onOTPSent={() => {}} />

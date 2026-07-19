@@ -1,18 +1,22 @@
 import { authClient } from "@/lib/auth-client";
 import { isAuthRequiredPath } from "@/features/auth/lib/app-route-guards";
+import { buildLoginUrl } from "@/features/auth/lib/auth-callback-url";
 
 let unauthorizedRedirectInFlight = false;
 
 /**
  * On 401 from an app-shell route: confirm the session is gone, then send the
- * user to `/`. Skips transient 401s while a cookie is still settling.
+ * user to `/login?next=<route>` so they return here after re-auth. Skips
+ * transient 401s while a cookie is still settling.
  */
 export function redirectToPublicHomeOnUnauthorized(): void {
   if (typeof window === "undefined" || unauthorizedRedirectInFlight) return;
 
-  const { pathname } = window.location;
+  const { pathname, search } = window.location;
   if (pathname === "/" || pathname.startsWith("/login")) return;
   if (!isAuthRequiredPath(pathname)) return;
+
+  const loginUrl = buildLoginUrl(`${pathname}${search}`);
 
   unauthorizedRedirectInFlight = true;
 
@@ -28,7 +32,7 @@ export function redirectToPublicHomeOnUnauthorized(): void {
         .signOut()
         .catch(() => undefined)
         .finally(() => {
-          window.location.replace("/");
+          window.location.replace(loginUrl);
         });
     })
     .catch(() => {
