@@ -1,10 +1,13 @@
 "use client";
 
 import { useEffect } from "react";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 
 import { PageLoading } from "@/components/page-loading";
-import { POST_AUTH_PATH } from "@/features/auth/lib/auth-callback-url";
+import {
+  buildLoginUrl,
+  POST_AUTH_PATH,
+} from "@/features/auth/lib/auth-callback-url";
 import {
   guestTrialLandingPath,
   isGuestSpaceMatchRoom,
@@ -20,6 +23,7 @@ import { useOnboardingGate } from "@/features/auth/hooks/use-onboarding-gate";
 export function RequireOnboarding({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
+  const searchParams = useSearchParams();
   const skip = isTryRoute(pathname);
 
   const { isGuest, isLoggedIn, needsOnboarding, isReady, trialConsumed } =
@@ -31,7 +35,10 @@ export function RequireOnboarding({ children }: { children: React.ReactNode }) {
     if (skip || !isReady) return;
 
     if (!isLoggedIn) {
-      router.replace("/");
+      // Instagram-style: remember where they were headed so login can return them.
+      const query = searchParams.toString();
+      const returnPath = query ? `${pathname}?${query}` : pathname;
+      router.replace(buildLoginUrl(returnPath));
       return;
     }
 
@@ -51,6 +58,7 @@ export function RequireOnboarding({ children }: { children: React.ReactNode }) {
     trialConsumed,
     needsOnboarding,
     pathname,
+    searchParams,
     router,
   ]);
 
