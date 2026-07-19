@@ -89,6 +89,19 @@ const config = {
   redisCommandTimeoutMs: parseNonNegativeInt(optionalEnv("REDIS_COMMAND_TIMEOUT_MS"), 3_000),
   /** TCP connect deadline for Redis clients. Default 10s. */
   redisConnectTimeoutMs: parseNonNegativeInt(optionalEnv("REDIS_CONNECT_TIMEOUT_MS"), 10_000),
+  /**
+   * TCP keepalive interval (ioredis `keepAlive`, ms). Probes keep the VPC/NAT flow
+   * mapping alive and let the OS surface a dead peer fast, so a command never hangs
+   * on a silently-reaped idle socket. 0 disables. Default 30s.
+   * @see apps/matching-service/docs/redis-timeout-incident.md (Fix C)
+   */
+  redisKeepAliveMs: parseNonNegativeInt(optionalEnv("REDIS_KEEPALIVE_MS"), 30_000),
+  /**
+   * Application heartbeat interval (ms). PINGs each Redis client so no socket idles
+   * long enough to be reaped, reconnecting a dead one proactively instead of on a
+   * user request. Keep below the VPC/firewall idle timeout. 0 disables. Default 25s.
+   */
+  redisHeartbeatMs: parseNonNegativeInt(optionalEnv("REDIS_HEARTBEAT_MS"), 25_000),
   /** Abort match-engine HTTP calls that stall (e.g. matching Redis hang). Default 8s. */
   matchEngineTimeoutMs: parseNonNegativeInt(optionalEnv("MATCH_ENGINE_TIMEOUT_MS"), 8_000),
   serverUrl: requiredUrlEnv("SERVER_URL"),
