@@ -3,6 +3,9 @@
 # Copy a block into a terminal from the repo root. Uncomment as needed.
 # Ports: client 3000 | server 5300 | matching 4020 | rtc 5370
 #        postgres 25432 | redis 26379
+#
+# Production scrapbooks: helpers/prod/ (postgres.sql, redis.cli, api.http,
+# droplet.sh, doctl.ps1) — see deploy/do/README.md
 # =============================================================================
 
 # ── Docker (docker-compose.dev.yml) ───────────────────────────────────────────
