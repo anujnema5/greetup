@@ -1,5 +1,6 @@
 import { createAuthClient } from "better-auth/react";
 
+import { clearGuestTryQueries } from "@/features/guest-try/lib/clear-guest-try-queries";
 import { API_BASE_URL } from "@/shared/constants/environments";
 
 /**
@@ -17,5 +18,14 @@ export const authClient = createAuthClient({
   },
 });
 
-export const { signIn, signOut, signUp, useSession } = authClient;
+export const { signIn, signUp, useSession } = authClient;
 export const Session = authClient.$Infer.Session;
+
+/** Sign out and drop guest-try cache so the next /try visit cannot reuse a member status. */
+export async function signOut(
+  ...args: Parameters<typeof authClient.signOut>
+): Promise<ReturnType<typeof authClient.signOut>> {
+  const result = await authClient.signOut(...args);
+  clearGuestTryQueries();
+  return result;
+}

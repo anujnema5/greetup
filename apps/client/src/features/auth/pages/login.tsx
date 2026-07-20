@@ -16,6 +16,7 @@ import {
   sanitizeNextPath,
 } from "@/features/auth/lib/auth-callback-url";
 import { getSessionIsLoggedIn } from "@/features/auth/lib/session-user";
+import { useGuestTryStatus } from "@/features/guest-try/hooks/use-guest-try-status";
 import { useSession } from "@/lib/auth-client";
 import PhoneLoginForm from "@/features/auth/components/phone-login-form";
 import { AuthFormDivider } from "@/features/auth/components/auth-form-divider";
@@ -56,12 +57,19 @@ function LoginPageContent() {
 
   const { data: session, isPending: sessionPending } = useSession();
   const alreadyLoggedIn = getSessionIsLoggedIn(session);
+  const { data: guestStatus, isPending: guestPending } = useGuestTryStatus({
+    enabled: !sessionPending && alreadyLoggedIn,
+  });
+  // Guests have a session but must stay on /login to convert to a full account.
+  // Require an active session — never treat cached guest status as live when logged out.
+  const isGuest = alreadyLoggedIn && guestStatus?.isGuest === true;
+  const isConfirmedMember =
+    alreadyLoggedIn && !guestPending && guestStatus?.isGuest === false;
 
   useEffect(() => {
-    // A logged-in user shouldn't sit on /login — send them on immediately.
-    if (sessionPending || !alreadyLoggedIn) return;
+    if (sessionPending || guestPending || !isConfirmedMember) return;
     router.replace(nextPath ?? DEFAULT_AUTHED_PATH);
-  }, [sessionPending, alreadyLoggedIn, nextPath, router]);
+  }, [sessionPending, guestPending, isConfirmedMember, nextPath, router]);
 
   useEffect(() => {
     if (!oauthError || oauthErrorShownRef.current) return;
@@ -119,9 +127,13 @@ function LoginPageContent() {
   };
   */
 
-  // Already-authed users are being redirected away — show the branded loader
-  // instead of flashing the login form.
-  if (alreadyLoggedIn) return <PageLoading />;
+  // Confirmed full accounts are redirected away — show the branded loader
+  // instead of flashing the login form. Guests (and logged-out users) see the form.
+  // Don't block on guestPending: after logout the session can linger briefly and a
+  // pending guest fetch would hide "Try as a guest" behind a full-page loader.
+  if (sessionPending || isConfirmedMember) {
+    return <PageLoading />;
+  }
 
   return (
     <PhoneOtpProvider>
@@ -131,8 +143,8 @@ function LoginPageContent() {
         footerText="New to Greetup?"
         footerLinkText="Create account"
         onFooterLinkClick={handleCreateAccount}
-        backHref="/"
-        backLabel="Back to home"
+        backHref={fromGuestIntent || isGuest ? "/try" : "/"}
+        backLabel={fromGuestIntent || isGuest ? "Back to try" : "Back to home"}
       >
         <SocialLoginButtons callbackURL={callbackURL} />
 

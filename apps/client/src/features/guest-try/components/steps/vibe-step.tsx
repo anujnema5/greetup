@@ -17,6 +17,7 @@ import {
   vibeDraftsEqual,
 } from "../../lib/vibe-prefs-draft";
 import type { TryBackTarget, VibePrefsDraft } from "../../types/guest-try.types";
+import { TryAccountCta } from "../ui/try-account-cta";
 import { TryContinueButton } from "../ui/try-continue-button";
 import { TryChipList } from "../ui/try-chip-list";
 import { TrySection } from "../ui/try-section";
@@ -105,6 +106,7 @@ export function VibeStep({ draft, onDraftChange, back, onForward }: VibeStepProp
           GUEST_TRIAL_NAV.continue
         )}
       </TryContinueButton>
+      <TryAccountCta />
     </div>
   );
 

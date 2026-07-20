@@ -1,6 +1,7 @@
 import { authClient } from "@/lib/auth-client";
 import { isAuthRequiredPath } from "@/features/auth/lib/app-route-guards";
 import { buildLoginUrl } from "@/features/auth/lib/auth-callback-url";
+import { clearGuestTryQueries } from "@/features/guest-try/lib/clear-guest-try-queries";
 
 let unauthorizedRedirectInFlight = false;
 
@@ -32,6 +33,7 @@ export function redirectToPublicHomeOnUnauthorized(): void {
         .signOut()
         .catch(() => undefined)
         .finally(() => {
+          clearGuestTryQueries();
           window.location.replace(loginUrl);
         });
     })
