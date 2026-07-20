@@ -1,0 +1,118 @@
+# =============================================================================
+# helpers/api.http — HTTP scrapbook (REST Client / IntelliJ / curl)
+# Base: local server :5300, client :3000
+# Placeholders: {{cookie}} | {{roomId}} | {{userId}} | {{conversationId}}
+# =============================================================================
+
+@base = http://localhost:5300
+@client = http://localhost:3000
+# @cookie = better-auth.session_token=PASTE_ME
+
+### Root ping
+GET {{base}}/
+
+### Robots
+GET {{base}}/robots.txt
+
+### Better Auth session (needs cookie)
+GET {{base}}/api/auth/get-session
+Cookie: {{cookie}}
+
+### Create guest session
+POST {{base}}/api/auth/guest
+Content-Type: application/json
+
+{}
+
+### Profile — me
+GET {{base}}/api/profile/me
+Cookie: {{cookie}}
+
+### Profile — match prep current
+GET {{base}}/api/profile/match-prep/current
+Cookie: {{cookie}}
+
+### Profile — match prep options
+GET {{base}}/api/profile/match-prep/options
+Cookie: {{cookie}}
+
+### Open to connect — me / feed / sidebar
+GET {{base}}/api/open-to-connect/me
+Cookie: {{cookie}}
+
+###
+GET {{base}}/api/open-to-connect/feed
+Cookie: {{cookie}}
+
+###
+GET {{base}}/api/open-to-connect/sidebar
+Cookie: {{cookie}}
+
+### Connect requests — inbound
+GET {{base}}/api/connect-requests/inbound
+Cookie: {{cookie}}
+
+### Notifications
+GET {{base}}/api/notifications
+Cookie: {{cookie}}
+
+###
+GET {{base}}/api/notifications/unread-count
+Cookie: {{cookie}}
+
+### Chat — list conversations
+GET {{base}}/api/chat/conversations
+Cookie: {{cookie}}
+
+### Chat — conversation detail
+GET {{base}}/api/chat/conversations/{{conversationId}}
+Cookie: {{cookie}}
+
+### Chat — messages
+GET {{base}}/api/chat/conversations/{{conversationId}}/messages
+Cookie: {{cookie}}
+
+### Room — get by id
+GET {{base}}/api/room/{{roomId}}
+Cookie: {{cookie}}
+
+### Room — RTC token
+GET {{base}}/api/room/{{roomId}}/rtc-token
+Cookie: {{cookie}}
+
+### Room — embedded activities catalog
+GET {{base}}/api/room/embedded-activities
+Cookie: {{cookie}}
+
+### Room — join
+POST {{base}}/api/room/{{roomId}}/join
+Cookie: {{cookie}}
+Content-Type: application/json
+
+{}
+
+### Room — leave space RTC
+POST {{base}}/api/room/{{roomId}}/leave-space-rtc
+Cookie: {{cookie}}
+Content-Type: application/json
+
+{}
+
+### Matching service (default :4020)
+GET http://localhost:4020/
+
+### RTC service (default :5370)
+GET http://localhost:5370/
+
+# ── curl equivalents (PowerShell / bash) ──────────────────────────────────────
+
+# curl http://localhost:5300/
+# curl http://localhost:5300/robots.txt
+# curl -s http://localhost:5300/api/auth/get-session -H "Cookie: better-auth.session_token=PASTE"
+# curl -s -X POST http://localhost:5300/api/auth/guest -H "Content-Type: application/json" -d "{}"
+# curl -s http://localhost:5300/api/chat/conversations -H "Cookie: better-auth.session_token=PASTE"
+# curl -s http://localhost:5300/api/room/ROOM_ID -H "Cookie: better-auth.session_token=PASTE"
+# curl -s http://localhost:5300/api/room/ROOM_ID/rtc-token -H "Cookie: better-auth.session_token=PASTE"
+# curl -s -o /dev/null -w "%{http_code}" http://localhost:3000/
+# curl -s -o /dev/null -w "%{http_code}" http://localhost:4020/
+# curl -s -o /dev/null -w "%{http_code}" http://localhost:5370/
