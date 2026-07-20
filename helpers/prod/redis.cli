@@ -1,0 +1,100 @@
+# =============================================================================
+# helpers/prod/redis.cli — production Redis on greetup-rtc droplet
+# Redis is password-protected and only reachable from VPC (or docker on the VM).
+#
+# SAFETY
+#   • Inspect + targeted DEL of a single key is OK when diagnosing.
+#   • NEVER FLUSHDB / FLUSHALL / EVAL wipe of match:* / otc:* / room:* in prod.
+#   • Prefer TTL checks before deleting session keys.
+#
+# On VM (redis-cli is not on the host — use the container):
+#   cd ~/greetup && set -a && source .env && set +a
+#   docker compose ps
+#   docker exec -it "$(docker compose ps -q redis)" redis-cli -a "$REDIS_PASSWORD"
+#   # or: docker exec -it greetup-redis-1 redis-cli -a "$REDIS_PASSWORD"
+# =============================================================================
+
+# Auth + sanity
+# AUTH <REDIS_PASSWORD>
+# PING
+# INFO server
+# INFO memory
+# INFO keyspace
+# DBSIZE
+# CONFIG GET maxmemory*
+# CONFIG GET requirepass
+
+# ── Presence / chat online ────────────────────────────────────────────────────
+
+# SCARD all_online_users
+# SMEMBERS all_online_users
+# SCARD chat:online
+# GET user:last_seen:<user_id>
+# GET chat:socket-count:<user_id>
+# HGETALL chat:unread:<user_id>
+
+# ── Open to connect ───────────────────────────────────────────────────────────
+
+# SCARD otc:online
+# SMEMBERS otc:online
+# HGETALL otc:user:<user_id>
+# SMEMBERS otc:pending:<user_id>
+# TTL otc:user:<user_id>
+# GET otc:recent-no-match:<user_id>
+
+# ── Matching ──────────────────────────────────────────────────────────────────
+
+# SCARD match:idx:online
+# HGETALL match:user:<user_id>
+# TTL match:user:<user_id>
+# SMEMBERS mm:user:connection-peers:<user_id>
+# ZCARD match:idx:age
+
+# ── Rooms / RTC ───────────────────────────────────────────────────────────────
+
+# KEYS room:*
+# # Prefer SCAN in prod instead of KEYS if the set is large:
+# SCAN 0 MATCH room:* COUNT 50
+# HGETALL room:<room_id>
+# TTL room:<room_id>
+# GET user:active_rtc_room:<user_id>
+# SCAN 0 MATCH user:active_rtc_room:* COUNT 50
+
+# Clear ONE stuck room pointer (after confirming room ended in Postgres)
+# DEL room:<room_id>
+# DEL user:active_rtc_room:<user_id>
+
+# ── Connection calls ──────────────────────────────────────────────────────────
+
+# SCAN 0 MATCH connection:call:* COUNT 50
+# GET connection:call:invite:<request_id>
+# GET connection:call:pending:<user_id>
+# GET connection:call:active:<room_id>
+# TTL connection:call:invite:<request_id>
+
+# ── Guest trial / rate limits / OTP ───────────────────────────────────────────
+
+# GET guest:device:<device_hash>:consumed
+# TTL guest:device:<device_hash>:consumed
+# GET guest:<user_id>:match_search_count
+# SCAN 0 MATCH guest:ip:* COUNT 50
+# SCAN 0 MATCH rl:user:* COUNT 50
+# SCAN 0 MATCH otp:phone:* COUNT 20
+
+# Support: reset ONE device trial block (abuse / false positive)
+# DEL guest:device:<device_hash>:consumed
+
+# ── Profile / blocks cache ────────────────────────────────────────────────────
+
+# GET user:profile:snapshot:<user_id>
+# DEL user:profile:snapshot:<user_id>
+# SCARD user:blocks:outgoing:<user_id>
+# SCARD user:blocks:incoming:<user_id>
+
+# ── DO NOT RUN IN PRODUCTION ──────────────────────────────────────────────────
+
+# FLUSHDB
+# FLUSHALL
+# EVAL "return redis.call('del', unpack(redis.call('keys', 'match:*')))" 0
+# EVAL "return redis.call('del', unpack(redis.call('keys', 'otc:*')))" 0
+# EVAL "return redis.call('del', unpack(redis.call('keys', 'room:*')))" 0

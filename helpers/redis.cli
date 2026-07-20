@@ -1,0 +1,126 @@
+# =============================================================================
+# helpers/redis.cli — Redis scrapbook (docker-compose.dev.yml → host :26379)
+# Paste into: redis-cli -p 26379   OR   docker exec -it greetup_redis redis-cli
+# Placeholders: <user_id> | <room_id> | <device_hash> | <conversation_id>
+# =============================================================================
+
+# Connect
+# redis-cli -p 26379
+# docker exec -it greetup_redis redis-cli
+
+# Ping / info
+# PING
+# INFO keyspace
+# DBSIZE
+
+# ── Presence ──────────────────────────────────────────────────────────────────
+
+# SMEMBERS all_online_users
+# KEYS online_users:*
+# GET user:last_seen:<user_id>
+# SREM all_online_users <user_id>
+# DEL online_users:<user_id>
+
+# Clear all presence (local only)
+# DEL all_online_users
+# EVAL "return redis.call('del', unpack(redis.call('keys', 'online_users:*')))" 0
+# EVAL "return redis.call('del', unpack(redis.call('keys', 'user:last_seen:*')))" 0
+
+# ── Open to connect ───────────────────────────────────────────────────────────
+
+# SMEMBERS otc:online
+# HGETALL otc:user:<user_id>
+# SMEMBERS otc:pending:<user_id>
+# GET otc:recent-no-match:<user_id>
+
+# Remove one user from OTC index
+# SREM otc:online <user_id>
+# DEL otc:user:<user_id>
+# DEL otc:pending:<user_id>
+# DEL otc:recent-no-match:<user_id>
+
+# Wipe OTC indexes (local only)
+# DEL otc:online
+# EVAL "return redis.call('del', unpack(redis.call('keys', 'otc:*')))" 0
+
+# ── Matching pool ─────────────────────────────────────────────────────────────
+
+# KEYS match:user:*
+# HGETALL match:user:<user_id>
+# SMEMBERS match:idx:online
+# ZRANGE match:idx:age 0 -1 WITHSCORES
+# GEOPOS match:geo:location <user_id>
+
+# SMEMBERS mm:user:connection-peers:<user_id>
+
+# Remove one user from match pool
+# DEL match:user:<user_id>
+# SREM match:idx:online <user_id>
+
+# Wipe match indexes (local only — careful)
+# EVAL "return redis.call('del', unpack(redis.call('keys', 'match:*')))" 0
+# EVAL "return redis.call('del', unpack(redis.call('keys', 'mm:user:*')))" 0
+
+# ── Rooms / RTC session ───────────────────────────────────────────────────────
+
+# HGETALL room:<room_id>
+# TTL room:<room_id>
+# GET user:active_rtc_room:<user_id>
+# KEYS user:active_rtc_room:*
+# KEYS room:*
+
+# Clear one room redis + active pointers
+# DEL room:<room_id>
+# DEL user:active_rtc_room:<user_id>
+
+# Wipe all session rooms (local only)
+# EVAL "return redis.call('del', unpack(redis.call('keys', 'room:*')))" 0
+# EVAL "return redis.call('del', unpack(redis.call('keys', 'user:active_rtc_room:*')))" 0
+
+# ── Connection calls ──────────────────────────────────────────────────────────
+
+# KEYS connection:call:*
+# GET connection:call:invite:<request_id>
+# GET connection:call:pending:<user_id>
+# GET connection:call:room:<room_id>
+# GET connection:call:active:<room_id>
+
+# EVAL "return redis.call('del', unpack(redis.call('keys', 'connection:call:*')))" 0
+
+# ── Chat ──────────────────────────────────────────────────────────────────────
+
+# HGETALL chat:unread:<user_id>
+# SMEMBERS chat:online
+# GET chat:socket-count:<user_id>
+# GET chat:rate:<user_id>
+# KEYS chat:typing:*
+
+# Clear unread for one user
+# DEL chat:unread:<user_id>
+
+# ── Guest trial / OTP / rate limits ───────────────────────────────────────────
+
+# GET guest:device:<device_hash>:consumed
+# GET guest:<user_id>:match_search_count
+# KEYS guest:ip:*
+# KEYS guest:device:*
+
+# Reset device trial block
+# DEL guest:device:<device_hash>:consumed
+# DEL guest:<user_id>:match_search_count
+
+# KEYS otp:phone:*
+# DEL otp:phone:<e164>
+# KEYS rl:user:*
+
+# ── Profile / blocks cache ────────────────────────────────────────────────────
+
+# GET user:profile:snapshot:<user_id>
+# SMEMBERS user:blocks:outgoing:<user_id>
+# SMEMBERS user:blocks:incoming:<user_id>
+# DEL user:profile:snapshot:<user_id>
+
+# ── Nuclear local reset (FLUSHs entire Redis DB — never on shared/prod) ────────
+
+# FLUSHDB
+# # FLUSHALL

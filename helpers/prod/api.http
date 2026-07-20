@@ -1,0 +1,85 @@
+# =============================================================================
+# helpers/prod/api.http — production / staging HTTP checks
+# Domains (prod):  https://greetup.co | https://api.greetup.co | https://rtc.greetup.co
+# Domains (staging, if in use): staging / api-staging / rtc-staging .greetup.co
+# =============================================================================
+
+@prod_web = https://greetup.co
+@prod_api = https://api.greetup.co
+@prod_rtc = https://rtc.greetup.co
+
+@staging_web = https://staging.greetup.co
+@staging_api = https://api-staging.greetup.co
+@staging_rtc = https://rtc-staging.greetup.co
+
+# @cookie = better-auth.session_token=PASTE_ME
+# @internalKey = PASTE_INTERNAL_API_KEY
+
+### ── Public health / reachability ────────────────────────────────────────────
+
+### Prod web
+GET {{prod_web}}/
+Accept: text/html
+
+### Prod API root
+GET {{prod_api}}/
+
+### Prod RTC health (Caddy → rtc-service)
+GET {{prod_rtc}}/health
+
+### Staging web
+GET {{staging_web}}/
+
+### Staging API
+GET {{staging_api}}/
+
+### Staging RTC
+GET {{staging_rtc}}/health
+
+### WWW → apex redirect (expect 301 to https://greetup.co/)
+GET https://www.greetup.co/
+Accept: text/html
+
+### HTTP → HTTPS on www (follow manually / use curl -sI)
+GET http://www.greetup.co/
+
+### ── Auth / session (needs cookie from a real browser login) ─────────────────
+
+### Get session
+GET {{prod_api}}/api/auth/get-session
+Cookie: {{cookie}}
+
+### Profile me
+GET {{prod_api}}/api/profile/me
+Cookie: {{cookie}}
+
+### OTC me
+GET {{prod_api}}/api/open-to-connect/me
+Cookie: {{cookie}}
+
+### Notifications unread
+GET {{prod_api}}/api/notifications/unread-count
+Cookie: {{cookie}}
+
+### ── Internal (server-to-server; do not expose key) ───────────────────────────
+
+### Internal root probe (expects API key middleware — adjust path if needed)
+GET {{prod_api}}/internal/
+X-Internal-Api-Key: {{internalKey}}
+
+# ── curl (PowerShell / bash) ──────────────────────────────────────────────────
+
+# curl.exe -sI https://greetup.co/
+# curl.exe -sI https://www.greetup.co/
+# curl.exe -s  https://api.greetup.co/
+# curl.exe -s  https://rtc.greetup.co/health
+# curl.exe -sI https://staging.greetup.co/
+# curl.exe -s  https://api-staging.greetup.co/
+# curl.exe -s  https://rtc-staging.greetup.co/health
+#
+# curl.exe -s https://api.greetup.co/api/auth/get-session -H "Cookie: better-auth.session_token=PASTE"
+# curl.exe -s https://api.greetup.co/api/profile/me -H "Cookie: better-auth.session_token=PASTE"
+#
+# # TLS / CDN quick look
+# curl.exe -sI https://api.greetup.co/ | Select-String -Pattern "HTTP/|cf-ray|server|location"
+# curl.exe -sI https://rtc.greetup.co/health | Select-String -Pattern "HTTP/|server"
