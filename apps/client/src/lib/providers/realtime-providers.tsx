@@ -69,13 +69,11 @@ function RealtimeAppShell({ children }: { children: ReactNode }) {
     </>
   );
 
-  if (!isMember) {
-    return core;
-  }
-
+  // Always provide TourGuide — guest-status can lag after login/logout, and
+  // /home mounts WelcomeTourLauncher before isMember flips true.
   return (
     <TourGuideProvider>
-      <AppSearchPaletteRoot>{core}</AppSearchPaletteRoot>
+      {isMember ? <AppSearchPaletteRoot>{core}</AppSearchPaletteRoot> : core}
     </TourGuideProvider>
   );
 }
