@@ -10,6 +10,7 @@ import { ApiError, getApiErrorMessage } from "@/lib/api";
 import { GUEST_TRIAL_NAME, GUEST_TRIAL_NAV } from "@/lib/copy/user-messages";
 
 import type { TryBackTarget } from "../../types/guest-try.types";
+import { TryAccountCta } from "../ui/try-account-cta";
 import { TryContinueButton } from "../ui/try-continue-button";
 import { TryStepFrame } from "../layout/try-step-frame";
 import { useSaveTryName } from "../../hooks/use-save-try-name";
@@ -77,22 +78,25 @@ export function NameStep({ initialDisplayName, back, onForward }: NameStepProps)
       : undefined;
 
   const footer = (
-    <TryContinueButton
-      type="submit"
-      form="guest-name-form"
-      fullWidth
-      disabled={isPending}
-      aria-busy={isPending}
-    >
-      {isPending ? (
-        <>
-          <Loader2 className="size-4 shrink-0 animate-spin" aria-hidden />
-          {GUEST_TRIAL_NAME.saving}
-        </>
-      ) : (
-        GUEST_TRIAL_NAV.continue
-      )}
-    </TryContinueButton>
+    <div>
+      <TryContinueButton
+        type="submit"
+        form="guest-name-form"
+        fullWidth
+        disabled={isPending}
+        aria-busy={isPending}
+      >
+        {isPending ? (
+          <>
+            <Loader2 className="size-4 shrink-0 animate-spin" aria-hidden />
+            {GUEST_TRIAL_NAME.saving}
+          </>
+        ) : (
+          GUEST_TRIAL_NAV.continue
+        )}
+      </TryContinueButton>
+      <TryAccountCta />
+    </div>
   );
 
   return (

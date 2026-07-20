@@ -1,5 +1,7 @@
 import { authClient } from "@/lib/auth-client";
 
+import { clearGuestTryQueries } from "./clear-guest-try-queries";
+
 type RestartGuestSessionArgs = {
   createGuestSession: (
     variables: undefined,
@@ -15,6 +17,7 @@ export async function restartGuestSession({
   resetGuestSession,
 }: RestartGuestSessionArgs): Promise<void> {
   await authClient.signOut();
+  clearGuestTryQueries();
   resetGuestSession();
   createGuestSession(undefined, {
     onSuccess: () => {

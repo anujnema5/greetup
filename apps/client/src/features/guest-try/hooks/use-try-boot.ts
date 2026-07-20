@@ -42,6 +42,7 @@ export function useTryBoot(): TryBootPhase {
     data: status,
     isLoading: statusLoading,
     isFetching: statusFetching,
+    isFetchedAfterMount,
     error: statusError,
     refetch: refetchStatus,
   } = useGuestTryStatus({ enabled: authSettled && guestSessionReady });
@@ -105,7 +106,9 @@ export function useTryBoot(): TryBootPhase {
   ]);
 
   useEffect(() => {
-    if (!status) {
+    // Only trust status fetched for this mount/session — cached member
+    // `isGuest: false` after logout must not bounce anonymous /try → /home.
+    if (!guestSessionReady || !isFetchedAfterMount || !status) {
       return;
     }
 
@@ -118,7 +121,7 @@ export function useTryBoot(): TryBootPhase {
       markTryConsumedLocally();
       router.replace(TRY_SIGNUP_ROUTE);
     }
-  }, [status, router]);
+  }, [guestSessionReady, isFetchedAfterMount, status, router]);
 
   const bootLoading = useMemo(() => {
     if (recoveringSession) {
@@ -137,12 +140,18 @@ export function useTryBoot(): TryBootPhase {
       return createPending || needsGuestSession;
     }
 
+    // Wait for a fetch in this mount so a prior member cache cannot redirect.
+    if (!isFetchedAfterMount) {
+      return true;
+    }
+
     return !status && (statusLoading || statusFetching);
   }, [
     authSettled,
     createFailed,
     createPending,
     guestSessionReady,
+    isFetchedAfterMount,
     needsGuestSession,
     recoveringSession,
     status,
