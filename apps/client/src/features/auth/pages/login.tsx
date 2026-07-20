@@ -7,7 +7,7 @@ import { toast } from "sonner";
 import { PageLoading } from "@/components/page-loading";
 import SocialLoginButtons from "@/features/auth/components/social-login-buttons";
 import AuthPageLayout from "@/features/auth/components/auth-page-layout";
-// import { AuthGuestContinueButton } from "@/features/auth/components/auth-guest-continue-button";
+import { AuthGuestContinueButton } from "@/features/auth/components/auth-guest-continue-button";
 import {
   DEFAULT_AUTHED_PATH,
   getAuthCallbackUrl,
@@ -139,9 +139,7 @@ function LoginPageContent() {
         <AuthFormDivider label="Or continue with" />
         <PhoneLoginForm onOTPSent={() => {}} />
 
-        {/* Temporarily hidden — guest trial CTA
         <AuthGuestContinueButton />
-        */}
       </AuthPageLayout>
     </PhoneOtpProvider>
   );

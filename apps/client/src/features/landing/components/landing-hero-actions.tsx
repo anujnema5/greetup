@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { ChevronRight } from "lucide-react";
+import { ArrowRight, ChevronRight } from "lucide-react";
 
 import { Logo } from "@/components/logo";
 import { ThemeToggle } from "@/components/theme-toggle";
@@ -72,12 +72,12 @@ export function LandingHeroNav() {
 }
 
 export function LandingHeroPrimaryCta() {
-  const { kind } = useLandingEntryCta();
+  const { kind, heroPrimaryHref, heroPrimaryLabel } = useLandingEntryCta();
 
   if (kind === "loading") {
     return (
       <div className="flex flex-row flex-wrap gap-2 sm:gap-3 justify-center lg:justify-start">
-        {/* <CtaSkeleton className="h-8 w-32 sm:h-10 sm:w-36 lg:h-11" /> */}
+        <CtaSkeleton className="h-8 w-32 sm:h-10 sm:w-36 lg:h-11" />
         <CtaSkeleton className="h-8 w-28 sm:h-10 sm:w-32 lg:h-11" />
       </div>
     );
@@ -85,7 +85,6 @@ export function LandingHeroPrimaryCta() {
 
   return (
     <div className="flex flex-row flex-wrap gap-2 sm:gap-3 justify-center lg:justify-start">
-      {/* Temporarily hidden — "Try as a guest" / continue-try hero CTA
       <Button
         size="sm"
         className="rounded-full bg-primary text-primary-foreground hover:brightness-110 font-medium sm:font-semibold px-5 sm:px-6 has-[>svg]:px-5 sm:has-[>svg]:px-6 h-8 sm:h-10 lg:h-11 text-xs sm:text-sm w-auto shadow-[0_4px_18px_-6px_oklch(from_var(--primary)_l_c_h/0.45)] sm:shadow-[0_8px_28px_-8px_oklch(from_var(--primary)_l_c_h/0.55)]"
@@ -95,7 +94,6 @@ export function LandingHeroPrimaryCta() {
           {heroPrimaryLabel} <ArrowRight className="size-3 sm:size-4" />
         </Link>
       </Button>
-      */}
       <Button
         size="sm"
         variant="outline"
