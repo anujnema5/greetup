@@ -82,7 +82,7 @@ export default function AuthPageLayout({
               <div className="absolute top-0 right-0 h-72 w-72 rounded-full bg-primary/20 blur-3xl" aria-hidden />
               <div className="absolute bottom-0 left-0 h-96 w-96 rounded-full bg-primary/10 blur-3xl" aria-hidden />
 
-              <div className="relative z-10 flex h-full flex-col items-center justify-center space-y-8 px-12 text-center">
+              <div className="relative z-10 flex h-full flex-col items-center justify-center px-12 text-center">
                 <div className="space-y-4">
                   <div className="inline-flex h-20 w-20 items-center justify-center rounded-2xl bg-primary text-primary-foreground shadow-lg">
                     <span className="text-2xl font-black leading-none tracking-[-0.03em]" aria-hidden>
@@ -95,21 +95,6 @@ export default function AuthPageLayout({
                     Connect, talk, and share in real time with your people. Experience seamless
                     communication like never before.
                   </p>
-                </div>
-
-                <div className="grid grid-cols-3 gap-6 pt-8">
-                  <div className="space-y-2">
-                    <div className="text-lg font-bold text-primary">100K+</div>
-                    <div className="text-xs text-muted-foreground">Active Users</div>
-                  </div>
-                  <div className="space-y-2">
-                    <div className="text-lg font-bold text-primary">24/7</div>
-                    <div className="text-xs text-muted-foreground">Available</div>
-                  </div>
-                  <div className="space-y-2">
-                    <div className="text-lg font-bold text-primary">Secure</div>
-                    <div className="text-xs text-muted-foreground">Encrypted</div>
-                  </div>
                 </div>
               </div>
             </div>
