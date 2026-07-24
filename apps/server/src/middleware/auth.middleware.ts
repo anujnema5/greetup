@@ -1,4 +1,5 @@
 import { auth } from "@/core/auth/auth";
+import { hasBetterAuthSessionCookie } from "@/core/auth/session-cookie";
 import logger from "@/core/logging";
 import { resolveGuestAuthContext } from "@/modules/guest";
 import { userProfilesRepository } from "@/modules/profile/repositories/user-profiles.repository";
@@ -28,7 +29,25 @@ declare module "hono" {
     }
 }
 
+/**
+ * Full paths (as seen on `c.req.path`) that may run without a session.
+ * Keep this allowlist minimal — handlers must not expose PII without validating a cookie.
+ */
+export const AUTH_OPTIONAL_API_PATHS = new Set<string>([
+    "/api/guest/signup-context",
+    "/guest/signup-context",
+]);
+
+function isAuthOptionalPath(path: string): boolean {
+    return AUTH_OPTIONAL_API_PATHS.has(path);
+}
+
 export const authMiddleware = async (c: Context, next: Next) => {
+    if (isAuthOptionalPath(c.req.path)) {
+        await next();
+        return;
+    }
+
     try {
 
         const session = await auth.api.getSession({
@@ -36,13 +55,9 @@ export const authMiddleware = async (c: Context, next: Next) => {
         });
 
         if (!session) {
-            const cookie = c.req.header("cookie") ?? "";
-            const hasSessionCookie =
-                cookie.includes("better-auth.session_token") ||
-                cookie.includes("__Secure-better-auth.session_token");
             logger.warn("authMiddleware: no Better Auth session", {
                 path: c.req.path,
-                hasSessionCookie,
+                hasSessionCookie: hasBetterAuthSessionCookie(c.req.header("cookie")),
             });
             throw new UnauthorizedError();
         }

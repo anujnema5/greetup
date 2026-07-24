@@ -1,4 +1,5 @@
 import { auth } from "@/core/auth/auth";
+import { hasBetterAuthSessionCookie } from "@/core/auth/session-cookie";
 
 import { resolveGuestDisplayName } from "../../lib/resolve-guest-display-name";
 import { guestProfileRepository } from "../../repositories/guest-profile.repository";
@@ -6,11 +7,16 @@ import type { GuestSignupMergeContext } from "../../types/guest-signup.types";
 
 /**
  * Returns merge context when the request has a Better Auth session for an unconverted guest.
+ * Without a session cookie this is a no-op (safe for the public signup-context probe).
  */
 export async function resolveGuestSignupMergeContext(
   headers: Headers | undefined | null,
 ): Promise<GuestSignupMergeContext | null> {
   if (!headers) {
+    return null;
+  }
+
+  if (!hasBetterAuthSessionCookie(headers.get("cookie"))) {
     return null;
   }
 
