@@ -9,7 +9,11 @@ import type { GuestSignupContextApiResponse } from "../types/guest-signup.types"
 
 /**
  * GET /guest/signup-context?from=guest
- * Lets the register page know a guest session can be merged on signup.
+ * Auth-optional (see AUTH_OPTIONAL_API_PATHS). Lets the register page know a guest
+ * session can be merged on signup.
+ *
+ * Security: response is booleans only — never returns userId, displayName, or hashes.
+ * Merge eligibility still requires a valid guest session cookie (validated server-side).
  */
 export const handleGetGuestSignupContext = async (c: Context) => {
   try {
@@ -22,10 +26,11 @@ export const handleGetGuestSignupContext = async (c: Context) => {
       });
     }
 
+    // Explicit boolean projection — do not spread mergeContext into the response.
     const data: GuestSignupContextApiResponse = {
       hasGuestSession: mergeContext != null,
       mergeAvailable: mergeContext != null,
-      trialConsumed: mergeContext?.trialConsumed ?? false,
+      trialConsumed: mergeContext != null ? mergeContext.trialConsumed : false,
       fromGuestIntent,
     };
 

@@ -7,6 +7,7 @@ import { handleGetGuestStatus } from "./controllers/guest-status.controller";
 
 export const guestRoute = new Hono();
 
+// Public via AUTH_OPTIONAL_API_PATHS — session optional; response is booleans only.
 guestRoute.get("/signup-context", handleGetGuestSignupContext);
 guestRoute.get("/status", handleGetGuestStatus);
 guestRoute.patch("/profile", handlePatchGuestProfile);
