@@ -180,6 +180,99 @@ export const COMMUNITY_GUIDELINES_CONTENT = {
   ] satisfies MarketingSection[],
 };
 
+export type StoryBlock =
+  | { type: "heading"; text: string }
+  | { type: "paragraph"; text: string }
+  | { type: "link"; label: string; href: string };
+
+export const STORY_CONTENT = {
+  eyebrow: "Our story",
+  title: "Greetup - Meet people, not profiles",
+  blocks: [
+    {
+      type: "paragraph",
+      text: "A while ago, I was learning and playing around with real-time communication tech, and I was wondering what more I could build with this tech.",
+    },
+    {
+      type: "paragraph",
+      text: "The primary use case of WebRTC is real-time communication, and in social media, it's mostly used for apps like Omegle. But Omegle always felt spammy (you know what I'm talking about). After I researched why Omegle got banned, I found out it was mainly because of safety issues, abuse, and moderation problems.",
+    },
+    {
+      type: "paragraph",
+      text: "That made me think: can meeting strangers actually be safe, moderated, and if you got to connect with the right people you want in real time, would it be amazing?",
+    },
+    { type: "heading", text: "Social networks stopped being social" },
+    {
+      type: "paragraph",
+      text: "We have apps for following people, watching reels, and scrolling forever.",
+    },
+    {
+      type: "paragraph",
+      text: "But actually meeting someone new and having a real conversation has somehow become really difficult which is kind of the whole point of a social network. Social media was supposed to help us socialize, and instead it got reduced to connections, follows, and feeds.",
+    },
+    {
+      type: "paragraph",
+      text: "Random chat apps already exist. But most are full of spam, people looking for just one thing (we know that), and conversations that die within a minute.",
+    },
+    {
+      type: "paragraph",
+      text: "I wanted something that felt more real getting connected with people, but with a good audience around.",
+    },
+    {
+      type: "paragraph",
+      text: "What if you were matched with someone who's looking for the same thing as you, at the same time? That's the idea behind GreetUp.",
+    },
+    {
+      type: "paragraph",
+      text: "I also have an interest in meeting different kinds of people and getting to know about their experiences, so GreetUp is built around that: connect with a good audience, NSFW protection, choose whom you want to meet, and do engaging activities together playing Chess, playing UNO, talking about your job, discussing a startup idea, or asking for advice.",
+    },
+    {
+      type: "paragraph",
+      text: "I think it's a good idea because a person like me would definitely use this app.",
+    },
+    { type: "heading", text: "Solving the icebreaker problem" },
+    {
+      type: "paragraph",
+      text: "Then there's always the icebreaker problem, where people don't know how to get comfortable with each other. We solve this with AI conversation cues about the other person, and we only show the information they've chosen to share, with their consent.",
+    },
+    {
+      type: "paragraph",
+      text: "When you connect, we show small conversation cues as a toast\u200a-\u200ashared interests, profession, hobbies, or what they're looking for right now. Suppose you're interested in playing Chess or talking about philosophy we show that, and you immediately have something to talk about. That way, there's no awkward silence while breaking the ice.",
+    },
+    { type: "heading", text: "Activity-first, not gender-first" },
+    {
+      type: "paragraph",
+      text: "Also, you know how in most live-streaming apps people mostly come to meet the opposite gender. We can't really change human intentions.",
+    },
+    {
+      type: "paragraph",
+      text: "So instead of fighting that behavior, why not redirect it?",
+    },
+    {
+      type: "paragraph",
+      text: "That's why the app is activity-first. We encourage people to do something together playing Chess, playing UNO, participating in polls, or giving opinions on different topics (handled at the application level; some of these are coming soon). These activities make conversations engaging and valuable, so people connect because they're doing something together, not just because they're looking for the opposite gender.",
+    },
+    { type: "heading", text: "The cold-start reality" },
+    {
+      type: "paragraph",
+      text: "One honest caveat: the app is early, so right now there may be no one online. Everything works on a real-time basis, and if nobody is online you'll simply find no one that's the cold-start problem.",
+    },
+    {
+      type: "paragraph",
+      text: "If there's no one online, there's no one to connect with. But the matching engine is designed so that the more people there are, the better its filtering becomes a larger pool means it can find the best possible match based on your interests, activities, and preferences.",
+    },
+    {
+      type: "paragraph",
+      text: "If anyone is interested in building this app together, let me know. I'm open to connect. And if you find any bugs, errors, or technical issues, please reach out it'll be a huge favor.",
+    },
+    {
+      type: "paragraph",
+      text: "Also, if any investor or company is interested in building this app together, let me know. I'm always open to connecting, collaborating, and contributing however I can.",
+    },
+    { type: "link", label: "Try: https://greetup.co/", href: "https://greetup.co/" },
+  ] satisfies StoryBlock[],
+};
+
 export const CONTACT_CONTENT = {
   eyebrow: "Contact",
   title: "Get in touch",
