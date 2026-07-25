@@ -69,13 +69,33 @@
 # doctl databases list
 # doctl databases connection greetup-db --format Host,Port,User,SSL,Database
 
-# ── SSH to rtc droplet ────────────────────────────────────────────────────────
+# ── SSH to rtc droplet (open VM from laptop) ──────────────────────────────────
 
-# $ip = '<DROPLET_PUBLIC_IP>'
-# ssh -i $env:USERPROFILE\.ssh\greetup_do root@$ip
-# # scp deploy files:
-# # scp -i $env:USERPROFILE\.ssh\greetup_do deploy/do/vm/docker-compose.yml root@${ip}:~/greetup/docker-compose.yml
-# # scp -i $env:USERPROFILE\.ssh\greetup_do deploy/do/vm/Caddyfile root@${ip}:~/greetup/Caddyfile
+# Interactive shell (preferred helper):
+# powershell -ExecutionPolicy Bypass -File helpers/prod/ssh.ps1
+
+# Or one-liner (IP from GO-LIVE; override if droplet was rebuilt):
+# ssh -i $env:USERPROFILE\.ssh\greetup_do -o IdentitiesOnly=yes root@168.144.116.195
+
+# Resolve current public IP via doctl, then SSH:
+# $ip = (doctl compute droplet get greetup-rtc --format PublicIPv4 --no-header).Trim()
+# ssh -i $env:USERPROFILE\.ssh\greetup_do -o IdentitiesOnly=yes root@$ip
+
+# Redis Insight tunnel (keeps foreground open; connect to 127.0.0.1:16379):
+# powershell -ExecutionPolicy Bypass -File helpers/prod/ssh.ps1 -TunnelRedis
+# # or:
+# # ssh -i $env:USERPROFILE\.ssh\greetup_do -N -L 16379:127.0.0.1:6379 root@168.144.116.195
+
+# One-shot remote command:
+# powershell -ExecutionPolicy Bypass -File helpers/prod/ssh.ps1 -Remote "cd ~/greetup && docker compose --env-file .env ps"
+
+# Print ~/.ssh/config Host blocks (then: ssh greetup-rtc):
+# powershell -ExecutionPolicy Bypass -File helpers/prod/ssh.ps1 -PrintConfig
+
+# scp deploy files:
+# $ip = '168.144.116.195'
+# scp -i $env:USERPROFILE\.ssh\greetup_do deploy/do/vm/docker-compose.yml "root@${ip}:~/greetup/docker-compose.yml"
+# scp -i $env:USERPROFILE\.ssh\greetup_do deploy/do/vm/Caddyfile "root@${ip}:~/greetup/Caddyfile"
 
 # ── Managed Postgres migrate from laptop (trusted IP required) ────────────────
 # # Migrations normally run on server container start — only use this for emergencies.

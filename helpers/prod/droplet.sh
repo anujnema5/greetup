@@ -3,8 +3,9 @@
 # helpers/prod/droplet.sh — greetup-rtc droplet scrapbook (run ON the VM)
 # Droplet: greetup-rtc | Compose dir: ~/greetup | Services: redis, rtc, caddy, watchtower
 #
-# Laptop SSH (from deploy/do runbook):
-#   ssh -i ~/.ssh/greetup_do root@<DROPLET_PUBLIC_IP>
+# Open this VM from your laptop first:
+#   powershell -ExecutionPolicy Bypass -File helpers/prod/ssh.ps1
+#   # or: ssh -i ~/.ssh/greetup_do root@168.144.116.195
 #
 # SAFETY: prefer logs/ps/pull. Avoid compose down -v. Never expose Redis publicly.
 # =============================================================================

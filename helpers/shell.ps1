@@ -5,7 +5,8 @@
 #        postgres 25432 | redis 26379
 #
 # Production scrapbooks: helpers/prod/ (postgres.sql, redis.cli, api.http,
-# droplet.sh, doctl.ps1) — see deploy/do/README.md
+# droplet.sh, doctl.ps1, ssh.ps1) — see deploy/do/README.md
+# Open rtc droplet:  powershell -ExecutionPolicy Bypass -File helpers/prod/ssh.ps1
 # =============================================================================
 
 # ── Docker (docker-compose.dev.yml) ───────────────────────────────────────────
