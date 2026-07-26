@@ -34,7 +34,6 @@ import {
   Volume2,
   Wind,
   Sparkles,
-  Target,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { EARLY_RELEASE } from "@/lib/copy/user-messages";
@@ -85,49 +84,6 @@ const cardIn: Variants = {
 };
 
 /* ─── data ──────────────────────────────────────────────────────────────────── */
-const FEATURES = [
-  {
-    icon: Target,
-    label: "Activity match",
-    desc: "Pick chess, vent, yap, study together, language practice, or another activity — then match with someone who wants to do the same.",
-    wash: "bg-gradient-to-br from-secondary/12 via-secondary/[0.04] to-transparent",
-    orb: "bg-secondary/14",
-    iconBox: "bg-secondary/16 border-secondary/28",
-    iconColor: "text-secondary-foreground",
-    hoverBorder: "hover:border-secondary/40",
-  },
-  {
-    icon: Users,
-    label: "Spaces",
-    desc: "Spaces are group rooms where people meet around shared interests and talk live.",
-    wash: "bg-gradient-to-br from-tertiary/70 via-tertiary/20 to-transparent",
-    orb: "bg-tertiary/50",
-    iconBox: "bg-tertiary/80 border-secondary/22",
-    iconColor: "text-tertiary-foreground",
-    hoverBorder: "hover:border-secondary/35",
-  },
-  {
-    icon: ShieldCheck,
-    label: "Safe & Secure",
-    desc: "AI checks video for NSFW content, we moderate actively, and the community is full of people who actually want to connect.",
-    wash: "bg-gradient-to-br from-success-muted/90 via-success-muted/25 to-transparent",
-    orb: "bg-success-muted/70",
-    iconBox: "bg-success-muted border-success-border/70",
-    iconColor: "text-success-foreground",
-    hoverBorder: "hover:border-success-border",
-  },
-  {
-    icon: MessageCircle,
-    label: "Instant Connect",
-    desc: "Chat, voice, and video instantly — plus in-call chess. Invite friends into private spaces or keep it 1:1.",
-    wash: "bg-gradient-to-br from-primary/14 via-primary/[0.05] to-transparent",
-    orb: "bg-primary/12",
-    iconBox: "bg-primary/18 border-primary/30",
-    iconColor: "text-primary-foreground",
-    hoverBorder: "hover:border-primary/40",
-  },
-] as const;
-
 const MATCHING_SIGNALS = [
   {
     icon: Sparkles,
@@ -468,61 +424,6 @@ function LandingPageInner() {
           />
         </motion.div>
       </RevealSection>
-
-      {/* ══════════════════ FEATURES ══════════════════ */}
-      <section className="relative py-12 sm:py-20 lg:py-32 px-5 sm:px-6" id="features">
-        <RevealSection className="mx-auto max-w-7xl">
-          <motion.div variants={fadeUp} className="text-center mb-8 sm:mb-12 lg:mb-16">
-            <Badge variant="outline" className="landing-section-badge rounded-full mb-3 sm:mb-5 tracking-widest uppercase text-[10px]">
-              Everything you need
-            </Badge>
-            <h2 className="text-[1.75rem] sm:text-4xl lg:text-5xl font-black tracking-tight leading-tight">Built for real connection</h2>
-            <p className="mt-3 sm:mt-4 text-sm sm:text-base landing-muted max-w-lg mx-auto">Every feature exists for one reason: to help you meet people who feel like people, not profiles.</p>
-          </motion.div>
-
-          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5">
-            {FEATURES.map(({ icon: Icon, label, desc, wash, orb, iconBox, iconColor, hoverBorder }) => (
-              <motion.div
-                key={label}
-                variants={cardIn}
-                whileHover={lite ? undefined : { y: -2, transition: { duration: 0.2 } }}
-              >
-                <Card
-                  className={cn(
-                    "group relative h-full overflow-hidden border-border bg-card p-0 gap-0 shadow-sm transition-[border-color,box-shadow] duration-200 hover:shadow-md",
-                    hoverBorder,
-                  )}
-                >
-                  <div className={cn("pointer-events-none absolute inset-0", wash)} aria-hidden />
-                  <div
-                    className={cn(
-                      "pointer-events-none absolute -right-6 -top-6 size-28 rounded-full blur-2xl sm:size-32",
-                      orb,
-                    )}
-                    aria-hidden
-                  />
-                  <CardContent className="relative flex h-full flex-col gap-4 p-5 sm:p-6">
-                    <div className="flex items-center gap-3">
-                      <div
-                        className={cn(
-                          "flex size-10 shrink-0 items-center justify-center rounded-lg border transition-transform duration-200 group-hover:scale-[1.03]",
-                          iconBox,
-                        )}
-                      >
-                        <Icon className={cn("size-[1.125rem]", iconColor)} strokeWidth={1.75} />
-                      </div>
-                      <p className="font-semibold text-[0.9375rem] leading-snug landing-card-title sm:text-base">
-                        {label}
-                      </p>
-                    </div>
-                    <p className="text-[13px] leading-relaxed landing-muted sm:text-sm">{desc}</p>
-                  </CardContent>
-                </Card>
-              </motion.div>
-            ))}
-          </div>
-        </RevealSection>
-      </section>
 
       {/* ══════════════════ MATCHING CONTROL ══════════════════ */}
       <section className="relative py-12 sm:py-20 lg:py-24 px-5 sm:px-6 bg-background">
