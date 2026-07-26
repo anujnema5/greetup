@@ -8,7 +8,7 @@
   ],
   "scripts": {
     "dev": "bun run --filter '@greetup/server' --filter '@greetup/client' --filter '@greetup/matching-service' --filter '@greetup/rtc-service' --elide-lines=0 --if-present dev",
-    "kill:ports": "powershell -ExecutionPolicy Bypass -File scripts/kill-dev-ports.ps1",
+    "kill:ports": "bun scripts/kill-dev-ports.js",
     "dev:fresh": "bun run kill:ports && bun run dev",
     "dev:all": "bun run --filter '@greetup/*' --elide-lines=0 --if-present dev",
     "build": "bun run --filter '@greetup/*' --if-present build",
