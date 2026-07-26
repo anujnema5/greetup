@@ -23,7 +23,7 @@
 
 # bun run kill:ports
 # # or:
-# # powershell -ExecutionPolicy Bypass -File scripts/kill-dev-ports.ps1
+# # bun scripts/kill-dev-ports.js
 
 # ── Postgres (PostGIS container) ──────────────────────────────────────────────
 
