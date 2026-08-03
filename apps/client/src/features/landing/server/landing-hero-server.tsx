@@ -3,8 +3,10 @@ import {
   Shield,
   ShieldCheck,
   Sparkles,
+  Users,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { EARLY_RELEASE } from "@/lib/copy/user-messages";
 import { LandingHeroVisual } from "../components/landing-hero-visual";
 import { LandingHeroNav, LandingHeroPrimaryCta } from "../components/landing-hero-actions";
 import { LandingActivityChips } from "../components/landing-activity-chips";
@@ -84,6 +86,12 @@ export function LandingHeroServer() {
             </div>
 
             <LandingHeroPrimaryCta />
+
+            <div className="mt-5 sm:mt-9 pt-4 sm:pt-7 border-t border-border">
+              <p className="text-xs landing-muted max-w-md mx-auto lg:mx-0 leading-relaxed">
+                {EARLY_RELEASE.noticeShort}
+              </p>
+            </div>
           </div>
 
           <div className="flex justify-center lg:justify-end lg:py-4 order-2 w-full">

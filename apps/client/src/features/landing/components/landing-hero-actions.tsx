@@ -78,7 +78,7 @@ export function LandingHeroPrimaryCta() {
     return (
       <div className="flex flex-row flex-wrap gap-2 sm:gap-3 justify-center lg:justify-start">
         <CtaSkeleton className="h-8 w-32 sm:h-10 sm:w-36 lg:h-11" />
-        {/* <CtaSkeleton className="h-8 w-28 sm:h-10 sm:w-32 lg:h-11" /> */}
+        <CtaSkeleton className="h-8 w-28 sm:h-10 sm:w-32 lg:h-11" />
       </div>
     );
   }
@@ -94,14 +94,14 @@ export function LandingHeroPrimaryCta() {
           {heroPrimaryLabel} <ArrowRight className="size-3 sm:size-4" />
         </Link>
       </Button>
-      {/* <Button
+      <Button
         size="sm"
         variant="outline"
         className="rounded-full border-border bg-muted/50 px-4 sm:px-6 h-8 sm:h-10 lg:h-11 text-xs sm:text-sm font-medium sm:font-semibold w-auto"
         asChild
       >
         <Link href="#how-it-works">How it works</Link>
-      </Button> */}
+      </Button>
     </div>
   );
 }
