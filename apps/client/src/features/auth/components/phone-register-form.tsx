@@ -128,7 +128,7 @@ export default function PhoneRegisterForm({ onOTPSent, defaultName }: PhoneRegis
 
         {OTP_DISABLED && (
           <p className="text-center text-xs text-muted-foreground">
-            OTP is on a budget break 😅 Until I validate the idea, please use Google Sign-In.
+            OTP credits ran out and I’m broke 😅 Use Google Sign-In.
           </p>
         )}
       </form>
