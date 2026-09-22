@@ -16,6 +16,8 @@ node_modules/
 .env.production
 env/.env.development
 env/.env.production
+# Local disk object storage (dev fallback when DigitalOcean Spaces is unavailable)
+.local-object-storage/
 # Firebase Admin key when using FIREBASE_SERVICE_ACCOUNT_PATH (never commit)
 env/firebase-service-account.json
 

@@ -20,6 +20,10 @@ import {
   PROFILE_IMAGE_PRESIGN_TTL_SECONDS,
 } from "./constants";
 import {
+  createLocalPresignedUpload,
+  isLocalObjectStorageEnabled,
+} from "../local";
+import {
   buildProfileImageObjectKey,
   buildSpacesPublicObjectUrl,
   isSpacesStorageConfigured,
@@ -50,18 +54,12 @@ type PresignProfileImageParams = {
 };
 
 /**
- * Issue a presigned PUT so the browser uploads directly to Spaces.
+ * Issue a presigned PUT so the browser uploads the image (Spaces, or local disk in dev).
  * `ACL` on the command helps; {@link ensureProfileImageUrlsArePublic} reinforces after save.
  */
 export async function presignProfileImageUpload(
   params: PresignProfileImageParams
 ): Promise<ProfileImagePresignResult> {
-  if (!isSpacesStorageConfigured()) {
-    throw new ServiceUnavailableError(
-      "Object storage is not configured (set DO_SPACES_* environment variables)"
-    );
-  }
-
   if (
     !Number.isInteger(params.contentLength) ||
     params.contentLength <= 0 ||
@@ -77,6 +75,21 @@ export async function presignProfileImageUpload(
 
   const fileName = `${randomUUID()}.${ext}`;
   const key = buildProfileImageObjectKey(params.userId, fileName);
+
+  if (isLocalObjectStorageEnabled()) {
+    return createLocalPresignedUpload({
+      key,
+      contentType: params.contentType,
+      contentLength: params.contentLength,
+    });
+  }
+
+  if (!isSpacesStorageConfigured()) {
+    throw new ServiceUnavailableError(
+      "Object storage is not configured (set DO_SPACES_* environment variables)"
+    );
+  }
+
   const bucket = appConfig.doSpacesBucket!;
 
   // Do not set Cache-Control (or other headers) here unless the browser sends the same values on PUT.

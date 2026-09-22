@@ -5,6 +5,7 @@ import { secureHeaders } from "hono/secure-headers";
 import { auth } from "@/core/auth/auth";
 import { handleAuthWithOAuthDiagnostics } from "@/core/auth/oauth-diagnostics";
 import { setupRedis } from "@/core/redis";
+import { mountLocalObjectStorageRoutes } from "@/core/storage";
 import { errorHandler, internalMiddleware } from "@/middleware";
 import { apiRouter, authPublicRouter, internalRoomsRoute } from "@/modules";
 import { REDIS_URL } from "@/shared/constants";
@@ -19,6 +20,12 @@ const createApp = async () => {
   await setupRedis(REDIS_URL);
 
   const app = new Hono();
+
+  // Must wrap `secureHeaders` so CORP can be `cross-origin` for `<img>` on the Next origin.
+  app.use("/local-object-storage/*", async (c, next) => {
+    await next();
+    c.header("Cross-Origin-Resource-Policy", "cross-origin");
+  });
 
   app.use(
     "*",
@@ -44,6 +51,8 @@ const createApp = async () => {
   );
 
   app.use(cors(corsOptions));
+
+  mountLocalObjectStorageRoutes(app);
 
   app.route(HTTP_PATHS.auth, authPublicRouter);
   app.all(HTTP_PATHS.authGlob, (c) =>

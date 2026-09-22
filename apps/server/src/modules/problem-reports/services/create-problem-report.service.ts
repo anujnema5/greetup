@@ -1,6 +1,7 @@
 import {
   assertUploadedImageObjectAllowed,
   isValidReportScreenshotUrl,
+  parseLocalObjectKeyFromPublicUrl,
   parseSpacesObjectKeyFromPublicUrl,
 } from "@/core/storage";
 import type { ProblemReport } from "@/core/database/schema";
@@ -28,7 +29,9 @@ export async function createProblemReportService(params: {
     if (!isValidReportScreenshotUrl(body.screenshotUrl, userId)) {
       throw new ValidationError("Invalid screenshot reference");
     }
-    const key = parseSpacesObjectKeyFromPublicUrl(body.screenshotUrl);
+    const key =
+      parseLocalObjectKeyFromPublicUrl(body.screenshotUrl) ??
+      parseSpacesObjectKeyFromPublicUrl(body.screenshotUrl);
     if (!key) {
       throw new ValidationError("Invalid screenshot reference");
     }

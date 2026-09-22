@@ -12,6 +12,11 @@ import appConfig from "@/shared/config/config";
 import { ServiceUnavailableError, ValidationError } from "@/shared/errors";
 
 import {
+  createLocalPresignedUpload,
+  isLocalObjectStorageEnabled,
+  parseLocalObjectKeyFromPublicUrl,
+} from "../local";
+import {
   fileExtensionForProfileImageContentType,
   MAX_UPLOAD_BYTES,
   PROFILE_IMAGE_PRESIGN_TTL_SECONDS,
@@ -40,18 +45,12 @@ function buildReportAttachmentKey(userId: string, filename: string): string {
   return `${REPORT_ATTACHMENTS_PREFIX}/${userId}/${filename.replace(/^\/+/, "")}`;
 }
 
-/** Issue a presigned PUT so the browser uploads a screenshot directly to Spaces. */
+/** Issue a presigned PUT so the browser uploads a screenshot (Spaces, or local disk in dev). */
 export async function presignReportScreenshotUpload(params: {
   userId: string;
   contentType: string;
   contentLength: number;
 }): Promise<ReportScreenshotPresignResult> {
-  if (!isSpacesStorageConfigured()) {
-    throw new ServiceUnavailableError(
-      "Object storage is not configured (set DO_SPACES_* environment variables)",
-    );
-  }
-
   if (
     !Number.isInteger(params.contentLength) ||
     params.contentLength <= 0 ||
@@ -66,6 +65,21 @@ export async function presignReportScreenshotUpload(params: {
   }
 
   const key = buildReportAttachmentKey(params.userId, `${randomUUID()}.${ext}`);
+
+  if (isLocalObjectStorageEnabled()) {
+    return createLocalPresignedUpload({
+      key,
+      contentType: params.contentType,
+      contentLength: params.contentLength,
+    });
+  }
+
+  if (!isSpacesStorageConfigured()) {
+    throw new ServiceUnavailableError(
+      "Object storage is not configured (set DO_SPACES_* environment variables)",
+    );
+  }
+
   const command = new PutObjectCommand({
     Bucket: appConfig.doSpacesBucket!,
     Key: key,
@@ -95,6 +109,8 @@ export async function presignReportScreenshotUpload(params: {
  * Guards against a client submitting an arbitrary URL as its screenshot.
  */
 export function isValidReportScreenshotUrl(publicUrl: string, userId: string): boolean {
-  const key = parseSpacesObjectKeyFromPublicUrl(publicUrl);
+  const key =
+    parseLocalObjectKeyFromPublicUrl(publicUrl) ??
+    parseSpacesObjectKeyFromPublicUrl(publicUrl);
   return Boolean(key && key.startsWith(`${REPORT_ATTACHMENTS_PREFIX}/${userId}/`));
 }
