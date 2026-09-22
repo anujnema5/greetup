@@ -466,6 +466,7 @@ function setSecurityHeaders(response: NextResponse): void {
     isDevelopment ? "ws://localhost:*" : null,
     isDevelopment ? "wss://localhost:*" : null,
     isDevelopment ? "http://localhost:*" : null,
+    isDevelopment ? "http://127.0.0.1:*" : null,
   ]
     .filter(Boolean)
     .join(" ");
@@ -475,7 +476,10 @@ function setSecurityHeaders(response: NextResponse): void {
     "data:",
     "blob:",
     "https:",
+    apiOrigin,
     cdnOrigin,
+    isDevelopment ? "http://localhost:*" : null,
+    isDevelopment ? "http://127.0.0.1:*" : null,
   ]
     .filter(Boolean)
     .join(" ");

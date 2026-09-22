@@ -127,6 +127,15 @@ const config = {
    * If unset, `https://{bucket}.{region}.digitaloceanspaces.com` is used.
    */
   doSpacesPublicBaseUrl: optionalUrlEnv("DO_SPACES_PUBLIC_BASE_URL"),
+  /**
+   * `local` writes profile photos to disk (dev workaround when Spaces is unpaid/down).
+   * `spaces` uses DigitalOcean Spaces. Unset: local outside production, Spaces in production.
+   */
+  objectStorageDriver: ((): "local" | "spaces" => {
+    const explicit = optionalEnv("OBJECT_STORAGE_DRIVER");
+    if (explicit === "local" || explicit === "spaces") return explicit;
+    return nodeEnv === "production" ? "spaces" : "local";
+  })(),
 
   geminiApiKey: requiredEnv("GEMINI_API_KEY"),
 

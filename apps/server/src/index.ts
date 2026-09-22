@@ -23,6 +23,9 @@ startRoomSessionSweepScheduler();
 const { websocket, idleTimeout, maxRequestBodySize } = engine.handler();
 
 logger.info(`Server listening at http://localhost:${config.port}`);
+if (config.objectStorageDriver === "local") {
+  logger.info("Object storage: local disk (.local-object-storage) — DigitalOcean Spaces bypassed");
+}
 
 export default {
   port: config.port,

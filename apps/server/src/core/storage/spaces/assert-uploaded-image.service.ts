@@ -8,6 +8,10 @@ import appConfig from "@/shared/config/config";
 import { NotFoundError, ValidationError } from "@/shared/errors";
 
 import {
+  assertLocalImageObjectAllowed,
+  isLocalObjectStorageEnabled,
+} from "../local";
+import {
   MAX_UPLOAD_BYTES,
   PROFILE_IMAGE_ALLOWED_CONTENT_TYPES,
 } from "./constants";
@@ -20,6 +24,11 @@ const ALLOWED = new Set<string>(PROFILE_IMAGE_ALLOWED_CONTENT_TYPES);
  * HeadObject and reject missing / oversized / wrong MIME objects.
  */
 export async function assertUploadedImageObjectAllowed(key: string): Promise<void> {
+  if (isLocalObjectStorageEnabled()) {
+    await assertLocalImageObjectAllowed(key);
+    return;
+  }
+
   if (!isSpacesStorageConfigured()) {
     throw new ValidationError("Object storage is not configured");
   }

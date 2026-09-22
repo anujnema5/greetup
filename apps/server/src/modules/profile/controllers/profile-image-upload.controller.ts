@@ -3,6 +3,7 @@ import type { Context } from "hono";
 import {
   ensureProfileImageUrlsArePublic,
   assertUploadedImageObjectAllowed,
+  parseLocalObjectKeyFromPublicUrl,
   parseSpacesObjectKeyFromPublicUrl,
   presignProfileImageUpload,
   verifyProfileImageKeyForUser,
@@ -85,7 +86,9 @@ export const handleEnsureProfilePhotoPublic = async (c: Context) => {
       );
     }
 
-    const key = parseSpacesObjectKeyFromPublicUrl(parsed.data.publicUrl);
+    const key =
+      parseLocalObjectKeyFromPublicUrl(parsed.data.publicUrl) ??
+      parseSpacesObjectKeyFromPublicUrl(parsed.data.publicUrl);
     if (!key || !verifyProfileImageKeyForUser(key, userId)) {
       return c.json(
         ApiResponse.error({
@@ -98,7 +101,9 @@ export const handleEnsureProfilePhotoPublic = async (c: Context) => {
     }
 
     await assertUploadedImageObjectAllowed(key);
-    await ensureProfileImageUrlsArePublic([parsed.data.publicUrl]);
+    if (!parseLocalObjectKeyFromPublicUrl(parsed.data.publicUrl)) {
+      await ensureProfileImageUrlsArePublic([parsed.data.publicUrl]);
+    }
 
     return c.json(ApiResponse.success({ ok: true }, "Profile image access updated", 200), 200);
   } catch (error: unknown) {
